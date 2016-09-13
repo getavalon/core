@@ -10,6 +10,22 @@ class CollectStarterInstances(api.ContextPlugin):
     Identifier:
         id (str): "pyblish.starter.instance"
 
+    Supported Families:
+        model: Geometric representation of artwork
+        rig: An articulated model for animators.
+            A rig may contain a series of sets in which to identify
+            its contents.
+
+            - cache_SEL: Should contain cachable polygonal meshes
+            - controls_SEL: Should contain animatable controllers for animators
+            - resources_SEL: Should contain nodes that reference external files
+
+            Limitations:
+                - Only Maya is supported
+                - One (1) rig per scene file
+                - Unmanaged history, it is up to the TD to ensure
+                    history is up to par.
+
     """
 
     label = "Collect instances"
@@ -21,19 +37,20 @@ class CollectStarterInstances(api.ContextPlugin):
 
         try:
             import pyblish_maya
-            assert pyblish_maya.was_setup()
+            assert pyblish_maya.is_setup()
 
         except (ImportError, AssertionError):
             raise RuntimeError("pyblish-starter requires pyblish-maya "
                                "to have been setup.")
 
         for objset in cmds.ls("*.id",
-                              long=True,          # Produce full names
-                              type="objectSet",   # Only consider objectSets
-                              recursive=True,     # Include namespace
-                              objectsOnly=True):  # Return objectSet, rather
-                                                  # than its members
+                              long=True,            # Produce full names
+                              type="objectSet",     # Only consider objectSets
+                              recursive=True,       # Include namespace
+                              objectsOnly=True):    # Return objectSet, rather
+                                                    # than its members
 
+            # print("cmds: %s" % cmds)
             if not cmds.objExists(objset + ".id"):
                 continue
 
@@ -45,7 +62,7 @@ class CollectStarterInstances(api.ContextPlugin):
             assert cmds.objExists(objset + ".family"), (
                 "\"%s\" was missing a family" % objset)
 
-            name = cmds.ls(objset, long=False)[0]  # Use short name for instances
+            name = cmds.ls(objset, long=False)[0]  # Use short name
             instance = context.create_instance(name)
             instance[:] = cmds.sets(objset, query=True) or list()
 
@@ -61,7 +78,7 @@ class CollectStarterInstances(api.ContextPlugin):
                     continue
 
                 instance.data[attr] = value
-            
+
             # Produce diagnostic message for any graphical
             # user interface interested in visualising it.
             self.log.info("Found: %s " % objset)

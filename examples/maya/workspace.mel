@@ -1,4 +1,4 @@
-//Maya 2016 Project Definition
+//Maya 2015 Project Definition
 
 workspace -fr "fluidCache" "cache/nCache/fluid";
 workspace -fr "images" "images";
@@ -13,17 +13,18 @@ workspace -fr "eps" "data";
 workspace -fr "DAE_FBX" "data";
 workspace -fr "shaders" "renderData/shaders";
 workspace -fr "3dPaintTextures" "sourceimages/3dPaintTextures";
-workspace -fr "translatorData" "data";
 workspace -fr "mel" "scripts";
+workspace -fr "translatorData" "data";
 workspace -fr "furFiles" "renderData/fur/furFiles";
 workspace -fr "OBJ" "data";
 workspace -fr "particles" "cache/particles";
 workspace -fr "scene" "scenes";
+workspace -fr "alembicCache" "cache/alembic";
 workspace -fr "FBX export" "data";
-workspace -fr "furEqualMap" "renderData/fur/furEqualMap";
 workspace -fr "sourceImages" "sourceimages";
-workspace -fr "furImages" "renderData/fur/furImages";
+workspace -fr "furEqualMap" "renderData/fur/furEqualMap";
 workspace -fr "clips" "clips";
+workspace -fr "furImages" "renderData/fur/furImages";
 workspace -fr "DAE_FBX export" "data";
 workspace -fr "depth" "renderData/depth";
 workspace -fr "movie" "movies";

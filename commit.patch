@@ -1,0 +1,1101 @@
+From 6265aafadc67ae95f463f50f261f4e6920b9c17d Mon Sep 17 00:00:00 2001
+From: mottosso <konstruktion@gmail.com>
+Date: Tue, 13 Sep 2016 13:12:26 +0100
+Subject: [PATCH] Fully functional, unoptimised, publishing pipeline
+
+---
+ examples/maya/scenes/animation.ma             |  198 ++++++++++++++++
+ examples/maya/scenes/model.ma                 |   64 ++----
+ examples/maya/scenes/rig.ma                   |  304 +++++++++++++++++++++++++
+ examples/maya/workspace.mel                   |    9 +-
+ pyblish_starter/plugins/collect_instances.py  |   33 ++-
+ pyblish_starter/plugins/extract_animation.py  |   55 ++++-
+ pyblish_starter/plugins/extract_model.py      |   11 +-
+ pyblish_starter/plugins/extract_rig.py        |   39 +++-
+ pyblish_starter/plugins/integrate_asset.py    |   46 ++---
+ pyblish_starter/plugins/validate_normals.py   |    1 -
+ pyblish_starter/plugins/validate_resources.py |   38 +++
+ 11 files changed, 701 insertions(+), 97 deletions(-)
+ create mode 100644 examples/maya/scenes/animation.ma
+ create mode 100644 examples/maya/scenes/rig.ma
+ create mode 100644 pyblish_starter/plugins/validate_resources.py
+
+diff --git a/examples/maya/scenes/animation.ma b/examples/maya/scenes/animation.ma
+new file mode 100644
+index 0000000..183466f
+--- /dev/null
++++ b/examples/maya/scenes/animation.ma
+@@ -0,0 +1,198 @@
++//Maya ASCII 2015 scene
++//Name: animation.ma
++//Last modified: Tue, Sep 13, 2016 01:05:33 PM
++//Codeset: ANSI_X3.4-1968
++file -rdi 1 -ns "cube_" -rfn "cube_RN" -op "v=0;" "public/cube_rig/v001/cube_rig.ma";
++file -r -ns "cube_" -dr 1 -rfn "cube_RN" -op "v=0;" "public/cube_rig/v001/cube_rig.ma";
++requires maya "2015";
++currentUnit -l centimeter -a degree -t film;
++fileInfo "application" "maya";
++fileInfo "product" "Maya 2015";
++fileInfo "version" "2015";
++fileInfo "cutIdentifier" "201410051530-933320";
++fileInfo "osv" "Linux 2.6.32-573.26.1.el6.framestore.1.x86_64 #1 SMP Wed May 25 14:18:04 BST 2016 x86_64";
++createNode transform -s -n "persp";
++	setAttr ".v" no;
++	setAttr ".t" -type "double3" 40.766209175115691 14.83409866977102 -10.037287400019965 ;
++	setAttr ".r" -type "double3" -13.538352729603846 102.59999999999908 0 ;
++createNode camera -s -n "perspShape" -p "persp";
++	setAttr -k off ".v" no;
++	setAttr ".fl" 34.999999999999993;
++	setAttr ".coi" 45.041731280854201;
++	setAttr ".imn" -type "string" "persp";
++	setAttr ".den" -type "string" "persp_depth";
++	setAttr ".man" -type "string" "persp_mask";
++	setAttr ".tp" -type "double3" 0 -6.1629758220391547e-33 1.1102230246251565e-16 ;
++	setAttr ".hc" -type "string" "viewSet -p %camera";
++createNode transform -s -n "top";
++	setAttr ".v" no;
++	setAttr ".t" -type "double3" 0 100.1 0 ;
++	setAttr ".r" -type "double3" -89.999999999999986 0 0 ;
++createNode camera -s -n "topShape" -p "top";
++	setAttr -k off ".v" no;
++	setAttr ".rnd" no;
++	setAttr ".coi" 100.1;
++	setAttr ".ow" 30;
++	setAttr ".imn" -type "string" "top";
++	setAttr ".den" -type "string" "top_depth";
++	setAttr ".man" -type "string" "top_mask";
++	setAttr ".hc" -type "string" "viewSet -t %camera";
++	setAttr ".o" yes;
++createNode transform -s -n "front";
++	setAttr ".v" no;
++	setAttr ".t" -type "double3" 1.5137322873829238 5.2438645265282373 100.26125818310602 ;
++createNode camera -s -n "frontShape" -p "front";
++	setAttr -k off ".v" no;
++	setAttr ".rnd" no;
++	setAttr ".coi" 100.1;
++	setAttr ".ow" 34.88464862287011;
++	setAttr ".imn" -type "string" "front";
++	setAttr ".den" -type "string" "front_depth";
++	setAttr ".man" -type "string" "front_mask";
++	setAttr ".hc" -type "string" "viewSet -f %camera";
++	setAttr ".o" yes;
++createNode transform -s -n "side";
++	setAttr ".v" no;
++	setAttr ".t" -type "double3" 100.54445502021487 4.1305469146738645 0.45425599910149073 ;
++	setAttr ".r" -type "double3" 0 89.999999999999986 0 ;
++createNode camera -s -n "sideShape" -p "side";
++	setAttr -k off ".v" no;
++	setAttr ".rnd" no;
++	setAttr ".coi" 100.1;
++	setAttr ".ow" 52.992073445300328;
++	setAttr ".imn" -type "string" "side";
++	setAttr ".den" -type "string" "side_depth";
++	setAttr ".man" -type "string" "side_mask";
++	setAttr ".hc" -type "string" "viewSet -s %camera";
++	setAttr ".o" yes;
++createNode lightLinker -s -n "lightLinker1";
++	setAttr -s 2 ".lnk";
++	setAttr -s 2 ".slnk";
++createNode displayLayerManager -n "layerManager";
++createNode displayLayer -n "defaultLayer";
++createNode renderLayerManager -n "renderLayerManager";
++createNode renderLayer -n "defaultRenderLayer";
++	setAttr ".g" yes;
++createNode reference -n "cube_RN";
++	setAttr ".fn[0]" -type "string" "/net/homes/mottosso/pythonpath/pyblish-starter/examples/maya//public/cube_rig/v001/cube_rig.ma";
++	setAttr -s 4 ".phl";
++	setAttr ".phl[1]" 0;
++	setAttr ".phl[2]" 0;
++	setAttr ".phl[3]" 0;
++	setAttr ".phl[4]" 0;
++	setAttr ".ed" -type "dataReferenceEdits" 
++		"cube_RN"
++		"cube_RN" 0
++		"cube_RN" 10
++		2 "|cube_:cubeRig_GRP|cube_:interface_GRP|cube_:controls_GRP|cube_:cube_CTL" 
++		"translate" " -type \"double3\" 0 6.33717334011733691 7.5573326724119454"
++		2 "|cube_:cubeRig_GRP|cube_:interface_GRP|cube_:controls_GRP|cube_:cube_CTL" 
++		"translateX" " -av"
++		2 "|cube_:cubeRig_GRP|cube_:interface_GRP|cube_:controls_GRP|cube_:cube_CTL" 
++		"translateY" " -av"
++		2 "|cube_:cubeRig_GRP|cube_:interface_GRP|cube_:controls_GRP|cube_:cube_CTL" 
++		"translateZ" " -av"
++		2 "|cube_:cubeRig_GRP|cube_:interface_GRP|cube_:controls_GRP|cube_:cube_CTL" 
++		"rotate" " -type \"double3\" 99.82323482881336929 0 0"
++		2 "|cube_:cubeRig_GRP|cube_:interface_GRP|cube_:controls_GRP|cube_:cube_CTL" 
++		"rotateX" " -av"
++		5 3 "cube_RN" "|cube_:cubeRig_GRP|cube_:implementation_GRP|cube_:geometry_GRP|cube_:cube_:cube.instObjGroups" 
++		"cube_RN.placeHolderList[1]" ""
++		5 4 "cube_RN" "|cube_:cubeRig_GRP|cube_:interface_GRP|cube_:controls_GRP|cube_:cube_CTL.translateY" 
++		"cube_RN.placeHolderList[2]" ""
++		5 4 "cube_RN" "|cube_:cubeRig_GRP|cube_:interface_GRP|cube_:controls_GRP|cube_:cube_CTL.translateZ" 
++		"cube_RN.placeHolderList[3]" ""
++		5 4 "cube_RN" "|cube_:cubeRig_GRP|cube_:interface_GRP|cube_:controls_GRP|cube_:cube_CTL.rotateX" 
++		"cube_RN.placeHolderList[4]" "";
++	setAttr ".ptag" -type "string" "";
++lockNode -l 1 ;
++createNode reference -n "sharedReferenceNode";
++	setAttr ".ed" -type "dataReferenceEdits" 
++		"sharedReferenceNode";
++createNode script -n "sceneConfigurationScriptNode";
++	setAttr ".b" -type "string" "playbackOptions -min 1001 -max 1050 -ast 1001 -aet 1100 ";
++	setAttr ".st" 6;
++createNode animCurveTL -n "cube_CTL_translateY";
++	setAttr ".tan" 1;
++	setAttr -s 10 ".ktv[0:9]"  1001 6.3371733401173369 1008 0.375 1013 2.9359668133970303
++		 1018 0.375 1022 1.4136560267540208 1026 0.375 1028 0.62650559154990937 1030 0.375 1032 0.43900362049565927
++		 1033.5 0.375;
++	setAttr -s 10 ".kit[6:9]"  9 1 9 1;
++	setAttr -s 10 ".kot[6:9]"  9 1 9 1;
++	setAttr -s 10 ".ktl[1:9]" no yes no yes no yes no yes yes;
++	setAttr -s 10 ".kwl[0:9]" no no no no no no no no yes no;
++	setAttr -s 10 ".kix[0:9]"  0.45474702119827271 0.13960769772529602 0.31559726595878601 0.13595488667488098 0.19397872686386108 0.1117759495973587 
++		0.083332061767578125 0.064086556434631348 0.083332061767578125 0.063580624759197235;
++	setAttr -s 10 ".kiy[0:9]"  0 -5.3310556411743164 0 -2.8011770248413086 0 -1.7134642601013184 0 -0.48432162404060364 0 -0.11398027837276459;
++	setAttr -s 10 ".kox[0:9]"  0.45474702119827271 0.1504673957824707 0.31559726595878601 0.15413115918636322 0.19397872686386108 0.062718600034713745 
++		0.08333587646484375 0.078495323657989502 0.0625 0.063580624759197235;
++	setAttr -s 10 ".koy[0:9]"  0 3.9815554618835449 0 2.408205509185791 0 0.5902896523475647 0 0.1651255190372467 0 -0.11398028582334518;
++createNode animCurveTL -n "cube_CTL_translateZ";
++	setAttr ".tan" 2;
++	setAttr -s 2 ".ktv[0:1]"  1001 7.5573326724119454 1039 -4.1271756277452045;
++	setAttr -s 2 ".kit[1]"  3;
++	setAttr -s 2 ".kot[1]"  3;
++createNode animCurveTA -n "cube_CTL_rotateX";
++	setAttr ".tan" 2;
++	setAttr -s 8 ".ktv[0:7]"  1001 99.823234828813369 1008 17.745802243679137 1018 -456.20626282527934
++		 1026 -178.77962316547689 1027 -205.38736334491207 1030 -184.12468477805703 1032 -186.5885701955707 1034 -177.34899987989465;
++	setAttr -s 8 ".kit[1:7]"  1 1 2 2 2 2 2;
++	setAttr -s 8 ".kot[1:7]"  1 1 2 2 2 2 2;
++	setAttr -s 8 ".kix[1:7]"  0.29166793823242188 0.41666793823242188 0.33333206176757812 0.041667938232421875 0.125 0.083332061767578125 
++		0.083332061767578125;
++	setAttr -s 8 ".kiy[1:7]"  -1.4325214624404907 -8.2720241546630859 4.842008113861084 -0.46439266204833984 0.37110376358032227 -0.043002914637327194 
++		0.16126091778278351;
++	setAttr -s 8 ".kox[1:7]"  0.41666793823242188 0.33333206176757812 0.041667938232421875 0.125 0.083332061767578125 0.083332061767578125 
++		1;
++	setAttr -s 8 ".koy[1:7]"  -8.2720670700073242 5.2021570205688477 -0.46439266204833984 0.37110376358032227 -0.043002914637327194 0.16126091778278351 
++		0;
++createNode objectSet -n "cube_animation";
++	addAttr -ci true -sn "id" -ln "id" -dt "string";
++	addAttr -ci true -sn "family" -ln "family" -dt "string";
++	setAttr ".ihi" 0;
++	setAttr -k on ".id" -type "string" "pyblish.starter.instance";
++	setAttr -k on ".family" -type "string" "starter.animation";
++select -ne :time1;
++	setAttr ".o" 1001;
++	setAttr ".unw" 1001;
++select -ne :renderPartition;
++	setAttr -s 2 ".st";
++select -ne :renderGlobalsList1;
++select -ne :defaultShaderList1;
++	setAttr -s 2 ".s";
++select -ne :postProcessList1;
++	setAttr -s 2 ".p";
++select -ne :defaultRenderingList1;
++select -ne :initialShadingGroup;
++	setAttr -s 3 ".dsm";
++	setAttr ".ro" yes;
++select -ne :initialParticleSE;
++	setAttr ".ro" yes;
++select -ne :defaultResolution;
++	setAttr ".pa" 1;
++select -ne :hardwareRenderGlobals;
++	setAttr ".ctrs" 256;
++	setAttr ".btrs" 512;
++select -ne :hardwareRenderingGlobals;
++	setAttr ".otfna" -type "stringArray" 22 "NURBS Curves" "NURBS Surfaces" "Polygons" "Subdiv Surface" "Particles" "Particle Instance" "Fluids" "Strokes" "Image Planes" "UI" "Lights" "Cameras" "Locators" "Joints" "IK Handles" "Deformers" "Motion Trails" "Components" "Hair Systems" "Follicles" "Misc. UI" "Ornaments"  ;
++	setAttr ".otfva" -type "Int32Array" 22 0 1 1 1 1 1
++		 1 1 1 0 0 0 0 0 0 0 0 0
++		 0 0 0 0 ;
++select -ne :defaultHardwareRenderGlobals;
++	setAttr ".res" -type "string" "ntsc_4d 646 485 1.333";
++connectAttr "cube_RN.phl[1]" "cube_animation.dsm" -na;
++connectAttr "cube_CTL_translateY.o" "cube_RN.phl[2]";
++connectAttr "cube_CTL_translateZ.o" "cube_RN.phl[3]";
++connectAttr "cube_CTL_rotateX.o" "cube_RN.phl[4]";
++relationship "link" ":lightLinker1" ":initialShadingGroup.message" ":defaultLightSet.message";
++relationship "link" ":lightLinker1" ":initialParticleSE.message" ":defaultLightSet.message";
++relationship "shadowLink" ":lightLinker1" ":initialShadingGroup.message" ":defaultLightSet.message";
++relationship "shadowLink" ":lightLinker1" ":initialParticleSE.message" ":defaultLightSet.message";
++connectAttr "layerManager.dli[0]" "defaultLayer.id";
++connectAttr "renderLayerManager.rlmi[0]" "defaultRenderLayer.rlid";
++connectAttr "sharedReferenceNode.sr" "cube_RN.sr";
++connectAttr "defaultRenderLayer.msg" ":defaultRenderingList1.r" -na;
++dataStructure -fmt "raw" -as "name=externalContentTable:string=node:string=key:string=upath:uint32=upathcrc:string=rpath:string=roles";
++applyMetadata -fmt "raw" -v "channel\nname externalContentTable\nstream\nname v1.0\nindexType numeric\nstructure externalContentTable\n0\n\"cube_RN\" \"\" \"public/cube_rig/v001/cube_rig.ma\" 2530859423 \"/net/homes/mottosso/pythonpath/pyblish-starter/examples/maya/public/cube_rig/v001/cube_rig.ma\" \"FileRef\"\nendStream\nendChannel\nendAssociations\n" 
++		-scn;
++// End of animation.ma
+diff --git a/examples/maya/scenes/model.ma b/examples/maya/scenes/model.ma
+index 047cdc0..e1a1e6d 100644
+--- a/examples/maya/scenes/model.ma
++++ b/examples/maya/scenes/model.ma
+@@ -1,22 +1,19 @@
+-//Maya ASCII 2016 scene
++//Maya ASCII 2015 scene
+ //Name: model.ma
+-//Last modified: Tue, Sep 13, 2016 07:57:17 AM
+-//Codeset: 1252
+-requires maya "2016";
+-requires "stereoCamera" "10.0";
++//Last modified: Tue, Sep 13, 2016 11:14:37 AM
++//Codeset: ANSI_X3.4-1968
++requires maya "2015";
+ currentUnit -l centimeter -a degree -t film;
+ fileInfo "application" "maya";
+-fileInfo "product" "Maya 2016";
+-fileInfo "version" "2016";
+-fileInfo "cutIdentifier" "201511301000-979500";
+-fileInfo "osv" "Microsoft Windows 8 Enterprise Edition, 64-bit  (Build 9200)\n";
++fileInfo "product" "Maya 2015";
++fileInfo "version" "2015";
++fileInfo "cutIdentifier" "201410051530-933320";
++fileInfo "osv" "Linux 2.6.32-573.26.1.el6.framestore.1.x86_64 #1 SMP Wed May 25 14:18:04 BST 2016 x86_64";
+ createNode transform -s -n "persp";
+-	rename -uid "127A2E37-4A84-A740-280D-A5BA9ABFE879";
+ 	setAttr ".v" no;
+ 	setAttr ".t" -type "double3" 4.7253841787214679 3.6176877377478283 6.1805459382995132 ;
+ 	setAttr ".r" -type "double3" -24.93835272960272 37.400000000000546 0 ;
+ createNode camera -s -n "perspShape" -p "persp";
+-	rename -uid "E5B195E6-42D0-3234-9B7E-3CB3F5779FD2";
+ 	setAttr -k off ".v" no;
+ 	setAttr ".fl" 34.999999999999986;
+ 	setAttr ".coi" 8.5799806701293395;
+@@ -25,12 +22,10 @@ createNode camera -s -n "perspShape" -p "persp";
+ 	setAttr ".man" -type "string" "persp_mask";
+ 	setAttr ".hc" -type "string" "viewSet -p %camera";
+ createNode transform -s -n "top";
+-	rename -uid "4FD9A162-4579-C098-8CED-9B8EC36EF235";
+ 	setAttr ".v" no;
+ 	setAttr ".t" -type "double3" 0 100.1 0 ;
+ 	setAttr ".r" -type "double3" -89.999999999999986 0 0 ;
+ createNode camera -s -n "topShape" -p "top";
+-	rename -uid "B2D2CC13-4025-51E1-D280-3AB51A3E86C3";
+ 	setAttr -k off ".v" no;
+ 	setAttr ".rnd" no;
+ 	setAttr ".coi" 100.1;
+@@ -41,11 +36,9 @@ createNode camera -s -n "topShape" -p "top";
+ 	setAttr ".hc" -type "string" "viewSet -t %camera";
+ 	setAttr ".o" yes;
+ createNode transform -s -n "front";
+-	rename -uid "C56F42E2-4751-3F87-A23E-7ABC99409401";
+ 	setAttr ".v" no;
+ 	setAttr ".t" -type "double3" 0 0 100.1 ;
+ createNode camera -s -n "frontShape" -p "front";
+-	rename -uid "A9A9B266-4BC5-D0E9-A38D-EBB067F39F40";
+ 	setAttr -k off ".v" no;
+ 	setAttr ".rnd" no;
+ 	setAttr ".coi" 100.1;
+@@ -56,12 +49,10 @@ createNode camera -s -n "frontShape" -p "front";
+ 	setAttr ".hc" -type "string" "viewSet -f %camera";
+ 	setAttr ".o" yes;
+ createNode transform -s -n "side";
+-	rename -uid "CDF2CC2B-4886-282A-A59E-3B8C9A9164D0";
+ 	setAttr ".v" no;
+ 	setAttr ".t" -type "double3" 100.1 0 0 ;
+ 	setAttr ".r" -type "double3" 0 89.999999999999986 0 ;
+ createNode camera -s -n "sideShape" -p "side";
+-	rename -uid "4E141B5E-4DF1-4810-B036-E497BD3D97A6";
+ 	setAttr -k off ".v" no;
+ 	setAttr ".rnd" no;
+ 	setAttr ".coi" 100.1;
+@@ -71,10 +62,8 @@ createNode camera -s -n "sideShape" -p "side";
+ 	setAttr ".man" -type "string" "side_mask";
+ 	setAttr ".hc" -type "string" "viewSet -s %camera";
+ 	setAttr ".o" yes;
+-createNode transform -n "pCube1";
+-	rename -uid "3E414D69-4880-2675-D10C-ED9C4E10FC5E";
+-createNode mesh -n "pCubeShape1" -p "pCube1";
+-	rename -uid "22DE1D1D-4BDB-EC20-7D21-9F892655B316";
++createNode transform -n "cube";
++createNode mesh -n "cubeShape" -p "cube";
+ 	setAttr -k off ".v";
+ 	setAttr ".vir" yes;
+ 	setAttr ".vif" yes;
+@@ -85,52 +74,37 @@ createNode mesh -n "pCubeShape1" -p "pCube1";
+ 	setAttr ".cdvm[0]"  0 1 1;
+ 	setAttr ".vbc" no;
+ createNode lightLinker -s -n "lightLinker1";
+-	rename -uid "FEE5CBA6-4E01-0DC5-F3B1-3C9CA6BEDBA2";
+ 	setAttr -s 2 ".lnk";
+ 	setAttr -s 2 ".slnk";
+ createNode displayLayerManager -n "layerManager";
+-	rename -uid "4F44FE8B-4265-3A06-0445-F68600A84A39";
+ createNode displayLayer -n "defaultLayer";
+-	rename -uid "8B6DB15A-4347-38FE-458B-02BD2C137674";
+ createNode renderLayerManager -n "renderLayerManager";
+-	rename -uid "C06F75AF-4F8A-4F77-EEB0-E68756710BC6";
+ createNode renderLayer -n "defaultRenderLayer";
+-	rename -uid "2B000101-4CE7-25EA-DCAE-1AA2D4080720";
+ 	setAttr ".g" yes;
+ createNode polyCube -n "polyCube1";
+-	rename -uid "F7F7C56E-472A-8286-74F3-2FB7D534BFC9";
+ 	setAttr ".cuv" 4;
+-createNode objectSet -n "MyAsset";
+-	rename -uid "9D899E5E-403D-2464-0E57-E6BEFCE5780C";
++createNode objectSet -n "cube_model";
+ 	addAttr -ci true -sn "id" -ln "id" -dt "string";
+ 	addAttr -ci true -sn "family" -ln "family" -dt "string";
+ 	setAttr ".ihi" 0;
+ 	setAttr -k on ".id" -type "string" "pyblish.starter.instance";
+ 	setAttr -k on ".family" -type "string" "starter.model";
+ createNode script -n "sceneConfigurationScriptNode";
+-	rename -uid "D56EA851-4955-CE59-D5C4-22B117C7CC56";
+ 	setAttr ".b" -type "string" "playbackOptions -min 1 -max 24 -ast 1 -aet 48 ";
+ 	setAttr ".st" 6;
+ createNode nodeGraphEditorInfo -n "MayaNodeEditorSavedTabsInfo";
+-	rename -uid "4FFFAA01-4A64-2108-01A7-A89A21501895";
+-	setAttr ".pee" yes;
++	setAttr ".pee" 1;
+ 	setAttr ".tgi[0].tn" -type "string" "Untitled_1";
+ 	setAttr ".tgi[0].vl" -type "double2" -329.76189165834455 -127.38094731928832 ;
+ 	setAttr ".tgi[0].vh" -type "double2" 484.52379027056401 234.52380020467101 ;
+ select -ne :time1;
+ 	setAttr ".o" 1;
+ 	setAttr ".unw" 1;
+-select -ne :hardwareRenderingGlobals;
+-	setAttr ".otfna" -type "stringArray" 22 "NURBS Curves" "NURBS Surfaces" "Polygons" "Subdiv Surface" "Particles" "Particle Instance" "Fluids" "Strokes" "Image Planes" "UI" "Lights" "Cameras" "Locators" "Joints" "IK Handles" "Deformers" "Motion Trails" "Components" "Hair Systems" "Follicles" "Misc. UI" "Ornaments"  ;
+-	setAttr ".otfva" -type "Int32Array" 22 0 1 1 1 1 1
+-		 1 1 1 0 0 0 0 0 0 0 0 0
+-		 0 0 0 0 ;
+-	setAttr ".fprt" yes;
+ select -ne :renderPartition;
+ 	setAttr -s 2 ".st";
+ select -ne :renderGlobalsList1;
+ select -ne :defaultShaderList1;
+-	setAttr -s 4 ".s";
++	setAttr -s 2 ".s";
+ select -ne :postProcessList1;
+ 	setAttr -s 2 ".p";
+ select -ne :defaultRenderingList1;
+@@ -143,14 +117,20 @@ select -ne :defaultResolution;
+ select -ne :hardwareRenderGlobals;
+ 	setAttr ".ctrs" 256;
+ 	setAttr ".btrs" 512;
+-connectAttr "polyCube1.out" "pCubeShape1.i";
++select -ne :hardwareRenderingGlobals;
++	setAttr ".otfna" -type "stringArray" 22 "NURBS Curves" "NURBS Surfaces" "Polygons" "Subdiv Surface" "Particles" "Particle Instance" "Fluids" "Strokes" "Image Planes" "UI" "Lights" "Cameras" "Locators" "Joints" "IK Handles" "Deformers" "Motion Trails" "Components" "Hair Systems" "Follicles" "Misc. UI" "Ornaments"  ;
++	setAttr ".otfva" -type "Int32Array" 22 0 1 1 1 1 1
++		 1 1 1 0 0 0 0 0 0 0 0 0
++		 0 0 0 0 ;
++	setAttr ".fprt" yes;
++connectAttr "polyCube1.out" "cubeShape.i";
+ relationship "link" ":lightLinker1" ":initialShadingGroup.message" ":defaultLightSet.message";
+ relationship "link" ":lightLinker1" ":initialParticleSE.message" ":defaultLightSet.message";
+ relationship "shadowLink" ":lightLinker1" ":initialShadingGroup.message" ":defaultLightSet.message";
+ relationship "shadowLink" ":lightLinker1" ":initialParticleSE.message" ":defaultLightSet.message";
+ connectAttr "layerManager.dli[0]" "defaultLayer.id";
+ connectAttr "renderLayerManager.rlmi[0]" "defaultRenderLayer.rlid";
+-connectAttr "pCube1.iog" "MyAsset.dsm" -na;
++connectAttr "cube.iog" "cube_model.dsm" -na;
+ connectAttr "defaultRenderLayer.msg" ":defaultRenderingList1.r" -na;
+-connectAttr "pCubeShape1.iog" ":initialShadingGroup.dsm" -na;
++connectAttr "cubeShape.iog" ":initialShadingGroup.dsm" -na;
+ // End of model.ma
+diff --git a/examples/maya/scenes/rig.ma b/examples/maya/scenes/rig.ma
+new file mode 100644
+index 0000000..040e549
+--- /dev/null
++++ b/examples/maya/scenes/rig.ma
+@@ -0,0 +1,304 @@
++//Maya ASCII 2015 scene
++//Name: rig.ma
++//Last modified: Tue, Sep 13, 2016 11:56:45 AM
++//Codeset: ANSI_X3.4-1968
++file -rdi 1 -ns "cube_" -rfn "cube_RN" -op "v=0;" "public/cube_model/v001/cube_model.ma";
++file -r -ns "cube_" -dr 1 -rfn "cube_RN" -op "v=0;" "public/cube_model/v001/cube_model.ma";
++requires maya "2015";
++requires -nodeType "decomposeMatrix" "matrixNodes" "1.0";
++currentUnit -l centimeter -a degree -t film;
++fileInfo "application" "maya";
++fileInfo "product" "Maya 2015";
++fileInfo "version" "2015";
++fileInfo "cutIdentifier" "201410051530-933320";
++fileInfo "osv" "Linux 2.6.32-573.26.1.el6.framestore.1.x86_64 #1 SMP Wed May 25 14:18:04 BST 2016 x86_64";
++createNode transform -s -n "persp";
++	setAttr ".v" no;
++	setAttr ".t" -type "double3" -4.1343189370034663 3.8977280562389716 4.3554100016240138 ;
++	setAttr ".r" -type "double3" -32.738352729604081 -42.20000000000033 0 ;
++createNode camera -s -n "perspShape" -p "persp";
++	setAttr -k off ".v" no;
++	setAttr ".fl" 34.999999999999986;
++	setAttr ".coi" 7.2681786797171855;
++	setAttr ".imn" -type "string" "persp";
++	setAttr ".den" -type "string" "persp_depth";
++	setAttr ".man" -type "string" "persp_mask";
++	setAttr ".hc" -type "string" "viewSet -p %camera";
++createNode transform -s -n "top";
++	setAttr ".v" no;
++	setAttr ".t" -type "double3" 0 100.1 0 ;
++	setAttr ".r" -type "double3" -89.999999999999986 0 0 ;
++createNode camera -s -n "topShape" -p "top";
++	setAttr -k off ".v" no;
++	setAttr ".rnd" no;
++	setAttr ".coi" 100.1;
++	setAttr ".ow" 30;
++	setAttr ".imn" -type "string" "top";
++	setAttr ".den" -type "string" "top_depth";
++	setAttr ".man" -type "string" "top_mask";
++	setAttr ".hc" -type "string" "viewSet -t %camera";
++	setAttr ".o" yes;
++createNode transform -s -n "front";
++	setAttr ".v" no;
++	setAttr ".t" -type "double3" 0 0 100.1 ;
++createNode camera -s -n "frontShape" -p "front";
++	setAttr -k off ".v" no;
++	setAttr ".rnd" no;
++	setAttr ".coi" 100.1;
++	setAttr ".ow" 30;
++	setAttr ".imn" -type "string" "front";
++	setAttr ".den" -type "string" "front_depth";
++	setAttr ".man" -type "string" "front_mask";
++	setAttr ".hc" -type "string" "viewSet -f %camera";
++	setAttr ".o" yes;
++createNode transform -s -n "side";
++	setAttr ".v" no;
++	setAttr ".t" -type "double3" 100.1 0 0 ;
++	setAttr ".r" -type "double3" 0 89.999999999999986 0 ;
++createNode camera -s -n "sideShape" -p "side";
++	setAttr -k off ".v" no;
++	setAttr ".rnd" no;
++	setAttr ".coi" 100.1;
++	setAttr ".ow" 30;
++	setAttr ".imn" -type "string" "side";
++	setAttr ".den" -type "string" "side_depth";
++	setAttr ".man" -type "string" "side_mask";
++	setAttr ".hc" -type "string" "viewSet -s %camera";
++	setAttr ".o" yes;
++createNode transform -n "cubeRig_GRP";
++createNode transform -n "implementation_GRP" -p "cubeRig_GRP";
++	setAttr ".v" no;
++createNode transform -n "geometry_GRP" -p "implementation_GRP";
++createNode transform -n "skeleton_GRP" -p "implementation_GRP";
++createNode joint -n "joint1" -p "skeleton_GRP";
++	addAttr -ci true -sn "liw" -ln "lockInfluenceWeights" -min 0 -max 1 -at "bool";
++	setAttr ".v" no;
++	setAttr ".uoc" 1;
++	setAttr ".mnrl" -type "double3" -360 -360 -360 ;
++	setAttr ".mxrl" -type "double3" 360 360 360 ;
++	setAttr ".bps" -type "matrix" 1 0 0 0 0 1 0 0
++		 0 0 1 0 0 0 0 1;
++	setAttr ".radi" 0.5;
++createNode transform -n "interface_GRP" -p "cubeRig_GRP";
++createNode transform -n "controls_GRP" -p "interface_GRP";
++createNode transform -n "cube_CTL" -p "controls_GRP";
++createNode nurbsCurve -n "cube_CTLShape" -p "cube_CTL";
++	setAttr -k off ".v";
++	setAttr ".ove" yes;
++	setAttr ".ovc" 17;
++	setAttr ".tw" yes;
++createNode transform -n "preview_GRP" -p "interface_GRP";
++createNode transform -n "cube_PLY" -p "preview_GRP";
++createNode mesh -n "cubeShapeDeformed" -p "cube_PLY";
++	setAttr -k off ".v";
++	setAttr ".vir" yes;
++	setAttr ".vif" yes;
++	setAttr ".uvst[0].uvsn" -type "string" "map1";
++	setAttr ".cuvs" -type "string" "map1";
++	setAttr ".dcc" -type "string" "Ambient+Diffuse";
++	setAttr ".covm[0]"  0 1 1;
++	setAttr ".cdvm[0]"  0 1 1;
++createNode fosterParent -n "cube_RNfosterParent1";
++createNode mesh -n "cubeShapeDeformed" -p "cube_RNfosterParent1";
++	setAttr -k off ".v";
++	setAttr -s 2 ".iog[0].og";
++	setAttr ".vir" yes;
++	setAttr ".vif" yes;
++	setAttr ".uvst[0].uvsn" -type "string" "map1";
++	setAttr ".cuvs" -type "string" "map1";
++	setAttr ".dcc" -type "string" "Ambient+Diffuse";
++	setAttr ".covm[0]"  0 1 1;
++	setAttr ".cdvm[0]"  0 1 1;
++	setAttr ".vbc" no;
++createNode lightLinker -s -n "lightLinker1";
++	setAttr -s 2 ".lnk";
++	setAttr -s 2 ".slnk";
++createNode displayLayerManager -n "layerManager";
++createNode displayLayer -n "defaultLayer";
++createNode renderLayerManager -n "renderLayerManager";
++createNode renderLayer -n "defaultRenderLayer";
++	setAttr ".g" yes;
++createNode script -n "sceneConfigurationScriptNode";
++	setAttr ".b" -type "string" "playbackOptions -min 1 -max 24 -ast 1 -aet 48 ";
++	setAttr ".st" 6;
++createNode nodeGraphEditorInfo -n "MayaNodeEditorSavedTabsInfo";
++	setAttr ".pee" 1;
++	setAttr ".tgi[0].tn" -type "string" "Untitled_1";
++	setAttr ".tgi[0].vl" -type "double2" -329.76189165834455 -127.38094731928832 ;
++	setAttr ".tgi[0].vh" -type "double2" 484.52379027056401 234.52380020467101 ;
++createNode reference -n "cube_RN";
++	setAttr ".fn[0]" -type "string" "/net/homes/mottosso/pythonpath/pyblish-starter/examples/maya//public/cube_model/v001/cube_model.ma";
++	setAttr -s 2 ".phl";
++	setAttr ".phl[1]" 0;
++	setAttr ".phl[2]" 0;
++	setAttr ".ed" -type "dataReferenceEdits" 
++		"cube_RN"
++		"cube_RN" 0
++		"cube_RN" 15
++		0 "|cube_:cube" "|cubeRig_GRP|implementation_GRP|geometry_GRP" "-s -r "
++		0 "|cube_RNfosterParent1|cubeShapeDeformed" "|cubeRig_GRP|implementation_GRP|geometry_GRP|cube_:cube" 
++		"-s -r "
++		2 "|cubeRig_GRP|implementation_GRP|geometry_GRP|cube_:cube|cube_:cubeShape" 
++		"intermediateObject" " 1"
++		2 "|cubeRig_GRP|implementation_GRP|geometry_GRP|cube_:cube|cube_:cubeShape" 
++		"vertexColorSource" " 2"
++		5 3 "cube_RN" "|cubeRig_GRP|implementation_GRP|geometry_GRP|cube_:cube.instObjGroups" 
++		"cube_RN.placeHolderList[1]" ""
++		5 3 "cube_RN" "|cubeRig_GRP|implementation_GRP|geometry_GRP|cube_:cube|cube_:cubeShape.worldMesh" 
++		"cube_RN.placeHolderList[2]" ""
++		8 "|cubeRig_GRP|implementation_GRP|geometry_GRP|cube_:cube" "translateX"
++		8 "|cubeRig_GRP|implementation_GRP|geometry_GRP|cube_:cube" "translateY"
++		8 "|cubeRig_GRP|implementation_GRP|geometry_GRP|cube_:cube" "translateZ"
++		8 "|cubeRig_GRP|implementation_GRP|geometry_GRP|cube_:cube" "rotateX"
++		8 "|cubeRig_GRP|implementation_GRP|geometry_GRP|cube_:cube" "rotateY"
++		8 "|cubeRig_GRP|implementation_GRP|geometry_GRP|cube_:cube" "rotateZ"
++		8 "|cubeRig_GRP|implementation_GRP|geometry_GRP|cube_:cube" "scaleX"
++		8 "|cubeRig_GRP|implementation_GRP|geometry_GRP|cube_:cube" "scaleY"
++		8 "|cubeRig_GRP|implementation_GRP|geometry_GRP|cube_:cube" "scaleZ";
++	setAttr ".ptag" -type "string" "";
++lockNode -l 1 ;
++createNode skinCluster -n "skinCluster1";
++	setAttr -s 8 ".wl";
++	setAttr ".wl[0].w[0]"  1;
++	setAttr ".wl[1].w[0]"  1;
++	setAttr ".wl[2].w[0]"  1;
++	setAttr ".wl[3].w[0]"  1;
++	setAttr ".wl[4].w[0]"  1;
++	setAttr ".wl[5].w[0]"  1;
++	setAttr ".wl[6].w[0]"  1;
++	setAttr ".wl[7].w[0]"  1;
++	setAttr ".pm[0]" -type "matrix" 1 0 0 0 0 1 0 0
++		 0 0 1 0 0 0 0 1;
++	setAttr ".gm" -type "matrix" 1 0 0 0 0 1 0 0
++		 0 0 1 0 0 0 0 1;
++	setAttr ".dpf[0]"  4;
++	setAttr ".mmi" yes;
++	setAttr ".mi" 5;
++	setAttr ".ucm" yes;
++createNode objectSet -n "skinCluster1Set";
++	setAttr ".ihi" 0;
++	setAttr ".vo" yes;
++createNode groupId -n "skinCluster1GroupId";
++	setAttr ".ihi" 0;
++createNode groupParts -n "skinCluster1GroupParts";
++	setAttr ".ihi" 0;
++	setAttr ".ic" -type "componentList" 1 "vtx[*]";
++createNode dagPose -n "bindPose1";
++	setAttr -s 2 ".wm";
++	setAttr ".wm[0]" -type "matrix" 1 0 0 0 0 1 0 0
++		 0 0 1 0 0 0 0 1;
++	setAttr -s 2 ".xm";
++	setAttr ".xm[0]" -type "matrix" "xform" 1 1 1 0 0 0 0 0
++		 0 0 0 0 0 0 0 0 0 0 0 0
++		 0 0 0 0 0 0 0 0 1 0 0 0 1 1
++		 1 1 yes;
++	setAttr ".xm[1]" -type "matrix" "xform" 1 1 1 0 0 0 0 0
++		 0 0 0 0 0 0 0 0 0 0 0 0
++		 0 0 0 0 0 0 0 0 1 0 0 0 1 1
++		 1 1 yes;
++	setAttr -s 2 ".m";
++	setAttr -s 2 ".p";
++	setAttr -s 2 ".g[0:1]" yes no;
++	setAttr ".bp" yes;
++createNode makeNurbCircle -n "makeNurbCircle1";
++	setAttr ".nr" -type "double3" 0 1 0 ;
++createNode decomposeMatrix -n "nurbsCircle1_decompose";
++	setAttr ".os" -type "double3" 1 1 1 ;
++createNode objectSet -n "cache_SEL";
++	setAttr ".ihi" 0;
++createNode objectSet -n "controls_SEL";
++	setAttr ".ihi" 0;
++createNode objectSet -n "cube_rig";
++	addAttr -ci true -sn "id" -ln "id" -dt "string";
++	addAttr -ci true -sn "family" -ln "family" -dt "string";
++	setAttr ".ihi" 0;
++	setAttr -s 3 ".dnsm";
++	setAttr -k on ".id" -type "string" "pyblish.starter.instance";
++	setAttr -k on ".family" -type "string" "starter.rig";
++createNode reference -n "sharedReferenceNode";
++	setAttr ".ed" -type "dataReferenceEdits" 
++		"sharedReferenceNode";
++createNode objectSet -n "resources_SEL";
++	setAttr ".ihi" 0;
++select -ne :time1;
++	setAttr ".o" 1;
++	setAttr ".unw" 1;
++select -ne :renderPartition;
++	setAttr -s 2 ".st";
++select -ne :renderGlobalsList1;
++select -ne :defaultShaderList1;
++	setAttr -s 2 ".s";
++select -ne :postProcessList1;
++	setAttr -s 2 ".p";
++select -ne :defaultRenderingList1;
++select -ne :initialShadingGroup;
++	setAttr -s 3 ".dsm";
++	setAttr ".ro" yes;
++select -ne :initialParticleSE;
++	setAttr ".ro" yes;
++select -ne :defaultResolution;
++	setAttr ".pa" 1;
++select -ne :hardwareRenderGlobals;
++	setAttr ".ctrs" 256;
++	setAttr ".btrs" 512;
++select -ne :hardwareRenderingGlobals;
++	setAttr ".otfna" -type "stringArray" 22 "NURBS Curves" "NURBS Surfaces" "Polygons" "Subdiv Surface" "Particles" "Particle Instance" "Fluids" "Strokes" "Image Planes" "UI" "Lights" "Cameras" "Locators" "Joints" "IK Handles" "Deformers" "Motion Trails" "Components" "Hair Systems" "Follicles" "Misc. UI" "Ornaments"  ;
++	setAttr ".otfva" -type "Int32Array" 22 0 1 1 1 1 1
++		 1 1 1 0 0 0 0 0 0 0 0 0
++		 0 0 0 0 ;
++	setAttr ".fprt" yes;
++select -ne :ikSystem;
++	setAttr -s 4 ".sol";
++connectAttr "cube_RN.phl[1]" "cache_SEL.dsm" -na;
++connectAttr "cube_RN.phl[2]" "skinCluster1GroupParts.ig";
++connectAttr "nurbsCircle1_decompose.ot" "joint1.t";
++connectAttr "nurbsCircle1_decompose.or" "joint1.r";
++connectAttr "nurbsCircle1_decompose.os" "joint1.s";
++connectAttr "makeNurbCircle1.oc" "cube_CTLShape.cr";
++connectAttr "|cube_RNfosterParent1|cubeShapeDeformed.o" "|cubeRig_GRP|interface_GRP|preview_GRP|cube_PLY|cubeShapeDeformed.i"
++		;
++connectAttr "skinCluster1GroupId.id" "|cube_RNfosterParent1|cubeShapeDeformed.iog.og[0].gid"
++		;
++connectAttr "skinCluster1Set.mwc" "|cube_RNfosterParent1|cubeShapeDeformed.iog.og[0].gco"
++		;
++connectAttr "skinCluster1.og[0]" "|cube_RNfosterParent1|cubeShapeDeformed.i";
++relationship "link" ":lightLinker1" ":initialShadingGroup.message" ":defaultLightSet.message";
++relationship "link" ":lightLinker1" ":initialParticleSE.message" ":defaultLightSet.message";
++relationship "shadowLink" ":lightLinker1" ":initialShadingGroup.message" ":defaultLightSet.message";
++relationship "shadowLink" ":lightLinker1" ":initialParticleSE.message" ":defaultLightSet.message";
++connectAttr "layerManager.dli[0]" "defaultLayer.id";
++connectAttr "renderLayerManager.rlmi[0]" "defaultRenderLayer.rlid";
++connectAttr "cube_RNfosterParent1.msg" "cube_RN.fp";
++connectAttr "sharedReferenceNode.sr" "cube_RN.sr";
++connectAttr "skinCluster1GroupParts.og" "skinCluster1.ip[0].ig";
++connectAttr "skinCluster1GroupId.id" "skinCluster1.ip[0].gi";
++connectAttr "bindPose1.msg" "skinCluster1.bp";
++connectAttr "joint1.wm" "skinCluster1.ma[0]";
++connectAttr "joint1.liw" "skinCluster1.lw[0]";
++connectAttr "joint1.obcc" "skinCluster1.ifcl[0]";
++connectAttr "skinCluster1GroupId.msg" "skinCluster1Set.gn" -na;
++connectAttr "|cube_RNfosterParent1|cubeShapeDeformed.iog.og[0]" "skinCluster1Set.dsm"
++		 -na;
++connectAttr "skinCluster1.msg" "skinCluster1Set.ub[0]";
++connectAttr "skinCluster1GroupId.id" "skinCluster1GroupParts.gi";
++connectAttr "cubeRig_GRP.msg" "bindPose1.m[0]";
++connectAttr "joint1.msg" "bindPose1.m[1]";
++connectAttr "bindPose1.w" "bindPose1.p[0]";
++connectAttr "bindPose1.m[0]" "bindPose1.p[1]";
++connectAttr "joint1.bps" "bindPose1.wm[1]";
++connectAttr "cube_CTL.wm" "nurbsCircle1_decompose.imat";
++connectAttr "cube_CTL.iog" "controls_SEL.dsm" -na;
++connectAttr "cubeRig_GRP.iog" "cube_rig.dsm" -na;
++connectAttr "cache_SEL.msg" "cube_rig.dnsm" -na;
++connectAttr "controls_SEL.msg" "cube_rig.dnsm" -na;
++connectAttr "resources_SEL.msg" "cube_rig.dnsm" -na;
++connectAttr "cube_RN.msg" "resources_SEL.dnsm" -na;
++connectAttr "defaultRenderLayer.msg" ":defaultRenderingList1.r" -na;
++connectAttr "|cube_RNfosterParent1|cubeShapeDeformed.iog" ":initialShadingGroup.dsm"
++		 -na;
++connectAttr "|cubeRig_GRP|interface_GRP|preview_GRP|cube_PLY|cubeShapeDeformed.iog" ":initialShadingGroup.dsm"
++		 -na;
++dataStructure -fmt "raw" -as "name=externalContentTable:string=node:string=key:string=upath:uint32=upathcrc:string=rpath:string=roles";
++applyMetadata -fmt "raw" -v "channel\nname externalContentTable\nstream\nname v1.0\nindexType numeric\nstructure externalContentTable\n0\n\"cube_RN\" \"\" \"public/cube_model/v001/cube_model.ma\" 3218790889 \"/net/homes/mottosso/pythonpath/pyblish-starter/examples/maya/public/cube_model/v001/cube_model.ma\" \"FileRef\"\nendStream\nendChannel\nendAssociations\n" 
++		-scn;
++// End of rig.ma
+diff --git a/examples/maya/workspace.mel b/examples/maya/workspace.mel
+index d30cc42..9b77ce1 100644
+--- a/examples/maya/workspace.mel
++++ b/examples/maya/workspace.mel
+@@ -1,4 +1,4 @@
+-//Maya 2016 Project Definition
++//Maya 2015 Project Definition
+ 
+ workspace -fr "fluidCache" "cache/nCache/fluid";
+ workspace -fr "images" "images";
+@@ -13,17 +13,18 @@ workspace -fr "eps" "data";
+ workspace -fr "DAE_FBX" "data";
+ workspace -fr "shaders" "renderData/shaders";
+ workspace -fr "3dPaintTextures" "sourceimages/3dPaintTextures";
+-workspace -fr "translatorData" "data";
+ workspace -fr "mel" "scripts";
++workspace -fr "translatorData" "data";
+ workspace -fr "furFiles" "renderData/fur/furFiles";
+ workspace -fr "OBJ" "data";
+ workspace -fr "particles" "cache/particles";
+ workspace -fr "scene" "scenes";
++workspace -fr "alembicCache" "cache/alembic";
+ workspace -fr "FBX export" "data";
+-workspace -fr "furEqualMap" "renderData/fur/furEqualMap";
+ workspace -fr "sourceImages" "sourceimages";
+-workspace -fr "furImages" "renderData/fur/furImages";
++workspace -fr "furEqualMap" "renderData/fur/furEqualMap";
+ workspace -fr "clips" "clips";
++workspace -fr "furImages" "renderData/fur/furImages";
+ workspace -fr "DAE_FBX export" "data";
+ workspace -fr "depth" "renderData/depth";
+ workspace -fr "movie" "movies";
+diff --git a/pyblish_starter/plugins/collect_instances.py b/pyblish_starter/plugins/collect_instances.py
+index c8d9c4b..a7a9c6a 100644
+--- a/pyblish_starter/plugins/collect_instances.py
++++ b/pyblish_starter/plugins/collect_instances.py
+@@ -10,6 +10,22 @@ class CollectStarterInstances(api.ContextPlugin):
+     Identifier:
+         id (str): "pyblish.starter.instance"
+ 
++    Supported Families:
++        model: Geometric representation of artwork
++        rig: An articulated model for animators.
++            A rig may contain a series of sets in which to identify
++            its contents.
++
++            - cache_SEL: Should contain cachable polygonal meshes
++            - controls_SEL: Should contain animatable controllers for animators
++            - resources_SEL: Should contain nodes that reference external files
++
++            Limitations:
++                - Only Maya is supported
++                - One (1) rig per scene file
++                - Unmanaged history, it is up to the TD to ensure
++                    history is up to par.
++
+     """
+ 
+     label = "Collect instances"
+@@ -21,19 +37,20 @@ class CollectStarterInstances(api.ContextPlugin):
+ 
+         try:
+             import pyblish_maya
+-            assert pyblish_maya.was_setup()
++            assert pyblish_maya.is_setup()
+ 
+         except (ImportError, AssertionError):
+             raise RuntimeError("pyblish-starter requires pyblish-maya "
+                                "to have been setup.")
+ 
+         for objset in cmds.ls("*.id",
+-                              long=True,          # Produce full names
+-                              type="objectSet",   # Only consider objectSets
+-                              recursive=True,     # Include namespace
+-                              objectsOnly=True):  # Return objectSet, rather
+-                                                  # than its members
++                              long=True,            # Produce full names
++                              type="objectSet",     # Only consider objectSets
++                              recursive=True,       # Include namespace
++                              objectsOnly=True):    # Return objectSet, rather
++                                                    # than its members
+ 
++            # print("cmds: %s" % cmds)
+             if not cmds.objExists(objset + ".id"):
+                 continue
+ 
+@@ -45,7 +62,7 @@ class CollectStarterInstances(api.ContextPlugin):
+             assert cmds.objExists(objset + ".family"), (
+                 "\"%s\" was missing a family" % objset)
+ 
+-            name = cmds.ls(objset, long=False)[0]  # Use short name for instances
++            name = cmds.ls(objset, long=False)[0]  # Use short name
+             instance = context.create_instance(name)
+             instance[:] = cmds.sets(objset, query=True) or list()
+ 
+@@ -61,7 +78,7 @@ class CollectStarterInstances(api.ContextPlugin):
+                     continue
+ 
+                 instance.data[attr] = value
+-            
++
+             # Produce diagnostic message for any graphical
+             # user interface interested in visualising it.
+             self.log.info("Found: %s " % objset)
+diff --git a/pyblish_starter/plugins/extract_animation.py b/pyblish_starter/plugins/extract_animation.py
+index 0202544..49f3039 100644
+--- a/pyblish_starter/plugins/extract_animation.py
++++ b/pyblish_starter/plugins/extract_animation.py
+@@ -1,11 +1,18 @@
++import os
++import datetime
++
++from maya import cmds, mel
+ from pyblish import api
+ 
+ 
+ class ExtractStarterAnimation(api.InstancePlugin):
+-    """Produce an alembic of just point positions.
+-    
+-    Positions and normals are preserved, but nothing more.
+-    This keeps caches plain and predictable.
++    """Produce an alembic of just point positions and normals.
++
++    Positions and normals are preserved, but nothing more,
++    for plain and predictable point caches.
++
++    Limitations:
++        - Framerange is bound to current maximum range in Maya
+ 
+     """
+ 
+@@ -15,4 +22,42 @@ class ExtractStarterAnimation(api.InstancePlugin):
+     families = ["starter.animation"]
+ 
+     def process(self, instance):
+-        pass
++        self.log.debug("Loading plug-in..")
++        cmds.loadPlugin("AbcExport.mll", quiet=True)
++
++        self.log.info("Extracting Alembic..")
++        root = instance.context.data["workspaceDir"]
++        time = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
++        dirname = os.path.join(root, "private", time, str(instance))
++        filename = "%s.abc" % instance
++
++        try:
++            os.makedirs(dirname)
++        except OSError:
++            pass
++
++        options = {
++            "file": os.path.join(dirname, filename).replace("\\", "/"),
++            "frameRange": "{startFrame} {endFrame}".format(
++                startFrame=cmds.playbackOptions(query=True, ast=True),
++                endFrame=cmds.playbackOptions(query=True, aet=True)),
++            "uvWrite": "",  # Value-less flag
++        }
++
++        options.update(dict(("root", mesh) for mesh in instance))
++
++        # Generate MEL command
++        mel_args = list()
++        for key, value in options.items():
++            mel_args.append("-{0} {1}".format(key, value))
++
++        mel_args_string = " ".join(mel_args)
++        mel_cmd = "AbcExport -j \"{0}\"".format(mel_args_string)
++
++        self.log.debug("Running MEL command: \"%s\"" % mel_cmd)
++        mel.eval(mel_cmd)
++
++        # Store reference for integration
++        instance.data["privateDir"] = dirname
++
++        self.log.info("Extracted {instance} to {dirname}".format(**locals()))
+diff --git a/pyblish_starter/plugins/extract_model.py b/pyblish_starter/plugins/extract_model.py
+index 7ee71dd..e240bac 100644
+--- a/pyblish_starter/plugins/extract_model.py
++++ b/pyblish_starter/plugins/extract_model.py
+@@ -10,18 +10,21 @@ class ExtractStarterModel(api.InstancePlugin):
+ 
+     """
+ 
+-    label = "Extract model"
++    label = "Extract starter model"
+     order = api.ExtractorOrder
+     hosts = ["maya"]
+     families = ["starter.model"]
+ 
+     def process(self, instance):
+         import os
++        import datetime
++
+         from maya import cmds
+         from pyblish_maya import maintained_selection
+ 
+         root = instance.context.data["workspaceDir"]
+-        dirname = os.path.join(root, "private", instance)
++        time = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
++        dirname = os.path.join(root, "private", time, str(instance))
+         filename = "%s.ma" % instance
+ 
+         try:
+@@ -40,9 +43,9 @@ class ExtractStarterModel(api.InstancePlugin):
+                       typ="mayaAscii",
+                       exportSelected=True,
+                       preserveReferences=False,
+-                      constructionHistory=True)
++                      constructionHistory=False)
+ 
+         # Store reference for integration
+         instance.data["privateDir"] = dirname
+ 
+-        self.log.info("Extracted {instance} to {path}".format(**locals()))
+\ No newline at end of file
++        self.log.info("Extracted {instance} to {path}".format(**locals()))
+diff --git a/pyblish_starter/plugins/extract_rig.py b/pyblish_starter/plugins/extract_rig.py
+index b131e3a..accc1b1 100644
+--- a/pyblish_starter/plugins/extract_rig.py
++++ b/pyblish_starter/plugins/extract_rig.py
+@@ -3,11 +3,14 @@ from pyblish import api
+ 
+ class ExtractStarterRig(api.InstancePlugin):
+     """Produce Maya file compatible with referencing
+-    
++
+     Rigs come in many flavours. This plug-in carefully only excludes
+     nodes explicitly stated as excluded, bundles and resolves external
+     references to the scene.
+ 
++    Limits:
++        - 1 rig per scene file
++
+     """
+ 
+     label = "Extract rig"
+@@ -16,4 +19,36 @@ class ExtractStarterRig(api.InstancePlugin):
+     families = ["starter.rig"]
+ 
+     def process(self, instance):
+-        pass
++        import os
++        import datetime
++
++        from maya import cmds
++        from pyblish_maya import maintained_selection
++
++        root = instance.context.data["workspaceDir"]
++        time = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
++        dirname = os.path.join(root, "private", time, str(instance))
++        filename = "%s.ma" % instance
++
++        try:
++            os.makedirs(dirname)
++        except OSError:
++            pass
++
++        path = os.path.join(dirname, filename)
++
++        # Perform extraction
++        self.log.info("Performing extraction..")
++        with maintained_selection():
++            cmds.select(instance, noExpand=True)
++            cmds.file(path,
++                      force=True,
++                      typ="mayaAscii",
++                      exportSelected=True,
++                      preserveReferences=False,
++                      constructionHistory=True)
++
++        # Store reference for integration
++        instance.data["privateDir"] = dirname
++
++        self.log.info("Extracted {instance} to {path}".format(**locals()))
+diff --git a/pyblish_starter/plugins/integrate_asset.py b/pyblish_starter/plugins/integrate_asset.py
+index 53a2b74..fb3a202 100644
+--- a/pyblish_starter/plugins/integrate_asset.py
++++ b/pyblish_starter/plugins/integrate_asset.py
+@@ -1,48 +1,32 @@
+ from pyblish import api
+ 
+ 
+-class IntegrateStarterAsset(api.ContextPlugin):
++class IntegrateStarterAsset(api.InstancePlugin):
+     label = "Integrate asset"
+     order = api.IntegratorOrder
+ 
+-    def process(self, context):
++    def process(self, instance):
+         import os
+         import shutil
+ 
+-        root = context.data["workspaceDir"]
+-        dirname = os.path.join(root, "public")
++        privatedir = instance.data.get("privateDir")
++        assert privatedir, (
++            "Incomplete instance \"%s\": "
++            "Missing reference to private directory."
++            % instance)
++
++        root = instance.context.data["workspaceDir"]
++        instancedir = os.path.join(root, "public", str(instance))
+ 
+         try:
+-            os.makedirs(dirname)
++            os.makedirs(instancedir)
+         except OSError:
+             pass
+ 
+-        versions = len(os.listdir(dirname))
++        versions = len(os.listdir(instancedir))
+         next_version = "v%03d" % (versions + 1)
+-        versiondir = os.path.join(dirname, next_version)
+-
+-        atomic = True
+-
+-        for instance in context:
+-            privatedir = instance.data.get("privateDir")
+-
+-            if not privatedir:
+-                self.log.warning("Incomplete extraction of \"%s\", "
+-                                 "missing reference to private directory"
+-                                 % instance)
+-                atomic = False
+-                continue
+-
+-
+-
+-            shutil.copytree(privatedir, versiondir)
+-
+-            self.log.info("Successfully integrated %s" % instance)
+-
+-        # Indicate that this integration was complete - i.e. atomic.
+-        assert atomic, "Integration incomplete."
++        versiondir = os.path.join(instancedir, next_version)
+ 
+-        atomicname = os.path.join(versiondir, ".complete")
+-        open(atomicname, "a").close()
++        shutil.copytree(privatedir, versiondir)
+ 
+-        self.log.info("Integration completed successfully.")
++        self.log.info("Successfully integrated %s" % instance)
+diff --git a/pyblish_starter/plugins/validate_normals.py b/pyblish_starter/plugins/validate_normals.py
+index 7907b06..c90b749 100644
+--- a/pyblish_starter/plugins/validate_normals.py
++++ b/pyblish_starter/plugins/validate_normals.py
+@@ -33,4 +33,3 @@ class ValidateStarterNormals(api.InstancePlugin):
+             "Meshes found with locked normals: %s" % invalid)
+ 
+         self.log.info("The normals of \"%s\" are correct." % instance)
+- 
+\ No newline at end of file
+diff --git a/pyblish_starter/plugins/validate_resources.py b/pyblish_starter/plugins/validate_resources.py
+new file mode 100644
+index 0000000..3ba3942
+--- /dev/null
++++ b/pyblish_starter/plugins/validate_resources.py
+@@ -0,0 +1,38 @@
++from pyblish import api
++
++
++class ValidateResources(api.InstancePlugin):
++    """Resources must not contain absolute paths.
++
++    When working with external files, such as textures and references,
++    it's important to ensure that the published content is able to
++    reference these paths without relying on the environment at the
++    time of publish.
++
++    """
++
++    label = "Validate resources"
++    order = api.ValidatorOrder
++    hosts = ["maya"]
++    families = ["starter.model", "starter.rig"]
++
++    def process(self, instance):
++        import os
++        from maya import cmds
++
++        if "resources_SEL" not in instance:
++            return
++
++        absolute = dict()
++        for resource in cmds.sets("resources_SEL", query=True):
++            if cmds.nodeType(resource) == "reference":
++                filename = cmds.referenceQuery(resource,
++                                               filename=True,
++                                               unresolvedName=True)
++                if os.path.isabs(filename):
++                    absolute[resource] = filename
++
++        assert not absolute, (
++            "Some resources were absolute: " +
++            ", ".join(absolute)
++        )
+-- 
+1.7.1
+

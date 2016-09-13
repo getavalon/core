@@ -1,48 +1,32 @@
 from pyblish import api
 
 
-class IntegrateStarterAsset(api.ContextPlugin):
+class IntegrateStarterAsset(api.InstancePlugin):
     label = "Integrate asset"
     order = api.IntegratorOrder
 
-    def process(self, context):
+    def process(self, instance):
         import os
         import shutil
 
-        root = context.data["workspaceDir"]
-        dirname = os.path.join(root, "public")
+        privatedir = instance.data.get("privateDir")
+        assert privatedir, (
+            "Incomplete instance \"%s\": "
+            "Missing reference to private directory."
+            % instance)
+
+        root = instance.context.data["workspaceDir"]
+        instancedir = os.path.join(root, "public", str(instance))
 
         try:
-            os.makedirs(dirname)
+            os.makedirs(instancedir)
         except OSError:
             pass
 
-        versions = len(os.listdir(dirname))
+        versions = len(os.listdir(instancedir))
         next_version = "v%03d" % (versions + 1)
-        versiondir = os.path.join(dirname, next_version)
+        versiondir = os.path.join(instancedir, next_version)
 
-        atomic = True
+        shutil.copytree(privatedir, versiondir)
 
-        for instance in context:
-            privatedir = instance.data.get("privateDir")
-
-            if not privatedir:
-                self.log.warning("Incomplete extraction of \"%s\", "
-                                 "missing reference to private directory"
-                                 % instance)
-                atomic = False
-                continue
-
-
-
-            shutil.copytree(privatedir, versiondir)
-
-            self.log.info("Successfully integrated %s" % instance)
-
-        # Indicate that this integration was complete - i.e. atomic.
-        assert atomic, "Integration incomplete."
-
-        atomicname = os.path.join(versiondir, ".complete")
-        open(atomicname, "a").close()
-
-        self.log.info("Integration completed successfully.")
+        self.log.info("Successfully integrated %s" % instance)

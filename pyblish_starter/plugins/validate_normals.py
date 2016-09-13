@@ -33,4 +33,3 @@ class ValidateStarterNormals(api.InstancePlugin):
             "Meshes found with locked normals: %s" % invalid)
 
         self.log.info("The normals of \"%s\" are correct." % instance)
- 

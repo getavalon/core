@@ -10,18 +10,21 @@ class ExtractStarterModel(api.InstancePlugin):
 
     """
 
-    label = "Extract model"
+    label = "Extract starter model"
     order = api.ExtractorOrder
     hosts = ["maya"]
     families = ["starter.model"]
 
     def process(self, instance):
         import os
+        import datetime
+
         from maya import cmds
         from pyblish_maya import maintained_selection
 
         root = instance.context.data["workspaceDir"]
-        dirname = os.path.join(root, "private", instance)
+        time = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
+        dirname = os.path.join(root, "private", time, str(instance))
         filename = "%s.ma" % instance
 
         try:
@@ -40,7 +43,7 @@ class ExtractStarterModel(api.InstancePlugin):
                       typ="mayaAscii",
                       exportSelected=True,
                       preserveReferences=False,
-                      constructionHistory=True)
+                      constructionHistory=False)
 
         # Store reference for integration
         instance.data["privateDir"] = dirname
