@@ -1,4 +1,5 @@
 from pyblish import api
+import pyblish_starter as starter
 
 
 class ExtractStarterModel(api.InstancePlugin):
@@ -17,20 +18,19 @@ class ExtractStarterModel(api.InstancePlugin):
 
     def process(self, instance):
         import os
-        import datetime
-
         from maya import cmds
         from pyblish_maya import maintained_selection
 
-        root = instance.context.data["workspaceDir"]
-        time = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
-        dirname = os.path.join(root, "private", time, str(instance))
-        filename = "%s.ma" % instance
+        dirname = starter.format_private_dir(
+            root=instance.context.data["workspaceDir"],
+            name=instance.data["name"])
 
         try:
             os.makedirs(dirname)
         except OSError:
             pass
+
+        filename = "%s.ma" % instance
 
         path = os.path.join(dirname, filename)
 

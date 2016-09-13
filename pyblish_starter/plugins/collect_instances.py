@@ -26,6 +26,13 @@ class CollectStarterInstances(api.ContextPlugin):
                 - Unmanaged history, it is up to the TD to ensure
                     history is up to par.
 
+    Limitations:
+        - Does not take into account nodes connected to those
+            within an objectSet. Extractors are assumed to export
+            with history preserved, but this limits what they will
+            be able to achieve and the amount of data available
+            to validators.
+
     """
 
     label = "Collect instances"

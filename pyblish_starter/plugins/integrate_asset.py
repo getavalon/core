@@ -2,6 +2,13 @@ from pyblish import api
 
 
 class IntegrateStarterAsset(api.InstancePlugin):
+    """Publicise each instance
+
+    Limitations:
+        - Limited to publishing within a single Maya project
+
+    """
+
     label = "Integrate asset"
     order = api.IntegratorOrder
 
