@@ -11,8 +11,8 @@ class CollectStarterInstances(api.ContextPlugin):
         id (str): "pyblish.starter.instance"
 
     Supported Families:
-        model: Geometric representation of artwork
-        rig: An articulated model for animators.
+        starter.model: Geometric representation of artwork
+        starter.rig: An articulated model for animators.
             A rig may contain a series of sets in which to identify
             its contents.
 
@@ -25,6 +25,7 @@ class CollectStarterInstances(api.ContextPlugin):
                 - One (1) rig per scene file
                 - Unmanaged history, it is up to the TD to ensure
                     history is up to par.
+        starter.animation: Pointcache of `starter.rig`
 
     Limitations:
         - Does not take into account nodes connected to those
