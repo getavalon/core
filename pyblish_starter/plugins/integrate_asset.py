@@ -36,4 +36,5 @@ class IntegrateStarterAsset(api.InstancePlugin):
 
         shutil.copytree(privatedir, versiondir)
 
-        self.log.info("Successfully integrated %s" % instance)
+        self.log.info("Successfully integrated %s to %s" % (
+            instance, versiondir))
