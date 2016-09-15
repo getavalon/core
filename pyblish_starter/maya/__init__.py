@@ -6,6 +6,7 @@ from .lib import (
     hierarchy_from_string,
     outmesh,
     load,
+    setup,
 )
 
 
@@ -14,4 +15,5 @@ __all__ = [
     "hierarchy_from_string",
     "outmesh",
     "load",
+    "setup",
 ]

@@ -2,6 +2,33 @@ import os
 from maya import cmds
 
 
+def setup():
+    from ..tools import instance_creator
+
+    instance_creator.register_default({
+        "key": "id",
+        "value": "pyblish.starter.instance"
+    })
+
+    instance_creator.register_default({"key": "label", "value": "{name}"})
+    instance_creator.register_default({"key": "family", "value": "{family}"})
+
+    instance_creator.register_family({
+        "name": "starter.model",
+        "help": "Polygonal geometry for animation"
+    })
+
+    instance_creator.register_family({
+        "name": "starter.rig",
+        "help": "Character rig"
+    })
+
+    instance_creator.register_family({
+        "name": "starter.animation",
+        "help": "Pointcache"
+    })
+
+
 def hierarchy_from_string(hierarchy):
     parents = {}
 

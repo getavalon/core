@@ -14,7 +14,10 @@ Jumpstart your publishing pipeline with a basic configuration.
 <br>
 <br>
 
-### Assumptions
+### Limitations
+
+- Doesn't illustrate cross-application features of Pyblish
+- Sandboxed publishing
 
 <br>
 <br>
