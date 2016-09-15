@@ -230,10 +230,6 @@ Build upon the model from the previous example to produce a rig.
 ```python
 import os
 from maya import cmds
-import pyblish_starter.maya
-import pyblish_starter.maya.lib
-reload(pyblish_starter.maya.lib)
-reload(pyblish_starter.maya)
 from pyblish_starter.maya import (
     hierarchy_from_string,
     outmesh,
