@@ -5,7 +5,8 @@ from .pipeline import (
     time,
     format_private_dir,
 )
-	
+
+
 def register_plugins():
     # Register accompanying plugins
     from . import plugins
@@ -14,7 +15,7 @@ def register_plugins():
 
 
 def setup():
-	register_plugins()
+    register_plugins()
 
 
 __all__ = [

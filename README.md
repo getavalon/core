@@ -7,6 +7,18 @@ Jumpstart your publishing pipeline with a basic configuration.
 <br>
 <br>
 
+### Prerequisities
+
+- Maya
+
+<br>
+<br>
+
+### Assumptions
+
+<br>
+<br>
+
 ### Features
 
 - Asset definition template
@@ -183,12 +195,15 @@ pyblish_starter.setup()
 
 ##### Modeling
 
+Create a new model from scratch and publish it.
+
 ```python
 from maya import cmds
 
 cmds.file(new=True, force=True)
 
 cmds.polyCube(name="Paul")
+cmds.group(name="model")
 instance = cmds.sets(name="Paul_model")
 
 data = {
@@ -208,29 +223,33 @@ util.publish()
 
 ##### Rigging
 
+Build upon the model from the previous example to produce a rig.
+
 ```python
 import os
 from maya import cmds
-from pyblish_starter.maya import hierarchy_from_string
+import pyblish_starter.maya
+import pyblish_starter.maya.lib
+reload(pyblish_starter.maya.lib)
+reload(pyblish_starter.maya)
+from pyblish_starter.maya import (
+    hierarchy_from_string,
+    outmesh,
+    load
+)
 
 cmds.file(new=True, force=True)
 
-asset = os.path.join(
-    "public",
-    "Paul_model",
-    "v001",
-    "Paul_model.ma"
-)
-
 # Load external asset
-cmds.file(asset, reference=True, namespace="model_")
-reference = cmds.file(asset, query=True, referenceNode=True)
-nodes = cmds.referenceQuery(reference, nodes=True)
-geometry = cmds.ls(nodes, assemblies=True)
+input_ = load("Paul_model", version=1, namespace="Paul_")
+model_assembly = cmds.listRelatives(input_[0], children=True)[0]
+model_geometry = outmesh(cmds.listRelatives(
+    model_assembly, shapes=True)[0], name="Model")
 
-hierarchy_from_string("""\
+assembly = hierarchy_from_string("""\
 rig
     implementation
+        input
         geometry
         skeleton
     interface
@@ -238,22 +257,63 @@ rig
         preview
 """)
 
-# Build
+# Rig
 control = cmds.circle(name="Control")[0]
 skeleton = cmds.joint(name="Skeleton")
-preview = cmds.createNode("mesh")
-cmds.connectAttr(geometry[0] + ".outMesh", preview + ".inMesh")
-preview = cmds.listRelatives(preview, parent=True)[0]
-preview = cmds.rename(preview, "preview")
+preview = outmesh(model, name="Preview")
+cmds.skinCluster(model, skeleton)
+cmds.parentConstraint(control, skeleton)
+
+# Sets
+sets = list()
+sets.append(cmds.sets(control, name="all_controls"))
+sets.append(cmds.sets(model, name="all_cachable"))
+sets.append(cmds.sets(reference, name="all_resources"))
 
 # Organise
+cmds.parent(input_, "input")
 cmds.parent(control, "controls")
 cmds.parent(skeleton, "skeleton")
-cmds.parent(geometry, "geometry")
+cmds.parent(model, "geometry")
 cmds.parent(preview, "interface|preview")
+cmds.setAttr(control + ".overrideEnabled", True)
+cmds.setAttr(control + ".overrideColor", 18)
+cmds.hide("implementation")
+cmds.select(deselect=True)
 
-# Setup
-...
+# Create instance
+instance = cmds.sets([assembly] + sets, name="Paul_rig")
+
+data = {
+    "id": "pyblish.starter.instance",
+    "family": "starter.rig"
+}
+
+for key, value in data.items():
+    cmds.addAttr(instance, longName=key, dataType="string")
+    cmds.setAttr(instance + "." + key, value, type="string")
+
+from pyblish import util
+#util.publish()
+```
+
+<br>
+
+##### Animation
+
+Build upon the previous example by referencing and producing an animation from the rig.
+
+```python
+from maya import cmds
+from pyblish_starter.maya import (
+    load
+)
+
+cmds.file(new=True, force=True)
+
+# Load external asset
+rig = load("Paul_rig", version=1, namespace="Paul01_")[0]
+
 ```
 
 <br>

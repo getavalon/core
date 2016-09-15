@@ -2,6 +2,16 @@ from maya import mel
 
 
 def export_alembic(nodes, file, frame_range=(1, 100), uv_write=True):
+    """Wrap native MEL command with limited set of arguments
+
+    Arguments:
+        nodes (list): Long names of nodes to cache
+        file (str): Absolute path to output destination
+        frame_range (tuple): Start- and end-frame of cache
+        uv_write (bool): Whether or not to include UVs
+
+    """
+
     options = [
         ("file", file),
         ("frameRange", "%s %s" % frame_range),
