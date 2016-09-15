@@ -79,7 +79,7 @@ A generic representation of geometry.
 
 **Requirements**
 
-- Static geometry (no deformers, generators)
+- Static geometry (no deformers, generators) `*`
 - One shape per transform `*`
 - Zero transforms and pivots `*`
 - No intermediate shapes `*`
@@ -89,8 +89,6 @@ A generic representation of geometry.
 - No edges with zero length `*`
 - No faces with zero area `*`
 - No self-intersections `*`
-
-> `*` = Todo
 
 **Data**
 
@@ -163,6 +161,7 @@ Point positions and normals represented as one Alembic file.
 | **Requirements**    | What is expected of this asset before it passes the tests?
 | **Data**            | End-user configurable options
 | **Sets**            | Collection of specific items for publishing or use further down the pipeline.
+| `*`                 | Todo
 
 <br>
 <br>
