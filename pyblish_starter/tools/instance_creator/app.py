@@ -3,8 +3,7 @@ import contextlib
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ...maya.lib import create
-
-import lib
+from ... import _registered_families
 
 
 self = sys.modules[__name__]
@@ -113,8 +112,9 @@ class Window(QtWidgets.QDialog):
     def refresh(self):
         listing = self.findChild(QtWidgets.QWidget, "Listing")
 
-        if lib.families:
-            for family in sorted(lib.families, key=lambda i: i["name"]):
+        if _registered_families:
+            for family in sorted(_registered_families,
+                                 key=lambda i: i["name"]):
                 item = QtWidgets.QListWidgetItem(family["name"])
                 item.setData(QtCore.Qt.ItemIsEnabled, True)
                 item.setData(QtCore.Qt.UserRole + 2, family.get("help"))

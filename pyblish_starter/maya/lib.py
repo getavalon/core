@@ -1,30 +1,36 @@
 import os
 import re
+
 from maya import cmds
+
+from ..pipeline import (
+    register_default,
+    register_family,
+    _defaults,
+    _families,
+)
 
 
 def setup():
-    from ..tools import instance_creator
-
-    instance_creator.register_default({
+    register_default({
         "key": "id",
         "value": "pyblish.starter.instance"
     })
 
-    instance_creator.register_default({"key": "label", "value": "{name}"})
-    instance_creator.register_default({"key": "family", "value": "{family}"})
+    register_default({"key": "label", "value": "{name}"})
+    register_default({"key": "family", "value": "{family}"})
 
-    instance_creator.register_family({
+    register_family({
         "name": "starter.model",
         "help": "Polygonal geometry for animation"
     })
 
-    instance_creator.register_family({
+    register_family({
         "name": "starter.rig",
         "help": "Character rig"
     })
 
-    instance_creator.register_family({
+    register_family({
         "name": "starter.animation",
         "help": "Pointcache"
     })
@@ -149,7 +155,68 @@ def load(asset, version=-1, namespace=None):
         asset + ".ma"
     )
 
-    return cmds.file(fname,
-                     namespace=namespace,
-                     reference=True,
-                     referenceNode=True)
+    nodes = cmds.file(fname,
+                      namespace=namespace,
+                      reference=True)
+
+    return cmds.referenceQuery(nodes, referenceNode=True)
+
+
+def create(name, family, use_selection=False):
+    """Create new instance
+
+    Arguments:
+        family (str): Name of family
+        use_selection (bool): Use selection to create this instance?
+
+    """
+
+    try:
+        item = next(i for i in _families if i["name"] == family)
+    except:
+        raise RuntimeError("{0} is not a valid family".format(family))
+
+    attrs = _defaults + item.get("attributes", [])
+
+    if not use_selection:
+        cmds.select(deselect=True)
+
+    instance = "%s_instance" % name
+
+    if cmds.objExists(instance):
+        raise NameError("\"%s\" already exists." % instance)
+
+    instance = cmds.sets(name=instance)
+
+    for item in attrs:
+        key = item["key"]
+
+        try:
+            value = item["value"].format(
+                name=name,
+                family=family
+            )
+        except KeyError as e:
+            raise KeyError("Invalid dynamic property: %s" % e)
+
+        if isinstance(value, bool):
+            add_type = {"attributeType": "bool"}
+            set_type = {"keyable": False, "channelBox": True}
+        elif isinstance(value, basestring):
+            add_type = {"dataType": "string"}
+            set_type = {"type": "string"}
+        elif isinstance(value, int):
+            add_type = {"attributeType": "long"}
+            set_type = {"keyable": False, "channelBox": True}
+        elif isinstance(value, float):
+            add_type = {"attributeType": "double"}
+            set_type = {"keyable": False, "channelBox": True}
+        else:
+            raise TypeError("Unsupported type: %r" % type(value))
+
+        cmds.addAttr(instance, ln=key, **add_type)
+        cmds.setAttr(instance + "." + key, value, **set_type)
+
+    cmds.select(instance, noExpand=True)
+
+    return instance

@@ -1,276 +1,531 @@
-From 8a1584e009d683de23051725cb588bbf3fe54332 Mon Sep 17 00:00:00 2001
+From 0613bd9b4ec3a5f30e8ece59df8e484b69f03e18 Mon Sep 17 00:00:00 2001
 From: mottosso <konstruktion@gmail.com>
-Date: Tue, 13 Sep 2016 18:11:05 +0100
-Subject: [PATCH] Refactor parts of plug-ins into Python package
+Date: Fri, 16 Sep 2016 16:17:40 +0100
+Subject: [PATCH] Release candidate for example
 
 ---
- pyblish_starter/__init__.py                  |   10 ++++++
- pyblish_starter/maya/__init__.py             |    6 +++
- pyblish_starter/maya/cache.py                |   21 ++++++++++++
- pyblish_starter/pipeline.py                  |   11 ++++++
- pyblish_starter/plugins/collect_instances.py |    7 ++++
- pyblish_starter/plugins/extract_animation.py |   44 +++++++++----------------
- pyblish_starter/plugins/extract_model.py     |   12 +++---
- pyblish_starter/plugins/extract_rig.py       |   11 +++---
- pyblish_starter/plugins/integrate_asset.py   |    7 ++++
- 9 files changed, 90 insertions(+), 39 deletions(-)
- create mode 100644 pyblish_starter/__init__.py
- create mode 100644 pyblish_starter/maya/__init__.py
- create mode 100644 pyblish_starter/maya/cache.py
- create mode 100644 pyblish_starter/pipeline.py
+ README.md                                     |   22 ++++-
+ pyblish_starter/__init__.py                   |   26 +++---
+ pyblish_starter/maya/cache.py                 |   16 +++-
+ pyblish_starter/maya/lib.py                   |   91 +++++++++++++++++---
+ pyblish_starter/pipeline.py                   |   67 ++++++++++++++
+ pyblish_starter/plugins/extract_animation.py  |    1 +
+ pyblish_starter/tools/instance_creator/app.py |    8 +-
+ pyblish_starter/tools/instance_creator/lib.py |  117 -------------------------
+ pyblish_starter/vendor/Qt.py                  |    4 +-
+ 9 files changed, 195 insertions(+), 157 deletions(-)
+ delete mode 100644 pyblish_starter/tools/instance_creator/lib.py
 
-diff --git a/pyblish_starter/__init__.py b/pyblish_starter/__init__.py
-new file mode 100644
-index 0000000..dbe5468
---- /dev/null
-+++ b/pyblish_starter/__init__.py
-@@ -0,0 +1,10 @@
-+
-+from .pipeline import (
-+    time,
-+    private_dir,
-+)
-+
-+__all__ = [
-+    "time",
-+    "private_dir",
-+]
-diff --git a/pyblish_starter/maya/__init__.py b/pyblish_starter/maya/__init__.py
-new file mode 100644
-index 0000000..85ddd3c
---- /dev/null
-+++ b/pyblish_starter/maya/__init__.py
-@@ -0,0 +1,6 @@
-+from .cache import export_alembic
-+
-+
-+__all__ = [
-+    "export_alembic"
-+]
-diff --git a/pyblish_starter/maya/cache.py b/pyblish_starter/maya/cache.py
-new file mode 100644
-index 0000000..17e01c9
---- /dev/null
-+++ b/pyblish_starter/maya/cache.py
-@@ -0,0 +1,21 @@
-+from maya import mel
-+
-+
-+def export_alembic(nodes, file, frame_range=(1, 100), uv_write=True):
-+    options = [
-+        ("file", file),
-+        ("frameRange", "%s %s" % frame_range),
-+    ] + [("root", mesh) for mesh in nodes]
-+
-+    if uv_write:
-+        options.append(("uvWrite", ""))
-+
-+    # Generate MEL command
-+    mel_args = list()
-+    for key, value in options:
-+        mel_args.append("-{0} {1}".format(key, value))
-+
-+    mel_args_string = " ".join(mel_args)
-+    mel_cmd = "AbcExport -j \"{0}\"".format(mel_args_string)
-+
-+    return mel.eval(mel_cmd)
-diff --git a/pyblish_starter/pipeline.py b/pyblish_starter/pipeline.py
-new file mode 100644
-index 0000000..1f32e8c
---- /dev/null
-+++ b/pyblish_starter/pipeline.py
-@@ -0,0 +1,11 @@
-+import os
-+import datetime
-+
-+
-+def time():
-+    return datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
-+
-+
-+def format_private_dir(root, name):
-+    dirname = os.path.join(root, "private", time(), name)
-+    return dirname
-diff --git a/pyblish_starter/plugins/collect_instances.py b/pyblish_starter/plugins/collect_instances.py
-index a7a9c6a..47c103d 100644
---- a/pyblish_starter/plugins/collect_instances.py
-+++ b/pyblish_starter/plugins/collect_instances.py
-@@ -26,6 +26,13 @@ class CollectStarterInstances(api.ContextPlugin):
-                 - Unmanaged history, it is up to the TD to ensure
-                     history is up to par.
+diff --git a/README.md b/README.md
+index d9ff192..06bccd8 100644
+--- a/README.md
++++ b/README.md
+@@ -318,14 +318,13 @@ from pyblish_starter.maya import (
+ )
  
-+    Limitations:
-+        - Does not take into account nodes connected to those
-+            within an objectSet. Extractors are assumed to export
-+            with history preserved, but this limits what they will
-+            be able to achieve and the amount of data available
-+            to validators.
+ cmds.file(new=True, force=True)
++cmds.playbackOptions(animationStartTime=1001, maxTime=1050)
+ 
+ # Load external asset
+ reference = load("Paul_rig", namespace="Paul01_")
+ nodes = cmds.referenceQuery(reference, nodes=True)
+ 
+ # Animate
+-cmds.playbackOptions(minTime=1001, maxTime=1050)
+-
+ all_controls = next(ctrl for ctrl in nodes if "all_controls" in ctrl)
+ control = cmds.sets(all_controls, query=True)[0]
+ 
+@@ -343,8 +342,23 @@ for time, value in keys:
+                      inTangentType="flat",
+                      outTangentType="flat")
+ 
+-# Publish
+-...
++# Create instance
++all_cachable = next(ctrl for ctrl in nodes if "all_cachable" in ctrl)
++cmds.select(cmds.sets(all_cachable, query=True))
 +
++instance = cmds.sets(name="Paul_animation")
++
++data = {
++    "id": "pyblish.starter.instance",
++    "family": "starter.animation"
++}
++
++for key, value in data.items():
++    cmds.addAttr(instance, longName=key, dataType="string")
++    cmds.setAttr(instance + "." + key, value, type="string")
++
++from pyblish import util
++util.publish()
+ ```
+ 
+ <br>
+diff --git a/pyblish_starter/__init__.py b/pyblish_starter/__init__.py
+index 29da4c8..ebbdf16 100644
+--- a/pyblish_starter/__init__.py
++++ b/pyblish_starter/__init__.py
+@@ -1,21 +1,15 @@
+-import os
+-import pyblish.api
+-
+ from .pipeline import (
+-    time,
+-    format_private_dir,
+-)
+-
++    setup,
++    register_plugins,
+ 
+-def register_plugins():
+-    # Register accompanying plugins
+-    from . import plugins
+-    plugin_path = os.path.dirname(plugins.__file__)
+-    pyblish.api.register_plugin_path(plugin_path)
+ 
++    # Internal
++    time,# as _time,
++    format_private_dir,# as _format_private_dir,
+ 
+-def setup():
+-    register_plugins()
++    _families,
++    _defaults
++)
+ 
+ 
+ __all__ = [
+@@ -23,4 +17,8 @@ __all__ = [
+     "setup",
+     "register_plugins",
+     "format_private_dir",
++
++    # Internal
++    "_defaults",
++    "_families",
+ ]
+diff --git a/pyblish_starter/maya/cache.py b/pyblish_starter/maya/cache.py
+index 356a1de..14990d2 100644
+--- a/pyblish_starter/maya/cache.py
++++ b/pyblish_starter/maya/cache.py
+@@ -1,14 +1,16 @@
+-from maya import mel
++from maya import mel, cmds
+ 
+ 
+-def export_alembic(nodes, file, frame_range=(1, 100), uv_write=True):
++def export_alembic(nodes, file, frame_range=None, uv_write=True):
+     """Wrap native MEL command with limited set of arguments
+ 
+     Arguments:
+         nodes (list): Long names of nodes to cache
+         file (str): Absolute path to output destination
+-        frame_range (tuple): Start- and end-frame of cache
+-        uv_write (bool): Whether or not to include UVs
++        frame_range (tuple, optional): Start- and end-frame of cache,
++            default to current animation range.
++        uv_write (bool, optional): Whether or not to include UVs,
++            default to True
+ 
      """
  
-     label = "Collect instances"
-diff --git a/pyblish_starter/plugins/extract_animation.py b/pyblish_starter/plugins/extract_animation.py
-index 49f3039..1f96fe9 100644
---- a/pyblish_starter/plugins/extract_animation.py
-+++ b/pyblish_starter/plugins/extract_animation.py
-@@ -1,8 +1,5 @@
--import os
--import datetime
--
--from maya import cmds, mel
- from pyblish import api
-+import pyblish_starter as starter
+@@ -20,6 +22,12 @@ def export_alembic(nodes, file, frame_range=(1, 100), uv_write=True):
+     if uv_write:
+         options.append(("uvWrite", ""))
  
- 
- class ExtractStarterAnimation(api.InstancePlugin):
-@@ -22,40 +19,31 @@ class ExtractStarterAnimation(api.InstancePlugin):
-     families = ["starter.animation"]
- 
-     def process(self, instance):
-+        import os
-+        from maya import cmds
-+        from pyblish_starter.maya import export_alembic
-+
-         self.log.debug("Loading plug-in..")
-         cmds.loadPlugin("AbcExport.mll", quiet=True)
- 
--        self.log.info("Extracting Alembic..")
--        root = instance.context.data["workspaceDir"]
--        time = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
--        dirname = os.path.join(root, "private", time, str(instance))
--        filename = "%s.abc" % instance
-+        self.log.info("Extracting animation..")
-+        dirname = starter.format_private_dir(
-+            root=instance.context.data["workspaceDir"],
-+            name=instance.data["name"])
- 
-         try:
-             os.makedirs(dirname)
-         except OSError:
-             pass
- 
--        options = {
--            "file": os.path.join(dirname, filename).replace("\\", "/"),
--            "frameRange": "{startFrame} {endFrame}".format(
--                startFrame=cmds.playbackOptions(query=True, ast=True),
--                endFrame=cmds.playbackOptions(query=True, aet=True)),
--            "uvWrite": "",  # Value-less flag
--        }
--
--        options.update(dict(("root", mesh) for mesh in instance))
--
--        # Generate MEL command
--        mel_args = list()
--        for key, value in options.items():
--            mel_args.append("-{0} {1}".format(key, value))
--
--        mel_args_string = " ".join(mel_args)
--        mel_cmd = "AbcExport -j \"{0}\"".format(mel_args_string)
-+        filename = "%s.abc" % instance
- 
--        self.log.debug("Running MEL command: \"%s\"" % mel_cmd)
--        mel.eval(mel_cmd)
-+        export_alembic(
-+            file=os.path.join(dirname, filename).replace("\\", "/"),
-+            frame_range=(cmds.playbackOptions(query=True, ast=True),
-+                         cmds.playbackOptions(query=True, aet=True)),
-+            uv_write=True
++    if frame_range is None:
++        frame_range = (
++            cmds.playbackOptions(query=True, ast=True),
++            cmds.playbackOptions(query=True, aet=True)
 +        )
- 
-         # Store reference for integration
-         instance.data["privateDir"] = dirname
-diff --git a/pyblish_starter/plugins/extract_model.py b/pyblish_starter/plugins/extract_model.py
-index e240bac..704b9d2 100644
---- a/pyblish_starter/plugins/extract_model.py
-+++ b/pyblish_starter/plugins/extract_model.py
-@@ -1,4 +1,5 @@
- from pyblish import api
-+import pyblish_starter as starter
- 
- 
- class ExtractStarterModel(api.InstancePlugin):
-@@ -17,21 +18,20 @@ class ExtractStarterModel(api.InstancePlugin):
- 
-     def process(self, instance):
-         import os
--        import datetime
--
-         from maya import cmds
-         from pyblish_maya import maintained_selection
- 
--        root = instance.context.data["workspaceDir"]
--        time = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
--        dirname = os.path.join(root, "private", time, str(instance))
--        filename = "%s.ma" % instance
-+        dirname = starter.format_private_dir(
-+            root=instance.context.data["workspaceDir"],
-+            name=instance.data["name"])
- 
-         try:
-             os.makedirs(dirname)
-         except OSError:
-             pass
- 
-+        filename = "%s.ma" % instance
 +
-         path = os.path.join(dirname, filename)
- 
-         # Perform extraction
-diff --git a/pyblish_starter/plugins/extract_rig.py b/pyblish_starter/plugins/extract_rig.py
-index accc1b1..f107040 100644
---- a/pyblish_starter/plugins/extract_rig.py
-+++ b/pyblish_starter/plugins/extract_rig.py
-@@ -1,4 +1,5 @@
- from pyblish import api
-+import pyblish_starter as starter
- 
- 
- class ExtractStarterRig(api.InstancePlugin):
-@@ -20,21 +21,21 @@ class ExtractStarterRig(api.InstancePlugin):
- 
-     def process(self, instance):
-         import os
--        import datetime
- 
-         from maya import cmds
-         from pyblish_maya import maintained_selection
- 
--        root = instance.context.data["workspaceDir"]
--        time = datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
--        dirname = os.path.join(root, "private", time, str(instance))
--        filename = "%s.ma" % instance
-+        dirname = starter.format_private_dir(
-+            root=instance.context.data["workspaceDir"],
-+            name=instance.data["name"])
- 
-         try:
-             os.makedirs(dirname)
-         except OSError:
-             pass
- 
-+        filename = "%s.ma" % instance
+     # Generate MEL command
+     mel_args = list()
+     for key, value in options:
+diff --git a/pyblish_starter/maya/lib.py b/pyblish_starter/maya/lib.py
+index 65a738e..0e671fc 100644
+--- a/pyblish_starter/maya/lib.py
++++ b/pyblish_starter/maya/lib.py
+@@ -1,30 +1,36 @@
+ import os
+ import re
 +
-         path = os.path.join(dirname, filename)
+ from maya import cmds
  
-         # Perform extraction
-diff --git a/pyblish_starter/plugins/integrate_asset.py b/pyblish_starter/plugins/integrate_asset.py
-index fb3a202..4c2d1c5 100644
---- a/pyblish_starter/plugins/integrate_asset.py
-+++ b/pyblish_starter/plugins/integrate_asset.py
-@@ -2,6 +2,13 @@ from pyblish import api
++from ..pipeline import (
++    register_default,
++    register_family,
++    _defaults,
++    _families,
++)
  
+-def setup():
+-    from ..tools import instance_creator
  
- class IntegrateStarterAsset(api.InstancePlugin):
-+    """Publicise each instance
+-    instance_creator.register_default({
++def setup():
++    register_default({
+         "key": "id",
+         "value": "pyblish.starter.instance"
+     })
+ 
+-    instance_creator.register_default({"key": "label", "value": "{name}"})
+-    instance_creator.register_default({"key": "family", "value": "{family}"})
++    register_default({"key": "label", "value": "{name}"})
++    register_default({"key": "family", "value": "{family}"})
+ 
+-    instance_creator.register_family({
++    register_family({
+         "name": "starter.model",
+         "help": "Polygonal geometry for animation"
+     })
+ 
+-    instance_creator.register_family({
++    register_family({
+         "name": "starter.rig",
+         "help": "Character rig"
+     })
+ 
+-    instance_creator.register_family({
++    register_family({
+         "name": "starter.animation",
+         "help": "Pointcache"
+     })
+@@ -149,7 +155,68 @@ def load(asset, version=-1, namespace=None):
+         asset + ".ma"
+     )
+ 
+-    return cmds.file(fname,
+-                     namespace=namespace,
+-                     reference=True,
+-                     referenceNode=True)
++    nodes = cmds.file(fname,
++                      namespace=namespace,
++                      reference=True)
 +
-+    Limitations:
-+        - Limited to publishing within a single Maya project
++    return cmds.referenceQuery(nodes, referenceNode=True)
++
++
++def create(name, family, use_selection=False):
++    """Create new instance
++
++    Arguments:
++        family (str): Name of family
++        use_selection (bool): Use selection to create this instance?
 +
 +    """
 +
-     label = "Integrate asset"
-     order = api.IntegratorOrder
++    try:
++        item = next(i for i in _families if i["name"] == family)
++    except:
++        raise RuntimeError("{0} is not a valid family".format(family))
++
++    attrs = _defaults + item.get("attributes", [])
++
++    if not use_selection:
++        cmds.select(deselect=True)
++
++    instance = "%s_instance" % name
++
++    if cmds.objExists(instance):
++        raise NameError("\"%s\" already exists." % instance)
++
++    instance = cmds.sets(name=instance)
++
++    for item in attrs:
++        key = item["key"]
++
++        try:
++            value = item["value"].format(
++                name=name,
++                family=family
++            )
++        except KeyError as e:
++            raise KeyError("Invalid dynamic property: %s" % e)
++
++        if isinstance(value, bool):
++            add_type = {"attributeType": "bool"}
++            set_type = {"keyable": False, "channelBox": True}
++        elif isinstance(value, basestring):
++            add_type = {"dataType": "string"}
++            set_type = {"type": "string"}
++        elif isinstance(value, int):
++            add_type = {"attributeType": "long"}
++            set_type = {"keyable": False, "channelBox": True}
++        elif isinstance(value, float):
++            add_type = {"attributeType": "double"}
++            set_type = {"keyable": False, "channelBox": True}
++        else:
++            raise TypeError("Unsupported type: %r" % type(value))
++
++        cmds.addAttr(instance, ln=key, **add_type)
++        cmds.setAttr(instance + "." + key, value, **set_type)
++
++    cmds.select(instance, noExpand=True)
++
++    return instance
+diff --git a/pyblish_starter/pipeline.py b/pyblish_starter/pipeline.py
+index 1f32e8c..92354d9 100644
+--- a/pyblish_starter/pipeline.py
++++ b/pyblish_starter/pipeline.py
+@@ -1,6 +1,73 @@
+ import os
+ import datetime
  
++from pyblish import api
++
++_defaults = []
++_families = []
++
++
++def setup():
++    register_plugins()
++
++
++def register_plugins():
++    """Register accompanying plugins"""
++    from . import plugins
++    plugin_path = os.path.dirname(plugins.__file__)
++    api.register_plugin_path(plugin_path)
++
++
++def register_default(item):
++    """Register new default attribute
++
++    Dictionary structure:
++    {
++        "key": "Name of attribute",
++        "value": "Value of attribute",
++        "help": "Documentation"
++    }
++
++    Arguments:
++        default (dict): New default Attribute
++
++    """
++
++    assert "key" in item
++    assert "value" in item
++
++    _defaults.append(item)
++
++
++def register_family(item):
++    """Register family and attributes for family
++
++    Dictionary structure:
++    {
++        "name": "Name of attribute",
++        "help": "Documentation",
++        "attributes": [
++            {
++                "...": "Same as default",
++            }
++        ]
++    }
++
++    Arguments:
++        default (dict): New family
++
++    """
++
++    assert "name" in item
++
++    # If family was already registered then overwrite it
++    for i, family in enumerate(_families):
++        if item["name"] == family["name"]:
++            _families[i] = item
++            return
++
++    _families.append(item)
++
+ 
+ def time():
+     return datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
+diff --git a/pyblish_starter/plugins/extract_animation.py b/pyblish_starter/plugins/extract_animation.py
+index 1f96fe9..c232c9b 100644
+--- a/pyblish_starter/plugins/extract_animation.py
++++ b/pyblish_starter/plugins/extract_animation.py
+@@ -39,6 +39,7 @@ class ExtractStarterAnimation(api.InstancePlugin):
+         filename = "%s.abc" % instance
+ 
+         export_alembic(
++            nodes=instance,
+             file=os.path.join(dirname, filename).replace("\\", "/"),
+             frame_range=(cmds.playbackOptions(query=True, ast=True),
+                          cmds.playbackOptions(query=True, aet=True)),
+diff --git a/pyblish_starter/tools/instance_creator/app.py b/pyblish_starter/tools/instance_creator/app.py
+index 75b9b3b..c6fde25 100644
+--- a/pyblish_starter/tools/instance_creator/app.py
++++ b/pyblish_starter/tools/instance_creator/app.py
+@@ -3,8 +3,7 @@ import contextlib
+ 
+ from ...vendor.Qt import QtWidgets, QtCore
+ from ...maya.lib import create
+-
+-import lib
++from ... import _registered_families
+ 
+ 
+ self = sys.modules[__name__]
+@@ -113,8 +112,9 @@ class Window(QtWidgets.QDialog):
+     def refresh(self):
+         listing = self.findChild(QtWidgets.QWidget, "Listing")
+ 
+-        if lib.families:
+-            for family in sorted(lib.families, key=lambda i: i["name"]):
++        if _registered_families:
++            for family in sorted(_registered_families,
++                                 key=lambda i: i["name"]):
+                 item = QtWidgets.QListWidgetItem(family["name"])
+                 item.setData(QtCore.Qt.ItemIsEnabled, True)
+                 item.setData(QtCore.Qt.UserRole + 2, family.get("help"))
+diff --git a/pyblish_starter/tools/instance_creator/lib.py b/pyblish_starter/tools/instance_creator/lib.py
+deleted file mode 100644
+index 7cca8ad..0000000
+--- a/pyblish_starter/tools/instance_creator/lib.py
++++ /dev/null
+@@ -1,117 +0,0 @@
+-import sys
+-from maya import cmds
+-
+-self = sys.modules[__name__]
+-self.defaults = []
+-self.families = []
+-
+-
+-def register_default(item):
+-    """Register new default attribute
+-
+-    Dictionary structure:
+-    {
+-        "key": "Name of attribute",
+-        "value": "Value of attribute",
+-        "help": "Documentation"
+-    }
+-
+-    Arguments:
+-        default (dict): New default Attribute
+-
+-    """
+-
+-    assert "key" in item
+-    assert "value" in item
+-
+-    self.defaults.append(item)
+-
+-
+-def register_family(item):
+-    """Register family and attributes for family
+-
+-    Dictionary structure:
+-    {
+-        "name": "Name of attribute",
+-        "help": "Documentation",
+-        "attributes": [
+-            {
+-                "...": "Same as default",
+-            }
+-        ]
+-    }
+-
+-    Arguments:
+-        default (dict): New family
+-
+-    """
+-
+-    assert "name" in item
+-
+-    # If family was already registered then overwrite it
+-    for i, family in enumerate(self.families):
+-        if item["name"] == family["name"]:
+-            self.families[i] = item
+-            return
+-
+-    self.families.append(item)
+-
+-
+-def create(name, family, use_selection=False):
+-    """Create new instance
+-
+-    Arguments:
+-        family (str): Name of family
+-        use_selection (bool): Use selection to create this instance?
+-
+-    """
+-
+-    try:
+-        item = next(i for i in self.families if i["name"] == family)
+-    except:
+-        raise RuntimeError("{0} is not a valid family".format(family))
+-
+-    attrs = self.defaults + item.get("attributes", [])
+-
+-    if not use_selection:
+-        cmds.select(deselect=True)
+-
+-    instance = "%s_instance" % name
+-
+-    if cmds.objExists(instance):
+-        raise NameError("\"%s\" already exists." % instance)
+-
+-    instance = cmds.sets(name=instance)
+-
+-    for item in attrs:
+-        key = item["key"]
+-
+-        try:
+-            value = item["value"].format(
+-                name=name,
+-                family=family
+-            )
+-        except KeyError as e:
+-            raise KeyError("Invalid dynamic property: %s" % e)
+-
+-        if isinstance(value, bool):
+-            add_type = {"attributeType": "bool"}
+-            set_type = {"keyable": False, "channelBox": True}
+-        elif isinstance(value, basestring):
+-            add_type = {"dataType": "string"}
+-            set_type = {"type": "string"}
+-        elif isinstance(value, int):
+-            add_type = {"attributeType": "long"}
+-            set_type = {"keyable": False, "channelBox": True}
+-        elif isinstance(value, float):
+-            add_type = {"attributeType": "double"}
+-            set_type = {"keyable": False, "channelBox": True}
+-        else:
+-            raise TypeError("Unsupported type: %r" % type(value))
+-
+-        cmds.addAttr(instance, ln=key, **add_type)
+-        cmds.setAttr(instance + "." + key, value, **set_type)
+-
+-    cmds.select(instance, noExpand=True)
+-
+-    return instance
+diff --git a/pyblish_starter/vendor/Qt.py b/pyblish_starter/vendor/Qt.py
+index e6fa623..e2c416a 100644
+--- a/pyblish_starter/vendor/Qt.py
++++ b/pyblish_starter/vendor/Qt.py
+@@ -31,7 +31,7 @@ Usage:
+ import os
+ import sys
+ 
+-__version__ = "0.4.2"
++__version__ = "0.4.3"
+ 
+ # All unique members of Qt.py
+ __added__ = list()
+@@ -57,7 +57,7 @@ def remap(object, name, value, safe=True):
+ 
+     """
+ 
+-    if safe:
++    if os.getenv("QT_TESTING") is not None and safe:
+         # Cannot alter original binding.
+         if hasattr(object, name):
+             raise AttributeError("Cannot override existing name: "
 -- 
 1.7.1
 

@@ -1,14 +1,16 @@
-from maya import mel
+from maya import mel, cmds
 
 
-def export_alembic(nodes, file, frame_range=(1, 100), uv_write=True):
+def export_alembic(nodes, file, frame_range=None, uv_write=True):
     """Wrap native MEL command with limited set of arguments
 
     Arguments:
         nodes (list): Long names of nodes to cache
         file (str): Absolute path to output destination
-        frame_range (tuple): Start- and end-frame of cache
-        uv_write (bool): Whether or not to include UVs
+        frame_range (tuple, optional): Start- and end-frame of cache,
+            default to current animation range.
+        uv_write (bool, optional): Whether or not to include UVs,
+            default to True
 
     """
 
@@ -19,6 +21,12 @@ def export_alembic(nodes, file, frame_range=(1, 100), uv_write=True):
 
     if uv_write:
         options.append(("uvWrite", ""))
+
+    if frame_range is None:
+        frame_range = (
+            cmds.playbackOptions(query=True, ast=True),
+            cmds.playbackOptions(query=True, aet=True)
+        )
 
     # Generate MEL command
     mel_args = list()

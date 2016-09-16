@@ -39,6 +39,7 @@ class ExtractStarterAnimation(api.InstancePlugin):
         filename = "%s.abc" % instance
 
         export_alembic(
+            nodes=instance,
             file=os.path.join(dirname, filename).replace("\\", "/"),
             frame_range=(cmds.playbackOptions(query=True, ast=True),
                          cmds.playbackOptions(query=True, aet=True)),

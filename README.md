@@ -318,14 +318,13 @@ from pyblish_starter.maya import (
 )
 
 cmds.file(new=True, force=True)
+cmds.playbackOptions(animationStartTime=1001, maxTime=1050)
 
 # Load external asset
 reference = load("Paul_rig", namespace="Paul01_")
 nodes = cmds.referenceQuery(reference, nodes=True)
 
 # Animate
-cmds.playbackOptions(minTime=1001, maxTime=1050)
-
 all_controls = next(ctrl for ctrl in nodes if "all_controls" in ctrl)
 control = cmds.sets(all_controls, query=True)[0]
 
@@ -343,8 +342,23 @@ for time, value in keys:
                      inTangentType="flat",
                      outTangentType="flat")
 
-# Publish
-...
+# Create instance
+all_cachable = next(ctrl for ctrl in nodes if "all_cachable" in ctrl)
+cmds.select(cmds.sets(all_cachable, query=True))
+
+instance = cmds.sets(name="Paul_animation")
+
+data = {
+    "id": "pyblish.starter.instance",
+    "family": "starter.animation"
+}
+
+for key, value in data.items():
+    cmds.addAttr(instance, longName=key, dataType="string")
+    cmds.setAttr(instance + "." + key, value, type="string")
+
+from pyblish import util
+util.publish()
 ```
 
 <br>
