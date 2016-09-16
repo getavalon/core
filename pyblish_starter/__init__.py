@@ -1,24 +1,26 @@
 from .pipeline import (
+    ls,
     setup,
     register_plugins,
 
 
     # Internal
-    time,# as _time,
-    format_private_dir,# as _format_private_dir,
+    time as _time,
+    format_private_dir as _format_private_dir,
 
-    _families,
-    _defaults
+    _registered_families,
+    _registered_defaults
 )
 
 
 __all__ = [
-    "time",
+    "ls",
     "setup",
     "register_plugins",
-    "format_private_dir",
 
     # Internal
-    "_defaults",
-    "_families",
+    "_time",
+    "_format_private_dir",
+    "_registered_defaults",
+    "_registered_families",
 ]

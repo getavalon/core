@@ -3,12 +3,17 @@ import datetime
 
 from pyblish import api
 
-_defaults = []
-_families = []
+_registered_defaults = []
+_registered_families = []
 
 
 def setup():
     register_plugins()
+
+
+def ls(root):
+    """List available assets"""
+    return os.listdir(os.path.join(root, "public"))
 
 
 def register_plugins():
@@ -36,7 +41,7 @@ def register_default(item):
     assert "key" in item
     assert "value" in item
 
-    _defaults.append(item)
+    _registered_defaults.append(item)
 
 
 def register_family(item):
@@ -61,12 +66,12 @@ def register_family(item):
     assert "name" in item
 
     # If family was already registered then overwrite it
-    for i, family in enumerate(_families):
+    for i, family in enumerate(_registered_families):
         if item["name"] == family["name"]:
-            _families[i] = item
+            _registered_families[i] = item
             return
 
-    _families.append(item)
+    _registered_families.append(item)
 
 
 def time():

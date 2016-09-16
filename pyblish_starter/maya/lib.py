@@ -6,8 +6,8 @@ from maya import cmds
 from ..pipeline import (
     register_default,
     register_family,
-    _defaults,
-    _families,
+    _registered_defaults,
+    _registered_families,
 )
 
 
@@ -52,6 +52,7 @@ def hierarchy_from_string(hierarchy):
         for parent in sorted(parents):
             if parent < padding:
                 cmds.parent(name, parents[parent])
+                break
 
     # Return assembly
     return parents[0]
@@ -172,11 +173,11 @@ def create(name, family, use_selection=False):
     """
 
     try:
-        item = next(i for i in _families if i["name"] == family)
+        item = next(i for i in _registered_families if i["name"] == family)
     except:
         raise RuntimeError("{0} is not a valid family".format(family))
 
-    attrs = _defaults + item.get("attributes", [])
+    attrs = _registered_defaults + item.get("attributes", [])
 
     if not use_selection:
         cmds.select(deselect=True)
