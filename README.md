@@ -43,12 +43,14 @@ $ pip install pyblish-starter
 
 ### Usage
 
-Plug-ins are registered by calling `setup()`.
+Starter is initialised by calling `setup()`.
 
 ```python
 >>> import pyblish_starter
 >>> pyblish_starter.setup()
 ```
+
+From here, you model, rig and animate as per the contract below.
 
 <br>
 <br>
@@ -71,13 +73,13 @@ Starter defines these families.
 
 A generic representation of geometry.
 
-**Target Audience**
+![aud][] **Target Audience**
 
 - Texturing
 - Rigging
 - Final render
 
-**Requirements**
+![req][] **Requirements**
 
 - Static geometry (no deformers, generators) `*`
 - One shape per transform `*`
@@ -90,11 +92,11 @@ A generic representation of geometry.
 - No faces with zero area `*`
 - No self-intersections `*`
 
-**Data**
+![dat][] **Data**
 
 - `label (str, optional)`: Pretty printed name in graphical user interfaces
 
-**Sets**
+![set][] **Sets**
 
 - `geometry_SEL (geometry)`: Meshes suitable for rigging
 - `aux_SEL (any, optional)`: Auxilliary meshes for e.g. fast preview, collision geometry
@@ -108,17 +110,17 @@ A generic representation of geometry.
 
 The `starter.rig` contains the necessary implementation and interface for animators to produce 
 
-**Requirements**
+![req][] **Requirements**
 
 - Channels in `controls_SEL` at *default* values`*`
 - No input connection to animatable channel in `controls_SEL` `*`
 - [No self-intersections on workout](#workout) `*`
 
-**Data**
+![dat][] **Data**
 
 - `label (str, optional)`: Pretty printed name in graphical user interfaces
 
-**Sets**
+![set][] **Sets**
 
 - `cache_SEL (geometry)`: Meshes suitable for pointcaching from animation
 - `controls_SEL (transforms)`: All animatable controls
@@ -133,21 +135,21 @@ The `starter.rig` contains the necessary implementation and interface for animat
 
 Point positions and normals represented as one Alembic file.
 
-**Requirements**
+![req][] **Requirements**
 
 - [No infinite velocity](#extreme-acceleration) `*`
 - [No immediate acceleration](#extreme-acceleration) `*`
 - [No self-intersections](#self-intersections) `*`
 - No sub-frame keys `*`
-- [Edge angles within -120 to 120 degrees on elastic surfaces](#extreme-surface-tangency) `*`
+- [Edge angles > 30 degrees on elastic surfaces](#extreme-surface-tangency) `*`
 - [Edge lengths within 50-150% for elastic surfaces](#extreme-surface-stretch-or-compression) `*`
 - [Edge lengths within 90-110% for rigid surfaces](#extreme-surface-stretch-or-compression) `*`
 
-**Data**
+![dat][] **Data**
 
 - `label (str, optional)`: Pretty printed name in graphical user interfaces
 
-**Sets**
+![set][] **Sets**
 
 - None
 
@@ -155,13 +157,19 @@ Point positions and normals represented as one Alembic file.
 
 **Legend**
 
-| Title               | Description
-|:--------------------|:-----------
-| **Target Audience** | Who is the end result of this family intended for?
-| **Requirements**    | What is expected of this asset before it passes the tests?
-| **Data**            | End-user configurable options
-| **Sets**            | Collection of specific items for publishing or use further down the pipeline.
-| `*`                 | Todo
+|          | Title               | Description
+|:---------|:--------------------|:-----------
+| ![aud][] | **Target Audience** | Who is the end result of this family intended for?
+| ![req][] | **Requirements**    | What is expected of this asset before it passes the tests?
+| ![dat][] | **Data**            | End-user configurable options
+| ![set][] | **Sets**            | Collection of specific items for publishing or use further down the pipeline.
+|          | `*`                 | Todo
+
+
+[set]: https://cloud.githubusercontent.com/assets/2152766/18576835/f6b80574-7bdc-11e6-8237-1227f779815a.png
+[dat]: https://cloud.githubusercontent.com/assets/2152766/18576836/f6ca19e4-7bdc-11e6-9ef8-3614474c58bb.png
+[req]: https://cloud.githubusercontent.com/assets/2152766/18576838/f6da783e-7bdc-11e6-9935-78e1a6438e44.png
+[aud]: https://cloud.githubusercontent.com/assets/2152766/18576837/f6d9c970-7bdc-11e6-8899-6eb8686b4173.png
 
 <br>
 <br>
@@ -239,8 +247,9 @@ from pyblish_starter.maya import (
 cmds.file(new=True, force=True)
 
 # Load external asset
-input_ = load("Paul_model", version=1, namespace="Paul_")
-model_assembly = cmds.listRelatives(input_[0], children=True)[0]
+reference = load("Paul_model", namespace="Paul_")
+nodes = cmds.referenceQuery(reference, nodes=True)
+model_assembly = cmds.listRelatives(nodes[0], children=True)[0]
 model_geometry = outmesh(cmds.listRelatives(
     model_assembly, shapes=True)[0], name="Model")
 
@@ -292,7 +301,7 @@ for key, value in data.items():
     cmds.setAttr(instance + "." + key, value, type="string")
 
 from pyblish import util
-#util.publish()
+util.publish()
 ```
 
 <br>
@@ -304,14 +313,38 @@ Build upon the previous example by referencing and producing an animation from t
 ```python
 from maya import cmds
 from pyblish_starter.maya import (
-    load
+    load,
+    create
 )
 
 cmds.file(new=True, force=True)
 
 # Load external asset
-rig = load("Paul_rig", version=1, namespace="Paul01_")[0]
+reference = load("Paul_rig", namespace="Paul01_")
+nodes = cmds.referenceQuery(reference, nodes=True)
 
+# Animate
+cmds.playbackOptions(minTime=1001, maxTime=1050)
+
+all_controls = next(ctrl for ctrl in nodes if "all_controls" in ctrl)
+control = cmds.sets(all_controls, query=True)[0]
+
+keys = [
+    (1001, 0),
+    (1025, 10),
+    (1050, 0)
+]
+
+for time, value in keys:
+    cmds.setKeyframe(control,
+                     attribute="translateY",
+                     value=value,
+                     time=time,
+                     inTangentType="flat",
+                     outTangentType="flat")
+
+# Publish
+...
 ```
 
 <br>

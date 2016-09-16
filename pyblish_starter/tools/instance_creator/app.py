@@ -2,6 +2,7 @@ import sys
 import contextlib
 
 from ...vendor.Qt import QtWidgets, QtCore
+from ...maya.lib import create
 
 import lib
 
@@ -142,7 +143,7 @@ class Window(QtWidgets.QDialog):
             use_selection = use_selection_chk.checkState()
 
             try:
-                lib.create(name, family, use_selection)
+                create(name, family, use_selection)
 
             except NameError as e:
                 error_msg.setText(str(e))

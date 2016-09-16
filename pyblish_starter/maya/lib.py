@@ -1,4 +1,5 @@
 import os
+import re
 from maya import cmds
 
 
@@ -70,29 +71,85 @@ def outmesh(shape, name=None):
     return outmesh
 
 
-def load(asset, version, namespace=None):
+def find_latest_version(versions):
+    """Return latest version from list of versions
+
+    If multiple numbers are found in a single version,
+    the last one found is used. E.g. (6) from "v7_22_6"
+
+    Arguments:
+        versions (list): Version numbers as string
+
+    Example:
+        >>> find_next_version(["v001", "v002", "v003"])
+        4
+        >>> find_next_version(["1", "2", "3"])
+        4
+        >>> find_next_version(["v1", "v0002", "verision_3"])
+        4
+        >>> find_next_version(["v2", "5_version", "verision_8"])
+        9
+        >>> find_next_version(["v2", "v3_5", "_1_2_3", "7, 4"])
+        6
+        >>> find_next_version(["v010", "v011"])
+        12
+
+    """
+
+    highest_version = 0
+    for version in versions:
+        matches = re.findall(r"\d+", version)
+
+        if not matches:
+            continue
+
+        version = int(matches[-1])
+        if version > highest_version:
+            highest_version = version
+
+    return highest_version
+
+
+def find_next_version(versions):
+    return find_latest_version(versions) + 1
+
+
+def load(asset, version=-1, namespace=None):
     """Load asset
 
     Arguments:
         asset (str): Name of asset
-        version (int): Version number
+        version (int, optional): Version number, defaults to latest
         namespace (str, optional): Name of namespace
 
     Returns:
-        Assembly/ies
+        Reference node
 
     """
 
     assert isinstance(version, int), "Version must be integer"
 
-    asset = os.path.join(
+    dirname = os.path.join(
+        cmds.workspace(rootDirectory=True, query=True),
         "public",
-        asset,
+        asset
+    )
+
+    try:
+        versions = os.listdir(dirname)
+    except OSError:
+        raise OSError("\"%s\" not found." % asset)
+
+    if version == -1:
+        version = find_latest_version(versions)
+
+    fname = os.path.join(
+        dirname,
         "v%03d" % version,
         asset + ".ma"
     )
 
-    cmds.file(asset, reference=True, namespace=namespace)
-    reference = cmds.file(asset, query=True, referenceNode=True)
-    nodes = cmds.referenceQuery(reference, nodes=True)
-    return cmds.ls(nodes, assemblies=True)
+    return cmds.file(fname,
+                     namespace=namespace,
+                     reference=True,
+                     referenceNode=True)
