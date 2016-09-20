@@ -1,31 +1,31 @@
 ### Pyblish Starter
 
-Jumpstart your publishing pipeline with a basic configuration.
+A basic publishing pipeline, with batteries included.
 
-> WARNING: This is in development (see latest commit date) and is NOT YET ready for an audience
-
-<br>
-<br>
-
-### Prerequisities
-
-- Maya
+> WARNING: Not ready for use.
 
 <br>
 <br>
 
-### Limitations
+### Description
 
-- Doesn't illustrate cross-application features of Pyblish
-- Sandboxed publishing
+Build your own publishing pipeline, starting with the basics.
 
-<br>
-<br>
+**Overview**
 
-### Features
+This project includes interface and implementation for 3 common types of assets a typical production pipeline.
 
-- Asset definition template
-- Versioning
+- Modeling
+- Rigging
+- Animation
+
+The project illustrates how to **(1)** devise a contract - known as a `family` - for each kind of asset and **(2)** design their interface towards each other. For example, it is important for rendering and effects that the normals of each geometric surface is unlocked.
+
+**Batteries included**
+
+In addition to contracts, the project illustrates **boundaries** between publishing and setup. The definition of "setup" being anything that isn't strictly output, such as creating geometry or assigning attributes.
+
+It includes a series of graphical user interfaces to aid the user in conforming to these contracts. These interfaces represent **placeholders** for your pipeline to fill in; you are invited to either continue from where they finish, or build your own from scratch.
 
 <br>
 <br>
@@ -110,6 +110,10 @@ A generic representation of geometry.
 
 The `starter.rig` contains the necessary implementation and interface for animators to produce 
 
+![aud][] **Target Audience**
+
+- Animation
+
 ![req][] **Requirements**
 
 - Channels in `controls_SEL` at *default* values`*`
@@ -134,6 +138,13 @@ The `starter.rig` contains the necessary implementation and interface for animat
 <img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526738/a0fba5ba-7ab9-11e6-934f-48ca2a2ce3d2.png"></img>
 
 Point positions and normals represented as one Alembic file.
+
+![aud][] **Target Audience**
+
+- Lighting
+- FX
+- Cloth
+- Hair
 
 ![req][] **Requirements**
 
