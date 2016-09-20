@@ -1,4 +1,4 @@
-from .app import (
+from ._app import (
     show,
 )
 

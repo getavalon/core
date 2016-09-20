@@ -1,12 +1,9 @@
-from .cache import (
-    export_alembic,
-)
-
-from .lib import (
+from ._lib import (
     hierarchy_from_string,
+    export_alembic,
     outmesh,
-    load,
-    create,
+    loader,
+    creator,
 )
 
 
@@ -14,6 +11,6 @@ __all__ = [
     "export_alembic",
     "hierarchy_from_string",
     "outmesh",
-    "load",
-    "create",
+    "loader",
+    "creator",
 ]

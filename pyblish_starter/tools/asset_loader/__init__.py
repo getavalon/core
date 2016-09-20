@@ -1,3 +1,7 @@
-from .app import (
-    show
+from ._app import (
+    show,
 )
+
+__all__ = [
+    "show",
+]

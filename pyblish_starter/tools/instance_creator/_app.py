@@ -1,8 +1,8 @@
 import sys
-import contextlib
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import _registered_families
+from ... import _pipeline
+from .. import _lib
 
 self = sys.modules[__name__]
 self._window = None
@@ -12,19 +12,19 @@ class Window(QtWidgets.QDialog):
     """Instance creator
 
     Arguments:
-        create (func): Function responsible for creating the instance
+        creator (func): Function responsible for creating the instance
             Takes (name=str, family=str, use_selection=bool)
         parent (QWidget, optional): Window parent
 
     """
 
-    def __init__(self, create, parent=None):
+    def __init__(self, creator, parent=None):
         super(Window, self).__init__(parent)
         self.setWindowTitle("Instance Creator")
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
         # Dependency injected creation function
-        self.create = create
+        self.creator = creator
 
         body = QtWidgets.QWidget()
         lists = QtWidgets.QWidget()
@@ -117,13 +117,12 @@ class Window(QtWidgets.QDialog):
         whilst trying to name an instance.
 
         """
-        pass
 
     def refresh(self):
         listing = self.findChild(QtWidgets.QWidget, "Listing")
 
-        if _registered_families:
-            for family in sorted(_registered_families,
+        if _pipeline._registered_families:
+            for family in sorted(_pipeline._registered_families.values(),
                                  key=lambda i: i["name"]):
                 item = QtWidgets.QListWidgetItem(family["name"])
                 item.setData(QtCore.Qt.ItemIsEnabled, True)
@@ -153,7 +152,7 @@ class Window(QtWidgets.QDialog):
             use_selection = use_selection_chk.checkState()
 
             try:
-                create(name, family, use_selection)
+                self.creator(name, family, bool(use_selection))
 
             except NameError as e:
                 error_msg.setText(str(e))
@@ -169,24 +168,23 @@ class Window(QtWidgets.QDialog):
             self.close()
 
 
-@contextlib.contextmanager
-def application():
-    app = QtWidgets.QApplication.instance()
-
-    if not app:
-        print("Starting new QApplication..")
-        app = QtWidgets.QApplication(sys.argv)
-        yield app
-        app.exec_()
-    else:
-        print("Using existing QApplication..")
-        yield app
-
-
-def show(create):
+def show(creator=None, debug=False):
     if self._window:
         self._window.close()
         del(self._window)
+
+    creator = creator or _pipeline._creator
+
+    if creator is None:
+        raise ValueError("No creator registered.\n"
+                         "A creator must be either registered in "
+                         "pyblish_starter.setup(creator=) or "
+                         "passed to show(creator=).")
+
+    if debug:
+        _pipeline.register_family("debug.model")
+        _pipeline.register_family("debug.rig")
+        _pipeline.register_family("debug.animation")
 
     try:
         widgets = QtWidgets.QApplication.topLevelWidgets()
@@ -195,8 +193,8 @@ def show(create):
     except KeyError:
         parent = None
 
-    with application():
-        window = Window(create, parent)
+    with _lib.application():
+        window = Window(creator, parent)
         window.show()
         window.refresh()
 

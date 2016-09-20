@@ -1,10 +1,10 @@
 import os
-import re
 
-from maya import cmds
+from maya import cmds, mel
 
-from ..pipeline import (
-    _registered_defaults,
+from .._pipeline import (
+    find_latest_version,
+    _registered_data,
     _registered_families,
 )
 
@@ -51,50 +51,7 @@ def outmesh(shape, name=None):
     return outmesh
 
 
-def find_latest_version(versions):
-    """Return latest version from list of versions
-
-    If multiple numbers are found in a single version,
-    the last one found is used. E.g. (6) from "v7_22_6"
-
-    Arguments:
-        versions (list): Version numbers as string
-
-    Example:
-        >>> find_next_version(["v001", "v002", "v003"])
-        4
-        >>> find_next_version(["1", "2", "3"])
-        4
-        >>> find_next_version(["v1", "v0002", "verision_3"])
-        4
-        >>> find_next_version(["v2", "5_version", "verision_8"])
-        9
-        >>> find_next_version(["v2", "v3_5", "_1_2_3", "7, 4"])
-        6
-        >>> find_next_version(["v010", "v011"])
-        12
-
-    """
-
-    highest_version = 0
-    for version in versions:
-        matches = re.findall(r"\d+", version)
-
-        if not matches:
-            continue
-
-        version = int(matches[-1])
-        if version > highest_version:
-            highest_version = version
-
-    return highest_version
-
-
-def find_next_version(versions):
-    return find_latest_version(versions) + 1
-
-
-def load(asset, version=-1, namespace=None):
+def loader(asset, version=-1, namespace=None):
     """Load asset
 
     Arguments:
@@ -136,10 +93,11 @@ def load(asset, version=-1, namespace=None):
     return cmds.referenceQuery(nodes, referenceNode=True)
 
 
-def create(name, family, use_selection=False):
+def creator(name, family, use_selection=False):
     """Create new instance
 
     Arguments:
+        name (str): Name of instance
         family (str): Name of family
         use_selection (bool): Use selection to create this instance?
 
@@ -150,7 +108,7 @@ def create(name, family, use_selection=False):
     except:
         raise RuntimeError("{0} is not a valid family".format(family))
 
-    attrs = _registered_defaults + item.get("attributes", [])
+    data = _registered_data + item.get("data", [])
 
     if not use_selection:
         cmds.select(deselect=True)
@@ -162,7 +120,7 @@ def create(name, family, use_selection=False):
 
     instance = cmds.sets(name=instance)
 
-    for item in attrs:
+    for item in data:
         key = item["key"]
 
         try:
@@ -194,3 +152,41 @@ def create(name, family, use_selection=False):
     cmds.select(instance, noExpand=True)
 
     return instance
+
+
+def export_alembic(nodes, file, frame_range=None, uv_write=True):
+    """Wrap native MEL command with limited set of arguments
+
+    Arguments:
+        nodes (list): Long names of nodes to cache
+        file (str): Absolute path to output destination
+        frame_range (tuple, optional): Start- and end-frame of cache,
+            default to current animation range.
+        uv_write (bool, optional): Whether or not to include UVs,
+            default to True
+
+    """
+
+    options = [
+        ("file", file),
+        ("frameRange", "%s %s" % frame_range),
+    ] + [("root", mesh) for mesh in nodes]
+
+    if uv_write:
+        options.append(("uvWrite", ""))
+
+    if frame_range is None:
+        frame_range = (
+            cmds.playbackOptions(query=True, ast=True),
+            cmds.playbackOptions(query=True, aet=True)
+        )
+
+    # Generate MEL command
+    mel_args = list()
+    for key, value in options:
+        mel_args.append("-{0} {1}".format(key, value))
+
+    mel_args_string = " ".join(mel_args)
+    mel_cmd = "AbcExport -j \"{0}\"".format(mel_args_string)
+
+    return mel.eval(mel_cmd)

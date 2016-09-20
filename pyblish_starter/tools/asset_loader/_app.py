@@ -1,8 +1,8 @@
 import sys
-import contextlib
 
+from ... import _pipeline, ls
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import ls
+from .. import _lib
 
 
 self = sys.modules[__name__]
@@ -10,12 +10,12 @@ self._window = None
 
 
 class Window(QtWidgets.QDialog):
-    def __init__(self, load, parent=None):
+    def __init__(self, loader, parent=None):
         super(Window, self).__init__(parent)
         self.setWindowTitle("Asset Loader")
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
-        self.load = load
+        self.loader = loader
 
         body = QtWidgets.QWidget()
         footer = QtWidgets.QWidget()
@@ -61,6 +61,9 @@ class Window(QtWidgets.QDialog):
             },
             "model": {
                 "listing": listing
+            },
+            "label": {
+                "error": error_msg
             }
         }
 
@@ -87,12 +90,13 @@ class Window(QtWidgets.QDialog):
 
         """
 
-        pass
-
     def refresh(self, root):
         listing = self.data["model"]["listing"]
 
-        assets = ls(root)
+        try:
+            assets = ls(root)
+        except OSError:
+            assets = list()
 
         if assets:
             for asset in assets:
@@ -110,13 +114,13 @@ class Window(QtWidgets.QDialog):
     def on_load(self):
         listing = self.data["model"]["listing"]
         autoclose_checkbox = self.data["button"]["autoclose"]
-        error_msg = self.findChild(QtWidgets.QWidget, "Error Message")
+        error_msg = self.data["label"]["error"]
 
         item = listing.currentItem()
 
         if item is not None:
             try:
-                load(item.text())
+                self.loader(item.text())
 
             except NameError as e:
                 error_msg.setText(str(e))
@@ -132,24 +136,27 @@ class Window(QtWidgets.QDialog):
             self.close()
 
 
-@contextlib.contextmanager
-def application():
-    app = QtWidgets.QApplication.instance()
+def show(root, loader, debug=False):
+    """Display Asset Loader GUI
 
-    if not app:
-        print("Starting new QApplication..")
-        app = QtWidgets.QApplication(sys.argv)
-        yield app
-        app.exec_()
-    else:
-        print("Using existing QApplication..")
-        yield app
+    Arguments:
+        root (str): Absolute path to root directory of assets
+        loader (func): Callable function, passed `name` of asset.
+        debug (bool): Run loader in debug-mode
 
+    """
 
-def show(root, load):
     if self._window:
         self._window.close()
         del(self._window)
+
+    loader = loader or _pipeline._loader
+
+    if loader is None:
+        raise ValueError("No loader registered.\n"
+                         "A loader must be either registered in "
+                         "pyblish_starter.setup(loader=) or "
+                         "passed to show(loader=).")
 
     try:
         widgets = QtWidgets.QApplication.topLevelWidgets()
@@ -158,8 +165,8 @@ def show(root, load):
     except KeyError:
         parent = None
 
-    with application():
-        window = Window(load, parent)
+    with _lib.application():
+        window = Window(loader, parent)
         window.show()
         window.refresh(root)
 
@@ -170,4 +177,4 @@ if __name__ == '__main__':
     import os
 
     show(root=os.path.expanduser("~"),
-         load=lambda name: None)
+         loader=lambda name: None)
