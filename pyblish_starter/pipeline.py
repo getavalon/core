@@ -10,6 +10,29 @@ _registered_families = []
 def setup():
     register_plugins()
 
+    register_default({
+        "key": "id",
+        "value": "pyblish.starter.instance"
+    })
+
+    register_default({"key": "label", "value": "{name}"})
+    register_default({"key": "family", "value": "{family}"})
+
+    register_family({
+        "name": "starter.model",
+        "help": "Polygonal geometry for animation"
+    })
+
+    register_family({
+        "name": "starter.rig",
+        "help": "Character rig"
+    })
+
+    register_family({
+        "name": "starter.animation",
+        "help": "Pointcache"
+    })
+
 
 def ls(root):
     """List available assets"""

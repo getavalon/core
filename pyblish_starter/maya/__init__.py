@@ -7,7 +7,6 @@ from .lib import (
     outmesh,
     load,
     create,
-    setup,
 )
 
 
@@ -17,5 +16,4 @@ __all__ = [
     "outmesh",
     "load",
     "create",
-    "setup",
 ]

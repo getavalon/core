@@ -2,7 +2,6 @@ import sys
 import contextlib
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ...maya.lib import load
 from ... import ls
 
 
@@ -11,10 +10,12 @@ self._window = None
 
 
 class Window(QtWidgets.QDialog):
-    def __init__(self, parent=None):
+    def __init__(self, load, parent=None):
         super(Window, self).__init__(parent)
-        self.setWindowTitle("Starter Asset Loader")
+        self.setWindowTitle("Asset Loader")
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
+
+        self.load = load
 
         body = QtWidgets.QWidget()
         footer = QtWidgets.QWidget()
@@ -131,7 +132,21 @@ class Window(QtWidgets.QDialog):
             self.close()
 
 
-def show(root):
+@contextlib.contextmanager
+def application():
+    app = QtWidgets.QApplication.instance()
+
+    if not app:
+        print("Starting new QApplication..")
+        app = QtWidgets.QApplication(sys.argv)
+        yield app
+        app.exec_()
+    else:
+        print("Using existing QApplication..")
+        yield app
+
+
+def show(root, load):
     if self._window:
         self._window.close()
         del(self._window)
@@ -143,22 +158,16 @@ def show(root):
     except KeyError:
         parent = None
 
-    window = Window(parent)
-    window.show()
-    window.refresh(root)
+    with application():
+        window = Window(load, parent)
+        window.show()
+        window.refresh(root)
 
-    self._window = window
-
-
-@contextlib.contextmanager
-def application():
-    app = QtWidgets.QApplication(sys.argv)
-    yield
-    app.exec_()
+        self._window = window
 
 
 if __name__ == '__main__':
     import os
 
-    with application():
-        show(os.path.expanduser("~"))
+    show(root=os.path.expanduser("~"),
+         load=lambda name: None)

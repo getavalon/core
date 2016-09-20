@@ -2,19 +2,29 @@ import sys
 import contextlib
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ...maya.lib import create
 from ... import _registered_families
-
 
 self = sys.modules[__name__]
 self._window = None
 
 
 class Window(QtWidgets.QDialog):
-    def __init__(self, parent=None):
+    """Instance creator
+
+    Arguments:
+        create (func): Function responsible for creating the instance
+            Takes (name=str, family=str, use_selection=bool)
+        parent (QWidget, optional): Window parent
+
+    """
+
+    def __init__(self, create, parent=None):
         super(Window, self).__init__(parent)
-        self.setWindowTitle("Starter Instance Creator")
+        self.setWindowTitle("Instance Creator")
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
+
+        # Dependency injected creation function
+        self.create = create
 
         body = QtWidgets.QWidget()
         lists = QtWidgets.QWidget()
@@ -159,7 +169,21 @@ class Window(QtWidgets.QDialog):
             self.close()
 
 
-def show():
+@contextlib.contextmanager
+def application():
+    app = QtWidgets.QApplication.instance()
+
+    if not app:
+        print("Starting new QApplication..")
+        app = QtWidgets.QApplication(sys.argv)
+        yield app
+        app.exec_()
+    else:
+        print("Using existing QApplication..")
+        yield app
+
+
+def show(create):
     if self._window:
         self._window.close()
         del(self._window)
@@ -171,20 +195,13 @@ def show():
     except KeyError:
         parent = None
 
-    window = Window(parent)
-    window.show()
-    window.refresh()
+    with application():
+        window = Window(create, parent)
+        window.show()
+        window.refresh()
 
-    self._window = window
-
-
-@contextlib.contextmanager
-def application():
-    app = QtWidgets.QApplication(sys.argv)
-    yield
-    app.exec_()
+        self._window = window
 
 
 if __name__ == '__main__':
-    with application():
-        show()
+    show()

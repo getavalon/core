@@ -1,4 +1,5 @@
-from . import app
+# from . import app
 
-with app.application():
-    app.show()
+print("hello")
+# with app.application():
+#     app.show()
