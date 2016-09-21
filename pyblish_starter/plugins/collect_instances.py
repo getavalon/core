@@ -45,7 +45,7 @@ class CollectStarterInstances(api.ContextPlugin):
 
         try:
             import pyblish_maya
-            assert pyblish_maya.is_install()
+            assert pyblish_maya.is_setup()
 
         except (ImportError, AssertionError):
             raise RuntimeError("pyblish-starter requires pyblish-maya "

@@ -1,4 +1,3 @@
-import os
 import sys
 import logging
 
@@ -8,6 +7,43 @@ from .. import pipeline
 
 self = sys.modules[__name__]
 self.log = logging.getLogger()
+self.menu = "pyblishStarter"
+
+
+def install():
+    install_menu()
+
+
+def uninstall():
+    uninstall_menu()
+
+
+def install_menu():
+    from pyblish_starter.tools import instance_creator, asset_loader
+
+    if cmds.menu(self.menu, exists=True):
+        cmds.deleteUI(self.menu, menuItem=True)
+
+    cmds.menu(label="Pyblish Starter", tearOff=True, parent="MayaWindow")
+    cmds.menuItem("Create Instance", command=instance_creator.show)
+    cmds.menuItem("Load Asset", command=asset_loader.show)
+
+
+def uninstall_menu():
+    raise NotImplementedError("How does one delete a menu?")
+
+    # The below throws a "pyblishStarter not found"
+
+    try:
+        cmds.deleteUI(self.menu, menu=True)
+    except RuntimeError as e:
+        print(e)
+
+
+def root():
+    """Return project-root or directory of current working file"""
+    return (cmds.workspace(rootDirectory=True, query=True) or
+            cmds.workspace(directory=True, query=True))
 
 
 def hierarchy_from_string(hierarchy):
@@ -72,29 +108,8 @@ def loader(asset, version=-1, namespace=None):
 
     assert isinstance(version, int), "Version must be integer"
 
-    root = pipeline.registered_root()
+    fname = pipeline.abspath(asset, version, ".ma").replace("\\", "/")
 
-    dirname = os.path.join(
-        root,
-        "public",
-        asset
-    )
-
-    try:
-        versions = os.listdir(dirname)
-    except OSError:
-        raise OSError("\"%s\" not found." % asset)
-
-    if version == -1:
-        version = pipeline.find_latest_version(versions)
-
-    fname = os.path.join(
-        dirname,
-        "v%03d" % version,
-        asset + ".ma"
-    ).replace("\\", "/")
-
-    self.log.info("Loading \"%s\" with \"%s\", from \"%s\"" % (asset, namespace, fname))
     nodes = cmds.file(fname,
                       namespace=namespace or ":",
                       reference=True)
@@ -102,7 +117,7 @@ def loader(asset, version=-1, namespace=None):
     return cmds.referenceQuery(nodes, referenceNode=True)
 
 
-def creator(name, family, use_selection=False):
+def creator(name, family):
     """Create new instance
 
     Arguments:
@@ -121,15 +136,12 @@ def creator(name, family, use_selection=False):
     print("%s + %s" % (pipeline.registered_data(), item.get("data", [])))
 
     data = pipeline.registered_data() + item.get("data", [])
-
-    if not use_selection:
-        cmds.select(deselect=True)
-
-    instance = "%s_instance" % name
+    instance = "%s_INS" % name
 
     if cmds.objExists(instance):
         raise NameError("\"%s\" already exists." % instance)
 
+    cmds.select(deselect=True)
     instance = cmds.sets(name=instance)
 
     for item in data:

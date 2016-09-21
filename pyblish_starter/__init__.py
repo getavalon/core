@@ -1,9 +1,7 @@
 from .pipeline import (
     ls,
     install,
-    register_root,
-    register_loader,
-    register_creator,
+    register_host,
     register_plugins,
     format_private_dir,
 )
@@ -12,9 +10,7 @@ from .pipeline import (
 __all__ = [
     "ls",
     "install",
+    "register_host",
     "register_plugins",
-    "register_root",
-    "register_loader",
-    "register_creator",
     "format_private_dir",
 ]

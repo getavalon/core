@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import types
 import logging
 import datetime
 
@@ -10,29 +11,30 @@ self = sys.modules[__name__]
 
 self._registered_data = list()
 self._registered_families = list()
-self._registered_root = None
-self._registered_loader = None
-self._registered_creator = None
 
 self._log = logging.getLogger()
 
+# Mock host interface
+host = types.ModuleType("default")
+host.ls = lambda: ["Asset1", "Asset2"]
+host.loader = lambda asset, version, representation: None
+host.creator = lambda name, family: "my_instance"
 
-def install(root, loader, creator):
-    """install the running Python session.
+self._registered_host = host
+
+
+def install(host):
+    """Install `host` into the running Python session.
 
     Arguments:
-        root (str): Absolute path to assets
-        loader (func): Function responsible for loading assets,
-            takes `name` as argument.
-        creator (func): Function responsible for creating instances,
-            takes `name`, `family` and `use_selection` as argument.
+        host (module): A Python module containing the Pyblish
+            starter host-interface.
 
     """
 
-    register_root(root)
-    register_loader(loader)
-    register_creator(creator)
+    host.install()
 
+    register_host(host)
     register_plugins()
 
     register_data(key="id", value="pyblish.starter.instance")
@@ -57,21 +59,68 @@ def install(root, loader, creator):
 
 def ls():
     """List available assets"""
-    dirname = os.path.join(self.registered_root(), "public")
+    root = self.registered_host().root()
+    dirname = os.path.join(root, "public")
     self._log.debug("Listing %s" % dirname)
-    return os.listdir(dirname)
+
+    try:
+        return os.listdir(dirname)
+    except OSError:
+        return list()
 
 
-def register_root(root):
-    self._registered_root = root
+def abspath(asset, version=-1, representation=None):
+    root = registered_host().root()
+
+    dirname = os.path.join(
+        root,
+        "public",
+        asset
+    )
+
+    try:
+        versions = os.listdir(dirname)
+    except OSError:
+        raise OSError("\"%s\" not found." % asset)
+
+    # Automatically deduce version
+    if version == -1:
+        version = find_latest_version(versions)
+
+    dirname = os.path.join(
+        dirname,
+        "v%03d" % version
+    )
+
+    try:
+        representations = dict()
+        for fname in os.listdir(dirname):
+            name, ext = os.path.splitext(fname)
+            representations[ext] = fname
+
+        if not representations:
+            raise OSError
+
+    except OSError:
+        raise OSError("v%03d of \"%s\" not found." % (version, asset))
+
+    # Automatically deduce representation
+    if representation is None:
+        fname = representations.values()[0]
+
+    return os.path.join(
+        dirname,
+        fname
+    )
 
 
-def register_loader(loader):
-    self._registered_loader = loader
+def register_host(host):
+    for member in ("root",
+                   "loader",
+                   "creator"):
+        assert hasattr(host, member), "Missing %s" % member
 
-
-def register_creator(creator):
-    self._registered_creator = creator
+    self._registered_host = host
 
 
 def register_plugins():
@@ -124,16 +173,8 @@ def registered_data():
     return list(self._registered_data)
 
 
-def registered_root():
-    return self._registered_root
-
-
-def registered_loader():
-    return self._registered_loader
-
-
-def registered_creator():
-    return self._registered_creator
+def registered_host():
+    return self._registered_host
 
 
 def time():

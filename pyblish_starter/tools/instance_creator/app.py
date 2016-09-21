@@ -18,13 +18,10 @@ class Window(QtWidgets.QDialog):
 
     """
 
-    def __init__(self, creator, parent=None):
+    def __init__(self, parent=None):
         super(Window, self).__init__(parent)
         self.setWindowTitle("Instance Creator")
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
-
-        # Dependency injected creation function
-        self.creator = creator
 
         body = QtWidgets.QWidget()
         lists = QtWidgets.QWidget()
@@ -43,15 +40,12 @@ class Window(QtWidgets.QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
 
         options = QtWidgets.QWidget()
-        layout = QtWidgets.QGridLayout(options)
-        layout.setContentsMargins(0, 0, 0, 0)
-
-        useselection_chk = QtWidgets.QCheckBox("Use selection")
-        useselection_chk.setCheckState(QtCore.Qt.Checked)
-        layout.addWidget(useselection_chk, 0, 0)
 
         autoclose_chk = QtWidgets.QCheckBox("Close after creation")
         autoclose_chk.setCheckState(QtCore.Qt.Checked)
+
+        layout = QtWidgets.QGridLayout(options)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(autoclose_chk, 1, 0)
 
         layout = QtWidgets.QHBoxLayout(lists)
@@ -79,7 +73,7 @@ class Window(QtWidgets.QDialog):
         names = {
             create_btn: "Create Button",
             listing: "Listing",
-            useselection_chk: "Use Selection Checkbox",
+            # useselection_chk: "Use Selection Checkbox",
             autoclose_chk: "Autoclose Checkbox",
             name: "Name",
             error_msg: "Error Message",
@@ -139,8 +133,6 @@ class Window(QtWidgets.QDialog):
         listing = self.findChild(QtWidgets.QWidget, "Listing")
         autoclose_chk = self.findChild(QtWidgets.QWidget,
                                        "Autoclose Checkbox")
-        use_selection_chk = self.findChild(QtWidgets.QWidget,
-                                           "Use Selection Checkbox")
         error_msg = self.findChild(QtWidgets.QWidget, "Error Message")
 
         item = listing.currentItem()
@@ -148,10 +140,9 @@ class Window(QtWidgets.QDialog):
         if item is not None:
             family = item.text()
             name = self.findChild(QtWidgets.QWidget, "Name").text()
-            use_selection = use_selection_chk.checkState()
 
             try:
-                self.creator(name, family, bool(use_selection))
+                pipeline.registered_host().creator(name, family)
 
             except NameError as e:
                 error_msg.setText(str(e))
@@ -167,7 +158,7 @@ class Window(QtWidgets.QDialog):
             self.close()
 
 
-def show(creator=None, debug=False):
+def show(debug=False):
     """Display instance creator GUI
 
     Arguments:
@@ -185,14 +176,6 @@ def show(creator=None, debug=False):
         self._window.close()
         del(self._window)
 
-    creator = creator or pipeline.registered_creator()
-
-    if creator is None:
-        raise ValueError("No creator registered.\n"
-                         "A creator must be either registered in "
-                         "pyblish_starter.install(creator=) or "
-                         "passed to show(creator=).")
-
     if debug:
         families.append({"name": "debug.model"})
         families.append({"name": "debug.rig"})
@@ -206,12 +189,8 @@ def show(creator=None, debug=False):
         parent = None
 
     with lib.application():
-        window = Window(creator, parent)
+        window = Window(parent)
         window.refresh(families)
         window.show()
 
         self._window = window
-
-
-if __name__ == '__main__':
-    show()

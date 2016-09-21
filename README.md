@@ -116,6 +116,7 @@ The `starter.rig` contains the necessary implementation and interface for animat
 
 ![req][] **Requirements**
 
+- Must contain an `objectSet` for controls and cachable geometry
 - Channels in `controls_SEL` at *default* values`*`
 - No input connection to animatable channel in `controls_SEL` `*`
 - [No self-intersections on workout](#workout) `*`

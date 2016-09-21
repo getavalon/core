@@ -10,12 +10,10 @@ self._window = None
 
 
 class Window(QtWidgets.QDialog):
-    def __init__(self, loader, parent=None):
+    def __init__(self, parent=None):
         super(Window, self).__init__(parent)
         self.setWindowTitle("Asset Loader")
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
-
-        self.loader = loader
 
         body = QtWidgets.QWidget()
         footer = QtWidgets.QWidget()
@@ -90,13 +88,10 @@ class Window(QtWidgets.QDialog):
 
         """
 
-    def refresh(self, root):
+    def refresh(self):
         listing = self.data["model"]["listing"]
 
-        try:
-            assets = pipeline.ls(root)
-        except OSError:
-            assets = list()
+        assets = pipeline.ls()
 
         if assets:
             for asset in assets:
@@ -120,7 +115,7 @@ class Window(QtWidgets.QDialog):
 
         if item is not None:
             try:
-                self.loader(item.text())
+                pipeline.registered_host().loader(item.text())
 
             except NameError as e:
                 error_msg.setText(str(e))
@@ -136,7 +131,7 @@ class Window(QtWidgets.QDialog):
             self.close()
 
 
-def show(root=None, loader=None, debug=False):
+def show(debug=False):
     """Display Asset Loader GUI
 
     Arguments:
@@ -148,9 +143,6 @@ def show(root=None, loader=None, debug=False):
             defaults to False
 
     """
-
-    root = root or pipeline.registered_root()
-    loader = loader or pipeline.registered_loader()
 
     if self._window:
         self._window.close()
@@ -164,15 +156,8 @@ def show(root=None, loader=None, debug=False):
         parent = None
 
     with lib.application():
-        window = Window(loader, parent)
+        window = Window(parent)
         window.show()
-        window.refresh(root)
+        window.refresh()
 
         self._window = window
-
-
-if __name__ == '__main__':
-    import os
-
-    show(root=os.path.expanduser("~"),
-         loader=lambda name: None)
