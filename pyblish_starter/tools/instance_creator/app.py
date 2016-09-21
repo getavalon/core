@@ -190,7 +190,7 @@ def show(creator=None, debug=False):
     if creator is None:
         raise ValueError("No creator registered.\n"
                          "A creator must be either registered in "
-                         "pyblish_starter.setup(creator=) or "
+                         "pyblish_starter.install(creator=) or "
                          "passed to show(creator=).")
 
     if debug:

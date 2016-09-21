@@ -1,2 +1,4 @@
+cover
+.coverage
 examples/maya/private**
 examples/maya/public**

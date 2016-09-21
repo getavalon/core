@@ -43,11 +43,11 @@ $ pip install pyblish-starter
 
 ### Usage
 
-Starter is initialised by calling `setup()`.
+Starter is initialised by calling `install()`.
 
 ```python
 >>> import pyblish_starter
->>> pyblish_starter.setup()
+>>> pyblish_starter.install()
 ```
 
 From here, you model, rig and animate as per the contract below.

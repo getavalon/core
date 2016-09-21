@@ -17,8 +17,8 @@ self._registered_creator = None
 self._log = logging.getLogger()
 
 
-def setup(root, loader, creator):
-    """Setup the running Python session.
+def install(root, loader, creator):
+    """install the running Python session.
 
     Arguments:
         root (str): Absolute path to assets
@@ -55,9 +55,9 @@ def setup(root, loader, creator):
     )
 
 
-def ls(root):
+def ls():
     """List available assets"""
-    dirname = os.path.join(root, "public")
+    dirname = os.path.join(self.registered_root(), "public")
     self._log.debug("Listing %s" % dirname)
     return os.listdir(dirname)
 

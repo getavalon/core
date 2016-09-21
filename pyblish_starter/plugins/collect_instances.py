@@ -45,11 +45,11 @@ class CollectStarterInstances(api.ContextPlugin):
 
         try:
             import pyblish_maya
-            assert pyblish_maya.is_setup()
+            assert pyblish_maya.is_install()
 
         except (ImportError, AssertionError):
             raise RuntimeError("pyblish-starter requires pyblish-maya "
-                               "to have been setup.")
+                               "to have been install.")
 
         for objset in cmds.ls("*.id",
                               long=True,            # Produce full names
