@@ -1,4 +1,4 @@
-from ._lib import (
+from .lib import (
     hierarchy_from_string,
     export_alembic,
     outmesh,

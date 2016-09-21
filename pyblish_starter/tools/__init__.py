@@ -1,4 +1,4 @@
-from ._lib import (
+from .lib import (
     application,
 )
 

@@ -1,7 +1,8 @@
-from ._pipeline import (
+from .pipeline import (
     ls,
     setup,
     register_plugins,
+    format_private_dir,
 )
 
 

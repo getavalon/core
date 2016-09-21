@@ -1,8 +1,8 @@
 import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import _pipeline
-from .. import _lib
+from ... import pipeline
+from .. import lib
 
 self = sys.modules[__name__]
 self._window = None
@@ -118,12 +118,11 @@ class Window(QtWidgets.QDialog):
 
         """
 
-    def refresh(self):
+    def refresh(self, families):
         listing = self.findChild(QtWidgets.QWidget, "Listing")
 
-        if _pipeline._registered_families:
-            for family in sorted(_pipeline._registered_families.values(),
-                                 key=lambda i: i["name"]):
+        if families:
+            for family in sorted(families, key=lambda i: i["name"]):
                 item = QtWidgets.QListWidgetItem(family["name"])
                 item.setData(QtCore.Qt.ItemIsEnabled, True)
                 item.setData(QtCore.Qt.UserRole + 2, family.get("help"))
@@ -159,7 +158,7 @@ class Window(QtWidgets.QDialog):
                 error_msg.show()
                 raise
 
-            except (TypeError, RuntimeError, KeyError) as e:
+            except (TypeError, RuntimeError, KeyError, AssertionError) as e:
                 error_msg.setText("Program error: %s" % str(e))
                 error_msg.show()
                 raise
@@ -169,11 +168,24 @@ class Window(QtWidgets.QDialog):
 
 
 def show(creator=None, debug=False):
+    """Display instance creator GUI
+
+    Arguments:
+        creator (func, optional): Callable function, passed `name`,
+            `family` and `use_selection`, defaults to `creator`
+            defined in :mod:`pipeline`
+        debug (bool, optional): Run loader in debug-mode,
+            defaults to False
+
+    """
+
+    families = pipeline.registered_families()
+
     if self._window:
         self._window.close()
         del(self._window)
 
-    creator = creator or _pipeline._creator
+    creator = creator or pipeline.registered_creator()
 
     if creator is None:
         raise ValueError("No creator registered.\n"
@@ -182,9 +194,9 @@ def show(creator=None, debug=False):
                          "passed to show(creator=).")
 
     if debug:
-        _pipeline.register_family("debug.model")
-        _pipeline.register_family("debug.rig")
-        _pipeline.register_family("debug.animation")
+        families.append({"name": "debug.model"})
+        families.append({"name": "debug.rig"})
+        families.append({"name": "debug.animation"})
 
     try:
         widgets = QtWidgets.QApplication.topLevelWidgets()
@@ -193,10 +205,10 @@ def show(creator=None, debug=False):
     except KeyError:
         parent = None
 
-    with _lib.application():
+    with lib.application():
         window = Window(creator, parent)
+        window.refresh(families)
         window.show()
-        window.refresh()
 
         self._window = window
 

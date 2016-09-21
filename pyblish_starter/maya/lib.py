@@ -1,12 +1,13 @@
 import os
+import sys
+import logging
 
 from maya import cmds, mel
 
-from .._pipeline import (
-    find_latest_version,
-    _registered_data,
-    _registered_families,
-)
+from .. import pipeline
+
+self = sys.modules[__name__]
+self.log = logging.getLogger()
 
 
 def hierarchy_from_string(hierarchy):
@@ -54,6 +55,11 @@ def outmesh(shape, name=None):
 def loader(asset, version=-1, namespace=None):
     """Load asset
 
+    The loader formats the `pipeline.root` variable with the
+    following template members.
+
+    - {project}: Absolute path to Maya project root.
+
     Arguments:
         asset (str): Name of asset
         version (int, optional): Version number, defaults to latest
@@ -66,8 +72,10 @@ def loader(asset, version=-1, namespace=None):
 
     assert isinstance(version, int), "Version must be integer"
 
+    root = pipeline.registered_root()
+
     dirname = os.path.join(
-        cmds.workspace(rootDirectory=True, query=True),
+        root,
         "public",
         asset
     )
@@ -78,16 +86,17 @@ def loader(asset, version=-1, namespace=None):
         raise OSError("\"%s\" not found." % asset)
 
     if version == -1:
-        version = find_latest_version(versions)
+        version = pipeline.find_latest_version(versions)
 
     fname = os.path.join(
         dirname,
         "v%03d" % version,
         asset + ".ma"
-    )
+    ).replace("\\", "/")
 
+    self.log.info("Loading \"%s\" with \"%s\", from \"%s\"" % (asset, namespace, fname))
     nodes = cmds.file(fname,
-                      namespace=namespace,
+                      namespace=namespace or ":",
                       reference=True)
 
     return cmds.referenceQuery(nodes, referenceNode=True)
@@ -103,12 +112,15 @@ def creator(name, family, use_selection=False):
 
     """
 
-    try:
-        item = next(i for i in _registered_families if i["name"] == family)
-    except:
-        raise RuntimeError("{0} is not a valid family".format(family))
+    for item in pipeline.registered_families():
+        if item["name"] == family:
+            break
 
-    data = _registered_data + item.get("data", [])
+    assert item is not None, "{0} is not a valid family".format(family)
+
+    print("%s + %s" % (pipeline.registered_data(), item.get("data", [])))
+
+    data = pipeline.registered_data() + item.get("data", [])
 
     if not use_selection:
         cmds.select(deselect=True)

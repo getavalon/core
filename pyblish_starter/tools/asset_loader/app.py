@@ -1,8 +1,8 @@
 import sys
 
-from ... import _pipeline, ls
 from ...vendor.Qt import QtWidgets, QtCore
-from .. import _lib
+from ... import pipeline
+from .. import lib
 
 
 self = sys.modules[__name__]
@@ -94,7 +94,7 @@ class Window(QtWidgets.QDialog):
         listing = self.data["model"]["listing"]
 
         try:
-            assets = ls(root)
+            assets = pipeline.ls(root)
         except OSError:
             assets = list()
 
@@ -136,27 +136,25 @@ class Window(QtWidgets.QDialog):
             self.close()
 
 
-def show(root, loader, debug=False):
+def show(root=None, loader=None, debug=False):
     """Display Asset Loader GUI
 
     Arguments:
-        root (str): Absolute path to root directory of assets
-        loader (func): Callable function, passed `name` of asset.
-        debug (bool): Run loader in debug-mode
+        root (str, optional): Absolute path to root directory of assets,
+            defaults to `root` defined in :mod:`pipeline`
+        loader (func, optional): Callable function, passed `name` of asset,
+            defaults to `loader` defined in :mod:`pipeline`
+        debug (bool, optional): Run loader in debug-mode,
+            defaults to False
 
     """
+
+    root = root or pipeline.registered_root()
+    loader = loader or pipeline.registered_loader()
 
     if self._window:
         self._window.close()
         del(self._window)
-
-    loader = loader or _pipeline._loader
-
-    if loader is None:
-        raise ValueError("No loader registered.\n"
-                         "A loader must be either registered in "
-                         "pyblish_starter.setup(loader=) or "
-                         "passed to show(loader=).")
 
     try:
         widgets = QtWidgets.QApplication.topLevelWidgets()
@@ -165,7 +163,7 @@ def show(root, loader, debug=False):
     except KeyError:
         parent = None
 
-    with _lib.application():
+    with lib.application():
         window = Window(loader, parent)
         window.show()
         window.refresh(root)

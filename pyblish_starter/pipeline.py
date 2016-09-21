@@ -1,17 +1,20 @@
 import os
 import re
 import sys
+import logging
 import datetime
 
 from pyblish import api
 
 self = sys.modules[__name__]
+
 self._registered_data = list()
 self._registered_families = list()
+self._registered_root = None
+self._registered_loader = None
+self._registered_creator = None
 
-self._root = None
-self._loader = None
-self._creator = None
+self._log = logging.getLogger()
 
 
 def setup(root, loader, creator):
@@ -26,15 +29,15 @@ def setup(root, loader, creator):
 
     """
 
-    self._root = root
-    self._loader = loader
-    self._creator = creator
+    register_root(root)
+    register_loader(loader)
+    register_creator(creator)
 
     register_plugins()
 
-    register_default(key="id", value="pyblish.starter.instance")
-    register_default(key="label", value="{name}")
-    register_default(key="family", value="{family}")
+    register_data(key="id", value="pyblish.starter.instance")
+    register_data(key="label", value="{name}")
+    register_data(key="family", value="{family}")
 
     register_family(
         name="starter.model",
@@ -54,7 +57,21 @@ def setup(root, loader, creator):
 
 def ls(root):
     """List available assets"""
-    return os.listdir(os.path.join(root, "public"))
+    dirname = os.path.join(root, "public")
+    self._log.debug("Listing %s" % dirname)
+    return os.listdir(dirname)
+
+
+def register_root(root):
+    self._registered_root = root
+
+
+def register_loader(loader):
+    self._registered_loader = loader
+
+
+def register_creator(creator):
+    self._registered_creator = creator
 
 
 def register_plugins():
@@ -64,7 +81,7 @@ def register_plugins():
     api.register_plugin_path(plugin_path)
 
 
-def register_default(key, value, help=None):
+def register_data(key, value, help=None):
     """Register new default attribute
 
     Arguments:
@@ -87,16 +104,36 @@ def register_family(name, data=None, help=None):
     Arguments:
         name (str): Name of family
         data (dict, optional): Additional data, see
-            :func:`register_default` for docstring on members
+            :func:`register_data` for docstring on members
         help (str, optional): Briefly describe this family
 
     """
 
     self._registered_families.append({
         "name": name,
-        "data": data or {},
+        "data": data or [],
         "help": help or ""
     })
+
+
+def registered_families():
+    return list(self._registered_families)
+
+
+def registered_data():
+    return list(self._registered_data)
+
+
+def registered_root():
+    return self._registered_root
+
+
+def registered_loader():
+    return self._registered_loader
+
+
+def registered_creator():
+    return self._registered_creator
 
 
 def time():
