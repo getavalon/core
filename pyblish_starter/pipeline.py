@@ -16,9 +16,11 @@ self._log = logging.getLogger()
 
 # Mock host interface
 host = types.ModuleType("default")
-host.ls = lambda: ["Asset1", "Asset2"]
-host.loader = lambda asset, version, representation: None
-host.creator = lambda name, family: "my_instance"
+host.__dict__.update({
+    "ls": lambda: ["Asset1", "Asset2"],
+    "loader": lambda asset, version, representation: None,
+    "creator": lambda name, family: "my_instance"
+})
 
 self._registered_host = host
 
@@ -32,7 +34,11 @@ def install(host):
 
     """
 
-    host.install()
+    try:
+        # Optional host install function
+        host.install()
+    except AttributeError:
+        pass
 
     register_host(host)
     register_plugins()
