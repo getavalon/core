@@ -1,9 +1,4 @@
 [nosetests]
 verbosity=2
 with-doctest=1
-with-coverage=1
 exclude=vendor
-cover-html=1
-cover-erase=1
-cover-tests=1
-cover-package=pyblish_starter

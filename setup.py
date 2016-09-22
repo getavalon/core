@@ -46,7 +46,7 @@ setup(
     classifiers=classifiers,
     install_requires=[
         "pyblish-base>=1.4",
-        "pyblish-maya>=2.0"
+        "pyblish-maya>=2.1"
     ],
     entry_points={},
 )

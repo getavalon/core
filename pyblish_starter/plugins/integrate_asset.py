@@ -14,7 +14,9 @@ class IntegrateStarterAsset(api.InstancePlugin):
 
     def process(self, instance):
         import os
+        import json
         import shutil
+        import pyblish_starter
 
         privatedir = instance.data.get("privateDir")
         assert privatedir, (
@@ -30,11 +32,38 @@ class IntegrateStarterAsset(api.InstancePlugin):
         except OSError:
             pass
 
-        versions = len(os.listdir(instancedir))
-        next_version = "v%03d" % (versions + 1)
-        versiondir = os.path.join(instancedir, next_version)
+        version = len(os.listdir(instancedir)) + 1
+        versiondir = os.path.join(
+            instancedir,
+            pyblish_starter.format_version(version)
+        )
 
         shutil.copytree(privatedir, versiondir)
 
-        self.log.info("Successfully integrated %s to %s" % (
+        # Update metadata
+        fname = os.path.join(versiondir, ".metadata.json")
+
+        try:
+            with open(fname) as f:
+                metadata = json.load(f)
+        except IOError:
+            metadata = {
+                "schema": "pyblish-starter:version-1.0",
+                "version": version,
+                "representations": list()
+            }
+
+        filename = instance.data["filename"]
+        name, ext = os.path.splitext(filename)
+        metadata["representations"].append(
+            {
+                "format": ext,
+                "path": "{version}/%s" % filename
+            }
+        )
+
+        with open(fname, "w") as f:
+            json.dump(metadata, f)
+
+        self.log.info("Successfully integrated \"%s\" to \"%s\"" % (
             instance, versiondir))

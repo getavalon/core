@@ -51,5 +51,6 @@ class ExtractStarterRig(api.InstancePlugin):
 
         # Store reference for integration
         instance.data["privateDir"] = dirname
+        instance.data["filename"] = filename
 
         self.log.info("Extracted {instance} to {path}".format(**locals()))

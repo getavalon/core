@@ -1,6 +1,8 @@
 import sys
-import time
 import types
+import warnings
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 maya = types.ModuleType("maya")
 maya.mel = types.ModuleType("mel")

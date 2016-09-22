@@ -9,7 +9,36 @@ self = sys.modules[__name__]
 self._window = None
 
 
+# Custom roles
+ItemRole = QtCore.Qt.UserRole + 1
+
+
 class Window(QtWidgets.QDialog):
+    """Basic asset loader interface
+
+     _________________________
+    |                          |
+    | Assets                   |
+    |  ______________________  |
+    | |                      | |
+    | | Asset 1              | |
+    | | Asset 2              | |
+    | | ...                  | |
+    | |                      | |
+    | |                      | |
+    | |                      | |
+    | |                      | |
+    | |                      | |
+    | |                      | |
+    | |______________________| |
+    |  ______________________  |
+    | |                      | |
+    | |         Load         | |
+    | |______________________| |
+    |__________________________|
+
+    """
+
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
         self.setWindowTitle("Asset Loader")
@@ -91,15 +120,17 @@ class Window(QtWidgets.QDialog):
     def refresh(self):
         listing = self.data["model"]["listing"]
 
-        assets = pipeline.ls()
+        has_assets = False
 
-        if assets:
-            for asset in assets:
-                item = QtWidgets.QListWidgetItem(asset)
-                item.setData(QtCore.Qt.ItemIsEnabled, True)
-                listing.addItem(item)
+        for asset in pipeline.ls():
+            item = QtWidgets.QListWidgetItem(asset["name"])
+            item.setData(QtCore.Qt.ItemIsEnabled, True)
+            item.setData(ItemRole, asset)
+            listing.addItem(item)
 
-        else:
+            has_assets = True
+
+        if not has_assets:
             item = QtWidgets.QListWidgetItem("No assets found")
             item.setData(QtCore.Qt.ItemIsEnabled, False)
             listing.addItem(item)
@@ -114,15 +145,23 @@ class Window(QtWidgets.QDialog):
         item = listing.currentItem()
 
         if item is not None:
+            asset = item.data(ItemRole)
+
             try:
-                pipeline.registered_host().loader(item.text())
+                pipeline.registered_host().loader(asset)
+
+            except ValueError as e:
+                error_msg.setText(str(e))
+                error_msg.show()
+                raise
 
             except NameError as e:
                 error_msg.setText(str(e))
                 error_msg.show()
                 raise
 
-            except (TypeError, RuntimeError, KeyError) as e:
+            # Catch-all
+            except Exception as e:
                 error_msg.setText("Program error: %s" % str(e))
                 error_msg.show()
                 raise

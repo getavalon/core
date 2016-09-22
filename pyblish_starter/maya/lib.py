@@ -1,10 +1,11 @@
+import os
 import sys
 import logging
 
 from maya import cmds, mel
 
 from .. import pipeline
-from ..vendor.Qt import QtWidgets
+from ..vendor.Qt import QtWidgets, QtGui
 
 self = sys.modules[__name__]
 self.log = logging.getLogger()
@@ -12,11 +13,20 @@ self.menu = "pyblishStarter"
 
 
 def install():
+    try:
+        import pyblish_maya
+        assert pyblish_maya.is_setup()
+
+    except (ImportError, AssertionError):
+        _display_missing_dependencies()
+
     install_menu()
+    register_formats()
 
 
 def uninstall():
     uninstall_menu()
+    deregister_formats()
 
 
 def install_menu():
@@ -24,14 +34,17 @@ def install_menu():
 
     uninstall_menu()
 
-    cmds.menu(label="Pyblish Starter", tearOff=True, parent="MayaWindow")
+    cmds.menu(self.menu,
+              label="Pyblish Starter",
+              tearOff=True,
+              parent="MayaWindow")
     cmds.menuItem("Create Instance", command=instance_creator.show)
     cmds.menuItem("Load Asset", command=asset_loader.show)
 
 
 def uninstall_menu():
-    widgets = {w.objectName(): w for w in QtWidgets.qApp.allWidgets()}
-    menu = widgets.get("pyblishStarter")
+    widgets = dict((w.objectName(), w) for w in QtWidgets.qApp.allWidgets())
+    menu = widgets.get(self.menu)
 
     if menu:
         menu.deleteLater()
@@ -42,6 +55,18 @@ def root():
     """Return project-root or directory of current working file"""
     return (cmds.workspace(rootDirectory=True, query=True) or
             cmds.workspace(directory=True, query=True))
+
+
+def register_formats():
+    pipeline.register_format(".ma")
+    pipeline.register_format(".mb")
+    pipeline.register_format(".abc")
+
+
+def deregister_formats():
+    pipeline.deregister_format(".ma")
+    pipeline.deregister_format(".mb")
+    pipeline.deregister_format(".abc")
 
 
 def hierarchy_from_string(hierarchy):
@@ -83,33 +108,59 @@ def outmesh(shape, name=None):
     outmesh = cmds.listRelatives(outmesh, parent=True)[0]
     outmesh = cmds.rename(outmesh, name or "outMesh1")
     cmds.sets(outmesh, addElement="initialShadingGroup")
+
     return outmesh
 
 
-def loader(asset, version=-1, namespace=None):
+def loader(asset, version=-1):
     """Load asset
 
-    The loader formats the `pipeline.root` variable with the
-    following template members.
-
-    - {project}: Absolute path to Maya project root.
-
     Arguments:
-        asset (str): Name of asset
+        asset (dict): Object of schema "pyblish-starter:asset-1.0"
         version (int, optional): Version number, defaults to latest
-        namespace (str, optional): Name of namespace
+        representation (str, optional): Representation to load,
+            defaults to "any"
 
     Returns:
         Reference node
 
+    Raises:
+        IndexError on version not found
+        ValueError on no supported representation
+
     """
 
+    assert asset["schema"] == "pyblish-starter:asset-1.0"
     assert isinstance(version, int), "Version must be integer"
 
-    fname = pipeline.abspath(asset, version, ".ma").replace("\\", "/")
+    try:
+        version = asset["versions"][version]
+    except IndexError:
+        raise IndexError("\"%s\" of \"%s\" not found." % (version, asset))
+
+    formats = pipeline.registered_formats()
+
+    # Pick any representation
+    representation = next(
+        (rep for rep in version["representations"]
+         if rep["format"] in formats), None
+    )
+
+    if representation is None:
+        raise ValueError(
+            "No supported representations for %s\n"
+            "Supported representations: %s" % (
+                asset["name"],
+                ", ".join(r["format"] for r in version["representations"]))
+        )
+
+    fname = representation["path"].format(
+        asset=asset["path"],
+        version=pipeline.parse_version(version["version"])
+    )
 
     nodes = cmds.file(fname,
-                      namespace=namespace or ":",
+                      namespace=asset["name"] + "_",
                       reference=True)
 
     return cmds.referenceQuery(nodes, referenceNode=True)
@@ -212,3 +263,53 @@ def export_alembic(nodes, file, frame_range=None, uv_write=True):
     mel_cmd = "AbcExport -j \"{0}\"".format(mel_args_string)
 
     return mel.eval(mel_cmd)
+
+
+def _display_missing_dependencies():
+        import pyblish
+
+        messagebox = QtWidgets.QMessageBox()
+        messagebox.setIcon(messagebox.Warning)
+        messagebox.setWindowIcon(QtGui.QIcon(os.path.join(
+            os.path.dirname(pyblish.__file__),
+            "icons",
+            "logo-32x32.svg"))
+        )
+
+        spacer = QtWidgets.QWidget()
+        spacer.setMinimumSize(400, 0)
+        spacer.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
+                             QtWidgets.QSizePolicy.Expanding)
+
+        layout = messagebox.layout()
+        layout.addWidget(spacer, layout.rowCount(), 0, 1, layout.columnCount())
+
+        messagebox.setWindowTitle("Uh oh")
+        messagebox.setText("Missing dependencies")
+
+        messagebox.setInformativeText("""\
+pyblish-starter requires pyblish-maya.\
+""")
+
+        messagebox.setDetailedText("""\
+1) Install Pyblish for Maya
+
+   $ pip install pyblish-maya
+
+2) Run setup()
+
+   >>> import pyblish_maya
+   >>> pyblish_maya.setup()
+
+3) Try again.
+
+   >>> pyblish_starter.install()
+
+See https://github.com/pyblish/pyblish-starter for more information.
+""")
+
+        messagebox.setStandardButtons(messagebox.Ok)
+        messagebox.exec_()
+
+        raise RuntimeError("pyblish-starter requires pyblish-maya "
+                           "to have been setup.")

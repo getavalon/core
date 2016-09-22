@@ -1,0 +1,1171 @@
+From dad345e4021b5d0d51ae35904e479d2961e0329d Mon Sep 17 00:00:00 2001
+From: mottosso <konstruktion@gmail.com>
+Date: Thu, 22 Sep 2016 16:20:25 +0100
+Subject: [PATCH] Implement basic schema for ls()
+
+---
+ .noserc                                      |    5 -
+ pyblish_starter/__init__.py                  |   14 ++-
+ pyblish_starter/lib.py                       |  115 ++++++++++
+ pyblish_starter/maya/__init__.py             |    6 +
+ pyblish_starter/maya/lib.py                  |  129 ++++++++++--
+ pyblish_starter/pipeline.py                  |  292 +++++++++++++++-----------
+ pyblish_starter/plugins/collect_instances.py |    5 +-
+ pyblish_starter/plugins/extract_animation.py |    1 +
+ pyblish_starter/plugins/extract_model.py     |    1 +
+ pyblish_starter/plugins/extract_rig.py       |    1 +
+ pyblish_starter/plugins/integrate_asset.py   |   37 +++-
+ pyblish_starter/tests/test_pipeline.py       |  134 +++++++++++-
+ pyblish_starter/tools/asset_loader/app.py    |   57 +++++-
+ run_tests.py                                 |    4 +-
+ setup.py                                     |    2 +-
+ 15 files changed, 631 insertions(+), 172 deletions(-)
+ create mode 100644 pyblish_starter/lib.py
+
+diff --git a/.noserc b/.noserc
+index 0f986f5..c509d78 100644
+--- a/.noserc
++++ b/.noserc
+@@ -1,9 +1,4 @@
+ [nosetests]
+ verbosity=2
+ with-doctest=1
+-with-coverage=1
+ exclude=vendor
+-cover-html=1
+-cover-erase=1
+-cover-tests=1
+-cover-package=pyblish_starter
+\ No newline at end of file
+diff --git a/pyblish_starter/__init__.py b/pyblish_starter/__init__.py
+index 12f37cb..b4cf81e 100644
+--- a/pyblish_starter/__init__.py
++++ b/pyblish_starter/__init__.py
+@@ -1,16 +1,28 @@
++"""Public API
++
++Anything that isn't defined here is INTERNAL and unreliable for external use.
++
++"""
++
+ from .pipeline import (
+     ls,
+     install,
++    uninstall,
+     register_host,
+     register_plugins,
+-    format_private_dir,
+ )
+ 
++from .lib import (
++    format_private_dir,
++    format_version,
++)
+ 
+ __all__ = [
+     "ls",
+     "install",
++    "uninstall",
+     "register_host",
+     "register_plugins",
+     "format_private_dir",
++    "format_version",
+ ]
+diff --git a/pyblish_starter/lib.py b/pyblish_starter/lib.py
+new file mode 100644
+index 0000000..31fba01
+--- /dev/null
++++ b/pyblish_starter/lib.py
+@@ -0,0 +1,115 @@
++import os
++import re
++import datetime
++
++
++def time():
++    return datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
++
++
++def format_private_dir(root, name):
++    dirname = os.path.join(root, "private", time(), name)
++    return dirname
++
++
++def parse_version(version):
++    """Return integer version from formatted string
++
++    Example:
++        >>> parse_version("v001")
++        1
++        >>> parse_version("2")
++        2
++        >>> parse_version("version03")
++        3
++        >>> parse_version("000008")
++        8
++        >>> parse_version("abc")
++        Traceback (most recent call last):
++        ...
++        ValueError: Could not parse "abc"
++
++    """
++
++    matches = re.findall(r"\d+", version)
++
++    if not matches:
++        raise ValueError("Could not parse \"%s\"" % version)
++
++    return int(matches[-1])
++
++
++def format_version(version):
++    """Produce filesystem-friendly string from integer version
++
++    Arguments:
++        version (int): Version number
++
++    Returns:
++        string of `version`.
++
++    Raises:
++        TypeError on non-integer version
++
++    Example:
++        >>> format_version(5)
++        'v005'
++        >>> format_version("x")
++        Traceback (most recent call last):
++        ...
++        TypeError: %d format: a number is required, not str
++
++    """
++
++    return "v%03d" % version
++
++
++def find_latest_version(versions):
++    """Return latest version from list of versions
++
++    If multiple numbers are found in a single version,
++    the last one found is used. E.g. (6) from "v7_22_6"
++
++    Arguments:
++        versions (list): Version numbers as string
++
++    Example:
++        >>> find_next_version(["v001", "v002", "v003"])
++        4
++        >>> find_next_version(["1", "2", "3"])
++        4
++        >>> find_next_version(["v1", "v0002", "verision_3"])
++        4
++        >>> find_next_version(["v2", "5_version", "verision_8"])
++        9
++        >>> find_next_version(["v2", "v3_5", "_1_2_3", "7, 4"])
++        6
++        >>> find_next_version(["v010", "v011"])
++        12
++
++    """
++
++    highest_version = 0
++    for version in versions:
++        version = parse_version(version)
++
++        if version > highest_version:
++            highest_version = version
++
++    return highest_version
++
++
++def find_next_version(versions):
++    """Return next version from list of versions
++
++    See docstring for :func:`find_latest_version`.
++
++    Arguments:
++        versions (list): Version numbers as string
++
++    Returns:
++        int: Next version number
++
++    """
++
++    return find_latest_version(versions) + 1
+diff --git a/pyblish_starter/maya/__init__.py b/pyblish_starter/maya/__init__.py
+index ec672cf..f579201 100644
+--- a/pyblish_starter/maya/__init__.py
++++ b/pyblish_starter/maya/__init__.py
+@@ -1,3 +1,9 @@
++"""Public API
++
++Anything that isn't defined here is INTERNAL and unreliable for external use.
++
++"""
++
+ from .lib import (
+     install,
+     uninstall,
+diff --git a/pyblish_starter/maya/lib.py b/pyblish_starter/maya/lib.py
+index 64ceb68..e8c0411 100644
+--- a/pyblish_starter/maya/lib.py
++++ b/pyblish_starter/maya/lib.py
+@@ -1,10 +1,11 @@
++import os
+ import sys
+ import logging
+ 
+ from maya import cmds, mel
+ 
+ from .. import pipeline
+-from ..vendor.Qt import QtWidgets
++from ..vendor.Qt import QtWidgets, QtGui
+ 
+ self = sys.modules[__name__]
+ self.log = logging.getLogger()
+@@ -12,11 +13,20 @@ self.menu = "pyblishStarter"
+ 
+ 
+ def install():
++    try:
++        import pyblish_maya
++        assert pyblish_maya.is_setup()
++
++    except (ImportError, AssertionError):
++        _display_missing_dependencies()
++
+     install_menu()
++    register_formats()
+ 
+ 
+ def uninstall():
+     uninstall_menu()
++    deregister_formats()
+ 
+ 
+ def install_menu():
+@@ -24,14 +34,17 @@ def install_menu():
+ 
+     uninstall_menu()
+ 
+-    cmds.menu(label="Pyblish Starter", tearOff=True, parent="MayaWindow")
++    cmds.menu(self.menu,
++              label="Pyblish Starter",
++              tearOff=True,
++              parent="MayaWindow")
+     cmds.menuItem("Create Instance", command=instance_creator.show)
+     cmds.menuItem("Load Asset", command=asset_loader.show)
+ 
+ 
+ def uninstall_menu():
+-    widgets = {w.objectName(): w for w in QtWidgets.qApp.allWidgets()}
+-    menu = widgets.get("pyblishStarter")
++    widgets = dict((w.objectName(), w) for w in QtWidgets.qApp.allWidgets())
++    menu = widgets.get(self.menu)
+ 
+     if menu:
+         menu.deleteLater()
+@@ -44,6 +57,18 @@ def root():
+             cmds.workspace(directory=True, query=True))
+ 
+ 
++def register_formats():
++    pipeline.register_format(".ma")
++    pipeline.register_format(".mb")
++    pipeline.register_format(".abc")
++
++
++def deregister_formats():
++    pipeline.deregister_format(".ma")
++    pipeline.deregister_format(".mb")
++    pipeline.deregister_format(".abc")
++
++
+ def hierarchy_from_string(hierarchy):
+     parents = {}
+ 
+@@ -83,33 +108,59 @@ def outmesh(shape, name=None):
+     outmesh = cmds.listRelatives(outmesh, parent=True)[0]
+     outmesh = cmds.rename(outmesh, name or "outMesh1")
+     cmds.sets(outmesh, addElement="initialShadingGroup")
++
+     return outmesh
+ 
+ 
+-def loader(asset, version=-1, namespace=None):
++def loader(asset, version=-1):
+     """Load asset
+ 
+-    The loader formats the `pipeline.root` variable with the
+-    following template members.
+-
+-    - {project}: Absolute path to Maya project root.
+-
+     Arguments:
+-        asset (str): Name of asset
++        asset (dict): Object of schema "pyblish-starter:asset-1.0"
+         version (int, optional): Version number, defaults to latest
+-        namespace (str, optional): Name of namespace
++        representation (str, optional): Representation to load,
++            defaults to "any"
+ 
+     Returns:
+         Reference node
+ 
++    Raises:
++        IndexError on version not found
++        ValueError on no supported representation
++
+     """
+ 
++    assert asset["schema"] == "pyblish-starter:asset-1.0"
+     assert isinstance(version, int), "Version must be integer"
+ 
+-    fname = pipeline.abspath(asset, version, ".ma").replace("\\", "/")
++    try:
++        version = asset["versions"][version]
++    except IndexError:
++        raise IndexError("\"%s\" of \"%s\" not found." % (version, asset))
++
++    formats = pipeline.registered_formats()
++
++    # Pick any representation
++    representation = next(
++        (rep for rep in version["representations"]
++         if rep["format"] in formats), None
++    )
++
++    if representation is None:
++        raise ValueError(
++            "No supported representations for %s\n"
++            "Supported representations: %s" % (
++                asset["name"],
++                ", ".join(r["format"] for r in version["representations"]))
++        )
++
++    fname = representation["path"].format(
++        asset=asset["path"],
++        version=pipeline.parse_version(version["version"])
++    )
+ 
+     nodes = cmds.file(fname,
+-                      namespace=namespace or ":",
++                      namespace=asset["name"] + "_",
+                       reference=True)
+ 
+     return cmds.referenceQuery(nodes, referenceNode=True)
+@@ -212,3 +263,53 @@ def export_alembic(nodes, file, frame_range=None, uv_write=True):
+     mel_cmd = "AbcExport -j \"{0}\"".format(mel_args_string)
+ 
+     return mel.eval(mel_cmd)
++
++
++def _display_missing_dependencies():
++        import pyblish
++
++        messagebox = QtWidgets.QMessageBox()
++        messagebox.setIcon(messagebox.Warning)
++        messagebox.setWindowIcon(QtGui.QIcon(os.path.join(
++            os.path.dirname(pyblish.__file__),
++            "icons",
++            "logo-32x32.svg"))
++        )
++
++        spacer = QtWidgets.QWidget()
++        spacer.setMinimumSize(400, 0)
++        spacer.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
++                             QtWidgets.QSizePolicy.Expanding)
++
++        layout = messagebox.layout()
++        layout.addWidget(spacer, layout.rowCount(), 0, 1, layout.columnCount())
++
++        messagebox.setWindowTitle("Uh oh")
++        messagebox.setText("Missing dependencies")
++
++        messagebox.setInformativeText("""\
++pyblish-starter requires pyblish-maya.\
++""")
++
++        messagebox.setDetailedText("""\
++1) Install Pyblish for Maya
++
++   $ pip install pyblish-maya
++
++2) Run setup()
++
++   >>> import pyblish_maya
++   >>> pyblish_maya.setup()
++
++3) Try again.
++
++   >>> pyblish_starter.install()
++
++See https://github.com/pyblish/pyblish-starter for more information.
++""")
++
++        messagebox.setStandardButtons(messagebox.Ok)
++        messagebox.exec_()
++
++        raise RuntimeError("pyblish-starter requires pyblish-maya "
++                           "to have been setup.")
+diff --git a/pyblish_starter/pipeline.py b/pyblish_starter/pipeline.py
+index 12ff3dd..5490e7d 100644
+--- a/pyblish_starter/pipeline.py
++++ b/pyblish_starter/pipeline.py
+@@ -1,28 +1,43 @@
+ import os
+-import re
+ import sys
++import json
+ import types
+ import logging
+-import datetime
+ 
+ from pyblish import api
+ 
++from . import lib
++
+ self = sys.modules[__name__]
+ 
++self.log = logging.getLogger()
++
+ self._registered_data = list()
+ self._registered_families = list()
++self._registered_formats = list()
++
++
++def default_host():
++    """A default host, in place of anything better
++
++    This may be considered as reference for the
++    interface a host must implement. It also ensures
++    that the system runs, even when nothing is there
++    to support it.
+ 
+-self._log = logging.getLogger()
++    """
++
++    host = types.ModuleType("default")
++    host.__dict__.update({
++        "ls": lambda: ["Asset1", "Asset2"],
++        "loader": lambda asset, version, representation: None,
++        "creator": lambda name, family: "my_instance",
++        "supported_formats": lambda: [".ma", ".mb"]
++    })
+ 
+-# Mock host interface
+-host = types.ModuleType("default")
+-host.__dict__.update({
+-    "ls": lambda: ["Asset1", "Asset2"],
+-    "loader": lambda asset, version, representation: None,
+-    "creator": lambda name, family: "my_instance"
+-})
++    return host
+ 
+-self._registered_host = host
++self._registered_host = default_host()
+ 
+ 
+ def install(host):
+@@ -42,88 +57,151 @@ def install(host):
+ 
+     register_host(host)
+     register_plugins()
++    register_default_data()
++    register_default_families()
+ 
+-    register_data(key="id", value="pyblish.starter.instance")
+-    register_data(key="label", value="{name}")
+-    register_data(key="family", value="{family}")
+-
+-    register_family(
+-        name="starter.model",
+-        help="Polygonal geometry for animation"
+-    )
+ 
+-    register_family(
+-        name="starter.rig",
+-        help="Character rig"
+-    )
++def uninstall():
++    try:
++        registered_host().uninstall()
++    except AttributeError:
++        pass
+ 
+-    register_family(
+-        name="starter.animation",
+-        help="Pointcache"
+-    )
++    deregister_host()
++    deregister_plugins()
++    deregister_default_data()
++    deregister_default_families()
+ 
+ 
+ def ls():
+-    """List available assets"""
+-    root = self.registered_host().root()
+-    dirname = os.path.join(root, "public")
+-    self._log.debug("Listing %s" % dirname)
+-
+-    try:
+-        return os.listdir(dirname)
+-    except OSError:
+-        return list()
++    """List available assets
++
++    Return a list of available assets.
++
++    Schema:
++        {
++          "schema": "pyblish-starter:asset-1.0",
++          "name": Name of directory,
++          "versions": [
++            {
++              "version": 1,
++              "comment": "",
++              "representations": [
++                {
++                  "format": File extension,
++                  "path": Filename
++                }
++              ]
++            },
++          ]
++        }
++
++    The interface of this function, along with its schema, is designed
++    to facilitate a potential transition into database-driven queries.
++
++    A note on performance:
++        This function is a generator, it scans the system one asset
++        at a time. However, scanning implies both listing directories
++        and opening files - one per asset per version.
++
++        Therefore, performance drops combinatorially for each new
++        version added to the project.
++
++        In small pipelines - e.g. 100s of assets, with 10s of versions -
++        this should not pose a problem.
++
++        In large pipelines - e.g. 1000s of assets, with 100s of versions -
++        this would likely become unbearable and manifest itself in
++        surrounding areas of the pipeline where disk-access is
++        critical; such as saving or loading files.
++
++    ..note: The order of the list is undefined, but is typically alphabetical
++        due to how os.listdir() is implemented.
++
++    ..note: The order of versions returned is guaranteed to be sorted, so
++        as to simplify retrieving the latest one via `versions[-1]`
+ 
++    """
+ 
+-def abspath(asset, version=-1, representation=None):
+     root = registered_host().root()
++    assetsdir = os.path.join(root, "public")
+ 
+-    dirname = os.path.join(
+-        root,
+-        "public",
+-        asset
+-    )
++    for asset in os.listdir(assetsdir):
++        versionsdir = os.path.join(assetsdir, asset)
+ 
+-    try:
+-        versions = os.listdir(dirname)
+-    except OSError:
+-        raise OSError("\"%s\" not found." % asset)
++        asset_entry = {
++            "schema": "pyblish-starter:asset-1.0",
++            "name": asset,
++            "versions": list()
++        }
+ 
+-    # Automatically deduce version
+-    if version == -1:
+-        version = find_latest_version(versions)
++        for version in os.listdir(versionsdir):
++            versiondir = os.path.join(versionsdir, version)
++            fname = os.path.join(versiondir, ".metadata.json")
+ 
+-    dirname = os.path.join(
+-        dirname,
+-        "v%03d" % version
+-    )
++            try:
++                with open(fname) as f:
++                    data = json.load(f)
+ 
+-    try:
+-        representations = dict()
+-        for fname in os.listdir(dirname):
+-            name, ext = os.path.splitext(fname)
+-            representations[ext] = fname
++            except IOError:
++                self.log.warning("\"%s\" not found." % fname)
++                continue
++
++            if data.get("schema") != "pyblish-starter:version-1.0":
++                self.log.warning("\"%s\" unsupported schema." % fname)
++                continue
++
++            version_entry = {
++                "version": lib.parse_version(version),
++                "path": versiondir,
++                "representations": list()
++            }
++
++            for representation in os.listdir(versiondir):
++                if representation.startswith("."):
++                    continue
++
++                name, ext = os.path.splitext(representation)
++                version_entry["representations"].append({
++                    "format": ext,
++                    "path": "{dirname}/%s{format}" % name
++                })
++
++            asset_entry["versions"].append(version_entry)
+ 
+-        if not representations:
+-            raise OSError
++        # Sort versions by integer
++        asset_entry["versions"].sort(key=lambda v: v["version"])
+ 
+-    except OSError:
+-        raise OSError("v%03d of \"%s\" not found." % (version, asset))
++        yield asset_entry
+ 
+-    # Automatically deduce representation
+-    if representation is None:
+-        fname = representations.values()[0]
+ 
+-    return os.path.join(
+-        dirname,
+-        fname
++def register_default_data():
++    register_data(key="id", value="pyblish.starter.instance")
++    register_data(key="label", value="{name}")
++    register_data(key="family", value="{family}")
++
++
++def register_default_families():
++    register_family(
++        name="starter.model",
++        help="Polygonal geometry for animation"
++    )
++
++    register_family(
++        name="starter.rig",
++        help="Character rig"
++    )
++
++    register_family(
++        name="starter.animation",
++        help="Pointcache"
+     )
+ 
+ 
+ def register_host(host):
+     for member in ("root",
+                    "loader",
+-                   "creator"):
++                   "creator",):
+         assert hasattr(host, member), "Missing %s" % member
+ 
+     self._registered_host = host
+@@ -171,77 +249,39 @@ def register_family(name, data=None, help=None):
+     })
+ 
+ 
++def registered_formats():
++    return self._registered_formats[:]
++
++
+ def registered_families():
+-    return list(self._registered_families)
++    return self._registered_families[:]
+ 
+ 
+ def registered_data():
+-    return list(self._registered_data)
++    return self._registered_data[:]
+ 
+ 
+ def registered_host():
+     return self._registered_host
+ 
+ 
+-def time():
+-    return datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
+-
+-
+-def format_private_dir(root, name):
+-    dirname = os.path.join(root, "private", time(), name)
+-    return dirname
+-
+-
+-def find_latest_version(versions):
+-    """Return latest version from list of versions
+-
+-    If multiple numbers are found in a single version,
+-    the last one found is used. E.g. (6) from "v7_22_6"
+-
+-    Arguments:
+-        versions (list): Version numbers as string
+-
+-    Example:
+-        >>> find_next_version(["v001", "v002", "v003"])
+-        4
+-        >>> find_next_version(["1", "2", "3"])
+-        4
+-        >>> find_next_version(["v1", "v0002", "verision_3"])
+-        4
+-        >>> find_next_version(["v2", "5_version", "verision_8"])
+-        9
+-        >>> find_next_version(["v2", "v3_5", "_1_2_3", "7, 4"])
+-        6
+-        >>> find_next_version(["v010", "v011"])
+-        12
+-
+-    """
++def deregister_default_families():
++    self._registered_families[:] = list()
+ 
+-    highest_version = 0
+-    for version in versions:
+-        matches = re.findall(r"\d+", version)
+ 
+-        if not matches:
+-            continue
++def deregister_default_data():
++    self._registered_data[:] = list()
+ 
+-        version = int(matches[-1])
+-        if version > highest_version:
+-            highest_version = version
+ 
+-    return highest_version
+-
+-
+-def find_next_version(versions):
+-    """Return next version from list of versions
+-
+-    See docstring for :func:`find_latest_version`.
+-
+-    Arguments:
+-        versions (list): Version numbers as string
++def deregister_plugins():
++    from . import plugins
++    plugin_path = os.path.dirname(plugins.__file__)
+ 
+-    Returns:
+-        int: Next version number
++    try:
++        api.deregister_plugin_path(plugin_path)
++    except ValueError:
++        self.log.warning("pyblish-starter plug-ins not registered.")
+ 
+-    """
+ 
+-    return find_latest_version(versions) + 1
++def deregister_host():
++    self._registered_host = default_host()
+diff --git a/pyblish_starter/plugins/collect_instances.py b/pyblish_starter/plugins/collect_instances.py
+index 1508bb2..e63e6c5 100644
+--- a/pyblish_starter/plugins/collect_instances.py
++++ b/pyblish_starter/plugins/collect_instances.py
+@@ -44,12 +44,15 @@ class CollectStarterInstances(api.ContextPlugin):
+         from maya import cmds
+ 
+         try:
++            # Assertion also made in pyblish_starter.install()
++            # but as plug-ins can be used vanilla, the check
++            # must also be made here.
+             import pyblish_maya
+             assert pyblish_maya.is_setup()
+ 
+         except (ImportError, AssertionError):
+             raise RuntimeError("pyblish-starter requires pyblish-maya "
+-                               "to have been install.")
++                               "to have been setup.")
+ 
+         for objset in cmds.ls("*.id",
+                               long=True,            # Produce full names
+diff --git a/pyblish_starter/plugins/extract_animation.py b/pyblish_starter/plugins/extract_animation.py
+index c232c9b..9dbc694 100644
+--- a/pyblish_starter/plugins/extract_animation.py
++++ b/pyblish_starter/plugins/extract_animation.py
+@@ -48,5 +48,6 @@ class ExtractStarterAnimation(api.InstancePlugin):
+ 
+         # Store reference for integration
+         instance.data["privateDir"] = dirname
++        instance.data["filename"] = filename
+ 
+         self.log.info("Extracted {instance} to {dirname}".format(**locals()))
+diff --git a/pyblish_starter/plugins/extract_model.py b/pyblish_starter/plugins/extract_model.py
+index 704b9d2..54d6746 100644
+--- a/pyblish_starter/plugins/extract_model.py
++++ b/pyblish_starter/plugins/extract_model.py
+@@ -47,5 +47,6 @@ class ExtractStarterModel(api.InstancePlugin):
+ 
+         # Store reference for integration
+         instance.data["privateDir"] = dirname
++        instance.data["filename"] = filename
+ 
+         self.log.info("Extracted {instance} to {path}".format(**locals()))
+diff --git a/pyblish_starter/plugins/extract_rig.py b/pyblish_starter/plugins/extract_rig.py
+index f107040..4766a26 100644
+--- a/pyblish_starter/plugins/extract_rig.py
++++ b/pyblish_starter/plugins/extract_rig.py
+@@ -51,5 +51,6 @@ class ExtractStarterRig(api.InstancePlugin):
+ 
+         # Store reference for integration
+         instance.data["privateDir"] = dirname
++        instance.data["filename"] = filename
+ 
+         self.log.info("Extracted {instance} to {path}".format(**locals()))
+diff --git a/pyblish_starter/plugins/integrate_asset.py b/pyblish_starter/plugins/integrate_asset.py
+index 6ae21f9..032554e 100644
+--- a/pyblish_starter/plugins/integrate_asset.py
++++ b/pyblish_starter/plugins/integrate_asset.py
+@@ -14,7 +14,9 @@ class IntegrateStarterAsset(api.InstancePlugin):
+ 
+     def process(self, instance):
+         import os
++        import json
+         import shutil
++        import pyblish_starter
+ 
+         privatedir = instance.data.get("privateDir")
+         assert privatedir, (
+@@ -30,11 +32,38 @@ class IntegrateStarterAsset(api.InstancePlugin):
+         except OSError:
+             pass
+ 
+-        versions = len(os.listdir(instancedir))
+-        next_version = "v%03d" % (versions + 1)
+-        versiondir = os.path.join(instancedir, next_version)
++        version = len(os.listdir(instancedir)) + 1
++        versiondir = os.path.join(
++            instancedir,
++            pyblish_starter.format_version(version)
++        )
+ 
+         shutil.copytree(privatedir, versiondir)
+ 
+-        self.log.info("Successfully integrated %s to %s" % (
++        # Update metadata
++        fname = os.path.join(versiondir, ".metadata.json")
++
++        try:
++            with open(fname) as f:
++                metadata = json.load(f)
++        except IOError:
++            metadata = {
++                "schema": "pyblish-starter:version-1.0",
++                "version": version,
++                "representations": list()
++            }
++
++        filename = instance.data["filename"]
++        name, ext = os.path.splitext(filename)
++        metadata["representations"].append(
++            {
++                "format": ext,
++                "path": "{version}/%s" % filename
++            }
++        )
++
++        with open(fname, "w") as f:
++            json.dump(metadata, f)
++
++        self.log.info("Successfully integrated \"%s\" to \"%s\"" % (
+             instance, versiondir))
+diff --git a/pyblish_starter/tests/test_pipeline.py b/pyblish_starter/tests/test_pipeline.py
+index 5c1b470..3c4ff46 100644
+--- a/pyblish_starter/tests/test_pipeline.py
++++ b/pyblish_starter/tests/test_pipeline.py
+@@ -1,16 +1,21 @@
+ import os
+ import sys
++import json
++import types
+ import shutil
+ import tempfile
+ 
+ import pyblish_starter
+ 
++from nose.tools import assert_equals
++
+ self = sys.modules[__name__]
+ 
+ 
+ def setup():
+     self.tempdir = tempfile.mkdtemp()
+-    sys.stdout.write("Created temporary directory \"%s\"" % self.tempdir)
++    _register_host()
++    _generate_fixture()
+ 
+ 
+ def teardown():
+@@ -18,16 +23,125 @@ def teardown():
+     sys.stdout.write("Removed temporary directory \"%s\"" % self.tempdir)
+ 
+ 
+-def test_ls():
+-    """ls() returns available assets from current root directory"""
++def _register_host():
++    host = types.ModuleType("Test")
++    host.__dict__.update({
++        "root": lambda: self.tempdir,
++        "creator": lambda *args, **kwargs: None,
++        "loader": lambda *args, **kwargs: None,
++        "supported_formats": [".ma"]
++    })
++
++    pyblish_starter.register_host(host)
++
++
++def _generate_fixture():
+     root = os.path.join(
+         self.tempdir,
+         "public"
+     )
+-    
+-    for asset in ("Asset1", "Asset2"):
+-        os.makedirs(os.path.join(root, asset))
+-    
+-    pyblish_starter.register_root(self.tempdir)
+-    
+-    assert pyblish_starter.ls() == ["Asset1", "Asset2"]
++
++    for asset in ("Asset1",):
++        assetdir = os.path.join(root, asset)
++        os.makedirs(assetdir)
++
++        if asset == "BadAsset":
++            # An asset must have at least one version
++            continue
++
++        for version in ("v001",):
++            versiondir = os.path.join(assetdir, version)
++            os.makedirs(versiondir)
++
++            fname = os.path.join(versiondir, asset + ".ma")
++            open(fname, "w").close()  # touch
++
++            fname = os.path.join(versiondir, ".metadata.json")
++
++            with open(fname, "w") as f:
++                json.dump({
++                    "schema": "pyblish-starter:version-1.0",
++                    "name": asset,
++                    "path": versiondir,
++                    "representations": [
++                        {
++                            "format": ".ma",
++                            "source": "{project}/maya/scenes/scene.ma",
++                            "author": "marcus",
++                            "path": "{dirname}/%s{format}" % asset,
++                        },
++                    ]
++                }, f)
++
++
++def test_ls():
++    """ls() returns available assets from current root directory
++
++    ls() returns a formatted list of available assets. For an asset
++    to be recognised as an asset, it must adhere to a strict schema.
++
++     ________________________________ ________________________________
++    |          |          |          |          |          |          |
++    | version1 | version2 | version3 | version1 | version2 | version3 |
++    |__________|__________|__________|__________|__________|__________|
++    |                                |                                |
++    |            asset1              |             asset2             |
++    |________________________________|________________________________|
++    |                                                                 |
++    |                             project                             |
++    |_________________________________________________________________|
++
++    This schema is located within each version of an asset and is
++    denoted `pyblish-starter:version-1.0`.
++
++    The members of this schema is also strict, they are:
++
++    {
++        "schema": "pyblish-starter:version-1.0",
++        "name": "Name of asset",
++        "representations": [List of representations],
++    }
++
++    Where each `representation` follows the following schema.
++
++    {
++        "format": "file extension or similar identifier",
++        "source": "absolute path to source file",
++        "author": "original author of version",
++        "path": "relative path to file, starting at {root}"
++    }
++
++    The returned dictionary is also strictly defined.
++
++    """
++
++    asset = next(pyblish_starter.ls())
++    reference = {
++        "schema": "pyblish-starter:asset-1.0",
++        "name": "Asset1",
++        "versions": [
++            {
++                "version": 1,
++                "path": os.path.join(self.tempdir, "public", "Asset1/v001"),
++                "representations": [
++                    {
++                        "format": ".ma",
++                        "path": "{dirname}/Asset1{format}"
++                    }
++                ]
++            },
++        ]
++    }
++
++    # Printed on error
++    print("# Comparing result:")
++    print(json.dumps(asset, indent=4, sort_keys=True))
++    print("# With reference:")
++    print(json.dumps(reference, indent=4, sort_keys=True))
++
++    assert_equals(asset, reference)
++
++
++def test_ls_returns_sorted_versions():
++    """Versions returned from ls() are alphanumerically sorted"""
++    assert False
+diff --git a/pyblish_starter/tools/asset_loader/app.py b/pyblish_starter/tools/asset_loader/app.py
+index 2ee7f46..05a5c34 100644
+--- a/pyblish_starter/tools/asset_loader/app.py
++++ b/pyblish_starter/tools/asset_loader/app.py
+@@ -9,7 +9,36 @@ self = sys.modules[__name__]
+ self._window = None
+ 
+ 
++# Custom roles
++ItemRole = QtCore.Qt.UserRole + 1
++
++
+ class Window(QtWidgets.QDialog):
++    """Basic asset loader interface
++
++     _________________________
++    |                          |
++    | Assets                   |
++    |  ______________________  |
++    | |                      | |
++    | | Asset 1              | |
++    | | Asset 2              | |
++    | | ...                  | |
++    | |                      | |
++    | |                      | |
++    | |                      | |
++    | |                      | |
++    | |                      | |
++    | |                      | |
++    | |______________________| |
++    |  ______________________  |
++    | |                      | |
++    | |         Load         | |
++    | |______________________| |
++    |__________________________|
++
++    """
++
+     def __init__(self, parent=None):
+         super(Window, self).__init__(parent)
+         self.setWindowTitle("Asset Loader")
+@@ -91,15 +120,17 @@ class Window(QtWidgets.QDialog):
+     def refresh(self):
+         listing = self.data["model"]["listing"]
+ 
+-        assets = pipeline.ls()
++        has_assets = False
++
++        for asset in pipeline.ls():
++            item = QtWidgets.QListWidgetItem(asset["name"])
++            item.setData(QtCore.Qt.ItemIsEnabled, True)
++            item.setData(ItemRole, asset)
++            listing.addItem(item)
+ 
+-        if assets:
+-            for asset in assets:
+-                item = QtWidgets.QListWidgetItem(asset)
+-                item.setData(QtCore.Qt.ItemIsEnabled, True)
+-                listing.addItem(item)
++            has_assets = True
+ 
+-        else:
++        if not has_assets:
+             item = QtWidgets.QListWidgetItem("No assets found")
+             item.setData(QtCore.Qt.ItemIsEnabled, False)
+             listing.addItem(item)
+@@ -114,15 +145,23 @@ class Window(QtWidgets.QDialog):
+         item = listing.currentItem()
+ 
+         if item is not None:
++            asset = item.data(ItemRole)
++
+             try:
+-                pipeline.registered_host().loader(item.text())
++                pipeline.registered_host().loader(asset)
++
++            except ValueError as e:
++                error_msg.setText(str(e))
++                error_msg.show()
++                raise
+ 
+             except NameError as e:
+                 error_msg.setText(str(e))
+                 error_msg.show()
+                 raise
+ 
+-            except (TypeError, RuntimeError, KeyError) as e:
++            # Catch-all
++            except Exception as e:
+                 error_msg.setText("Program error: %s" % str(e))
+                 error_msg.show()
+                 raise
+diff --git a/run_tests.py b/run_tests.py
+index 64dfb75..8a3c366 100644
+--- a/run_tests.py
++++ b/run_tests.py
+@@ -1,6 +1,8 @@
+ import sys
+-import time
+ import types
++import warnings
++
++warnings.filterwarnings("ignore", category=DeprecationWarning)
+ 
+ maya = types.ModuleType("maya")
+ maya.mel = types.ModuleType("mel")
+diff --git a/setup.py b/setup.py
+index 8deb45d..719b808 100644
+--- a/setup.py
++++ b/setup.py
+@@ -46,7 +46,7 @@ setup(
+     classifiers=classifiers,
+     install_requires=[
+         "pyblish-base>=1.4",
+-        "pyblish-maya>=2.0"
++        "pyblish-maya>=2.1"
+     ],
+     entry_points={},
+ )
+-- 
+1.7.1
+
