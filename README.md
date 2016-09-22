@@ -1,17 +1,56 @@
 ### Pyblish Starter
 
-A basic publishing pipeline, with batteries included.
+A basic asset creation pipeline, with batteries included.
 
 > WARNING: Not ready for use.
+
+**Table of contents**
+
+- [Install](#install)
+- [Usage](#usage)
+- [Description](#description)
+- [Terminology](#terminology)
+- [Information Hierarchy](#information-hierarchy)
+- [Contract](#contract)
+    - [`starter.model`](#startermodel)
+    - [`starter.rig`](#starterrig)
+    - [`starter.animation`](#starteranimation)
+
+<br>
+<br>
+
+### Install
+
+Starter takes the form of a Python package with embedded plug-ins.
+
+```bash
+$ pip install pyblish-starter
+```
+
+<br>
+<br>
+
+### Usage
+
+Starter is initialised by calling `install()` with an interface for your host.
+
+```python
+>>> from pyblish_starter import install, maya
+>>> install(maya)
+```
+
+From here, you model, rig and animate as per the contract below.
 
 <br>
 <br>
 
 ### Description
 
-Build your own publishing pipeline, starting with the basics.
+Build your own asset creation pipeline, starting with the basics.
 
 **Overview**
+
+Asset creation covers all aspects related to building the assets used in the production of film. A film is typically partitioned into sequences and shots, where each shot consists of one or more assets.
 
 This project includes interface and implementation for 3 common types of assets a typical production pipeline.
 
@@ -30,32 +69,48 @@ It includes a series of graphical user interfaces to aid the user in conforming 
 <br>
 <br>
 
-### Install
+### Terminology
 
-Starter takes the form of a Python package with embedded plug-ins.
+Starter reserves the following words for private and public use. Public members are exposed to the user, private ones are internal to the implementation.
+
+|          | Term                | Public | Description         | Example
+|:---------|:--------------------|:-------|:--------------------|:------------------------
+| ![][pro] | `project`           | `X`    | Root of information | Gravity, Dr. Strange
+| ![][ast] | `asset`             | `X`    | Unit of data        | Hulk, Bicycle, Flower pot
+| ![][ver] | `version`           | `X`    | An iteration        | v1, v034
+| ![][rep] | `representation`    |        | A data format       | Maya file, pointcache, thumbnail
+| ![][for] | `format`            |        | A file extension    | `.ma`, `.abc`, `.ico`, `.png`
+
+[ver]: https://cloud.githubusercontent.com/assets/2152766/18576835/f6b80574-7bdc-11e6-8237-1227f779815a.png
+[ast]: https://cloud.githubusercontent.com/assets/2152766/18576836/f6ca19e4-7bdc-11e6-9ef8-3614474c58bb.png
+[rep]: https://cloud.githubusercontent.com/assets/2152766/18759916/b2e3161c-80f6-11e6-9e0a-c959d63047a8.png
+[for]: https://cloud.githubusercontent.com/assets/2152766/18759918/b479168e-80f6-11e6-8d1c-aee4e654d335.png
+[pro]: https://cloud.githubusercontent.com/assets/2152766/18760901/d6bf24b4-80fa-11e6-8880-7a0e927c8c27.png
+
+<br>
+<br>
+
+### Information Hierarchy
+
+The mental and physical model for files and folders look like this.
 
 ```bash
-$ pip install pyblish-starter
+ ________________________________ ________________________________ 
+|          |          |          |          |          |          |
+| version1 | version2 | version3 | version1 | version2 | version3 |
+|__________|__________|__________|__________|__________|__________|
+|                                |                                |
+|             asset1             |             asset2             |
+|________________________________|________________________________|
+
 ```
-
-<br>
-<br>
-
-### Usage
-
-Starter is initialised by calling `install()`.
-
-```python
->>> import pyblish_starter
->>> pyblish_starter.install()
-```
-
-From here, you model, rig and animate as per the contract below.
 
 <br>
 <br>
 
 ### Contract
+
+![](http://placehold.it/880x300)
 
 Starter defines these families.
 
@@ -68,6 +123,8 @@ Starter defines these families.
 <br>
 
 ### `starter.model`
+
+![](http://placehold.it/880x100)
 
 <img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526694/7453567a-7ab9-11e6-817c-84a874092399.png"></img>
 
@@ -101,24 +158,12 @@ A generic representation of geometry.
 - `geometry_SEL (geometry)`: Meshes suitable for rigging
 - `aux_SEL (any, optional)`: Auxilliary meshes for e.g. fast preview, collision geometry
 
-**Metadata**
-
-```json
-{
-    "name": "Elisabeth",
-    "representations": [
-        {
-            "hosts": ["maya", "mayapy"],
-            "files": ["Elisabeth_model.ma"]
-        }
-    ]
-}
-```
-
 <br>
 <br>
 
 ### `starter.rig`
+
+![](http://placehold.it/880x100)
 
 <img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526730/9c7f040a-7ab9-11e6-9007-4795ddbadde8.png"></img>
 
@@ -149,6 +194,8 @@ The `starter.rig` contains the necessary implementation and interface for animat
 <br>
 
 ### `starter.animation`
+
+![](http://placehold.it/880x100)
 
 <img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526738/a0fba5ba-7ab9-11e6-934f-48ca2a2ce3d2.png"></img>
 

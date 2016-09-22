@@ -29,13 +29,33 @@ def default_host():
 
     host = types.ModuleType("default")
     host.__dict__.update({
-        "ls": lambda: ["Asset1", "Asset2"],
-        "loader": lambda asset, version, representation: None,
-        "creator": lambda name, family: "my_instance",
-        "supported_formats": lambda: [".ma", ".mb"]
+        "root": lambda: os.getcwd(),
+        "load": lambda asset, version, representation: None,
+        "create": lambda name, family: "my_instance",
     })
 
     return host
+
+
+def debug_host():
+    host = types.ModuleType("standalone")
+    host.__dict__.update({
+        "root": lambda: os.getcwd(),
+        "load": lambda asset, version=-1, representation=None:
+            sys.stdout.write(json.dumps({
+                "asset": asset,
+                "version": version,
+                "representation": representation
+            }, indent=4) + "\n"),
+        "create": lambda name, family:
+            sys.stdout.write(json.dumps({
+                "name": name,
+                "family": family,
+            }, indent=4))
+    })
+
+    return host
+
 
 self._registered_host = default_host()
 
@@ -89,7 +109,7 @@ def ls():
               "representations": [
                 {
                   "format": File extension,
-                  "path": Filename
+                  "path": Unformatted path, relative `root`
                 }
               ]
             },
@@ -126,7 +146,7 @@ def ls():
     root = registered_host().root()
     assetsdir = os.path.join(root, "public")
 
-    for asset in os.listdir(assetsdir):
+    for asset in lib.listdir(assetsdir):
         versionsdir = os.path.join(assetsdir, asset)
 
         asset_entry = {
@@ -135,7 +155,7 @@ def ls():
             "versions": list()
         }
 
-        for version in os.listdir(versionsdir):
+        for version in lib.listdir(versionsdir):
             versiondir = os.path.join(versionsdir, version)
             fname = os.path.join(versiondir, ".metadata.json")
 
@@ -157,14 +177,14 @@ def ls():
                 "representations": list()
             }
 
-            for representation in os.listdir(versiondir):
+            for representation in lib.listdir(versiondir):
                 if representation.startswith("."):
                     continue
 
                 name, ext = os.path.splitext(representation)
                 version_entry["representations"].append({
                     "format": ext,
-                    "path": "{dirname}/%s{format}" % name
+                    "path": os.path.join("{dirname}", "%s{format}" % name)
                 })
 
             asset_entry["versions"].append(version_entry)
@@ -199,10 +219,17 @@ def register_default_families():
 
 
 def register_host(host):
+    missing = list()
     for member in ("root",
-                   "loader",
-                   "creator",):
-        assert hasattr(host, member), "Missing %s" % member
+                   "load",
+                   "create",):
+        if not hasattr(host, member):
+            missing.append(member)
+
+    assert not missing, (
+        "Incomplete interface for host: '%s'\n"
+        "Missing: %s" % (host, ", ".join(missing))
+    )
 
     self._registered_host = host
 

@@ -10,7 +10,7 @@ self._window = None
 
 
 # Custom roles
-ItemRole = QtCore.Qt.UserRole + 1
+AssetRole = QtCore.Qt.UserRole + 1
 
 
 class Window(QtWidgets.QDialog):
@@ -125,7 +125,7 @@ class Window(QtWidgets.QDialog):
         for asset in pipeline.ls():
             item = QtWidgets.QListWidgetItem(asset["name"])
             item.setData(QtCore.Qt.ItemIsEnabled, True)
-            item.setData(ItemRole, asset)
+            item.setData(AssetRole, asset)
             listing.addItem(item)
 
             has_assets = True
@@ -145,10 +145,11 @@ class Window(QtWidgets.QDialog):
         item = listing.currentItem()
 
         if item is not None:
-            asset = item.data(ItemRole)
+            asset = item.data(AssetRole)
+            assert asset
 
             try:
-                pipeline.registered_host().loader(asset)
+                pipeline.registered_host().load(asset)
 
             except ValueError as e:
                 error_msg.setText(str(e))

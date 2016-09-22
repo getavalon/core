@@ -9,8 +9,8 @@ from .lib import (
     uninstall,
 
     root,
-    loader,
-    creator,
+    load,
+    create,
 
     hierarchy_from_string,
     export_alembic,
@@ -23,8 +23,8 @@ __all__ = [
     "uninstall",
 
     "root",
-    "loader",
-    "creator",
+    "load",
+    "create",
 
     "export_alembic",
     "hierarchy_from_string",

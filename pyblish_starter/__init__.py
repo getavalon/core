@@ -8,8 +8,11 @@ from .pipeline import (
     ls,
     install,
     uninstall,
+
     register_host,
     register_plugins,
+
+    registered_host,
 )
 
 from .lib import (
@@ -21,8 +24,12 @@ __all__ = [
     "ls",
     "install",
     "uninstall",
+
     "register_host",
     "register_plugins",
+
+    "registered_host",
+
     "format_private_dir",
     "format_version",
 ]

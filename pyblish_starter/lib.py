@@ -3,6 +3,13 @@ import re
 import datetime
 
 
+def listdir(dirname):
+    try:
+        return os.listdir(dirname)
+    except OSError:
+        return list()
+
+
 def time():
     return datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
 

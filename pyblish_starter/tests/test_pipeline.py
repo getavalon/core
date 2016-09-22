@@ -4,12 +4,25 @@ import json
 import types
 import shutil
 import tempfile
+import contextlib
 
 import pyblish_starter
 
 from nose.tools import assert_equals
 
 self = sys.modules[__name__]
+
+
+@contextlib.contextmanager
+def root(root):
+    host = pyblish_starter.registered_host()
+    old = host.root
+    host.root = lambda: root
+
+    try:
+        yield
+    finally:
+        host.root = old
 
 
 def setup():
@@ -27,9 +40,8 @@ def _register_host():
     host = types.ModuleType("Test")
     host.__dict__.update({
         "root": lambda: self.tempdir,
-        "creator": lambda *args, **kwargs: None,
-        "loader": lambda *args, **kwargs: None,
-        "supported_formats": [".ma"]
+        "create": lambda *args, **kwargs: None,
+        "load": lambda *args, **kwargs: None,
     })
 
     pyblish_starter.register_host(host)
@@ -66,9 +78,17 @@ def _generate_fixture():
                     "representations": [
                         {
                             "format": ".ma",
-                            "source": "{project}/maya/scenes/scene.ma",
+                            "source": os.path.join(
+                                "{project}",
+                                "maya",
+                                "scenes",
+                                "scene.ma"
+                            ),
                             "author": "marcus",
-                            "path": "{dirname}/%s{format}" % asset,
+                            "path": os.path.join(
+                                "{dirname}",
+                                "%s{format}" % asset
+                            ),
                         },
                     ]
                 }, f)
@@ -122,11 +142,19 @@ def test_ls():
         "versions": [
             {
                 "version": 1,
-                "path": os.path.join(self.tempdir, "public", "Asset1/v001"),
+                "path": os.path.join(
+                    self.tempdir,
+                    "public",
+                    "Asset1",
+                    "v001"
+                ),
                 "representations": [
                     {
                         "format": ".ma",
-                        "path": "{dirname}/Asset1{format}"
+                        "path": os.path.join(
+                            "{dirname}",
+                            "Asset1{format}"
+                        )
                     }
                 ]
             },
@@ -145,3 +173,13 @@ def test_ls():
 def test_ls_returns_sorted_versions():
     """Versions returned from ls() are alphanumerically sorted"""
     assert False
+
+
+def test_ls_no_publicdir():
+    """A root without /public returns an empty generator"""
+    
+    no_public = os.path.join(self.tempdir, "nopublic")
+    os.makedirs(no_public)
+
+    with root(no_public):
+        assert next(pyblish_starter.ls(), None) is None

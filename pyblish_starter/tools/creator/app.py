@@ -9,18 +9,9 @@ self._window = None
 
 
 class Window(QtWidgets.QDialog):
-    """Instance creator
-
-    Arguments:
-        creator (func): Function responsible for creating the instance
-            Takes (name=str, family=str, use_selection=bool)
-        parent (QWidget, optional): Window parent
-
-    """
-
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
-        self.setWindowTitle("Instance Creator")
+        self.setWindowTitle("Asset Creator")
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
         body = QtWidgets.QWidget()
@@ -115,14 +106,17 @@ class Window(QtWidgets.QDialog):
     def refresh(self, families):
         listing = self.findChild(QtWidgets.QWidget, "Listing")
 
-        if families:
-            for family in families:
-                item = QtWidgets.QListWidgetItem(family["name"])
-                item.setData(QtCore.Qt.ItemIsEnabled, True)
-                item.setData(QtCore.Qt.UserRole + 2, family.get("help"))
-                listing.addItem(item)
+        has_families = False
 
-        else:
+        for family in families:
+            item = QtWidgets.QListWidgetItem(family["name"])
+            item.setData(QtCore.Qt.ItemIsEnabled, True)
+            item.setData(QtCore.Qt.UserRole + 2, family.get("help"))
+            listing.addItem(item)
+
+            has_families = True
+
+        if not has_families:
             item = QtWidgets.QListWidgetItem("No registered families")
             item.setData(QtCore.Qt.ItemIsEnabled, False)
             listing.addItem(item)
@@ -142,7 +136,7 @@ class Window(QtWidgets.QDialog):
             name = self.findChild(QtWidgets.QWidget, "Name").text()
 
             try:
-                pipeline.registered_host().creator(name, family)
+                pipeline.registered_host().create(name, family)
 
             except NameError as e:
                 error_msg.setText(str(e))
@@ -159,7 +153,7 @@ class Window(QtWidgets.QDialog):
 
 
 def show(debug=False):
-    """Display instance creator GUI
+    """Display asset creator GUI
 
     Arguments:
         creator (func, optional): Callable function, passed `name`,

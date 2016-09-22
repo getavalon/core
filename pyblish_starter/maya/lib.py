@@ -30,7 +30,7 @@ def uninstall():
 
 
 def install_menu():
-    from pyblish_starter.tools import instance_creator, asset_loader
+    from pyblish_starter.tools import creator, loader
 
     uninstall_menu()
 
@@ -38,8 +38,8 @@ def install_menu():
               label="Pyblish Starter",
               tearOff=True,
               parent="MayaWindow")
-    cmds.menuItem("Create Instance", command=instance_creator.show)
-    cmds.menuItem("Load Asset", command=asset_loader.show)
+    cmds.menuItem("Show Creator", command=creator.show)
+    cmds.menuItem("Show Loader", command=loader.show)
 
 
 def uninstall_menu():
@@ -112,7 +112,7 @@ def outmesh(shape, name=None):
     return outmesh
 
 
-def loader(asset, version=-1):
+def load(asset, version=-1):
     """Load asset
 
     Arguments:
@@ -141,12 +141,10 @@ def loader(asset, version=-1):
     formats = pipeline.registered_formats()
 
     # Pick any representation
-    representation = next(
-        (rep for rep in version["representations"]
-         if rep["format"] in formats), None
-    )
-
-    if representation is None:
+    try:
+        representation = next(rep for rep in version["representations"]
+                              if rep["format"] in formats)
+    except StopIteration:
         raise ValueError(
             "No supported representations for %s\n"
             "Supported representations: %s" % (
@@ -166,7 +164,7 @@ def loader(asset, version=-1):
     return cmds.referenceQuery(nodes, referenceNode=True)
 
 
-def creator(name, family):
+def create(name, family):
     """Create new instance
 
     Arguments:
