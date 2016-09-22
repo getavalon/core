@@ -2,6 +2,7 @@ import os
 import json
 import types
 import argparse
+
 from . import pipeline
 
 parser = argparse.ArgumentParser()
@@ -38,10 +39,13 @@ def creator(name, family):
         "family": family,
     }, indent=4))
 
-host = types.ModuleType("Standalone")
-host.root = root
-host.loader = loader
-host.creator = creator
+
+host = types.ModuleType("standalone")
+host.__dict__.update({
+    "root": root,
+    "loader": loader,
+    "creator": creator
+})
 
 pipeline.register_host(host)
 
