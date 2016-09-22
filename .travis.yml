@@ -1,0 +1,17 @@
+language: python
+
+python:
+- 2.7
+
+script:
+- pip install file://$(pwd)
+
+deploy:
+  provider: pypi
+  user: mottosso
+  password:
+    secure: EbQb+A9ckmLUXC/053URbrjHssp/fjZQbWt8JqQbTM9XhGqKUp0eYVcbO7iaPfVmBy1M/WXFdwzdOn65vw4Tgcs1vVHFA8D2St/V4WVE/z9/H5tpCkx5esODPLB1hhcU7DOlIa0xd9JEMVTpSLNxMLiG41dxNdyvCcYq1kYbqmi83g3Pnl17mmC1Oo1DeR/m+Ma1cSCYbkHrpcPRjGVCtYJf1DVr7eTVmnJdPOKKlSUiNJpwZq1eR8sBsYpme+M+6ocdmXbSo3eFtMRsPTc8VPoesgkcel5o3MVZCZR7LMc8uPJb3xnGKxkpd4GEn3ukU5tdZPVCxwcmhNLaFE0pRkTLKtet7D+n2XCxBC7BTVEQBN7EAsBbRLaybO2PHAXNwszcVQ/ut86oBZotl4gyLZr9EMFtuAAZZPN9/FkdgtqkVY7IyewAWxKMEMtIhgx4huFoI62bJDDAQgr9Ir5MXrIPx/u7j7t9XhMFVpqddRsp08dFKLFLIQfmIwivVgmiJLp/bymDK7TYm44+jaWFbfVBI9Z2hLlMbGo5zzcIZmUar+Ms6qSCZUuTvbKrCUhzPgnmdHRn2ij0i7m5KNIxW+3jYt2lUx77QYEBWzydkG3KSpbgyoEwjhgklPRX8fdCjrwAfCyQSs9WgUntPRP4FXqZygRIAZ6B0RfwqpMPX4g=
+  on:
+    tags: true
+    distributions: sdist bdist_wheel
+    repo: pyblish/pyblish-starter
