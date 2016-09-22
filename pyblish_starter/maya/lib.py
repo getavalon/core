@@ -4,6 +4,7 @@ import logging
 from maya import cmds, mel
 
 from .. import pipeline
+from ..vendor.Qt import QtWidgets
 
 self = sys.modules[__name__]
 self.log = logging.getLogger()
@@ -21,8 +22,7 @@ def uninstall():
 def install_menu():
     from pyblish_starter.tools import instance_creator, asset_loader
 
-    if cmds.menu(self.menu, exists=True):
-        cmds.deleteUI(self.menu, menuItem=True)
+    uninstall_menu()
 
     cmds.menu(label="Pyblish Starter", tearOff=True, parent="MayaWindow")
     cmds.menuItem("Create Instance", command=instance_creator.show)
@@ -30,14 +30,12 @@ def install_menu():
 
 
 def uninstall_menu():
-    raise NotImplementedError("How does one delete a menu?")
+    widgets = {w.objectName(): w for w in QtWidgets.qApp.allWidgets()}
+    menu = widgets.get("pyblishStarter")
 
-    # The below throws a "pyblishStarter not found"
-
-    try:
-        cmds.deleteUI(self.menu, menu=True)
-    except RuntimeError as e:
-        print(e)
+    if menu:
+        menu.deleteLater()
+        del(menu)
 
 
 def root():
@@ -136,12 +134,12 @@ def creator(name, family):
     print("%s + %s" % (pipeline.registered_data(), item.get("data", [])))
 
     data = pipeline.registered_data() + item.get("data", [])
-    instance = "%s_INS" % name
+    instance = "%s_SEL" % name
 
     if cmds.objExists(instance):
         raise NameError("\"%s\" already exists." % instance)
 
-    cmds.select(deselect=True)
+    # Include selection
     instance = cmds.sets(name=instance)
 
     for item in data:
