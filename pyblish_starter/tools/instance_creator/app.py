@@ -116,7 +116,7 @@ class Window(QtWidgets.QDialog):
         listing = self.findChild(QtWidgets.QWidget, "Listing")
 
         if families:
-            for family in sorted(families, key=lambda i: i["name"]):
+            for family in families:
                 item = QtWidgets.QListWidgetItem(family["name"])
                 item.setData(QtCore.Qt.ItemIsEnabled, True)
                 item.setData(QtCore.Qt.UserRole + 2, family.get("help"))
