@@ -101,6 +101,20 @@ A generic representation of geometry.
 - `geometry_SEL (geometry)`: Meshes suitable for rigging
 - `aux_SEL (any, optional)`: Auxilliary meshes for e.g. fast preview, collision geometry
 
+**Metadata**
+
+```json
+{
+    "name": "Elisabeth",
+    "representations": [
+        {
+            "hosts": ["maya", "mayapy"],
+            "files": ["Elisabeth_model.ma"]
+        }
+    ]
+}
+```
+
 <br>
 <br>
 
