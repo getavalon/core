@@ -1,4 +1,6 @@
-cover/**
+*.egg-info
+dist
+cover
 .coverage
-examples/maya/private**
-examples/maya/public**
+private
+public
