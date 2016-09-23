@@ -76,10 +76,12 @@ Starter reserves the following words for private and public use. Public members 
 |          | Term                | Public | Description         | Example
 |:---------|:--------------------|:-------|:--------------------|:------------------------
 | ![][pro] | `project`           | `X`    | Root of information | Gravity, Dr. Strange
-| ![][ast] | `asset`             | `X`    | Unit of data        | Hulk, Bicycle, Flower pot
-| ![][ver] | `version`           | `X`    | An iteration        | v1, v034
+| ![][ast] | `asset`             | `X`    | Unit of data        | Ryan, Bicycle, Flower pot
+| ![][ver] | `version`           | `X`    | An asset iteration  | v1, v034
 | ![][rep] | `representation`    |        | A data format       | Maya file, pointcache, thumbnail
 | ![][for] | `format`            |        | A file extension    | `.ma`, `.abc`, `.ico`, `.png`
+| ![][for] | `public`            |        | Shared data         | v034 of Ryan
+| ![][for] | `private`           |        | User data           | Scenefile for v034 of Ryan
 
 [ver]: https://cloud.githubusercontent.com/assets/2152766/18576835/f6b80574-7bdc-11e6-8237-1227f779815a.png
 [ast]: https://cloud.githubusercontent.com/assets/2152766/18576836/f6ca19e4-7bdc-11e6-9ef8-3614474c58bb.png
@@ -477,12 +479,3 @@ To work around situations where the overall shape must exceed 120 degrees - such
 ##### Extreme Surface Stretch or Compression
 
 Surface stretch and compression on elastic surfaces may negatively affect textures and overall realism.
-
-<br>
-<br>
-
-#### Todo
-
-Instances, in particular the Animation instance, requires some setup before being cachable. We don't want the user to perform this setup, but rather a tool. The tool could be in the form of a GUI that guides a user through selecting the appropriate nodes. Ideally the tools would be implicit in the loading of an asset through an asset library of sorts.
-
-- Tool to create model, rig and animation instance.
