@@ -3,7 +3,7 @@ import sys
 import logging
 
 from .. import pipeline
-from ..vendor.Qt import QtWidgets, QtGui
+from ..vendor.Qt import QtWidgets, QtGui, QtCore
 
 from maya import cmds, mel
 
@@ -34,12 +34,16 @@ def install_menu():
 
     uninstall_menu()
 
-    cmds.menu(self.menu,
-              label="Pyblish Starter",
-              tearOff=True,
-              parent="MayaWindow")
-    cmds.menuItem("Show Creator", command=creator.show)
-    cmds.menuItem("Show Loader", command=loader.show)
+    def deferred():
+        cmds.menu(self.menu,
+                  label="Pyblish Starter",
+                  tearOff=True,
+                  parent="MayaWindow")
+        cmds.menuItem("Show Creator", command=creator.show)
+        cmds.menuItem("Show Loader", command=loader.show)
+
+    # Allow time for uninstallation to finish.
+    QtCore.QTimer.singleShot(100, deferred)
 
 
 def uninstall_menu():
@@ -111,7 +115,7 @@ def load(asset, version=-1):
         )
 
     fname = representation["path"].format(
-        dirname=asset["path"],
+        dirname=version["path"],
         format=representation["format"]
     )
 
