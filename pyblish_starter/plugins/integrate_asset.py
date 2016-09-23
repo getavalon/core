@@ -50,6 +50,7 @@ class IntegrateStarterAsset(api.InstancePlugin):
             metadata = {
                 "schema": "pyblish-starter:version-1.0",
                 "version": version,
+                "path": versiondir,
                 "representations": list()
             }
 

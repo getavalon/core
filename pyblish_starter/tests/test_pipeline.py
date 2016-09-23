@@ -73,7 +73,6 @@ def _generate_fixture():
             with open(fname, "w") as f:
                 json.dump({
                     "schema": "pyblish-starter:version-1.0",
-                    # "name": asset,
                     "version": pyblish_starter.parse_version(version),
                     "path": versiondir,
                     "representations": [
@@ -184,7 +183,7 @@ def test_ls_returns_sorted_versions():
 
 def test_ls_no_shareddir():
     """A root without /shared returns an empty generator"""
-    
+
     no_shared = os.path.join(self.tempdir, "noshared")
     os.makedirs(no_shared)
 
