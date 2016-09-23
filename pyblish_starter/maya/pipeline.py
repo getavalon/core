@@ -5,7 +5,7 @@ import logging
 from .. import pipeline
 from ..vendor.Qt import QtWidgets, QtGui
 
-from maya import cmds
+from maya import cmds, mel
 
 self = sys.modules[__name__]
 self.log = logging.getLogger()
@@ -179,6 +179,9 @@ def create(name, family):
         cmds.setAttr(instance + "." + key, value, **set_type)
 
     cmds.select(instance, noExpand=True)
+
+    # Display instance attributes to user
+    mel.eval("updateEditorToggleCheckboxes; copyAEWindow;")
 
     return instance
 

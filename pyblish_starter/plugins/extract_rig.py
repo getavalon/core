@@ -25,7 +25,7 @@ class ExtractStarterRig(api.InstancePlugin):
         from maya import cmds
         from pyblish_maya import maintained_selection
 
-        dirname = starter.format_private_dir(
+        dirname = starter.format_user_dir(
             root=instance.context.data["workspaceDir"],
             name=instance.data["name"])
 
@@ -50,7 +50,7 @@ class ExtractStarterRig(api.InstancePlugin):
                       constructionHistory=True)
 
         # Store reference for integration
-        instance.data["privateDir"] = dirname
+        instance.data["userDir"] = dirname
         instance.data["filename"] = filename
 
         self.log.info("Extracted {instance} to {path}".format(**locals()))

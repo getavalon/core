@@ -50,7 +50,7 @@ def _register_host():
 def _generate_fixture():
     root = os.path.join(
         self.tempdir,
-        "public"
+        "shared"
     )
 
     for asset in ("Asset1",):
@@ -73,7 +73,8 @@ def _generate_fixture():
             with open(fname, "w") as f:
                 json.dump({
                     "schema": "pyblish-starter:version-1.0",
-                    "name": asset,
+                    # "name": asset,
+                    "version": pyblish_starter.parse_version(version),
                     "path": versiondir,
                     "representations": [
                         {
@@ -84,7 +85,6 @@ def _generate_fixture():
                                 "scenes",
                                 "scene.ma"
                             ),
-                            "author": "marcus",
                             "path": os.path.join(
                                 "{dirname}",
                                 "%s{format}" % asset
@@ -141,10 +141,11 @@ def test_ls():
         "name": "Asset1",
         "versions": [
             {
+                "schema": "pyblish-starter:version-1.0",
                 "version": 1,
                 "path": os.path.join(
                     self.tempdir,
-                    "public",
+                    "shared",
                     "Asset1",
                     "v001"
                 ),
@@ -154,6 +155,12 @@ def test_ls():
                         "path": os.path.join(
                             "{dirname}",
                             "Asset1{format}"
+                        ),
+                        "source": os.path.join(
+                            "{project}",
+                            "maya",
+                            "scenes",
+                            "scene.ma"
                         )
                     }
                 ]
@@ -175,11 +182,11 @@ def test_ls_returns_sorted_versions():
     assert False
 
 
-def test_ls_no_publicdir():
-    """A root without /public returns an empty generator"""
+def test_ls_no_shareddir():
+    """A root without /shared returns an empty generator"""
     
-    no_public = os.path.join(self.tempdir, "nopublic")
-    os.makedirs(no_public)
+    no_shared = os.path.join(self.tempdir, "noshared")
+    os.makedirs(no_shared)
 
-    with root(no_public):
+    with root(no_shared):
         assert next(pyblish_starter.ls(), None) is None

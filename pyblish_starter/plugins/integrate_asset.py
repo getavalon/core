@@ -18,14 +18,14 @@ class IntegrateStarterAsset(api.InstancePlugin):
         import shutil
         import pyblish_starter
 
-        privatedir = instance.data.get("privateDir")
-        assert privatedir, (
+        userdir = instance.data.get("userDir")
+        assert userdir, (
             "Incomplete instance \"%s\": "
-            "Missing reference to private directory."
+            "Missing reference to user directory."
             % instance)
 
         root = instance.context.data["workspaceDir"]
-        instancedir = os.path.join(root, "public", str(instance))
+        instancedir = os.path.join(root, "shared", str(instance))
 
         try:
             os.makedirs(instancedir)
@@ -38,7 +38,7 @@ class IntegrateStarterAsset(api.InstancePlugin):
             pyblish_starter.format_version(version)
         )
 
-        shutil.copytree(privatedir, versiondir)
+        shutil.copytree(userdir, versiondir)
 
         # Update metadata
         fname = os.path.join(versiondir, ".metadata.json")
@@ -58,12 +58,12 @@ class IntegrateStarterAsset(api.InstancePlugin):
         metadata["representations"].append(
             {
                 "format": ext,
-                "path": "{version}/%s" % filename
+                "path": "{dirname}/%s{format}" % name
             }
         )
 
         with open(fname, "w") as f:
-            json.dump(metadata, f)
+            json.dump(metadata, f, indent=4)
 
         self.log.info("Successfully integrated \"%s\" to \"%s\"" % (
             instance, versiondir))

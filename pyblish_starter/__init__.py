@@ -16,9 +16,10 @@ from .pipeline import (
 )
 
 from .lib import (
-    format_private_dir,
-    format_public_dir,
+    format_user_dir,
+    format_shared_dir,
     format_version,
+    parse_version,
 )
 
 __all__ = [
@@ -31,7 +32,8 @@ __all__ = [
 
     "registered_host",
 
-    "format_private_dir",
-    "format_public_dir",
+    "format_user_dir",
+    "format_shared_dir",
     "format_version",
+    "parse_version",
 ]

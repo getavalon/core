@@ -29,12 +29,12 @@ def time():
     return datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
 
 
-def format_public_dir(root):
-    return os.path.join(root, "public")
+def format_shared_dir(root):
+    return os.path.join(root, "shared")
 
 
-def format_private_dir(root, name):
-    dirname = os.path.join(root, "private", time(), name)
+def format_user_dir(root, name):
+    dirname = os.path.join(root, "user", time(), name)
     return dirname
 
 

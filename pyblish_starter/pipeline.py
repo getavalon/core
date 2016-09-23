@@ -80,6 +80,8 @@ def install(host):
     register_default_data()
     register_default_families()
 
+    self.log.info("Successfully installed Pyblish Starter!")
+
 
 def uninstall():
     try:
@@ -91,6 +93,8 @@ def uninstall():
     deregister_plugins()
     deregister_default_data()
     deregister_default_families()
+
+    self.log.info("Successfully uninstalled Pyblish Starter!")
 
 
 def ls():
@@ -144,7 +148,7 @@ def ls():
     """
 
     root = registered_host().root()
-    assetsdir = lib.format_public_dir(root)
+    assetsdir = lib.format_shared_dir(root)
 
     for asset in lib.listdir(assetsdir):
         versionsdir = os.path.join(assetsdir, asset)
@@ -171,23 +175,7 @@ def ls():
                 self.log.warning("\"%s\" unsupported schema." % fname)
                 continue
 
-            version_entry = {
-                "version": lib.parse_version(version),
-                "path": versiondir,
-                "representations": list()
-            }
-
-            for representation in lib.listdir(versiondir):
-                if representation.startswith("."):
-                    continue
-
-                name, ext = os.path.splitext(representation)
-                version_entry["representations"].append({
-                    "format": ext,
-                    "path": os.path.join("{dirname}", "%s{format}" % name)
-                })
-
-            asset_entry["versions"].append(version_entry)
+            asset_entry["versions"].append(data)
 
         # Sort versions by integer
         asset_entry["versions"].sort(key=lambda v: v["version"])

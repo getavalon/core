@@ -27,7 +27,7 @@ class ExtractStarterAnimation(api.InstancePlugin):
         cmds.loadPlugin("AbcExport.mll", quiet=True)
 
         self.log.info("Extracting animation..")
-        dirname = starter.format_private_dir(
+        dirname = starter.format_user_dir(
             root=instance.context.data["workspaceDir"],
             name=instance.data["name"])
 
@@ -47,7 +47,7 @@ class ExtractStarterAnimation(api.InstancePlugin):
         )
 
         # Store reference for integration
-        instance.data["privateDir"] = dirname
+        instance.data["userDir"] = dirname
         instance.data["filename"] = filename
 
         self.log.info("Extracted {instance} to {dirname}".format(**locals()))
