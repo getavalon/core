@@ -1,17 +1,36 @@
 import os
 import re
+import errno
 import datetime
 
 
 def listdir(dirname):
+    """Prefer empty list to OSError on os.listdir
+
+    Example:
+        >>> listdir("/definitely/does/not/exist")
+        []
+        >>> listdir(os.path.expanduser("~")) != []
+        True
+
+    """
+
     try:
         return os.listdir(dirname)
-    except OSError:
-        return list()
+    except OSError as e:
+        # Only handle missing directories
+        if e.errno == errno.ENOENT:  # No such file or directory
+            return list()
+        raise
 
 
 def time():
+    """Return file-system safe string of current date and time"""
     return datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
+
+
+def format_public_dir(root):
+    return os.path.join(root, "public")
 
 
 def format_private_dir(root, name):
@@ -21,6 +40,12 @@ def format_private_dir(root, name):
 
 def parse_version(version):
     """Return integer version from formatted string
+
+    Returns:
+        integer version number
+
+    Raises:
+        ValueError when integer could not be found
 
     Example:
         >>> parse_version("v001")

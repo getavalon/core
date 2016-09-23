@@ -4,14 +4,16 @@ Anything that isn't defined here is INTERNAL and unreliable for external use.
 
 """
 
-from .lib import (
+from .pipeline import (
     install,
     uninstall,
 
     root,
     load,
     create,
+)
 
+from .lib import (
     hierarchy_from_string,
     export_alembic,
     outmesh,

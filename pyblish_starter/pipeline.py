@@ -144,7 +144,7 @@ def ls():
     """
 
     root = registered_host().root()
-    assetsdir = os.path.join(root, "public")
+    assetsdir = lib.format_public_dir(root)
 
     for asset in lib.listdir(assetsdir):
         versionsdir = os.path.join(assetsdir, asset)
@@ -197,7 +197,7 @@ def ls():
 
 def register_default_data():
     register_data(key="id", value="pyblish.starter.instance")
-    register_data(key="label", value="{name}")
+    register_data(key="name", value="{name}")
     register_data(key="family", value="{family}")
 
 
