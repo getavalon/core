@@ -39,7 +39,7 @@ Starter is initialised by calling `install()` with an interface for your host.
 >>> install(maya)
 ```
 
-From here, you model, rig and animate as per the contract below.
+From here, you model, rig and animate as per the [contract](#contract) below.
 
 <br>
 <br>
@@ -106,7 +106,8 @@ This project separates between data in progress, and data shared with others.
 
 Data in progress is any data in which a shared data is being produced. It is highly **mutable** and typically **private** to an individual artist.
 
-- **Mutable** implies
+- **Mutable** implies transient data that is likely to change at any given moment.
+- **Private** implies personal, highly irregular and likely invalid data.
 
 Shared data on the other hand is **immutable**, **correct** and **impersonal**.
 
