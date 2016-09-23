@@ -80,3 +80,32 @@ def export_alembic(nodes, file, frame_range=None, uv_write=True):
     mel_cmd = "AbcExport -j \"{0}\"".format(mel_args_string)
 
     return mel.eval(mel_cmd)
+
+
+def imprint(node, data):
+    """Write `data` to `node` as userDefined attributes
+
+    Arguments:
+        node (str): Long name of node
+        data (dict): Dictionary of key/value pairs
+
+    """
+
+    for key, value in data.items():
+        if isinstance(value, bool):
+            add_type = {"attributeType": "bool"}
+            set_type = {"keyable": False, "channelBox": True}
+        elif isinstance(value, basestring):
+            add_type = {"dataType": "string"}
+            set_type = {"type": "string"}
+        elif isinstance(value, int):
+            add_type = {"attributeType": "long"}
+            set_type = {"keyable": False, "channelBox": True}
+        elif isinstance(value, float):
+            add_type = {"attributeType": "double"}
+            set_type = {"keyable": False, "channelBox": True}
+        else:
+            raise TypeError("Unsupported type: %r" % type(value))
+
+        cmds.addAttr(node, longName=key, **add_type)
+        cmds.setAttr(node + "." + key, value, **set_type)

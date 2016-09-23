@@ -95,6 +95,29 @@ def uninstall():
     self.log.info("Successfully uninstalled Pyblish Starter!")
 
 
+def register_default_data():
+    register_data(key="id", value="pyblish.starter.instance")
+    register_data(key="name", value="{name}")
+    register_data(key="family", value="{family}")
+
+
+def register_default_families():
+    register_family(
+        name="starter.model",
+        help="Polygonal geometry for animation"
+    )
+
+    register_family(
+        name="starter.rig",
+        help="Character rig"
+    )
+
+    register_family(
+        name="starter.animation",
+        help="Pointcache"
+    )
+
+
 def ls():
     """List available assets
 
@@ -179,29 +202,6 @@ def ls():
         asset_entry["versions"].sort(key=lambda v: v["version"])
 
         yield asset_entry
-
-
-def register_default_data():
-    register_data(key="id", value="pyblish.starter.instance")
-    register_data(key="name", value="{name}")
-    register_data(key="family", value="{family}")
-
-
-def register_default_families():
-    register_family(
-        name="starter.model",
-        help="Polygonal geometry for animation"
-    )
-
-    register_family(
-        name="starter.rig",
-        help="Character rig"
-    )
-
-    register_family(
-        name="starter.animation",
-        help="Pointcache"
-    )
 
 
 def register_format(format):

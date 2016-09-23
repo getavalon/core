@@ -1,6 +1,6 @@
 ### Pyblish Starter
 
-A basic asset creation pipeline, with batteries included.
+A basic asset creation pipeline - batteries included.
 
 > WARNING: Not ready for use.
 
@@ -48,6 +48,12 @@ From here, you model, rig and animate as per the contract below.
 
 Build your own asset creation pipeline, starting with the basics.
 
+**At a glance**
+
+- Categorise nodes within your workfile as being part of a single asset.
+- Enable an asset library to identify published data on disk.
+- Track when, where and from whom each asset come from.
+
 **Overview**
 
 Asset creation covers all aspects related to building the assets used in the production of film. A film is typically partitioned into sequences and shots, where each shot consists of one or more assets.
@@ -69,6 +75,15 @@ It includes a series of graphical user interfaces to aid the user in conforming 
 <br>
 <br>
 
+### Batteries
+
+In addition to Pyblish cooperative plug-ins, a series of template workflow utilities are included.
+
+...
+
+<br>
+<br>
+
 ### Terminology
 
 Starter reserves the following words for private and public use. Public members are exposed to the user, private ones are internal to the implementation.
@@ -80,8 +95,35 @@ Starter reserves the following words for private and public use. Public members 
 | ![][ver] | `version`           | `X`    | An asset iteration  | v1, v034
 | ![][rep] | `representation`    |        | A data format       | Maya file, pointcache, thumbnail
 | ![][for] | `format`            |        | A file extension    | `.ma`, `.abc`, `.ico`, `.png`
-| ![][for] | `public`            |        | Shared data         | v034 of Ryan
-| ![][for] | `private`           |        | User data           | Scenefile for v034 of Ryan
+| ![][for] | `shared`            | `X`    | Public data         | v034 of Ryan
+| ![][for] | `user`              | `X`    | Private data        | Scenefile for v034 of Ryan
+
+<br>
+
+### Shared/user separation
+
+This project separates between data in progress, and data shared with others.
+
+Data in progress is any data in which a shared data is being produced. It is highly **mutable** and typically **private** to an individual artist.
+
+- **Mutable** implies
+
+Shared data on the other hand is **immutable**, **correct** and **impersonal**.
+
+- **Immutable** implies that the data may be dependent upon by other data.
+- **Correct** implies passing validation of the associated family.
+- **Impersonal** implies following strict organiasational conventions.
+
+### Ids
+
+...
+
+| Name                         | Description              | Example
+|:-----------------------------|:-------------------------|:----------
+| `pyblish.starter.container`  | Incoming unit of data    | `...:model_GRP`, `...:rig_GRP` 
+| `pyblish.starter.instance`   | Outgoing unit of data    | `Strange_model_default`
+
+<br>
 
 [ver]: https://cloud.githubusercontent.com/assets/2152766/18576835/f6b80574-7bdc-11e6-8237-1227f779815a.png
 [ast]: https://cloud.githubusercontent.com/assets/2152766/18576836/f6ca19e4-7bdc-11e6-9ef8-3614474c58bb.png
@@ -140,6 +182,7 @@ A generic representation of geometry.
 
 ![req][] **Requirements**
 
+- All DAG nodes must be parented to a single top-level transform
 - Static geometry (no deformers, generators) `*`
 - One shape per transform `*`
 - Zero transforms and pivots `*`
@@ -177,6 +220,7 @@ The `starter.rig` contains the necessary implementation and interface for animat
 
 ![req][] **Requirements**
 
+- All DAG nodes must be parented to a single top-level transform
 - Must contain an `objectSet` for controls and cachable geometry
 - Channels in `controls_SEL` at *default* values`*`
 - No input connection to animatable channel in `controls_SEL` `*`

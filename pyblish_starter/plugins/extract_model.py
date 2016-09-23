@@ -1,5 +1,4 @@
 from pyblish import api
-import pyblish_starter as starter
 
 
 class ExtractStarterModel(api.InstancePlugin):
@@ -11,7 +10,7 @@ class ExtractStarterModel(api.InstancePlugin):
 
     """
 
-    label = "Extract starter model"
+    label = "Extract model"
     order = api.ExtractorOrder
     hosts = ["maya"]
     families = ["starter.model"]
@@ -19,9 +18,10 @@ class ExtractStarterModel(api.InstancePlugin):
     def process(self, instance):
         import os
         from maya import cmds
+        from pyblish_starter import format_user_dir
         from pyblish_maya import maintained_selection
 
-        dirname = starter.format_user_dir(
+        dirname = format_user_dir(
             root=instance.context.data["workspaceDir"],
             name=instance.data["name"])
 
@@ -30,7 +30,7 @@ class ExtractStarterModel(api.InstancePlugin):
         except OSError:
             pass
 
-        filename = "%s.ma" % instance
+        filename = "{name}.ma".format(**instance.data)
 
         path = os.path.join(dirname, filename)
 
@@ -43,10 +43,16 @@ class ExtractStarterModel(api.InstancePlugin):
                       typ="mayaAscii",
                       exportSelected=True,
                       preserveReferences=False,
+
+                      # Construction history inherited from collection
+                      # This enables a selective export of nodes relevant
+                      # to this particular plug-in.
                       constructionHistory=False)
 
         # Store reference for integration
-        instance.data["userDir"] = dirname
-        instance.data["filename"] = filename
+        instance.data.update({
+            "userDir": dirname,
+            "filename": filename,
+        })
 
         self.log.info("Extracted {instance} to {path}".format(**locals()))

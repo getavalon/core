@@ -61,7 +61,6 @@ class CollectStarterInstances(api.ContextPlugin):
                               objectsOnly=True):    # Return objectSet, rather
                                                     # than its members
 
-            # print("cmds: %s" % cmds)
             if not cmds.objExists(objset + ".id"):
                 continue
 
@@ -86,10 +85,10 @@ class CollectStarterInstances(api.ContextPlugin):
                     # such as mesh and color attributes. These
                     # are considered non-essential to this
                     # particular publishing pipeline.
-                    continue
+                    value = None
 
                 instance.data[attr] = value
 
             # Produce diagnostic message for any graphical
             # user interface interested in visualising it.
-            self.log.info("Found: %s " % objset)
+            self.log.info("Found: \"%s\" " % instance.data["name"])

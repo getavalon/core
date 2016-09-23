@@ -26,7 +26,7 @@ def listdir(dirname):
 
 def time():
     """Return file-system safe string of current date and time"""
-    return datetime.datetime.now().strftime("%Y-%m-%dT%H-%M-%SZ")
+    return datetime.datetime.now().strftime("%Y%m%dT%H%M%SZ")
 
 
 def format_shared_dir(root):

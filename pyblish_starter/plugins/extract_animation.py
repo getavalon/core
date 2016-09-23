@@ -1,5 +1,4 @@
 from pyblish import api
-import pyblish_starter as starter
 
 
 class ExtractStarterAnimation(api.InstancePlugin):
@@ -21,13 +20,14 @@ class ExtractStarterAnimation(api.InstancePlugin):
     def process(self, instance):
         import os
         from maya import cmds
+        from pyblish_starter import format_user_dir
         from pyblish_starter.maya import export_alembic
 
         self.log.debug("Loading plug-in..")
         cmds.loadPlugin("AbcExport.mll", quiet=True)
 
         self.log.info("Extracting animation..")
-        dirname = starter.format_user_dir(
+        dirname = format_user_dir(
             root=instance.context.data["workspaceDir"],
             name=instance.data["name"])
 
@@ -36,7 +36,7 @@ class ExtractStarterAnimation(api.InstancePlugin):
         except OSError:
             pass
 
-        filename = "%s.abc" % instance
+        filename = "{name}.ma".format(**instance.data)
 
         export_alembic(
             nodes=instance,
@@ -47,7 +47,9 @@ class ExtractStarterAnimation(api.InstancePlugin):
         )
 
         # Store reference for integration
-        instance.data["userDir"] = dirname
-        instance.data["filename"] = filename
+        instance.data.update({
+            "userDir": dirname,
+            "filename": filename,
+        })
 
         self.log.info("Extracted {instance} to {dirname}".format(**locals()))

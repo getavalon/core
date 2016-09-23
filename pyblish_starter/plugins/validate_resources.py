@@ -1,7 +1,7 @@
 from pyblish import api
 
 
-class ValidateResources(api.InstancePlugin):
+class ValidateStarterResources(api.InstancePlugin):
     """Resources must not contain absolute paths.
 
     When working with external files, such as textures and references,

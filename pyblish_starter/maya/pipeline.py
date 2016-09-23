@@ -7,6 +7,8 @@ from ..vendor.Qt import QtWidgets, QtGui, QtCore
 
 from maya import cmds, mel
 
+from . import lib
+
 self = sys.modules[__name__]
 self.log = logging.getLogger()
 self.menu = "pyblishStarter"
@@ -76,15 +78,17 @@ def root():
 def load(asset, version=-1):
     """Load asset
 
+    
+
     Arguments:
-        asset (dict): Object of schema "pyblish-starter:asset-1.0"
+        asset ("pyblish-starter:asset-1.0"): Asset which to import
         version (int, optional): Version number, defaults to latest
 
     Returns:
         Reference node
 
     Raises:
-        IndexError on version not found
+        IndexError on no version found
         ValueError on no supported representation
 
     """
@@ -104,15 +108,17 @@ def load(asset, version=-1):
     #   Such as choosing between `.obj` and `.ma` and `.abc`,
     #   each compatible but different.
     try:
-        representation = next(rep for rep in version["representations"]
-                              if rep["format"] in supported_formats)
-    except StopIteration:
-        raise ValueError(
-            "No supported representations for %s\n"
-            "Supported representations: %s" % (
-                asset["name"],
-                ", ".join(r["format"] for r in version["representations"]))
+        representation = next(
+            rep for rep in version["representations"]
+            if rep["format"] in supported_formats
         )
+
+    except StopIteration:
+        formats = list(r["format"] for r in version["representations"])
+        raise ValueError(
+            "No supported representations for \"%s\"\n\n"
+            "Supported representations: %s"
+            % (asset["name"], "\n- ".join(formats)))
 
     fname = representation["path"].format(
         dirname=version["path"],
@@ -121,18 +127,30 @@ def load(asset, version=-1):
 
     nodes = cmds.file(fname,
                       namespace=asset["name"] + "_",
-                      reference=True)
+                      reference=True,
+                      returnNewNodes=True)
 
-    return cmds.referenceQuery(nodes, referenceNode=True)
+    self.log.info("Containerising \"%s\".." % fname)
+    containerise(asset["name"], nodes, version)
+
+    self.log.info("Container created, returning reference node.")
+    return cmds.referenceQuery(nodes[0], referenceNode=True)
 
 
 def create(name, family):
     """Create new instance
 
+    Associate nodes with a name and family. These nodes are later
+    validated, according to their `family`, and integrated into the
+    shared environment, relative their `name`.
+
+    Data relative each family, along with default data, are imprinted
+    into the resulting objectSet. This data is later used by extractors
+    and finally asset browsers to help identify the origin of the asset.
+
     Arguments:
         name (str): Name of instance
         family (str): Name of family
-        use_selection (bool): Use selection to create this instance?
 
     """
 
@@ -145,42 +163,28 @@ def create(name, family):
     print("%s + %s" % (pipeline.registered_data(), item.get("data", [])))
 
     data = pipeline.registered_data() + item.get("data", [])
+
+    # Convert to dictionary
+    data = dict((i["key"], i["value"]) for i in data)
+
     instance = "%s_SEL" % name
 
     if cmds.objExists(instance):
         raise NameError("\"%s\" already exists." % instance)
 
-    # Include selection
     instance = cmds.sets(name=instance)
 
-    for item in data:
-        key = item["key"]
-
+    # Resolve template
+    for key, value in data.items():
         try:
-            value = item["value"].format(
+            data[key] = value.format(
                 name=name,
                 family=family
             )
         except KeyError as e:
             raise KeyError("Invalid dynamic property: %s" % e)
 
-        if isinstance(value, bool):
-            add_type = {"attributeType": "bool"}
-            set_type = {"keyable": False, "channelBox": True}
-        elif isinstance(value, basestring):
-            add_type = {"dataType": "string"}
-            set_type = {"type": "string"}
-        elif isinstance(value, int):
-            add_type = {"attributeType": "long"}
-            set_type = {"keyable": False, "channelBox": True}
-        elif isinstance(value, float):
-            add_type = {"attributeType": "double"}
-            set_type = {"keyable": False, "channelBox": True}
-        else:
-            raise TypeError("Unsupported type: %r" % type(value))
-
-        cmds.addAttr(instance, ln=key, **add_type)
-        cmds.setAttr(instance + "." + key, value, **set_type)
+    lib.imprint(instance, data)
 
     cmds.select(instance, noExpand=True)
 
@@ -188,6 +192,39 @@ def create(name, family):
     mel.eval("updateEditorToggleCheckboxes; copyAEWindow;")
 
     return instance
+
+
+def containerise(name, nodes, version):
+    """Bundle `nodes` into an assembly and imprint it with metadata
+
+    Containerisation enables a tracking of version, author and origin
+    for loaded assets.
+
+    Arguments:
+        name (str): Name of resulting assembly
+        nodes (list): Long names of nodes to containerise
+        version (pyblish-starter:version-1.0): Current version
+
+    """
+
+    assemblies = cmds.ls(nodes, assemblies=True)
+    container = cmds.group(assemblies, name=name)
+
+    for key, value in (
+            ("id", "pyblish.starter.container"),
+            ("author", version["author"]),
+            ("loader", self.__name__),
+            ("time", version["time"]),
+            ("comment", version.get("comment", "")),
+            ):
+
+        if not value:
+            continue
+
+        cmds.addAttr(container, longName=key, dataType="string")
+        cmds.setAttr(container + "." + key, value, type="string")
+
+    return container
 
 
 def _display_missing_dependencies():
@@ -212,26 +249,27 @@ def _display_missing_dependencies():
         messagebox.setWindowTitle("Uh oh")
         messagebox.setText("Missing dependencies")
 
-        messagebox.setInformativeText("""\
-pyblish-starter requires pyblish-maya.\
-""")
+        messagebox.setInformativeText(
+            "pyblish-starter requires pyblish-maya.\n"
+        )
 
-        messagebox.setDetailedText("""\
-1) Install Pyblish for Maya
+        messagebox.setDetailedText(
+            "1) Install Pyblish for Maya\n"
+            "\n"
+            "$ pip install pyblish-maya\n"
+            "\n"
+            "2) Run setup()\n"
+            "\n"
+            ">>> import pyblish_maya\n"
+            ">>> pyblish_maya.setup()\n"
+            "\n"
+            "3) Try again.\n"
+            "\n"
+            ">>> pyblish_starter.install()\n"
 
-   $ pip install pyblish-maya
-
-2) Run setup()
-
-   >>> import pyblish_maya
-   >>> pyblish_maya.setup()
-
-3) Try again.
-
-   >>> pyblish_starter.install()
-
-See https://github.com/pyblish/pyblish-starter for more information.
-""")
+            "See https://github.com/pyblish/pyblish-starter "
+            "for more information."
+        )
 
         messagebox.setStandardButtons(messagebox.Ok)
         messagebox.exec_()

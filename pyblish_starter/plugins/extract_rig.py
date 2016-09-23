@@ -1,5 +1,4 @@
 from pyblish import api
-import pyblish_starter as starter
 
 
 class ExtractStarterRig(api.InstancePlugin):
@@ -21,11 +20,11 @@ class ExtractStarterRig(api.InstancePlugin):
 
     def process(self, instance):
         import os
-
         from maya import cmds
+        from pyblish_starter import format_user_dir
         from pyblish_maya import maintained_selection
 
-        dirname = starter.format_user_dir(
+        dirname = format_user_dir(
             root=instance.context.data["workspaceDir"],
             name=instance.data["name"])
 
@@ -34,7 +33,7 @@ class ExtractStarterRig(api.InstancePlugin):
         except OSError:
             pass
 
-        filename = "%s.ma" % instance
+        filename = "{name}.ma".format(**instance.data)
 
         path = os.path.join(dirname, filename)
 
@@ -50,7 +49,9 @@ class ExtractStarterRig(api.InstancePlugin):
                       constructionHistory=True)
 
         # Store reference for integration
-        instance.data["userDir"] = dirname
-        instance.data["filename"] = filename
+        instance.data.update({
+            "userDir": dirname,
+            "filename": filename,
+        })
 
         self.log.info("Extracted {instance} to {path}".format(**locals()))

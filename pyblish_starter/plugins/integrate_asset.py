@@ -2,40 +2,54 @@ from pyblish import api
 
 
 class IntegrateStarterAsset(api.InstancePlugin):
-    """Publicise each instance
+    """Move user data to shared location
 
-    Limitations:
-        - Limited to publishing within a single Maya project
+    This plug-in exposes your data to others by encapsulating it
+    into a new version.
 
     """
 
     label = "Integrate asset"
     order = api.IntegratorOrder
+    families = [
+        "starter.model",
+        "starter.rig",
+        "starter.animation"
+    ]
 
     def process(self, instance):
         import os
         import json
+        import errno
         import shutil
-        import pyblish_starter
+        from pyblish_starter import (
+            format_version,
+            find_next_version,
+        )
+
+        context = instance.context
 
         userdir = instance.data.get("userDir")
         assert userdir, (
             "Incomplete instance \"%s\": "
             "Missing reference to user directory."
-            % instance)
+            % instance
+        )
 
-        root = instance.context.data["workspaceDir"]
-        instancedir = os.path.join(root, "shared", str(instance))
+        root = context.data["workspaceDir"]
+        instancedir = os.path.join(root, "shared", instance.data["name"])
 
         try:
             os.makedirs(instancedir)
-        except OSError:
-            pass
+        except OSError as e:
+            if e.errno != errno.EEXIST:  # Already exists
+                self.log.critical("An unexpected error occurred.")
+                raise
 
-        version = len(os.listdir(instancedir)) + 1
+        version = find_next_version(os.listdir(instancedir))
         versiondir = os.path.join(
             instancedir,
-            pyblish_starter.format_version(version)
+            format_version(version)
         )
 
         shutil.copytree(userdir, versiondir)
@@ -51,7 +65,14 @@ class IntegrateStarterAsset(api.InstancePlugin):
                 "schema": "pyblish-starter:version-1.0",
                 "version": version,
                 "path": versiondir,
-                "representations": list()
+                "representations": list(),
+
+                # Collected by pyblish-base
+                "time": context.data["date"],
+                "author": context.data["user"],
+
+                # Collected by pyblish-maya
+                "source": context.data["currentFile"],
             }
 
         filename = instance.data["filename"]

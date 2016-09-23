@@ -1,16 +1,17 @@
 from pyblish import api
 
 
-class ValidateStarterRigMembers(api.InstancePlugin):
-    """A rig must have certain members
+class ValidateStarterRigFormat(api.InstancePlugin):
+    """A rig must have a certain hierarchy and members
 
+    - Must reside within `rig_GRP` transform
     - controls_SEL
     - cache_SEL
     - resources_SEL (optional)
 
     """
 
-    label = "Validate rig members"
+    label = "Validate rig format"
     order = api.ValidatorOrder
     hosts = ["maya"]
     families = ["starter.rig"]

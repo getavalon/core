@@ -19,6 +19,8 @@ from .lib import (
     format_user_dir,
     format_shared_dir,
     format_version,
+
+    find_next_version,
     parse_version,
 )
 
@@ -35,5 +37,7 @@ __all__ = [
     "format_user_dir",
     "format_shared_dir",
     "format_version",
+
+    "find_next_version",
     "parse_version",
 ]

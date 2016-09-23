@@ -6,7 +6,7 @@ import shutil
 import tempfile
 import contextlib
 
-import pyblish_starter
+from pyblish_starter import pipeline, lib
 
 from nose.tools import assert_equals
 
@@ -15,7 +15,7 @@ self = sys.modules[__name__]
 
 @contextlib.contextmanager
 def root(root):
-    host = pyblish_starter.registered_host()
+    host = pipeline.registered_host()
     old = host.root
     host.root = lambda: root
 
@@ -44,7 +44,7 @@ def _register_host():
         "load": lambda *args, **kwargs: None,
     })
 
-    pyblish_starter.register_host(host)
+    pipeline.register_host(host)
 
 
 def _generate_fixture():
@@ -56,10 +56,6 @@ def _generate_fixture():
     for asset in ("Asset1",):
         assetdir = os.path.join(root, asset)
         os.makedirs(assetdir)
-
-        if asset == "BadAsset":
-            # An asset must have at least one version
-            continue
 
         for version in ("v001",):
             versiondir = os.path.join(assetdir, version)
@@ -73,8 +69,10 @@ def _generate_fixture():
             with open(fname, "w") as f:
                 json.dump({
                     "schema": "pyblish-starter:version-1.0",
-                    "version": pyblish_starter.parse_version(version),
+                    "version": lib.parse_version(version),
                     "path": versiondir,
+                    "time": "",
+                    "author": "mottosso",
                     "representations": [
                         {
                             "format": ".ma",
@@ -134,7 +132,7 @@ def test_ls():
 
     """
 
-    asset = next(pyblish_starter.ls())
+    asset = next(pipeline.ls())
     reference = {
         "schema": "pyblish-starter:asset-1.0",
         "name": "Asset1",
@@ -162,7 +160,9 @@ def test_ls():
                             "scene.ma"
                         )
                     }
-                ]
+                ],
+                "time": "",
+                "author": "mottosso",
             },
         ]
     }
@@ -188,4 +188,4 @@ def test_ls_no_shareddir():
     os.makedirs(no_shared)
 
     with root(no_shared):
-        assert next(pyblish_starter.ls(), None) is None
+        assert next(pipeline.ls(), None) is None
