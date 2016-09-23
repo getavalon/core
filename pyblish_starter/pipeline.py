@@ -69,11 +69,9 @@ def install(host):
 
     """
 
-    try:
-        # Optional host install function
+    # Optional host install function
+    if hasattr(host, "install"):
         host.install()
-    except AttributeError:
-        pass
 
     register_host(host)
     register_plugins()
@@ -204,6 +202,10 @@ def register_default_families():
         name="starter.animation",
         help="Pointcache"
     )
+
+
+def register_format(format):
+    self._registered_formats.append(format)
 
 
 def register_host(host):
