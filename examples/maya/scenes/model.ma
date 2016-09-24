@@ -1,14 +1,14 @@
 //Maya ASCII 2015 scene
 //Name: model.ma
-//Last modified: Tue, Sep 13, 2016 11:14:37 AM
-//Codeset: ANSI_X3.4-1968
+//Last modified: Sat, Sep 24, 2016 04:56:11 PM
+//Codeset: 1252
 requires maya "2015";
 currentUnit -l centimeter -a degree -t film;
 fileInfo "application" "maya";
 fileInfo "product" "Maya 2015";
 fileInfo "version" "2015";
-fileInfo "cutIdentifier" "201410051530-933320";
-fileInfo "osv" "Linux 2.6.32-573.26.1.el6.framestore.1.x86_64 #1 SMP Wed May 25 14:18:04 BST 2016 x86_64";
+fileInfo "cutIdentifier" "201402282131-909040";
+fileInfo "osv" "Microsoft Windows 8 Enterprise Edition, 64-bit  (Build 9200)\n";
 createNode transform -s -n "persp";
 	setAttr ".v" no;
 	setAttr ".t" -type "double3" 4.7253841787214679 3.6176877377478283 6.1805459382995132 ;
@@ -62,8 +62,9 @@ createNode camera -s -n "sideShape" -p "side";
 	setAttr ".man" -type "string" "side_mask";
 	setAttr ".hc" -type "string" "viewSet -s %camera";
 	setAttr ".o" yes;
-createNode transform -n "cube";
-createNode mesh -n "cubeShape" -p "cube";
+createNode transform -n "model_GRP";
+createNode transform -n "cube_PLY" -p "model_GRP";
+createNode mesh -n "cube_PLYShape" -p "cube_PLY";
 	setAttr -k off ".v";
 	setAttr ".vir" yes;
 	setAttr ".vif" yes;
@@ -83,12 +84,6 @@ createNode renderLayer -n "defaultRenderLayer";
 	setAttr ".g" yes;
 createNode polyCube -n "polyCube1";
 	setAttr ".cuv" 4;
-createNode objectSet -n "cube_model";
-	addAttr -ci true -sn "id" -ln "id" -dt "string";
-	addAttr -ci true -sn "family" -ln "family" -dt "string";
-	setAttr ".ihi" 0;
-	setAttr -k on ".id" -type "string" "pyblish.starter.instance";
-	setAttr -k on ".family" -type "string" "starter.model";
 createNode script -n "sceneConfigurationScriptNode";
 	setAttr ".b" -type "string" "playbackOptions -min 1 -max 24 -ast 1 -aet 48 ";
 	setAttr ".st" 6;
@@ -97,6 +92,15 @@ createNode nodeGraphEditorInfo -n "MayaNodeEditorSavedTabsInfo";
 	setAttr ".tgi[0].tn" -type "string" "Untitled_1";
 	setAttr ".tgi[0].vl" -type "double2" -329.76189165834455 -127.38094731928832 ;
 	setAttr ".tgi[0].vh" -type "double2" 484.52379027056401 234.52380020467101 ;
+createNode objectSet -n "Cube_model_topology_default_SEL";
+	addAttr -ci true -sn "id" -ln "id" -dt "string";
+	addAttr -ci true -sn "family" -ln "family" -dt "string";
+	addAttr -ci true -sn "name" -ln "name" -dt "string";
+	setAttr ".ihi" 0;
+	setAttr -s 2 ".dsm";
+	setAttr ".id" -type "string" "pyblish.starter.instance";
+	setAttr ".family" -type "string" "starter.model";
+	setAttr ".name" -type "string" "Cube_model_topology_default";
 select -ne :time1;
 	setAttr ".o" 1;
 	setAttr ".unw" 1;
@@ -123,14 +127,15 @@ select -ne :hardwareRenderingGlobals;
 		 1 1 1 0 0 0 0 0 0 0 0 0
 		 0 0 0 0 ;
 	setAttr ".fprt" yes;
-connectAttr "polyCube1.out" "cubeShape.i";
+connectAttr "polyCube1.out" "cube_PLYShape.i";
 relationship "link" ":lightLinker1" ":initialShadingGroup.message" ":defaultLightSet.message";
 relationship "link" ":lightLinker1" ":initialParticleSE.message" ":defaultLightSet.message";
 relationship "shadowLink" ":lightLinker1" ":initialShadingGroup.message" ":defaultLightSet.message";
 relationship "shadowLink" ":lightLinker1" ":initialParticleSE.message" ":defaultLightSet.message";
 connectAttr "layerManager.dli[0]" "defaultLayer.id";
 connectAttr "renderLayerManager.rlmi[0]" "defaultRenderLayer.rlid";
-connectAttr "cube.iog" "cube_model.dsm" -na;
+connectAttr "model_GRP.iog" "Cube_model_topology_default_SEL.dsm" -na;
+connectAttr "cube_PLY.iog" "Cube_model_topology_default_SEL.dsm" -na;
 connectAttr "defaultRenderLayer.msg" ":defaultRenderingList1.r" -na;
-connectAttr "cubeShape.iog" ":initialShadingGroup.dsm" -na;
+connectAttr "cube_PLYShape.iog" ":initialShadingGroup.dsm" -na;
 // End of model.ma
