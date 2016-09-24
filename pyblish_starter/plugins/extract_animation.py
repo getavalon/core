@@ -36,7 +36,7 @@ class ExtractStarterAnimation(api.InstancePlugin):
         except OSError:
             pass
 
-        filename = "{name}.ma".format(**instance.data)
+        filename = "{name}.abc".format(**instance.data)
 
         export_alembic(
             nodes=instance,

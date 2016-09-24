@@ -8,7 +8,6 @@ from .pipeline import (
     install,
     uninstall,
 
-    root,
     load,
     create,
 )

@@ -22,19 +22,20 @@ def install():
     except (ImportError, AssertionError):
         _display_missing_dependencies()
 
-    install_menu()
-    register_formats()
+    _install_menu()
+    _register_formats()
+    _register_root()
 
 
 def uninstall():
-    uninstall_menu()
-    deregister_formats()
+    _uninstall_menu()
+    _deregister_formats()
 
 
-def install_menu():
+def _install_menu():
     from pyblish_starter.tools import creator, loader
 
-    uninstall_menu()
+    _uninstall_menu()
 
     def deferred():
         cmds.menu(self.menu,
@@ -48,7 +49,7 @@ def install_menu():
     QtCore.QTimer.singleShot(100, deferred)
 
 
-def uninstall_menu():
+def _uninstall_menu():
     widgets = dict((w.objectName(), w) for w in QtWidgets.qApp.allWidgets())
     menu = widgets.get(self.menu)
 
@@ -57,28 +58,30 @@ def uninstall_menu():
         del(menu)
 
 
-def register_formats():
+def _register_formats():
     pipeline.register_format(".ma")
     pipeline.register_format(".mb")
     pipeline.register_format(".abc")
 
 
-def deregister_formats():
+def _deregister_formats():
     pipeline.deregister_format(".ma")
     pipeline.deregister_format(".mb")
     pipeline.deregister_format(".abc")
 
 
-def root():
-    """Return project-root or directory of current working file"""
-    return (cmds.workspace(rootDirectory=True, query=True) or
-            cmds.workspace(directory=True, query=True))
+def _register_root():
+    """Register project root or directory of current working file"""
+    root = (
+        cmds.workspace(rootDirectory=True, query=True) or
+        cmds.workspace(directory=True, query=True)
+    )
+
+    pipeline.register_root(root)
 
 
 def load(asset, version=-1):
     """Load asset
-
-    
 
     Arguments:
         asset ("pyblish-starter:asset-1.0"): Asset which to import
@@ -152,6 +155,11 @@ def create(name, family):
         name (str): Name of instance
         family (str): Name of family
 
+    Raises:
+        NameError on `name` already exists
+        KeyError on invalid dynamic property
+        RuntimeError on host error
+
     """
 
     for item in pipeline.registered_families():
@@ -189,7 +197,7 @@ def create(name, family):
     cmds.select(instance, noExpand=True)
 
     # Display instance attributes to user
-    mel.eval("updateEditorToggleCheckboxes; copyAEWindow;")
+    # mel.eval("updateEditorToggleCheckboxes; copyAEWindow;")
 
     return instance
 
@@ -210,13 +218,15 @@ def containerise(name, nodes, version):
     assemblies = cmds.ls(nodes, assemblies=True)
     container = cmds.group(assemblies, name=name)
 
-    for key, value in (
-            ("id", "pyblish.starter.container"),
-            ("author", version["author"]),
-            ("loader", self.__name__),
-            ("time", version["time"]),
-            ("comment", version.get("comment", "")),
-            ):
+    data = [
+        ("id", "pyblish.starter.container"),
+        ("author", version["author"]),
+        ("loader", self.__name__),
+        ("time", version["time"]),
+        ("comment", version.get("comment", ""))
+    ]
+
+    for key, value in data:
 
         if not value:
             continue

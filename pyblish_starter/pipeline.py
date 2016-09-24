@@ -15,6 +15,8 @@ self.log = logging.getLogger()
 self._registered_data = list()
 self._registered_families = list()
 self._registered_formats = list()
+self._registered_root = os.getcwd()  # Default to current working directory
+self._is_installed = False
 
 
 def default_host():
@@ -78,6 +80,7 @@ def install(host):
     register_default_data()
     register_default_families()
 
+    self._is_installed = True
     self.log.info("Successfully installed Pyblish Starter!")
 
 
@@ -93,6 +96,17 @@ def uninstall():
     deregister_default_families()
 
     self.log.info("Successfully uninstalled Pyblish Starter!")
+
+
+def is_installed():
+    """Return state of installation
+
+    Returns:
+        True if installed, False otherwise
+
+    """
+
+    return self._is_installed
 
 
 def register_default_data():
@@ -168,8 +182,7 @@ def ls():
 
     """
 
-    root = registered_host().root()
-    assetsdir = lib.format_shared_dir(root)
+    assetsdir = lib.format_shared_dir(_registered_root)
 
     for asset in lib.listdir(assetsdir):
         versionsdir = os.path.join(assetsdir, asset)
@@ -204,14 +217,30 @@ def ls():
         yield asset_entry
 
 
+def registered_root():
+    """Return currently registered root"""
+    return self._registered_root
+
+
+def register_root(path):
+    """Register currently active root"""
+    self._registered_root = path
+
+
 def register_format(format):
+    """Register a supported format
+
+    A supported format is used to determine which of any available
+    representations are relevant to the currently registered host.
+
+    """
+
     self._registered_formats.append(format)
 
 
 def register_host(host):
     missing = list()
-    for member in ("root",
-                   "load",
+    for member in ("load",
                    "create",):
         if not hasattr(host, member):
             missing.append(member)

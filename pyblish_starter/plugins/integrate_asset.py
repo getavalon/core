@@ -24,7 +24,7 @@ class IntegrateStarterAsset(api.InstancePlugin):
         import shutil
         from pyblish_starter import (
             format_version,
-            find_next_version,
+            find_latest_version,
         )
 
         context = instance.context
@@ -46,7 +46,7 @@ class IntegrateStarterAsset(api.InstancePlugin):
                 self.log.critical("An unexpected error occurred.")
                 raise
 
-        version = find_next_version(os.listdir(instancedir))
+        version = find_latest_version(os.listdir(instancedir)) + 1
         versiondir = os.path.join(
             instancedir,
             format_version(version)

@@ -2,19 +2,51 @@
 
 A basic asset creation pipeline - batteries included.
 
-> WARNING: Not ready for use.
+- **Keywords:** Film, games, content creation, pipeline
+
+- **Objective:**
+    1. Introduce publishing to the techincal director
+    1. Demonstrate where publishing fits within a typical production pipeline
+    1. Inspire further expansion upon basic ideas
+
+- **Mission:** Demonstrate what is made possible with publishing.
+
+- **Motivation:** I'm doing this for the same reason I created Pyblish. Because I see publishing as *the single most important aspect of any production pipeline*. It is on top of the advantages that it provides that the surrounding pipeline is made possible - e.g. [browser](#looking-ahead) and [loader](#looking-ahead), [builder](#looking-ahead) and [manager](#looking-ahead).
+
+- **Requirements** Reliably output correct data with minimal impact on artist productivity.
+
+- **Technology** Starter is built upon [Pyblish](http://pyblish.com), [Python](https://www.python.org) and [bindings](https://github.com/mottosso/Qt.py) for [Qt](https://qt.io), and depends upon a Windows, Linux or MacOS operating system with [Autodesk Maya](http://www.autodesk.com/maya).
+
+- **Audience** Technical directors interested in pipeline working in small- to mid-sized companies with a thirst for better ways of working.
+
+<br>
 
 **Table of contents**
 
 - [Install](#install)
 - [Usage](#usage)
 - [Description](#description)
+- [Batteries](#batteries)
+- [Looking Ahead](#looking-ahead)
 - [Terminology](#terminology)
+- [Shared/User Separation](#shareduser-separation)
+- [Ids](#ids)
+- [Starter API](#starter-api)
+- [Host API](#host-api)
 - [Information Hierarchy](#information-hierarchy)
 - [Contract](#contract)
     - [`starter.model`](#startermodel)
     - [`starter.rig`](#starterrig)
     - [`starter.animation`](#starteranimation)
+- [Example](#example)
+- [Requirement Specification](#requirement-specification)
+    - [Workout](#workout)
+    - [Self-intersections](#self-intersections)
+    - [Extreme Acceleration](#extreme-acceleration)
+    - [Extreme Surface Tangency](#extreme-surface-tangency)
+    - [Extreme Surface Stretch or Compression](#extreme-surface-stretch-or-compression)
+- Contributing
+- Help
 
 <br>
 <br>
@@ -79,7 +111,48 @@ It includes a series of graphical user interfaces to aid the user in conforming 
 
 In addition to Pyblish cooperative plug-ins, a series of template workflow utilities are included.
 
-...
+<img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18809620/b31ed30e-8278-11e6-8d76-13fdcab71e52.png">
+
+#### Creator
+
+A bla bla bla, and a bla bla.
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+<img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18809647/67043f62-8279-11e6-8eb9-29b124040d6d.png">
+
+#### Loader
+
+A bla bla bla, and a bla bla.
+
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+<br>
+<br>
+
+### Looking Ahead
+
+Without publishing, in any shape or form, the following essential tools are but a dream.
+
+| Name              | Purpose                          | Description
+|:------------------|:---------------------------------|:--------------
+| browser           | remove file-system dependence    | Search and clear presentation of available data relative a given project or task.
+| loader            | control what goes in             | Keep tabs on where data comes from so as to enable tracking and builds.
+| builder           | associate disparate assets       | Automatic composition of data that changes independently but need to somehow stay associated.
+| manager           | stay up to date                  | Notification and visualisation of data in time.
 
 <br>
 <br>
@@ -95,16 +168,16 @@ Starter reserves the following words for private and public use. Public members 
 | ![][ver] | `version`           | `X`    | An asset iteration  | v1, v034
 | ![][rep] | `representation`    |        | A data format       | Maya file, pointcache, thumbnail
 | ![][for] | `format`            |        | A file extension    | `.ma`, `.abc`, `.ico`, `.png`
-| ![][for] | `shared`            | `X`    | Public data         | v034 of Ryan
-| ![][for] | `user`              | `X`    | Private data        | Scenefile for v034 of Ryan
+| ![][shd] | `shared`            | `X`    | Public data         | v034 of Ryan
+| ![][usr] | `user`              | `X`    | Private data        | Scenefile for v034 of Ryan
 
 <br>
 
-### Shared/user separation
+### Shared/User separation
 
-This project separates between data in progress, and data shared with others.
+Humans are imperfect, yet strive for perfection. In order to reduce the amount of friction produced through this contradiction, a separation is made between **user** and **shared** data. Artists are not required to work any differently, yet are able to produce correct data.
 
-Data in progress is any data in which a shared data is being produced. It is highly **mutable** and typically **private** to an individual artist.
+User data is highly **mutable** and typically **private** to an individual artist.
 
 - **Mutable** implies transient data that is likely to change at any given moment.
 - **Private** implies personal, highly irregular and likely invalid data.
@@ -113,7 +186,7 @@ Shared data on the other hand is **immutable**, **correct** and **impersonal**.
 
 - **Immutable** implies that the data may be dependent upon by other data.
 - **Correct** implies passing validation of the associated family.
-- **Impersonal** implies following strict organiasational conventions.
+- **Impersonal** implies following strict organisational conventions.
 
 ### Ids
 
@@ -121,8 +194,8 @@ Shared data on the other hand is **immutable**, **correct** and **impersonal**.
 
 | Name                         | Description              | Example
 |:-----------------------------|:-------------------------|:----------
-| `pyblish.starter.container`  | Incoming unit of data    | `...:model_GRP`, `...:rig_GRP` 
-| `pyblish.starter.instance`   | Outgoing unit of data    | `Strange_model_default`
+| `pyblish.starter.container`  | Unit of incoming data    | `...:model_GRP`, `...:rig_GRP` 
+| `pyblish.starter.instance`   | Unit of outgoing data    | `Strange_model_default`
 
 <br>
 
@@ -131,6 +204,44 @@ Shared data on the other hand is **immutable**, **correct** and **impersonal**.
 [rep]: https://cloud.githubusercontent.com/assets/2152766/18759916/b2e3161c-80f6-11e6-9e0a-c959d63047a8.png
 [for]: https://cloud.githubusercontent.com/assets/2152766/18759918/b479168e-80f6-11e6-8d1c-aee4e654d335.png
 [pro]: https://cloud.githubusercontent.com/assets/2152766/18760901/d6bf24b4-80fa-11e6-8880-7a0e927c8c27.png
+[usr]: https://cloud.githubusercontent.com/assets/2152766/18808940/eee150bc-8267-11e6-862f-a31e38d417af.png
+[shd]: https://cloud.githubusercontent.com/assets/2152766/18808939/eeded22e-8267-11e6-9fcb-150208d55764.png
+
+<br>
+<br>
+
+### Starter API
+
+pyblish-starter provides a stateful API. State is set and modified by calling `pyblish_starter.install()`.
+The following members are available via `pyblish_starter`.
+
+| Member                          | Returns  | Description
+|:--------------------------------|:---------|:--------
+| `install(host)`                 | `str`    | Install Starter into the current interpreter session
+| `uninstall()`                   | `str`    | Revert installation
+| `ls()`                          | `dict`   | List available assets, relative `root`
+| `root()`                        | `str`    | Absolute path to current working directory
+| `format_user_dir(root, name)`   | `str`    | Return absolute path or user directory relative arguments
+| `format_shared_dir(root)`       | `str`    | Return absolute path of shared directory
+| `format_version(version)`       | `str`    | Return file-system compatible string of `version`
+| `find_latest_version(versions)` | `int`    | Given a series of string-formatted versions, return the latest one
+| `parse_version(version)`        | `str`    | Given an arbitrarily formatted string, return version number
+| `register_root(root)`           |          | Register currently active root
+| `register_host(host)`           |          | Register currently active host
+| `register_plugins()`            |          | Register plug-ins bundled with Pyblish Starter
+| `deregister_plugins()`          |          |
+| `registered_host()`             | `module` | Return currently registered host
+
+<br>
+
+### Host API
+
+A host must implement the following members.
+
+| Member                    | Returns | Description
+|:--------------------------|:--------|:--------
+| `create(name, family)`    | `dict`  | Build fixture for outgoing data (see [instance]())
+| `load(asset, version=-1)` | `str`   | Import external data into [container]()
 
 <br>
 <br>
@@ -159,11 +270,11 @@ The mental and physical model for files and folders look like this.
 
 Starter defines these families.
 
-| Family              | Definition                                                  | Link
-|:--------------------|:------------------------------------------------------------|:------------
-| `starter.model`     | Geometry with deformable topology                           | [Spec](#startermodel)
-| `starter.rig`       | An articulated `starter.model` for animators                | [Spec](#starterrig)
-| `starter.animation` | Pointcached `starter.rig` for tech-anim and lighting        | [Spec](#starteranimation)
+| Family              | Definition                                     | Link
+|:--------------------|:-----------------------------------------------|:------------
+| `starter.model`     | Geometry with deformable topology              | [Spec](#startermodel)
+| `starter.rig`       | An articulated `starter.model` for animators   | [Spec](#starterrig)
+| `starter.animation` | Pointcached `starter.rig` for rendering        | [Spec](#starteranimation)
 
 <br>
 
@@ -213,7 +324,7 @@ A generic representation of geometry.
 
 <img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526730/9c7f040a-7ab9-11e6-9007-4795ddbadde8.png"></img>
 
-The `starter.rig` contains the necessary implementation and interface for animators to produce 
+The `starter.rig` contains the necessary implementation and interface for animators to animate. 
 
 ![aud][] **Target Audience**
 
@@ -309,16 +420,11 @@ The following is an example of the minimal effort required to produce film with 
 
 ##### Setup
 
-Before any work can be done, you must initialise Starter.
+Before any work can be done, you must install Starter.
 
 ```python
-# Prerequisite
-import pyblish_maya
-pyblish_maya.setup()
-
-# Starter
-import pyblish_starter
-pyblish_starter.setup()
+from pyblish_starter import install, maya
+install(maya)
 ```
 
 <br>

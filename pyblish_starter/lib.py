@@ -129,19 +129,3 @@ def find_latest_version(versions):
             highest_version = version
 
     return highest_version
-
-
-def find_next_version(versions):
-    """Return next version from list of versions
-
-    See docstring for :func:`find_latest_version`.
-
-    Arguments:
-        versions (list): Version numbers as string
-
-    Returns:
-        int: Next version number
-
-    """
-
-    return find_latest_version(versions) + 1
