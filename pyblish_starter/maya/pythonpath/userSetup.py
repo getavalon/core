@@ -1,2 +1,2 @@
-import pyblish_starter
-pyblish_starter.install()
+from pyblish_starter import install, maya
+install(maya)
