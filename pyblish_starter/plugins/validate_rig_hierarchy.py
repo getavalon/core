@@ -16,5 +16,5 @@ class ValidateStarterRigHierarchy(api.InstancePlugin):
     def process(self, instance):
         from maya import cmds
 
-        assert cmds.ls(instance, assemblies=True) == ["model_GRP"], (
-            "Rig must have a single parent called 'model_GRP'.")
+        assert cmds.ls(instance, assemblies=True) == ["rig_GRP"], (
+            "Rig must have a single parent called 'rig_GRP'.")
