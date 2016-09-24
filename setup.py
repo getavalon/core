@@ -45,7 +45,7 @@ setup(
     packages=find_packages(),
     classifiers=classifiers,
     install_requires=[
-        "pyblish-base>=1.4",
+        "pyblish-base>=1.4.2",
         "pyblish-maya>=2.1"
     ],
     entry_points={},
