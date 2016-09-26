@@ -55,15 +55,19 @@
 }
 
 body {
+  min-width: 890px;
+  max-width: 890px;
   background-color: #fff;
-  padding:50px;
+  padding: 50px;
+  margin-left: auto;
+  margin-right: auto;
   font: 14px/1.5 "Noto Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
-  color:#727272;
-  font-weight:400;
+  color: #727272;
+  font-weight: 400;
 }
 
 h1, h2, h3, h4, h5, h6 {
-  color:#222;
+  color: #222;
   margin:0 0 20px;
 }
 
@@ -248,7 +252,7 @@ footer {
   -webkit-font-smoothing:subpixel-antialiased;
 }
 
-@media print, screen and (max-width: 960px) {
+@media print, screen {
 
   div.wrapper {
     width:auto;

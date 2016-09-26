@@ -1,3 +1,7 @@
+---
+layout: index
+---
+
 ### Pyblish Starter
 
 A basic asset creation pipeline - batteries included.
