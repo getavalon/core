@@ -1,17 +1,29 @@
 language: python
 
+sudo: required
+dist: trusty
+
 python:
-- 2.7
+  - 2.7
 
 install:
-- pip install coveralls pyside
+  - sudo apt-get install -y python-pyside
+  - sudo pip install coveralls
+
+before_script:
+  - "export DISPLAY=:99.0"
+  - "sh -e /etc/init.d/xvfb start"
+  - sleep 3 # give xvfb some time to start
 
 script:
-- python run_tests.py
-- pip install file://$(pwd)
+  # Run tests
+  - python run_tests.py
+
+  # Test setup.py
+  - pip install file://$(pwd)
 
 after_success:
-- coveralls
+  - coveralls
 
 deploy:
   provider: pypi
