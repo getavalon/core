@@ -23,6 +23,14 @@ A basic asset creation pipeline - batteries included.
 
 <br>
 
+### Prerequisities
+
+Before you start looking into pyblish-starter, it is recommended that you first familiarise yourself with Pyblish.
+
+- [learn.pyblish.com](http://learn.pyblish.com)
+
+<br>
+
 ### Requirements
 
 Developing a bespoke pipeline from scratch is not for the faint of heart.
