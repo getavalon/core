@@ -550,7 +550,7 @@ Starter defines these families.
 
 ### `starter.model`
 
-<img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526694/7453567a-7ab9-11e6-817c-84a874092399.png"></img>
+<img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526694/7453567a-7ab9-11e6-817c-84a874092399.png"/>
 
 A generic representation of geometry.
 
@@ -581,7 +581,7 @@ A generic representation of geometry.
 
 ### `starter.rig`
 
-<img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526730/9c7f040a-7ab9-11e6-9007-4795ddbadde8.png"></img>
+<img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526730/9c7f040a-7ab9-11e6-9007-4795ddbadde8.png"/>
 
 The `starter.rig` contains the necessary implementation and interface for animators to animate. 
 
@@ -609,7 +609,7 @@ The `starter.rig` contains the necessary implementation and interface for animat
 
 ### `starter.animation`
 
-<img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526738/a0fba5ba-7ab9-11e6-934f-48ca2a2ce3d2.png"></img>
+<img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526738/a0fba5ba-7ab9-11e6-934f-48ca2a2ce3d2.png"/>
 
 Point positions and normals represented as one Alembic file.
 
