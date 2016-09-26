@@ -101,13 +101,13 @@ From here, you model, rig and animate as per the [contract](#contract) below.
 
 ### Description
 
-Build your own ASSET creation pipeline, starting with the basics.
+Build your own ASSET CREATION PIPELINE, starting with the basics.
 
 **Overview**
 
-*ASSET creation* covers aspects related to producing content used in the production of film. A film is typically partitioned into sequences and shots, where each shot consists of one or more assets.
+*Asset creation* covers aspects related to producing content used in the production of film. A film is typically partitioned into sequences and shots, where each shot consists of one or more assets.
 
-This project includes plug-ins and tools for 3 common types of ASSETS a typical production pipeline.
+This project includes plug-ins and tools for 3 common types of ASSETS in a typical production pipeline.
 
 - Modeling
 - Rigging
