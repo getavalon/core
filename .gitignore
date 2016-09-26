@@ -4,3 +4,4 @@ cover
 .coverage
 stage
 shared
+_site
