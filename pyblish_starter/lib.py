@@ -106,18 +106,18 @@ def find_latest_version(versions):
         versions (list): Version numbers as string
 
     Example:
-        >>> find_next_version(["v001", "v002", "v003"])
-        4
-        >>> find_next_version(["1", "2", "3"])
-        4
-        >>> find_next_version(["v1", "v0002", "verision_3"])
-        4
-        >>> find_next_version(["v2", "5_version", "verision_8"])
-        9
-        >>> find_next_version(["v2", "v3_5", "_1_2_3", "7, 4"])
-        6
-        >>> find_next_version(["v010", "v011"])
-        12
+        >>> find_latest_version(["v001", "v002", "v003"])
+        3
+        >>> find_latest_version(["1", "2", "3"])
+        3
+        >>> find_latest_version(["v1", "v0002", "verision_3"])
+        3
+        >>> find_latest_version(["v2", "5_version", "verision_8"])
+        8
+        >>> find_latest_version(["v2", "v3_5", "_1_2_3", "7, 4"])
+        5
+        >>> find_latest_version(["v010", "v011"])
+        11
 
     """
 
