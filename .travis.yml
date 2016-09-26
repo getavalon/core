@@ -3,8 +3,15 @@ language: python
 python:
 - 2.7
 
+install:
+- pip install coveralls pyside
+
 script:
+- python run_tests.py
 - pip install file://$(pwd)
+
+after_success:
+- coveralls
 
 deploy:
   provider: pypi
