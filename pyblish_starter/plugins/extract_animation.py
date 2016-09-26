@@ -1,7 +1,7 @@
-from pyblish import api
+import pyblish.api
 
 
-class ExtractStarterAnimation(api.InstancePlugin):
+class ExtractStarterAnimation(pyblish.api.InstancePlugin):
     """Produce an alembic of just point positions and normals.
 
     Positions and normals are preserved, but nothing more,
@@ -12,22 +12,21 @@ class ExtractStarterAnimation(api.InstancePlugin):
 
     """
 
-    label = "Extract animation"
-    order = api.ExtractorOrder
+    label = "Starter Animation"
+    order = pyblish.api.ExtractorOrder
     hosts = ["maya"]
     families = ["starter.animation"]
 
     def process(self, instance):
         import os
         from maya import cmds
-        from pyblish_starter import format_user_dir
-        from pyblish_starter.maya import export_alembic
+        from pyblish_starter import api, maya
 
         self.log.debug("Loading plug-in..")
         cmds.loadPlugin("AbcExport.mll", quiet=True)
 
         self.log.info("Extracting animation..")
-        dirname = format_user_dir(
+        dirname = api.format_user_dir(
             root=instance.context.data["workspaceDir"],
             name=instance.data["name"])
 
@@ -38,7 +37,7 @@ class ExtractStarterAnimation(api.InstancePlugin):
 
         filename = "{name}.abc".format(**instance.data)
 
-        export_alembic(
+        maya.export_alembic(
             nodes=instance,
             file=os.path.join(dirname, filename).replace("\\", "/"),
             frame_range=(cmds.playbackOptions(query=True, ast=True),

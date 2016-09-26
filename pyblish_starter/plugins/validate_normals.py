@@ -1,7 +1,7 @@
-from pyblish import api
+import pyblish.api
 
 
-class ValidateStarterNormals(api.InstancePlugin):
+class ValidateStarterNormals(pyblish.api.InstancePlugin):
     """Normals of a model may not be locked
 
     Locked normals shading during interactive use to behave
@@ -10,8 +10,8 @@ class ValidateStarterNormals(api.InstancePlugin):
 
     """
 
-    label = "Validate normals"
-    order = api.ValidatorOrder
+    label = "Normals"
+    order = pyblish.api.ValidatorOrder
     hosts = ["maya"]
     families = ["starter.model"]
 

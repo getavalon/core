@@ -1,7 +1,7 @@
-from pyblish import api
+import pyblish.api
 
 
-class ExtractStarterModel(api.InstancePlugin):
+class ExtractStarterModel(pyblish.api.InstancePlugin):
     """Produce a stripped down Maya file from instance
 
     This plug-in takes into account only nodes relevant to models
@@ -10,18 +10,18 @@ class ExtractStarterModel(api.InstancePlugin):
 
     """
 
-    label = "Extract model"
-    order = api.ExtractorOrder
+    label = "Starter Model"
+    order = pyblish.api.ExtractorOrder
     hosts = ["maya"]
     families = ["starter.model"]
 
     def process(self, instance):
         import os
         from maya import cmds
-        from pyblish_starter import format_user_dir
+        from pyblish_starter import api
         from pyblish_maya import maintained_selection
 
-        dirname = format_user_dir(
+        dirname = api.format_user_dir(
             root=instance.context.data["workspaceDir"],
             name=instance.data["name"])
 

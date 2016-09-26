@@ -1,23 +1,17 @@
-from pyblish import api
+import pyblish.api
 
 
-class ValidateStarterSingleAssembly(api.InstancePlugin):
-    """A rig must have a certain hierarchy and members
+class ValidateStarterSingleAssembly(pyblish.api.InstancePlugin):
+    """Each asset must have a single top-level group"""
 
-    - Must reside within `rig_GRP` transform
-    - controls_SEL
-    - cache_SEL
-    - resources_SEL (optional)
-
-    """
-
-    label = "Validate single assembly"
-    order = api.ValidatorOrder
+    label = "Single assembly"
+    order = pyblish.api.ValidatorOrder
     hosts = ["maya"]
     families = ["starter.model", "starter.rig"]
 
     def process(self, instance):
         from maya import cmds
+
         assemblies = cmds.ls(instance, assemblies=True)
         assert len(assemblies) == 1, (
             ("Multiple assemblies found."

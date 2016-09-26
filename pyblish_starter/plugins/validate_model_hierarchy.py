@@ -1,15 +1,15 @@
-from pyblish import api
+import pyblish.api
 
 
-class ValidateStarterModelHierarchy(api.InstancePlugin):
+class ValidateStarterModelHierarchy(pyblish.api.InstancePlugin):
     """A model hierarchy must reside under a single assembly called "model_GRP"
 
     - Must reside within `model_GRP` transform
 
     """
 
-    label = "Validate model format"
-    order = api.ValidatorOrder
+    label = "Model Format"
+    order = pyblish.api.ValidatorOrder
     hosts = ["maya"]
     families = ["starter.model"]
 

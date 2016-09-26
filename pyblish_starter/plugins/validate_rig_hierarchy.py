@@ -1,15 +1,15 @@
-from pyblish import api
+import pyblish.api
 
 
-class ValidateStarterRigHierarchy(api.InstancePlugin):
+class ValidateStarterRigHierarchy(pyblish.api.InstancePlugin):
     """A rig must reside under a single assembly called "rig_GRP"
 
     - Must reside within `rig_GRP` transform
 
     """
 
-    label = "Validate rig hierarchy"
-    order = api.ValidatorOrder
+    label = "Rig Hierarchy"
+    order = pyblish.api.ValidatorOrder
     hosts = ["maya"]
     families = ["starter.rig"]
 

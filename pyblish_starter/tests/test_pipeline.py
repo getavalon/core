@@ -1,3 +1,9 @@
+"""Test pipeline.py
+
+..note: These tests depend on global state and are therefore not reentrant.
+
+"""
+
 import os
 import sys
 import json
@@ -8,38 +14,18 @@ import contextlib
 
 from pyblish_starter import pipeline, lib
 
-from nose.tools import assert_equals
+from nose.tools import assert_equals, assert_raises
 
 self = sys.modules[__name__]
 
 
-@contextlib.contextmanager
-def root(root):
-    host = pipeline.registered_host()
-    old = host.root
-    host.root = lambda: root
-
-    try:
-        yield
-    finally:
-        host.root = old
-
-
 def setup():
     self.tempdir = tempfile.mkdtemp()
-    _register_host()
-    _generate_fixture()
+    pipeline.register_root(self.tempdir)
 
-
-def teardown():
-    shutil.rmtree(self.tempdir)
-    sys.stdout.write("Removed temporary directory \"%s\"" % self.tempdir)
-
-
-def _register_host():
+    # Mock host
     host = types.ModuleType("Test")
     host.__dict__.update({
-        "root": lambda: self.tempdir,
         "create": lambda *args, **kwargs: None,
         "load": lambda *args, **kwargs: None,
     })
@@ -47,48 +33,19 @@ def _register_host():
     pipeline.register_host(host)
 
 
-def _generate_fixture():
-    root = os.path.join(
-        self.tempdir,
-        "shared"
-    )
+def teardown():
+    shutil.rmtree(self.tempdir)
 
-    for asset in ("Asset1",):
-        assetdir = os.path.join(root, asset)
-        os.makedirs(assetdir)
 
-        for version in ("v001",):
-            versiondir = os.path.join(assetdir, version)
-            os.makedirs(versiondir)
+@contextlib.contextmanager
+def bad_fixture():
+    empty = os.path.join(self.tempdir, "empty")
+    os.makedirs(empty)
 
-            fname = os.path.join(versiondir, asset + ".ma")
-            open(fname, "w").close()  # touch
-
-            fname = os.path.join(versiondir, ".metadata.json")
-
-            with open(fname, "w") as f:
-                json.dump({
-                    "schema": "pyblish-starter:version-1.0",
-                    "version": lib.parse_version(version),
-                    "path": versiondir,
-                    "time": "",
-                    "author": "mottosso",
-                    "representations": [
-                        {
-                            "format": ".ma",
-                            "source": os.path.join(
-                                "{project}",
-                                "maya",
-                                "scenes",
-                                "scene.ma"
-                            ),
-                            "path": os.path.join(
-                                "{dirname}",
-                                "%s{format}" % asset
-                            ),
-                        },
-                    ]
-                }, f)
+    try:
+        yield
+    finally:
+        shutil.rmtree(empty)
 
 
 def test_ls():
@@ -132,7 +89,9 @@ def test_ls():
 
     """
 
-    asset = next(pipeline.ls())
+    with pipeline.fixture() as root:
+        asset = next(pipeline.ls())
+
     reference = {
         "schema": "pyblish-starter:asset-1.0",
         "name": "Asset1",
@@ -141,24 +100,25 @@ def test_ls():
                 "schema": "pyblish-starter:version-1.0",
                 "version": 1,
                 "path": os.path.join(
-                    self.tempdir,
+                    root,
                     "shared",
                     "Asset1",
                     "v001"
                 ),
+                "source": os.path.join(
+                    "{project}",
+                    "maya",
+                    "scenes",
+                    "scene.ma"
+                ),
                 "representations": [
                     {
+                        "schema": "pyblish-starter:representation-1.0",
                         "format": ".ma",
                         "path": os.path.join(
                             "{dirname}",
                             "Asset1{format}"
                         ),
-                        "source": os.path.join(
-                            "{project}",
-                            "maya",
-                            "scenes",
-                            "scene.ma"
-                        )
                     }
                 ],
                 "time": "",
@@ -178,14 +138,23 @@ def test_ls():
 
 def test_ls_returns_sorted_versions():
     """Versions returned from ls() are alphanumerically sorted"""
-    assert False
+    with pipeline.fixture(versions=1):
+        for asset in pipeline.ls():
+            previous_version = 0
+            for version in asset["versions"]:
+                version = version["version"]
+                assert version > previous_version
+                previous_version = version
+
+
+def test_ls_empty():
+    """No assets results in an empty generator"""
+    with pipeline.fixture(assets=[], versions=0):
+        assert_raises(StopIteration, next, pipeline.ls())
 
 
 def test_ls_no_shareddir():
     """A root without /shared returns an empty generator"""
 
-    no_shared = os.path.join(self.tempdir, "noshared")
-    os.makedirs(no_shared)
-
-    with root(no_shared):
+    with bad_fixture():
         assert next(pipeline.ls(), None) is None

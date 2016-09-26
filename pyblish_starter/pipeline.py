@@ -2,15 +2,18 @@ import os
 import sys
 import json
 import types
+import shutil
 import logging
+import tempfile
+import contextlib
 
 from pyblish import api
 
-from . import lib
+from . import lib, schema
 
 self = sys.modules[__name__]
 
-self.log = logging.getLogger()
+self.log = logging.getLogger("pyblish-starter")
 
 self._registered_data = list()
 self._registered_families = list()
@@ -132,28 +135,10 @@ def register_default_families():
     )
 
 
-def ls():
+def ls(root=None):
     """List available assets
 
     Return a list of available assets.
-
-    Schema:
-        {
-          "schema": "pyblish-starter:asset-1.0",
-          "name": Name of directory,
-          "versions": [
-            {
-              "version": 1,
-              "comment": "",
-              "representations": [
-                {
-                  "format": File extension,
-                  "path": Unformatted path, relative `root`
-                }
-              ]
-            },
-          ]
-        }
 
     The interface of this function, along with its schema, is designed
     to facilitate a potential transition into database-driven queries.
@@ -175,14 +160,14 @@ def ls():
         critical; such as saving or loading files.
 
     ..note: The order of the list is undefined, but is typically alphabetical
-        due to how os.listdir() is implemented.
+        due to dependence on os.listdir()
 
     ..note: The order of versions returned is guaranteed to be sorted, so
         as to simplify retrieving the latest one via `versions[-1]`
 
     """
 
-    assetsdir = lib.format_shared_dir(_registered_root)
+    assetsdir = lib.format_shared_dir(root or self._registered_root)
 
     for asset in lib.listdir(assetsdir):
         versionsdir = os.path.join(assetsdir, asset)
@@ -214,7 +199,98 @@ def ls():
         # Sort versions by integer
         asset_entry["versions"].sort(key=lambda v: v["version"])
 
+        schema.validate(asset_entry, "asset")
+
         yield asset_entry
+
+
+@contextlib.contextmanager
+def fixture(assets=["Asset1"], versions=1):
+    """Build transient fixture of `assets` and `versions`
+
+    Generate a temporary fixture of customisable assets
+    with current metadata schema. This function is intended
+    for use in tests and tutorials.
+
+    Arguments:
+        assets (list, optional): Names of assets to create,
+            defaults to one asset named "Asset1"
+        version (int, optional): Number of versions of each asset,
+            defaults to 1 version.
+
+    Thread Safety:
+        This function modifies globals state and is
+        therefore not thread-safe.
+
+    Usage:
+        >>> with fixture(assets=["MyAsset1"], versions=1):
+        ...    for asset in ls():
+        ...       assert asset["name"] == "MyAsset1"
+        ...
+
+    """
+
+    tempdir = tempfile.mkdtemp()
+    shared = os.path.join(
+        tempdir,
+        "shared"
+    )
+
+    os.makedirs(shared)
+
+    for asset in assets:
+        assetdir = os.path.join(shared, asset)
+        os.makedirs(assetdir)
+
+        for version in range(versions):
+            version = lib.format_version(version + 1)
+            versiondir = os.path.join(assetdir, version)
+            os.makedirs(versiondir)
+
+            fname = os.path.join(versiondir, asset + ".ma")
+            open(fname, "w").close()  # touch
+
+            fname = os.path.join(versiondir, ".metadata.json")
+
+            with open(fname, "w") as f:
+                json.dump({
+                    "schema": "pyblish-starter:version-1.0",
+                    "version": lib.parse_version(version),
+                    "path": versiondir,
+                    "time": "",
+                    "author": "mottosso",
+                    "source": os.path.join(
+                        "{project}",
+                        "maya",
+                        "scenes",
+                        "scene.ma"
+                    ),
+                    "representations": [
+                        {
+                            "schema": "pyblish-starter:representation-1.0",
+                            "format": ".ma",
+                            "path": os.path.join(
+                                "{dirname}",
+                                "%s{format}" % asset
+                            ),
+                        },
+                    ]
+                }, f)
+
+    # Keep track of original root
+    _ = self._registered_root
+
+    try:
+        self._registered_root = tempdir
+        yield tempdir
+    finally:
+        self._registered_root = _
+        shutil.rmtree(tempdir)
+
+
+def register_root(path):
+    """Register currently active root"""
+    self._registered_root = path
 
 
 def registered_root():
@@ -222,9 +298,8 @@ def registered_root():
     return self._registered_root
 
 
-def register_root(path):
-    """Register currently active root"""
-    self._registered_root = path
+# Alias
+root = registered_root
 
 
 def register_format(format):

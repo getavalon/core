@@ -1,30 +1,27 @@
-from pyblish import api
+import pyblish.api
 
 
-class ExtractStarterRig(api.InstancePlugin):
+class ExtractStarterRig(pyblish.api.InstancePlugin):
     """Produce Maya file compatible with referencing
 
     Rigs come in many flavours. This plug-in carefully only excludes
     nodes explicitly stated as excluded, bundles and resolves external
     references to the scene.
 
-    Limits:
-        - 1 rig per scene file
-
     """
 
-    label = "Extract rig"
-    order = api.ExtractorOrder
+    label = "Starter Rig"
+    order = pyblish.api.ExtractorOrder
     hosts = ["maya"]
     families = ["starter.rig"]
 
     def process(self, instance):
         import os
         from maya import cmds
-        from pyblish_starter import format_user_dir
+        from pyblish_starter import api
         from pyblish_maya import maintained_selection
 
-        dirname = format_user_dir(
+        dirname = api.format_user_dir(
             root=instance.context.data["workspaceDir"],
             name=instance.data["name"])
 

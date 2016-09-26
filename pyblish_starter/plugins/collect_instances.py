@@ -1,7 +1,7 @@
-from pyblish import api
+import pyblish.api
 
 
-class CollectStarterInstances(api.ContextPlugin):
+class CollectStarterInstances(pyblish.api.ContextPlugin):
     """Gather instances by objectSet and pre-defined attribute
 
     This collector takes into account assets that are associated with
@@ -36,8 +36,8 @@ class CollectStarterInstances(api.ContextPlugin):
 
     """
 
-    label = "Collect instances"
-    order = api.CollectorOrder
+    label = "Starter Instances"
+    order = pyblish.api.CollectorOrder
     hosts = ["maya"]
 
     def process(self, context):

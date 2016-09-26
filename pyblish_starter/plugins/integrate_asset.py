@@ -1,16 +1,30 @@
-from pyblish import api
+import pyblish.api
 
 
-class IntegrateStarterAsset(api.InstancePlugin):
+class IntegrateStarterAsset(pyblish.api.InstancePlugin):
     """Move user data to shared location
 
     This plug-in exposes your data to others by encapsulating it
     into a new version.
 
+    Schema:
+        Data is written in the following format.
+         ____________________
+        |                    |
+        | version            |
+        |  ________________  |
+        | |                | |
+        | | representation | |
+        | |________________| |
+        | |                | |
+        | | ...            | |
+        | |________________| |
+        |____________________|
+
     """
 
-    label = "Integrate asset"
-    order = api.IntegratorOrder
+    label = "Starter Asset"
+    order = pyblish.api.IntegratorOrder
     families = [
         "starter.model",
         "starter.rig",
@@ -22,13 +36,32 @@ class IntegrateStarterAsset(api.InstancePlugin):
         import json
         import errno
         import shutil
-        from pyblish_starter import (
-            format_version,
-            find_latest_version,
-        )
+        from pyblish_starter import api
 
         context = instance.context
 
+        # Atomicity
+        #
+        # Guarantee atomic publishes - each asset contains
+        # an identical set of members.
+        #     __
+        #    /     o
+        #   /       \
+        #  |    o    |
+        #   \       /
+        #    o   __/
+        #
+        if not all(result["success"] for result in context.data["results"]):
+            raise Exception("Atomicity not held, aborting.")
+
+        # Assemble
+        #
+        #       |
+        #       v
+        #  --->   <----
+        #       ^
+        #       |
+        #
         userdir = instance.data.get("userDir")
         assert userdir, (
             "Incomplete instance \"%s\": "
@@ -46,16 +79,19 @@ class IntegrateStarterAsset(api.InstancePlugin):
                 self.log.critical("An unexpected error occurred.")
                 raise
 
-        version = find_latest_version(os.listdir(instancedir)) + 1
-        versiondir = os.path.join(
-            instancedir,
-            format_version(version)
-        )
+        version = api.find_latest_version(os.listdir(instancedir)) + 1
+        versiondir = os.path.join(instancedir, api.format_version(version))
 
-        shutil.copytree(userdir, versiondir)
-
-        # Update metadata
-        fname = os.path.join(versiondir, ".metadata.json")
+        # Metadata
+        #  _________
+        # |         |.key = value
+        # |         |
+        # |         |
+        # |         |
+        # |         |
+        # |_________|
+        #
+        fname = os.path.join(userdir, ".metadata.json")
 
         try:
             with open(fname) as f:
@@ -72,20 +108,40 @@ class IntegrateStarterAsset(api.InstancePlugin):
                 "author": context.data["user"],
 
                 # Collected by pyblish-maya
-                "source": context.data["currentFile"],
+                "source": os.path.relpath(
+                    context.data["currentFile"],
+                    api.root()
+                ),
             }
 
         filename = instance.data["filename"]
         name, ext = os.path.splitext(filename)
         metadata["representations"].append(
             {
+                "schema": "pyblish-starter:representation-1.0",
                 "format": ext,
                 "path": "{dirname}/%s{format}" % name
             }
         )
 
+        # Write to disk
+        #          _
+        #         | |
+        #        _| |_
+        #    ____\   /
+        #   |\    \ / \
+        #   \ \    v   \
+        #    \ \________.
+        #     \|________|
+        #
         with open(fname, "w") as f:
             json.dump(metadata, f, indent=4)
+
+        # Metadata is written before being validated -
+        # this way, if validation fails, the data can be
+        # inspected by hand from within the user directory.
+        api.schema.validate(metadata, "version")
+        shutil.copytree(userdir, versiondir)
 
         self.log.info("Successfully integrated \"%s\" to \"%s\"" % (
             instance, versiondir))

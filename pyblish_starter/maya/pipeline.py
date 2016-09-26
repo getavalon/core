@@ -10,7 +10,7 @@ from maya import cmds, mel
 from . import lib
 
 self = sys.modules[__name__]
-self.log = logging.getLogger()
+self.log = logging.getLogger("pyblish-starter")
 self.menu = "pyblishStarter"
 
 
@@ -223,6 +223,7 @@ def containerise(name, nodes, version):
         ("author", version["author"]),
         ("loader", self.__name__),
         ("time", version["time"]),
+        ("source", version["source"]),
         ("comment", version.get("comment", ""))
     ]
 
