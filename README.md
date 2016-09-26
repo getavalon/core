@@ -2,6 +2,8 @@
 
 A basic asset creation pipeline - batteries included.
 
+<br>
+
 - **Keywords:** Film, games, content creation, pipeline
 
 - **Objective:**
@@ -31,9 +33,9 @@ Before you start looking into pyblish-starter, it is recommended that you first 
 
 <br>
 
-### Requirements
+### Target Audience
 
-Developing a bespoke pipeline from scratch is not for the faint of heart.
+To make the most out of pyblish-starter, some knowledge and experience is assumed.
 
 |                      | minimal                            | recommended             
 |:---------------------|:-----------------------------------|:--------------
@@ -41,6 +43,13 @@ Developing a bespoke pipeline from scratch is not for the faint of heart.
 | **`title`**          | technical director                 | pipeline technical director
 | **`experience`**     | 1 year in advertisements or games  | 5+ years in feature film
 | **`software`**       | windows, linux or macos            | maya
+
+<br>
+<br>
+
+# Pyblish Starter
+
+Welcome to pyblish-starter, a basic asset creation pipeline - batteries included.
 
 <br>
 
@@ -68,6 +77,7 @@ Developing a bespoke pipeline from scratch is not for the faint of heart.
     - [`starter.model`](#startermodel)
     - [`starter.rig`](#starterrig)
     - [`starter.animation`](#starteranimation)
+- [Homework](#homework)
 - [Contributing](#contributing)
 - Help
 
@@ -161,7 +171,18 @@ For each family, a **common set of data** is automatically associated with the r
 }
 ```
 
-**Additional data** may be associated with a family.
+**Additional common** data can be added.
+
+```python
+from pyblish_starter import api
+
+api.register_data(
+    key="myKey",
+    value="My value",
+    help="A special key"
+```
+
+Finally, data may be **associated** with a family.
 
 ```python
 from pyblish_starter import api
@@ -627,9 +648,26 @@ Point positions and normals represented as one Alembic file.
 <br>
 <br>
 
+# Homework
+
+With an understanding of this asset creation pipeline, here are some suggestions for what to explore next.
+
+| Difficulty      | Task                | Description
+|-----------------|:--------------------|:-----------------
+| `[hard]`        | Shots               | Think of and document how the kind of workflow exemplified here - (1) creating, (2) publishing and (3) loading assets - can be applied to a shot- and task-based pipeline.
+| `[challenging]` | A Creator Help Page | The creator interface is very limited. Try including a help-page and picture alongside each family illustrating what each are for.
+
+
+- `[easy]`: 
+- `[hard]`: The loader interface is even more limited, with room for expansion. Consider how you might go about extracting a thumbnail alongside each asset, and add it to the interface.
+- `[hard]`: Once an asset has been loaded, it is associated with a set of data. One such data is its source file.
+
+<br>
+<br>
+
 # Contributing
 
-Pyblish Starter, as Pyblish itself, is an open source effort and contributions are welcome.
+pyblish-starter, as Pyblish itself, is an open source effort and contributions are welcome.
 
 For example, you could fork Starter, expand upon the graphical user interfaces and either make it your own or submit a pull-request to have it merge with the official project.
 
