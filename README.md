@@ -5,7 +5,7 @@ A basic asset creation pipeline - batteries included.
 - **Keywords:** Film, games, content creation, pipeline
 
 - **Objective:**
-    1. Introduce publishing to the techincal director
+    1. Provide an example of how one might go about building a pipeline around Pyblish.
     1. Demonstrate where publishing fits within a typical production pipeline
     1. Inspire further expansion upon basic ideas
 
@@ -13,11 +13,13 @@ A basic asset creation pipeline - batteries included.
 
 - **Motivation:** I'm doing this for the same reason I created Pyblish. Because I see publishing as *the single most important aspect of any production pipeline*. It is on top of the advantages that it provides that the surrounding pipeline is made possible - e.g. [browser](#looking-ahead) and [loader](#looking-ahead), [builder](#looking-ahead) and [manager](#looking-ahead).
 
-- **Requirements** Reliably output correct data with minimal impact on artist productivity.
+- **Requirements:** Reliably output correct data with minimal impact on artist productivity.
 
-- **Technology** Starter is built upon [Pyblish](http://pyblish.com), [Python](https://www.python.org) and [bindings](https://github.com/mottosso/Qt.py) for [Qt](https://qt.io), and depends upon a Windows, Linux or MacOS operating system with [Autodesk Maya](http://www.autodesk.com/maya).
+- **Technology:** Starter is built upon [Pyblish](http://pyblish.com), [Python](https://www.python.org) and [bindings](https://github.com/mottosso/Qt.py) for [Qt](https://qt.io), and depends upon a Windows, Linux or MacOS operating system with [Autodesk Maya](http://www.autodesk.com/maya).
 
-- **Audience** Technical directors interested in pipeline working in small- to mid-sized companies with a thirst for better ways of working.
+- **Audience:** Technical directors interested in pipeline working in small- to mid-sized companies with a thirst for better ways of working.
+
+- **Discaimer:** In the interest of simplicity, Starter is a very limited pipeline. If you have experience with an existing pipeline, or have thought about making your own, odds are this will look nothing like it. Take what you can from this project, and feel free to contribute your own ideas to make it simpler, or fork and expand upon it.
 
 <br>
 
@@ -28,12 +30,13 @@ A basic asset creation pipeline - batteries included.
 - [Description](#description)
 - [Batteries](#batteries)
 - [Looking Ahead](#looking-ahead)
-- [Terminology](#terminology)
-- [Shared/User Separation](#shareduser-separation)
-- [Ids](#ids)
-- [Starter API](#starter-api)
-- [Host API](#host-api)
-- [Information Hierarchy](#information-hierarchy)
+- [API](#api)
+    - [Terminology](#terminology)
+    - [`User` versus `Shared`](#user-versus-shared)
+    - [Information Hierarchy](#information-hierarchy)
+    - [Filesystem](#filesystem)
+    - [Starter](#starter)
+    - [Host](#host)
 - [Contract](#contract)
     - [`starter.model`](#startermodel)
     - [`starter.rig`](#starterrig)
@@ -80,23 +83,17 @@ From here, you model, rig and animate as per the [contract](#contract) below.
 
 Build your own asset creation pipeline, starting with the basics.
 
-**At a glance**
-
-- Categorise nodes within your workfile as being part of a single asset.
-- Enable an asset library to identify published data on disk.
-- Track when, where and from whom each asset come from.
-
 **Overview**
 
-Asset creation covers all aspects related to building the assets used in the production of film. A film is typically partitioned into sequences and shots, where each shot consists of one or more assets.
+*Asset creation* covers aspects related to producing content used in the production of film. A film is typically partitioned into sequences and shots, where each shot consists of one or more assets.
 
-This project includes interface and implementation for 3 common types of assets a typical production pipeline.
+This project includes plug-ins and tools for 3 common types of assets a typical production pipeline.
 
 - Modeling
 - Rigging
 - Animation
 
-The project illustrates how to **(1)** devise a contract - known as a `family` - for each kind of asset and **(2)** design their interface towards each other. For example, it is important for rendering and effects that the normals of each geometric surface is unlocked.
+These illustrate how to **(1)** devise a contract - known as a `family` - for each *kind* of asset and **(2)** design their interface towards each other.
 
 **Batteries included**
 
@@ -109,28 +106,89 @@ It includes a series of graphical user interfaces to aid the user in conforming 
 
 ### Batteries
 
-In addition to Pyblish cooperative plug-ins, a series of template workflow utilities are included.
+In addition to providing a co-operative set of plug-ins, Starter also implements a minimal toochain for asset creation in a typical film pipeline.
 
-<img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18809620/b31ed30e-8278-11e6-8d76-13fdcab71e52.png">
+<br>
+
+<img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18829363/d336cb5e-83d3-11e6-9634-efb2fa0914c5.png">
 
 #### Creator
 
-A bla bla bla, and a bla bla.
+Associate content with a family.
+
+The family is what determins how the content is handled throughout your pipeline and tells Pyblish what it should look like when valid.
+
+**API**
+
+The creator respects families registered with Starter.
+
+```python
+from pyblish_starter import api
+
+api.register_family(
+    name="my.family",
+    help="My custom family"
+)
+```
+
+For each family, a **common set of data** is automatically associated with the resulting instance.
+
+```python
+{
+    "id": "pyblish.starter.instance",
+    "family": {chosen family}
+    "name": {chosen name}
+}
+```
+
+**Additional data** may be associated with a family.
+
+```python
+from pyblish_starter import api
+
+api.register_family(
+    name="my.family",
+    data=[
+        {"key": "name", "value": "marcus", "help": "Your name"},
+        {"key": "age", "value": 30, "help": "Your age"},
+])
+```
+
 
 <br>
 <br>
-<br>
-<br>
-<br>
-<br>
-<br>
-<br>
 
-<img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18809647/67043f62-8279-11e6-8eb9-29b124040d6d.png">
+<img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18829392/f67c21a4-83d3-11e6-9047-6df5836317aa.png">
 
 #### Loader
 
-A bla bla bla, and a bla bla.
+Visualise results from `api.ls()`.
+
+```python
+from pyblish_starter import api
+
+for asset in api.ls():
+    print(asset["name"])
+```
+
+**API**
+
+The results from `api.ls()` depends on the currently **registered root**.
+
+```python
+from pyblish_starter import api
+
+api.register_root("/projects/gravity")
+```
+
+The chosen `asset` is passed to the `load()` function of the currently registered host.
+
+```python
+from pyblish_starter import api, maya
+api.register_host(maya)
+```
+
+A host is automatically registered on `pyblish_starter.install()`.
 
 <br>
 <br>
@@ -155,6 +213,33 @@ Without publishing, in any shape or form, the following essential tools are but 
 | manager           | stay up to date                  | Notification and visualisation of data in time.
 
 <br>
+
+**Ideas**
+
+Here are a few things you might want to implement now that you have a solid framework upon which to build.
+
+- Add a **thumbnail** to assets by automatically extracting one per instance
+- Enable **search** in Loader, and augment it by extracting additional metadata about an asset, such as:
+    - author
+    - use
+    - size
+    - origin
+    - datatype
+
+<br>
+<br>
+
+# API
+
+Starter exposes a series of interrelated APIs to the end-user.
+
+| Name                          | Purpose
+|:------------------------------|:--------------
+| [Filesystem API](#filesystem) | Defines how the **developer** interact with **data** on disk
+| [Starter API](#starter)       | Defines how the **developer** interacts with **Starter**
+| [Host API](#host)             | Defines how the **host** interacts with **Starter**
+
+<br>
 <br>
 
 ### Terminology
@@ -172,10 +257,20 @@ Starter reserves the following words for private and public use. Public members 
 | ![][usr] | `user`              | `X`    | Private data        | Scenefile for v034 of Ryan
 
 <br>
+<br>
 
-### Shared/User separation
+### Information Hierarchy
 
-Humans are imperfect, yet strive for perfection. In order to reduce the amount of friction produced through this contradiction, a separation is made between **user** and **shared** data. Artists are not required to work any differently, yet are able to produce correct data.
+The mental and physical model for files and folders look like this.
+
+![temp_03](https://cloud.githubusercontent.com/assets/2152766/18833936/1aba9bba-83eb-11e6-812c-2104f7bb3e2a.png)
+
+<br>
+<br>
+
+### `User` versus `Shared`
+
+A separation is made between **user** and **shared** data.
 
 User data is highly **mutable** and typically **private** to an individual artist.
 
@@ -188,17 +283,6 @@ Shared data on the other hand is **immutable**, **correct** and **impersonal**.
 - **Correct** implies passing validation of the associated family.
 - **Impersonal** implies following strict organisational conventions.
 
-### Ids
-
-...
-
-| Name                         | Description              | Example
-|:-----------------------------|:-------------------------|:----------
-| `pyblish.starter.container`  | Unit of incoming data    | `...:model_GRP`, `...:rig_GRP` 
-| `pyblish.starter.instance`   | Unit of outgoing data    | `Strange_model_default`
-
-<br>
-
 [ver]: https://cloud.githubusercontent.com/assets/2152766/18576835/f6b80574-7bdc-11e6-8237-1227f779815a.png
 [ast]: https://cloud.githubusercontent.com/assets/2152766/18576836/f6ca19e4-7bdc-11e6-9ef8-3614474c58bb.png
 [rep]: https://cloud.githubusercontent.com/assets/2152766/18759916/b2e3161c-80f6-11e6-9e0a-c959d63047a8.png
@@ -210,7 +294,120 @@ Shared data on the other hand is **immutable**, **correct** and **impersonal**.
 <br>
 <br>
 
-### Starter API
+### Filesystem
+
+Data is organised into **files** and **folders**.
+
+Some files and folders have special meaning in Starter.
+
+- `asset`
+  - `version`
+    - `representation`
+
+<br>
+
+Each **assets** reside within the top-level **root** directory as follows.
+
+| Hierarchy       | Example
+|:----------------|:--------------
+| ![hier][]       | ![hierex][]
+
+Each asset contain 0 or more **versions** which in turn contain 0 or more **representations**.
+
+| Hierarchy       | Example
+|:----------------|:--------------
+| ![org][]        | ![exm][]
+
+Every extraction is made into the **user** directory, regardless of whether it integrates successfully or not.
+
+| Hierarchy     | Example
+|:--------------|:------------
+| ![usr1][]     | ![usr2][]
+
+
+[hier]: https://cloud.githubusercontent.com/assets/2152766/18818198/3388a630-836b-11e6-9202-8728496d8561.png
+[hierex]: https://cloud.githubusercontent.com/assets/2152766/18818207/64ef8112-836b-11e6-83f7-0ec187c605ff.png
+
+[org]: https://cloud.githubusercontent.com/assets/2152766/18817999/a6a35742-8365-11e6-851f-6e5911b4c885.png
+[exm]: https://cloud.githubusercontent.com/assets/2152766/18818169/411fe7c8-836a-11e6-9a8c-14c39e6a072d.png
+
+[usr1]: https://cloud.githubusercontent.com/assets/2152766/18834482/07938972-83ee-11e6-92d0-1a989c2b54dd.png
+[usr2]: https://cloud.githubusercontent.com/assets/2152766/18834427/ab4b319c-83ed-11e6-8e72-2bf59e83b8d5.png
+
+<br>
+
+#### Python
+
+Communication with the filesystem is made through JSON-compatible dictionaries. Data is strictly formatted into three distinct "schemas" - where [schema](https://en.wikipedia.org/wiki/Database_schema) is borrowed from database terminology, meaning an imposed structure and constraints on a set of data.
+
+All you need to understand about schemas in Starter is that they guarantee that a particular set of keys will exist in each dictionary returned from a query.
+
+**Example**
+
+```python
+import pyblish_starter
+
+for a in pyblish_starter.ls():
+    for v in asset["versions"]:  # "versions" is guaranteed to
+                                 # exist and be a list
+        for r in version["representations"]:  # "representations" is guaranteed
+                                              # to exist and be a list
+            pass
+```
+
+The exact members of each dictionary is defined in their **schemas**.
+
+<br>
+
+**Schemas**
+
+Available schemas are organised hierarchically, with the former containing the latter.
+
+- [`asset.json`](#assetjson)
+  - [`version.json`](#versionjson)
+    - [`representation.json`](#representationjson)
+
+<br>
+
+#### `asset.json`
+
+A unit of data
+
+| Key               | Value  | Description
+|:------------------|:-------|:-------------
+| `name`            | `str`  | Name of directory
+| `versions`        | `list` | 0 or more [`version.json`](#versionjson)
+
+<br>
+
+#### `version.json`
+
+An asset iteration
+
+| Key               | Value  | Description
+|:------------------|:-------|:-------------
+| `version`         | `int`  | Number of this version
+| `path`            | `str`  | Unformatted path
+| `time`            | `str`  | ISO formatted, file-system compatible time.
+| `author`          | `str`  | User logged on to the machine at time of publish.
+| `source`          | `str`  | Original file from which this version was made.
+| `representations` | `list` | 0 or more [`representation.json`](#representationjson)
+
+<br>
+
+#### `representation.json`
+
+A data format
+
+
+| Key               | Value  | Description
+|:------------------|:-------|:-------------
+| `format`          | `str`  | File extension
+| `path`            | `str`  | Unformatted path
+
+<br>
+
+### `pyblish_starter`
 
 pyblish-starter provides a stateful API. State is set and modified by calling `pyblish_starter.install()`.
 The following members are available via `pyblish_starter`.
@@ -234,7 +431,7 @@ The following members are available via `pyblish_starter`.
 
 <br>
 
-### Host API
+### `host`
 
 A host must implement the following members.
 
@@ -244,29 +441,20 @@ A host must implement the following members.
 | `load(asset, version=-1)` | `str`   | Import external data into [container]()
 
 <br>
-<br>
 
-### Information Hierarchy
+Some data within a host is special, and is identified via custom "tags".
 
-The mental and physical model for files and folders look like this.
-
-```bash
- ________________________________ ________________________________ 
-|          |          |          |          |          |          |
-| version1 | version2 | version3 | version1 | version2 | version3 |
-|__________|__________|__________|__________|__________|__________|
-|                                |                                |
-|             asset1             |             asset2             |
-|________________________________|________________________________|
-
-```
+| Name                         | Description              | Example
+|:-----------------------------|:-------------------------|:----------
+| `pyblish.starter.container`  | Unit of incoming data    | `...:model_GRP`, `...:rig_GRP` 
+| `pyblish.starter.instance`   | Unit of outgoing data    | `Strange_model_default`
 
 <br>
 <br>
 
 ### Contract
 
-![](http://placehold.it/880x300)
+![](https://cloud.githubusercontent.com/assets/2152766/18816760/af7044ac-8347-11e6-9d06-0fb0ed0a7b7d.png)
 
 Starter defines these families.
 
@@ -280,7 +468,7 @@ Starter defines these families.
 
 ### `starter.model`
 
-![](http://placehold.it/880x100)
+![](http://placehold.it/890x100)
 
 <img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526694/7453567a-7ab9-11e6-817c-84a874092399.png"></img>
 
@@ -630,3 +818,14 @@ To work around situations where the overall shape must exceed 120 degrees - such
 ##### Extreme Surface Stretch or Compression
 
 Surface stretch and compression on elastic surfaces may negatively affect textures and overall realism.
+
+<br>
+<br>
+
+# Contributing
+
+Pyblish Starter, as Pyblish itself, is an open source effort and contributions are welcome.
+
+For example, you could fork Starter, expand upon the graphical user interfaces and either make it your own or submit a pull-request to have it merge with the official project.
+
+For more information on this, contact [me](mailto:marcus@abstractfactory.io) and let's have a conversation!
