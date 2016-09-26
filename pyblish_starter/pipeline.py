@@ -34,7 +34,7 @@ def default_host():
 
     host = types.ModuleType("default")
     host.__dict__.update({
-        "root": lambda: os.getcwd(),
+        "ls": lambda: [],
         "load": lambda asset, version, representation: None,
         "create": lambda name, family: "my_instance",
     })
@@ -45,7 +45,7 @@ def default_host():
 def debug_host():
     host = types.ModuleType("standalone")
     host.__dict__.update({
-        "root": lambda: os.getcwd(),
+        "ls": lambda: [],
         "load": lambda asset, version=-1, representation=None:
             sys.stdout.write(json.dumps({
                 "asset": asset,
@@ -316,7 +316,8 @@ def register_format(format):
 def register_host(host):
     missing = list()
     for member in ("load",
-                   "create",):
+                   "create",
+                   "ls",):
         if not hasattr(host, member):
             missing.append(member)
 

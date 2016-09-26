@@ -1,4 +1,28 @@
+"""Standalone helper functions"""
+
 from maya import cmds, mel
+
+
+def read(node):
+    """Return user-defined attributes from `node`
+
+    """
+
+    data = dict()
+
+    for attr in cmds.listAttr(node, userDefined=True) or list():
+        try:
+            value = cmds.getAttr(node + "." + attr)
+        except:
+            # Some attributes cannot be read directly,
+            # such as mesh and color attributes. These
+            # are considered non-essential to this
+            # particular publishing pipeline.
+            value = None
+
+        data[attr] = value
+
+    return data
 
 
 def export_alembic(nodes, file, frame_range=None, uv_write=True):

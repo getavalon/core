@@ -12,7 +12,7 @@ import shutil
 import tempfile
 import contextlib
 
-from pyblish_starter import pipeline, lib
+from pyblish_starter import pipeline
 
 from nose.tools import assert_equals, assert_raises
 
@@ -26,6 +26,7 @@ def setup():
     # Mock host
     host = types.ModuleType("Test")
     host.__dict__.update({
+        "ls": lambda *args, **kwargs: [],
         "create": lambda *args, **kwargs: None,
         "load": lambda *args, **kwargs: None,
     })

@@ -2,7 +2,7 @@ import os
 import sys
 import logging
 
-from .. import pipeline
+from .. import api
 from ..vendor.Qt import QtWidgets, QtGui, QtCore
 
 from maya import cmds
@@ -59,15 +59,15 @@ def _uninstall_menu():
 
 
 def _register_formats():
-    pipeline.register_format(".ma")
-    pipeline.register_format(".mb")
-    pipeline.register_format(".abc")
+    api.register_format(".ma")
+    api.register_format(".mb")
+    api.register_format(".abc")
 
 
 def _deregister_formats():
-    pipeline.deregister_format(".ma")
-    pipeline.deregister_format(".mb")
-    pipeline.deregister_format(".abc")
+    api.deregister_format(".ma")
+    api.deregister_format(".mb")
+    api.deregister_format(".abc")
 
 
 def _register_root():
@@ -77,7 +77,24 @@ def _register_root():
         cmds.workspace(directory=True, query=True)
     )
 
-    pipeline.register_root(root)
+    api.register_root(root)
+
+
+def ls():
+    """List loaded assets"""
+    for container in cmds.ls("*.id",
+                             type="transform",
+                             objectsOnly=True,
+                             long=True):
+        data = dict(
+            schema="pyblish-starter:container-1.0",
+            path=container,
+            **lib.read(container)
+        )
+
+        api.schema.validate(data, "container")
+
+        yield data
 
 
 def load(asset, version=-1):
@@ -104,7 +121,7 @@ def load(asset, version=-1):
     except IndexError:
         raise IndexError("\"%s\" of \"%s\" not found." % (version, asset))
 
-    supported_formats = pipeline.registered_formats()
+    supported_formats = api.registered_formats()
 
     # Pick any compatible representation.
     # Hint: There's room to make the user choose one of many.
@@ -163,13 +180,13 @@ def create(name, family):
 
     """
 
-    for item in pipeline.registered_families():
+    for item in api.registered_families():
         if item["name"] == family:
             break
 
     assert item is not None, "{0} is not a valid family".format(family)
 
-    data = pipeline.registered_data() + item.get("data", [])
+    data = api.registered_data() + item.get("data", [])
 
     # Convert to dictionary
     data = dict((i["key"], i["value"]) for i in data)
