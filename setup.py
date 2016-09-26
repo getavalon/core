@@ -32,7 +32,6 @@ classifiers = [
     "Topic :: Utilities"
 ]
 
-
 setup(
     name="pyblish-starter",
     version=version,
@@ -48,5 +47,12 @@ setup(
         "pyblish-base>=1.4.2",
         "pyblish-maya>=2.1"
     ],
+    package_data={
+        "pyblish_starter": [
+            "maya/pythonpath/*.py",
+            "schema/*.json",
+            "vendor/jsonschema/schemas/*.json"
+        ]
+    },
     entry_points={},
 )
