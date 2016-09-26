@@ -23,6 +23,19 @@ A basic asset creation pipeline - batteries included.
 
 <br>
 
+### Requirements
+
+Developing a bespoke pipeline from scratch is not for the faint of heart.
+
+|                      | minimal                            | recommended             
+|:---------------------|:-----------------------------------|:--------------
+| **`personality`**    | curious                            | excited
+| **`title`**          | technical director                 | pipeline technical director
+| **`experience`**     | 1 year in advertisements or games  | 5+ years in feature film
+| **`software`**       | windows, linux or macos            | maya
+
+<br>
+
 **Table of contents**
 
 - [Install](#install)
@@ -32,7 +45,7 @@ A basic asset creation pipeline - batteries included.
 - [Looking Ahead](#looking-ahead)
 - [API](#api)
     - [Terminology](#terminology)
-    - [`User` versus `Shared`](#user-versus-shared)
+    - [`Stage` and `Shared`](#stage-and-shared-data)
     - [Information Hierarchy](#information-hierarchy)
     - [Filesystem](#filesystem)
     - [Starter](#starter)
@@ -81,19 +94,19 @@ From here, you model, rig and animate as per the [contract](#contract) below.
 
 ### Description
 
-Build your own asset creation pipeline, starting with the basics.
+Build your own ASSET creation pipeline, starting with the basics.
 
 **Overview**
 
-*Asset creation* covers aspects related to producing content used in the production of film. A film is typically partitioned into sequences and shots, where each shot consists of one or more assets.
+*ASSET creation* covers aspects related to producing content used in the production of film. A film is typically partitioned into sequences and shots, where each shot consists of one or more assets.
 
-This project includes plug-ins and tools for 3 common types of assets a typical production pipeline.
+This project includes plug-ins and tools for 3 common types of ASSETS a typical production pipeline.
 
 - Modeling
 - Rigging
 - Animation
 
-These illustrate how to **(1)** devise a contract - known as a `family` - for each *kind* of asset and **(2)** design their interface towards each other.
+These illustrate how to **(1)** devise a contract - known as a `family` - for each *kind* of ASSET and **(2)** design their interface towards each other.
 
 **Batteries included**
 
@@ -106,7 +119,7 @@ It includes a series of graphical user interfaces to aid the user in conforming 
 
 ### Batteries
 
-In addition to providing a co-operative set of plug-ins, Starter also implements a minimal toochain for asset creation in a typical film pipeline.
+In addition to providing a co-operative set of plug-ins, Starter also implements a minimal toochain for ASSET creation in a typical film pipeline.
 
 <br>
 
@@ -168,7 +181,7 @@ Visualise results from `api.ls()`.
 from pyblish_starter import api
 
 for asset in api.ls():
-    print(asset["name"])
+    print(ASSET["name"])
 ```
 
 **API**
@@ -181,7 +194,7 @@ from pyblish_starter import api
 api.register_root("/projects/gravity")
 ```
 
-The chosen `asset` is passed to the `load()` function of the currently registered host.
+The chosen `ASSET` is passed to the `load()` function of the currently registered host.
 
 ```python
 from pyblish_starter import api, maya
@@ -209,7 +222,7 @@ Without publishing, in any shape or form, the following essential tools are but 
 |:------------------|:---------------------------------|:--------------
 | browser           | remove file-system dependence    | Search and clear presentation of available data relative a given project or task.
 | loader            | control what goes in             | Keep tabs on where data comes from so as to enable tracking and builds.
-| builder           | associate disparate assets       | Automatic composition of data that changes independently but need to somehow stay associated.
+| builder           | associate disparate ASSETS       | Automatic composition of data that changes independently but need to somehow stay associated.
 | manager           | stay up to date                  | Notification and visualisation of data in time.
 
 <br>
@@ -218,13 +231,8 @@ Without publishing, in any shape or form, the following essential tools are but 
 
 Here are a few things you might want to implement now that you have a solid framework upon which to build.
 
-- Add a **thumbnail** to assets by automatically extracting one per instance
-- Enable **search** in Loader, and augment it by extracting additional metadata about an asset, such as:
-    - author
-    - use
-    - size
-    - origin
-    - datatype
+- Add a **thumbnail** to ASSETS by automatically extracting one per instance
+- Enable **search** in Loader, and augment it by extracting additional metadata about an ASSET, such as `author`, `use`, `size`, `origin` or `datatype`.
 
 <br>
 <br>
@@ -248,15 +256,28 @@ Starter reserves the following words for private and public use. Public members 
 
 |          | Term                | Public | Description         | Example
 |:---------|:--------------------|:-------|:--------------------|:------------------------
-| ![][pro] | `project`           | `X`    | Root of information | Gravity, Dr. Strange
-| ![][ast] | `asset`             | `X`    | Unit of data        | Ryan, Bicycle, Flower pot
-| ![][ver] | `version`           | `X`    | An asset iteration  | v1, v034
-| ![][rep] | `representation`    |        | A data format       | Maya file, pointcache, thumbnail
-| ![][for] | `format`            |        | A file extension    | `.ma`, `.abc`, `.ico`, `.png`
-| ![][shd] | `shared`            | `X`    | Public data         | v034 of Ryan
-| ![][usr] | `user`              | `X`    | Private data        | Scenefile for v034 of Ryan
+| ![][pro] | `PROJECT`           | `X`    | Root of information | Gravity, Dr. Strange
+| ![][ast] | `ASSET`             | `X`    | Unit of data        | Ryan, Bicycle, Flower pot
+| ![][ver] | `VERSION`           | `X`    | An ASSET iteration  | v1, v034
+| ![][rep] | `REPRESENTATION`    |        | A data format       | Maya file, pointcache, thumbnail
+| ![][for] | `FORMAT`            |        | A file extension    | `.ma`, `.abc`, `.ico`, `.png`
+| ![][usr] | `WORKSPACE`         | `X`    | Private data        | Scenefile for v034 of Ryan
+| ![][stg] | `STAGE`             |        | Transient data      | Outgoing VERSION from scenefile
+| ![][shd] | `SHARED`            | `X`    | Public data         | v034 of Ryan
+| ![][prd] | `PRODUCER`          |        | Creator of data     | You
+| ![][cns] | `CONSUMER`          |        | User of data        | Me
 
 <br>
+<br>
+
+### Filesystem
+
+Data is organised into **files** and **folders**.
+
+Some files and folders have special meaning in Starter.
+
+![image](https://cloud.githubusercontent.com/assets/2152766/18836965/03e2f018-83fa-11e6-81d5-2dcfa19c43ab.png)
+
 <br>
 
 ### Information Hierarchy
@@ -268,11 +289,23 @@ The mental and physical model for files and folders look like this.
 <br>
 <br>
 
-### `User` versus `Shared`
+### Workspace, Stage and Share
 
-A separation is made between **user** and **shared** data.
+During the course of the creation of any ASSET, data moves between 2 of 3 states.
 
-User data is highly **mutable** and typically **private** to an individual artist.
+![temp](https://cloud.githubusercontent.com/assets/2152766/18838199/798a132e-83fe-11e6-8c1f-f515978d6ce2.png)
+
+- Starter does not take into consideration the workspace and is therefore **workspace-agnostic**. 
+- The **staging area** is both implicit and transparent to the PRODUCER and CONSUMER, except for debugging purposes. This is where automatic/scheduled garbage collection may run to optimise for space constraints.
+- The **shared space** is where ASSETS ultimately reside once published.
+
+<br>
+
+**Workspace and Shared separation**
+
+A naive approach to content creation might be to refer to ASSETS straight from another artists workspace. Starter separates between data considered work-in-progress and data exposed to others.
+
+Workspace data is highly **mutable** and typically **private** to an individual artist.
 
 - **Mutable** implies transient data that is likely to change at any given moment.
 - **Private** implies personal, highly irregular and likely invalid data.
@@ -290,40 +323,36 @@ Shared data on the other hand is **immutable**, **correct** and **impersonal**.
 [pro]: https://cloud.githubusercontent.com/assets/2152766/18760901/d6bf24b4-80fa-11e6-8880-7a0e927c8c27.png
 [usr]: https://cloud.githubusercontent.com/assets/2152766/18808940/eee150bc-8267-11e6-862f-a31e38d417af.png
 [shd]: https://cloud.githubusercontent.com/assets/2152766/18808939/eeded22e-8267-11e6-9fcb-150208d55764.png
+[stg]: https://cloud.githubusercontent.com/assets/2152766/18835951/9dbaf5d2-83f5-11e6-9ea4-fbbb5f1d0e13.png
+[prd]: https://cloud.githubusercontent.com/assets/2152766/18836255/163d70a6-83f7-11e6-94b7-2f65a2c3b53b.png
+[cns]: https://cloud.githubusercontent.com/assets/2152766/18836254/163d1124-83f7-11e6-9575-05a523a364fb.png
 
 <br>
 <br>
 
-### Filesystem
-
-Data is organised into **files** and **folders**.
-
-Some files and folders have special meaning in Starter.
-
-- `asset`
-  - `version`
-    - `representation`
-
-<br>
-
-Each **assets** reside within the top-level **root** directory as follows.
+Each **ASSET** reside within the top-level **root** directory as follows.
 
 | Hierarchy       | Example
 |:----------------|:--------------
 | ![hier][]       | ![hierex][]
 
-Each asset contain 0 or more **versions** which in turn contain 0 or more **representations**.
+<br>
+
+Each ASSET contain 0 or more **versions** which in turn contain 0 or more **representations**.
 
 | Hierarchy       | Example
 |:----------------|:--------------
 | ![org][]        | ![exm][]
 
-Every extraction is made into the **user** directory, regardless of whether it integrates successfully or not.
+<br>
+
+Every extraction is made into the **staging** directory, regardless of whether it integrates successfully or not.
 
 | Hierarchy     | Example
 |:--------------|:------------
 | ![usr1][]     | ![usr2][]
 
+Each directory will contain everything that did extract successfully, along with its metadata, for manual inspection and debugging.
 
 [hier]: https://cloud.githubusercontent.com/assets/2152766/18818198/3388a630-836b-11e6-9202-8728496d8561.png
 [hierex]: https://cloud.githubusercontent.com/assets/2152766/18818207/64ef8112-836b-11e6-83f7-0ec187c605ff.png
@@ -336,30 +365,34 @@ Every extraction is made into the **user** directory, regardless of whether it i
 
 <br>
 
-#### Python
+### `ls()`
 
-Communication with the filesystem is made through JSON-compatible dictionaries. Data is strictly formatted into three distinct "schemas" - where [schema](https://en.wikipedia.org/wiki/Database_schema) is borrowed from database terminology, meaning an imposed structure and constraints on a set of data.
+Communication with the filesystem is made through `ls()`.
 
-All you need to understand about schemas in Starter is that they guarantee that a particular set of keys will exist in each dictionary returned from a query.
+`ls()` returns available assets - relative the currently registered root directory - in the form of JSON-compatible dictionaries. Each dictionary is strictly formatted according to three distinct ["schemas"](https://en.wikipedia.org/wiki/Database_schema) (see below).
+
+See below for a full list of members.
 
 **Example**
 
 ```python
 import pyblish_starter
 
-for a in pyblish_starter.ls():
-    for v in asset["versions"]:  # "versions" is guaranteed to
-                                 # exist and be a list
-        for r in version["representations"]:  # "representations" is guaranteed
-                                              # to exist and be a list
+for asset in pyblish_starter.ls():
+    assert "versions" in asset
+
+    for version in asset["versions"]:
+        assert "representations" in version
+
+        for representation in version["representations"]:
             pass
 ```
-
-The exact members of each dictionary is defined in their **schemas**.
 
 <br>
 
 **Schemas**
+
+![temp_08](https://cloud.githubusercontent.com/assets/2152766/18837249/f7568e26-83fa-11e6-9bdf-e2d369bf2394.png)
 
 Available schemas are organised hierarchically, with the former containing the latter.
 
@@ -369,7 +402,7 @@ Available schemas are organised hierarchically, with the former containing the l
 
 <br>
 
-#### `asset.json`
+#### [`asset.json`][]
 
 A unit of data
 
@@ -378,60 +411,77 @@ A unit of data
 | `name`            | `str`  | Name of directory
 | `versions`        | `list` | 0 or more [`version.json`](#versionjson)
 
+[`asset.json`]: https://github.com/pyblish/pyblish-starter/blob/master/pyblish_starter/schema/asset.json
+
 <br>
 
-#### `version.json`
+#### [`version.json`][]
 
-An asset iteration
+An ASSET iteration
 
 | Key               | Value  | Description
 |:------------------|:-------|:-------------
-| `version`         | `int`  | Number of this version
+| `version`         | `int`  | Number of this VERSION
 | `path`            | `str`  | Unformatted path
 | `time`            | `str`  | ISO formatted, file-system compatible time.
 | `author`          | `str`  | User logged on to the machine at time of publish.
-| `source`          | `str`  | Original file from which this version was made.
+| `source`          | `str`  | Original file from which this VERSION was made.
 | `representations` | `list` | 0 or more [`representation.json`](#representationjson)
+
+[`version.json`]: https://github.com/pyblish/pyblish-starter/blob/master/pyblish_starter/schema/version.json
 
 <br>
 
-#### `representation.json`
+#### [`representation.json`][]
 
-A data format
-
+A data FORMAT.
 
 | Key               | Value  | Description
 |:------------------|:-------|:-------------
 | `format`          | `str`  | File extension
 | `path`            | `str`  | Unformatted path
 
+[`representation.json`]: https://github.com/pyblish/pyblish-starter/blob/master/pyblish_starter/schema/representation.json
+
+<br>
 <br>
 
-### `pyblish_starter`
+### Starter API
 
-pyblish-starter provides a stateful API. State is set and modified by calling `pyblish_starter.install()`.
-The following members are available via `pyblish_starter`.
-
-| Member                          | Returns  | Description
-|:--------------------------------|:---------|:--------
-| `install(host)`                 | `str`    | Install Starter into the current interpreter session
-| `uninstall()`                   | `str`    | Revert installation
-| `ls()`                          | `dict`   | List available assets, relative `root`
-| `root()`                        | `str`    | Absolute path to current working directory
-| `format_user_dir(root, name)`   | `str`    | Return absolute path or user directory relative arguments
-| `format_shared_dir(root)`       | `str`    | Return absolute path of shared directory
-| `format_version(version)`       | `str`    | Return file-system compatible string of `version`
-| `find_latest_version(versions)` | `int`    | Given a series of string-formatted versions, return the latest one
-| `parse_version(version)`        | `str`    | Given an arbitrarily formatted string, return version number
-| `register_root(root)`           |          | Register currently active root
-| `register_host(host)`           |          | Register currently active host
-| `register_plugins()`            |          | Register plug-ins bundled with Pyblish Starter
-| `deregister_plugins()`          |          |
-| `registered_host()`             | `module` | Return currently registered host
+pyblish-starter provides a stateful API. State is set and modified by calling any of the exposed registration functions, prefixed `register_*`, or automatically when calling `pyblish_starter.install()`.
 
 <br>
 
-### `host`
+Public members of `pyblish_starter`
+
+| Member                           | Returns  | Description
+|:---------------------------------|:---------|:--------
+| `install(host)`                  | `str`    | Install Starter into the current interpreter session
+| `uninstall()`                    | `str`    | Revert installation
+
+<br>
+
+Public members of `pyblish_starter.api`
+
+| Member                           | Returns  | Description
+|:---------------------------------|:---------|:--------
+| `ls()`                           | `dict`   | List available assets, relative `root`
+| `root()`                         | `str`    | Absolute path to current working directory
+| `format_staging_dir(root, name)` | `str`    | Return absolute path or staging directory relative arguments
+| `format_shared_dir(root)`        | `str`    | Return absolute path of shared directory
+| `format_version(version)`        | `str`    | Return file-system compatible string of `version`
+| `find_latest_version(versions)`  | `int`    | Given a series of string-formatted versions, return the latest one
+| `parse_version(version)`         | `str`    | Given an arbitrarily formatted string, return version number
+| `register_root(root)`            |          | Register currently active root
+| `register_host(host)`            |          | Register currently active host
+| `register_plugins()`             |          | Register plug-ins bundled with Pyblish Starter
+| `deregister_plugins()`           |          |
+| `registered_host()`              | `module` | Return currently registered host
+
+<br>
+<br>
+
+### Host API
 
 A host must implement the following members.
 
@@ -454,7 +504,7 @@ Some data within a host is special, and is identified via custom "tags".
 
 ### Contract
 
-![](https://cloud.githubusercontent.com/assets/2152766/18816760/af7044ac-8347-11e6-9d06-0fb0ed0a7b7d.png)
+![image](https://cloud.githubusercontent.com/assets/2152766/18839192/ff4f9670-8401-11e6-8b8b-750d96d83bbd.png)
 
 Starter defines these families.
 
@@ -467,8 +517,6 @@ Starter defines these families.
 <br>
 
 ### `starter.model`
-
-![](http://placehold.it/890x100)
 
 <img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526694/7453567a-7ab9-11e6-817c-84a874092399.png"></img>
 
@@ -483,20 +531,11 @@ A generic representation of geometry.
 ![req][] **Requirements**
 
 - All DAG nodes must be parented to a single top-level transform
-- Static geometry (no deformers, generators) `*`
-- One shape per transform `*`
-- Zero transforms and pivots `*`
-- No intermediate shapes `*`
-- UVs within 0-1 with full coverage, no overlap `*`
-- Unlocked normals `*`
-- Manifold geometry `*`
-- No edges with zero length `*`
-- No faces with zero area `*`
-- No self-intersections `*`
+- Normals must be unlocked
 
 ![dat][] **Data**
 
-- `label (str, optional)`: Pretty printed name in graphical user interfaces
+- `name (str, optional)`: Pretty printed name in graphical user interfaces
 
 ![set][] **Sets**
 
@@ -505,10 +544,10 @@ A generic representation of geometry.
 
 <br>
 <br>
+<br>
+<br>
 
 ### `starter.rig`
-
-![](http://placehold.it/880x100)
 
 <img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526730/9c7f040a-7ab9-11e6-9007-4795ddbadde8.png"></img>
 
@@ -522,13 +561,10 @@ The `starter.rig` contains the necessary implementation and interface for animat
 
 - All DAG nodes must be parented to a single top-level transform
 - Must contain an `objectSet` for controls and cachable geometry
-- Channels in `controls_SEL` at *default* values`*`
-- No input connection to animatable channel in `controls_SEL` `*`
-- [No self-intersections on workout](#workout) `*`
 
 ![dat][] **Data**
 
-- `label (str, optional)`: Pretty printed name in graphical user interfaces
+- `name (str, optional)`: Pretty printed name in graphical user interfaces
 
 ![set][] **Sets**
 
@@ -540,8 +576,6 @@ The `starter.rig` contains the necessary implementation and interface for animat
 <br>
 
 ### `starter.animation`
-
-![](http://placehold.it/880x100)
 
 <img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526738/a0fba5ba-7ab9-11e6-934f-48ca2a2ce3d2.png"></img>
 
@@ -556,17 +590,11 @@ Point positions and normals represented as one Alembic file.
 
 ![req][] **Requirements**
 
-- [No infinite velocity](#extreme-acceleration) `*`
-- [No immediate acceleration](#extreme-acceleration) `*`
-- [No self-intersections](#self-intersections) `*`
-- No sub-frame keys `*`
-- [Edge angles > 30 degrees on elastic surfaces](#extreme-surface-tangency) `*`
-- [Edge lengths within 50-150% for elastic surfaces](#extreme-surface-stretch-or-compression) `*`
-- [Edge lengths within 90-110% for rigid surfaces](#extreme-surface-stretch-or-compression) `*`
+- None
 
 ![dat][] **Data**
 
-- `label (str, optional)`: Pretty printed name in graphical user interfaces
+- `name (str, optional)`: Pretty printed name in graphical user interfaces
 
 ![set][] **Sets**
 
@@ -579,245 +607,15 @@ Point positions and normals represented as one Alembic file.
 |          | Title               | Description
 |:---------|:--------------------|:-----------
 | ![aud][] | **Target Audience** | Who is the end result of this family intended for?
-| ![req][] | **Requirements**    | What is expected of this asset before it passes the tests?
+| ![req][] | **Requirements**    | What is expected of this ASSET before it passes the tests?
 | ![dat][] | **Data**            | End-user configurable options
 | ![set][] | **Sets**            | Collection of specific items for publishing or use further down the pipeline.
-|          | `*`                 | Todo
 
 
 [set]: https://cloud.githubusercontent.com/assets/2152766/18576835/f6b80574-7bdc-11e6-8237-1227f779815a.png
 [dat]: https://cloud.githubusercontent.com/assets/2152766/18576836/f6ca19e4-7bdc-11e6-9ef8-3614474c58bb.png
 [req]: https://cloud.githubusercontent.com/assets/2152766/18576838/f6da783e-7bdc-11e6-9935-78e1a6438e44.png
 [aud]: https://cloud.githubusercontent.com/assets/2152766/18576837/f6d9c970-7bdc-11e6-8899-6eb8686b4173.png
-
-<br>
-<br>
-
-### Example
-
-The following is an example of the minimal effort required to produce film with Starter and Autodesk Maya.
-
-**Table of contents**
-
-- [Setup](#setup)
-- [Model](#model)
-- [Rigging](#rigging)
-- [Animation](#animation)
-
-<br>
-
-##### Setup
-
-Before any work can be done, you must install Starter.
-
-```python
-from pyblish_starter import install, maya
-install(maya)
-```
-
-<br>
-
-##### Modeling
-
-Create a new model from scratch and publish it.
-
-```python
-from maya import cmds
-
-cmds.file(new=True, force=True)
-
-cmds.polyCube(name="Paul")
-cmds.group(name="model")
-instance = cmds.sets(name="Paul_model")
-
-data = {
-    "id": "pyblish.starter.instance",
-    "family": "starter.model"
-}
-
-for key, value in data.items():
-    cmds.addAttr(instance, longName=key, dataType="string")
-    cmds.setAttr(instance + "." + key, value, type="string")
-
-from pyblish import util
-util.publish()
-```
-
-<br>
-
-##### Rigging
-
-Build upon the model from the previous example to produce a rig.
-
-```python
-import os
-from maya import cmds
-from pyblish_starter.maya import (
-    hierarchy_from_string,
-    outmesh,
-    load
-)
-
-cmds.file(new=True, force=True)
-
-# Load external asset
-reference = load("Paul_model", namespace="Paul_")
-nodes = cmds.referenceQuery(reference, nodes=True)
-model_assembly = cmds.listRelatives(nodes[0], children=True)[0]
-model_geometry = outmesh(cmds.listRelatives(
-    model_assembly, shapes=True)[0], name="Model")
-
-assembly = hierarchy_from_string("""\
-rig
-    implementation
-        input
-        geometry
-        skeleton
-    interface
-        controls
-        preview
-""")
-
-# Rig
-control = cmds.circle(name="Control")[0]
-skeleton = cmds.joint(name="Skeleton")
-preview = outmesh(model, name="Preview")
-cmds.skinCluster(model, skeleton)
-cmds.parentConstraint(control, skeleton)
-
-# Sets
-sets = list()
-sets.append(cmds.sets(control, name="all_controls"))
-sets.append(cmds.sets(model, name="all_cachable"))
-sets.append(cmds.sets(reference, name="all_resources"))
-
-# Organise
-cmds.parent(input_, "input")
-cmds.parent(control, "controls")
-cmds.parent(skeleton, "skeleton")
-cmds.parent(model, "geometry")
-cmds.parent(preview, "interface|preview")
-cmds.setAttr(control + ".overrideEnabled", True)
-cmds.setAttr(control + ".overrideColor", 18)
-cmds.hide("implementation")
-cmds.select(deselect=True)
-
-# Create instance
-instance = cmds.sets([assembly] + sets, name="Paul_rig")
-
-data = {
-    "id": "pyblish.starter.instance",
-    "family": "starter.rig"
-}
-
-for key, value in data.items():
-    cmds.addAttr(instance, longName=key, dataType="string")
-    cmds.setAttr(instance + "." + key, value, type="string")
-
-from pyblish import util
-util.publish()
-```
-
-<br>
-
-##### Animation
-
-Build upon the previous example by referencing and producing an animation from the rig.
-
-```python
-from maya import cmds
-from pyblish_starter.maya import (
-    load,
-    create
-)
-
-cmds.file(new=True, force=True)
-cmds.playbackOptions(animationStartTime=1001, maxTime=1050)
-
-# Load external asset
-reference = load("Paul_rig", namespace="Paul01_")
-nodes = cmds.referenceQuery(reference, nodes=True)
-
-# Animate
-all_controls = next(ctrl for ctrl in nodes if "all_controls" in ctrl)
-control = cmds.sets(all_controls, query=True)[0]
-
-keys = [
-    (1001, 0),
-    (1025, 10),
-    (1050, 0)
-]
-
-for time, value in keys:
-    cmds.setKeyframe(control,
-                     attribute="translateY",
-                     value=value,
-                     time=time,
-                     inTangentType="flat",
-                     outTangentType="flat")
-
-# Create instance
-all_cachable = next(ctrl for ctrl in nodes if "all_cachable" in ctrl)
-cmds.select(cmds.sets(all_cachable, query=True))
-
-instance = cmds.sets(name="Paul_animation")
-
-data = {
-    "id": "pyblish.starter.instance",
-    "family": "starter.animation"
-}
-
-for key, value in data.items():
-    cmds.addAttr(instance, longName=key, dataType="string")
-    cmds.setAttr(instance + "." + key, value, type="string")
-
-from pyblish import util
-util.publish()
-```
-
-<br>
-<br>
-
-#### Requirements specification
-
-The following is a details description of each requirement along with motivation and technical reasoning for their existence.
-
-<br>
-
-##### Workout
-
-A workout is an animation clip associated with one or more character rigs. It contains both subtle and extreme poses along with corresponding transitions between them to thoroughly exercise the capabilities of a rig.
-
-The workout is useful to both the character setup artist, the simulation artist and automated testing to visualise overall performance and behavior and to discover problems in unforeseen corner cases.
-
-<br>
-
-##### Self-intersections
-
-Three dimensional geometric surfaces inherently share no concept of volume or mass, but both realism and subsequent physical simulations, such as clothing or hair, depend on it.
-
-> Implementation tip: A toon shader provides an option to produce a nurbs curve or mesh from self-intersecting geometry. A plug-in could take advantage of this to test the existence of such a mesh either at standstill or in motion.
-
-<br>
-
-##### Extreme Acceleration
-
-In reality, nothing is immediate. Even light takes time to travel from one point to another. For realism and post-processing of character animation, such as clothing and hair, care must be taken not to exceed realistic boundaries that may complicate the physical simulation of these materials.
-
-<br>
-
-
-##### Extreme Surface Tangency
-
-In photo-realistic character animation, when the angle between two edges exceeds 120 degrees, an infinitely sharp angle appears that complicates life for artists relying on this surface for collisions.
-
-To work around situations where the overall shape must exceed 120 degrees - such as in the elbow or back of a knee - use two or more edges. The sum of each edges contribute to well beyond 360 degrees and may be as short as is necessary.
-
-<br>
-
-##### Extreme Surface Stretch or Compression
-
-Surface stretch and compression on elastic surfaces may negatively affect textures and overall realism.
 
 <br>
 <br>

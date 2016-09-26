@@ -34,7 +34,7 @@ from .pipeline import (
 )
 
 from .lib import (
-    format_user_dir,
+    format_staging_dir,
     format_shared_dir,
     format_version,
 
@@ -57,7 +57,7 @@ __all__ = [
 
     "deregister_plugins",
 
-    "format_user_dir",
+    "format_staging_dir",
     "format_shared_dir",
     "format_version",
 

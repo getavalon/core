@@ -26,7 +26,7 @@ class ExtractStarterAnimation(pyblish.api.InstancePlugin):
         cmds.loadPlugin("AbcExport.mll", quiet=True)
 
         self.log.info("Extracting animation..")
-        dirname = api.format_user_dir(
+        dirname = api.format_staging_dir(
             root=instance.context.data["workspaceDir"],
             name=instance.data["name"])
 
@@ -46,9 +46,10 @@ class ExtractStarterAnimation(pyblish.api.InstancePlugin):
         )
 
         # Store reference for integration
-        instance.data.update({
-            "userDir": dirname,
-            "filename": filename,
-        })
+        if "files" not in instance.data:
+            instance.data["files"] = list()
+
+        instance.data["files"].append(filename)
+        instance.data["stagingDir"] = dirname
 
         self.log.info("Extracted {instance} to {dirname}".format(**locals()))

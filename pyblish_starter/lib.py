@@ -33,8 +33,8 @@ def format_shared_dir(root):
     return os.path.join(root, "shared")
 
 
-def format_user_dir(root, name):
-    dirname = os.path.join(root, "user", time(), name)
+def format_staging_dir(root, name):
+    dirname = os.path.join(root, "stage", time(), name)
     return dirname
 
 

@@ -5,7 +5,7 @@ import logging
 from .. import pipeline
 from ..vendor.Qt import QtWidgets, QtGui, QtCore
 
-from maya import cmds, mel
+from maya import cmds
 
 from . import lib
 
@@ -113,7 +113,8 @@ def load(asset, version=-1):
     try:
         representation = next(
             rep for rep in version["representations"]
-            if rep["format"] in supported_formats
+            if rep["format"] in supported_formats and
+            rep["path"] != "{dirname}/source{format}"
         )
 
     except StopIteration:
@@ -168,8 +169,6 @@ def create(name, family):
 
     assert item is not None, "{0} is not a valid family".format(family)
 
-    print("%s + %s" % (pipeline.registered_data(), item.get("data", [])))
-
     data = pipeline.registered_data() + item.get("data", [])
 
     # Convert to dictionary
@@ -193,11 +192,7 @@ def create(name, family):
             raise KeyError("Invalid dynamic property: %s" % e)
 
     lib.imprint(instance, data)
-
     cmds.select(instance, noExpand=True)
-
-    # Display instance attributes to user
-    # mel.eval("updateEditorToggleCheckboxes; copyAEWindow;")
 
     return instance
 
@@ -223,6 +218,7 @@ def containerise(name, nodes, version):
         ("author", version["author"]),
         ("loader", self.__name__),
         ("time", version["time"]),
+        ("version", version["version"]),
         ("source", version["source"]),
         ("comment", version.get("comment", ""))
     ]

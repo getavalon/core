@@ -62,10 +62,10 @@ class IntegrateStarterAsset(pyblish.api.InstancePlugin):
         #       ^
         #       |
         #
-        userdir = instance.data.get("userDir")
-        assert userdir, (
+        stagingdir = instance.data.get("stagingDir")
+        assert stagingdir, (
             "Incomplete instance \"%s\": "
-            "Missing reference to user directory."
+            "Missing reference to staging area."
             % instance
         )
 
@@ -91,11 +91,12 @@ class IntegrateStarterAsset(pyblish.api.InstancePlugin):
         # |         |
         # |_________|
         #
-        fname = os.path.join(userdir, ".metadata.json")
+        fname = os.path.join(stagingdir, ".metadata.json")
 
         try:
             with open(fname) as f:
                 metadata = json.load(f)
+
         except IOError:
             metadata = {
                 "schema": "pyblish-starter:version-1.0",
@@ -108,21 +109,24 @@ class IntegrateStarterAsset(pyblish.api.InstancePlugin):
                 "author": context.data["user"],
 
                 # Collected by pyblish-maya
-                "source": os.path.relpath(
-                    context.data["currentFile"],
-                    api.root()
+                "source": os.path.join(
+                    "{root}",
+                    os.path.relpath(
+                        context.data["currentFile"],
+                        api.root()
+                    )
                 ),
             }
 
-        filename = instance.data["filename"]
-        name, ext = os.path.splitext(filename)
-        metadata["representations"].append(
-            {
-                "schema": "pyblish-starter:representation-1.0",
-                "format": ext,
-                "path": "{dirname}/%s{format}" % name
-            }
-        )
+        for filename in instance.data.get("files", list()):
+            name, ext = os.path.splitext(filename)
+            metadata["representations"].append(
+                {
+                    "schema": "pyblish-starter:representation-1.0",
+                    "format": ext,
+                    "path": "{dirname}/%s{format}" % name
+                }
+            )
 
         # Write to disk
         #          _
@@ -141,7 +145,7 @@ class IntegrateStarterAsset(pyblish.api.InstancePlugin):
         # this way, if validation fails, the data can be
         # inspected by hand from within the user directory.
         api.schema.validate(metadata, "version")
-        shutil.copytree(userdir, versiondir)
+        shutil.copytree(stagingdir, versiondir)
 
         self.log.info("Successfully integrated \"%s\" to \"%s\"" % (
             instance, versiondir))

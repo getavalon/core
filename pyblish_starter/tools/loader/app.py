@@ -1,5 +1,4 @@
 import sys
-import contextlib
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import api

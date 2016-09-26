@@ -21,7 +21,7 @@ class ExtractStarterModel(pyblish.api.InstancePlugin):
         from pyblish_starter import api
         from pyblish_maya import maintained_selection
 
-        dirname = api.format_user_dir(
+        dirname = api.format_staging_dir(
             root=instance.context.data["workspaceDir"],
             name=instance.data["name"])
 
@@ -50,9 +50,10 @@ class ExtractStarterModel(pyblish.api.InstancePlugin):
                       constructionHistory=False)
 
         # Store reference for integration
-        instance.data.update({
-            "userDir": dirname,
-            "filename": filename,
-        })
+        if "files" not in instance.data:
+            instance.data["files"] = list()
+
+        instance.data["files"].append(filename)
+        instance.data["stagingDir"] = dirname
 
         self.log.info("Extracted {instance} to {path}".format(**locals()))

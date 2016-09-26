@@ -1,49 +1,6 @@
 from maya import cmds, mel
 
 
-def hierarchy_from_string(hierarchy):
-    parents = {}
-
-    for line in hierarchy.split("\n"):
-        if not line:
-            continue
-
-        name = line.strip()
-        padding = len(line[:-len(name)])
-        parents[padding] = name
-
-        name = cmds.createNode("transform", name=name)
-
-        for parent in sorted(parents):
-            if parent < padding:
-                cmds.parent(name, parents[parent])
-                break
-
-    # Return assembly
-    return parents[0]
-
-
-def outmesh(shape, name=None):
-    """Construct a new shape with a connection to source.inMesh
-
-    Arguments:
-        shape (str): Long name of source shape
-        name (str, optional): Default "outMesh1"
-
-    Returns:
-        transform of new shape
-
-    """
-
-    outmesh = cmds.createNode("mesh")
-    cmds.connectAttr(shape + ".outMesh", outmesh + ".inMesh")
-    outmesh = cmds.listRelatives(outmesh, parent=True)[0]
-    outmesh = cmds.rename(outmesh, name or "outMesh1")
-    cmds.sets(outmesh, addElement="initialShadingGroup")
-
-    return outmesh
-
-
 def export_alembic(nodes, file, frame_range=None, uv_write=True):
     """Wrap native MEL command with limited set of arguments
 
