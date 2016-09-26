@@ -42,26 +42,25 @@ Developing a bespoke pipeline from scratch is not for the faint of heart.
 - [Usage](#usage)
 - [Description](#description)
 - [Batteries](#batteries)
+    - [Creator](#creator)
+    - [Loader](#loader)
 - [Looking Ahead](#looking-ahead)
 - [API](#api)
     - [Terminology](#terminology)
-    - [`Stage` and `Shared`](#stage-and-shared-data)
-    - [Information Hierarchy](#information-hierarchy)
-    - [Filesystem](#filesystem)
-    - [Starter](#starter)
-    - [Host](#host)
+    - [Filesystem API](#filesystem-api)
+        - [Information Hierarchy](#information-hierarchy)
+        - [Workspace, Stage and Share](#workspace-stage-and-share)
+        - [**`ls()`**](#ls)
+        - [**`asset.json`**](#assetjson)
+        - [**`version.json`**](#versionjson)
+        - [**`representation.json`**](#representationjson)
+    - [Starter API](#starter-api)
+    - [Host API](#host-api)
 - [Contract](#contract)
     - [`starter.model`](#startermodel)
     - [`starter.rig`](#starterrig)
     - [`starter.animation`](#starteranimation)
-- [Example](#example)
-- [Requirement Specification](#requirement-specification)
-    - [Workout](#workout)
-    - [Self-intersections](#self-intersections)
-    - [Extreme Acceleration](#extreme-acceleration)
-    - [Extreme Surface Tangency](#extreme-surface-tangency)
-    - [Extreme Surface Stretch or Compression](#extreme-surface-stretch-or-compression)
-- Contributing
+- [Contributing](#contributing)
 - Help
 
 <br>
@@ -270,7 +269,7 @@ Starter reserves the following words for private and public use. Public members 
 <br>
 <br>
 
-### Filesystem
+### Filesystem API
 
 Data is organised into **files** and **folders**.
 
