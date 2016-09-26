@@ -1,7 +1,8 @@
 import sys
+import contextlib
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import pipeline
+from ... import api
 from .. import lib
 
 
@@ -69,12 +70,15 @@ class Window(QtWidgets.QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
 
         load_button = QtWidgets.QPushButton("Load")
-        error_msg = QtWidgets.QLabel()
-        error_msg.hide()
+        stop_button = QtWidgets.QPushButton("Searching..")
+        stop_button.setToolTip("Click to stop searching")
+        message = QtWidgets.QLabel()
+        message.hide()
 
         layout = QtWidgets.QVBoxLayout(footer)
         layout.addWidget(load_button)
-        layout.addWidget(error_msg)
+        layout.addWidget(stop_button)
+        layout.addWidget(message)
         layout.setContentsMargins(0, 0, 0, 0)
 
         layout = QtWidgets.QVBoxLayout(self)
@@ -82,65 +86,110 @@ class Window(QtWidgets.QDialog):
         layout.addWidget(footer)
 
         self.data = {
+            "state": {
+                "running": False
+            },
             "button": {
                 "load": load_button,
+                "stop": stop_button,
                 "autoclose": autoclose_checkbox,
             },
             "model": {
                 "listing": listing
             },
             "label": {
-                "error": error_msg
+                "message": message
             }
         }
 
         load_button.clicked.connect(self.on_load)
+        stop_button.clicked.connect(self.on_stop)
         listing.currentItemChanged.connect(self.on_data_changed)
 
         # Defaults
         self.resize(220, 250)
-        load_button.setFocus()
-        load_button.setEnabled(False)
+        load_button.hide()
+        stop_button.setFocus()
+
+    def keyPressEvent(self, event):
+        """Delegate keyboard events"""
+
+        if event.key() == QtCore.Qt.Key_Return:
+            return self.on_enter()
+
+    def on_enter(self):
+        self.on_load()
 
     def on_data_changed(self, *args):
         button = self.data["button"]["load"]
         item = self.data["model"]["listing"].currentItem()
         button.setEnabled(item.data(QtCore.Qt.ItemIsEnabled))
 
-    def keyPressEvent(self, event):
-        """Custom keyPressEvent.
+    def refresh(self):
+        """Load assets from disk and add them to a QListView
 
-        Override keyPressEvent to do nothing so that Maya's panels won't
-        take focus when pressing "SHIFT" whilst mouse is over viewport or
-        outliner. This way users don't accidently perform Maya commands
-        whilst trying to name an instance.
+        This method runs part-asynchronous, in that it blocks
+        when busy, but takes brief intermissions between each
+        asset found so as to lighten the load off of disk, and
+        to enable the artist to abort searching once the target
+        asset has been found.
 
         """
 
-    def refresh(self):
         listing = self.data["model"]["listing"]
+        state = self.data["state"]
 
-        has_assets = False
+        has = {"assets": False}
+        assets = api.ls()
 
-        for asset in pipeline.ls():
+        def on_next():
+            if not state["running"]:
+                return on_finished()
+
+            try:
+                asset = next(assets)
+            except StopIteration:
+                return on_finished()
+
+            has["assets"] = True
+
             item = QtWidgets.QListWidgetItem(asset["name"])
             item.setData(QtCore.Qt.ItemIsEnabled, True)
             item.setData(AssetRole, asset)
             listing.addItem(item)
 
-            has_assets = True
+            lib.defer(25, on_next)
 
-        if not has_assets:
-            item = QtWidgets.QListWidgetItem("No assets found")
-            item.setData(QtCore.Qt.ItemIsEnabled, False)
-            listing.addItem(item)
+        def on_finished():
+            state["running"] = False
 
-        listing.setCurrentItem(listing.item(0))
+            if not has["assets"]:
+                item = QtWidgets.QListWidgetItem("No assets found")
+                item.setData(QtCore.Qt.ItemIsEnabled, False)
+                listing.addItem(item)
+
+            listing.setCurrentItem(listing.item(0))
+            listing.setFocus()
+            self.data["button"]["load"].show()
+            self.data["button"]["stop"].hide()
+
+        state["running"] = True
+        lib.defer(25, on_next)
+
+    def on_stop(self):
+        button = self.data["button"]["stop"]
+        button.setText("Stopping..")
+        button.setEnabled(False)
+
+        self.data["state"]["running"] = False
 
     def on_load(self):
+        button = self.data["button"]["load"]
+        if not button.isEnabled():
+            return
+
         listing = self.data["model"]["listing"]
         autoclose_checkbox = self.data["button"]["autoclose"]
-        error_msg = self.data["label"]["error"]
 
         item = listing.currentItem()
 
@@ -149,36 +198,38 @@ class Window(QtWidgets.QDialog):
             assert asset
 
             try:
-                pipeline.registered_host().load(asset)
+                api.registered_host().load(asset)
 
             except ValueError as e:
-                error_msg.setText(str(e))
-                error_msg.show()
+                self.echo(e)
                 raise
 
             except NameError as e:
-                error_msg.setText(str(e))
-                error_msg.show()
+                self.echo(e)
                 raise
 
             # Catch-all
             except Exception as e:
-                error_msg.setText("Program error: %s" % str(e))
-                error_msg.show()
+                self.echo("Program error: %s" % str(e))
                 raise
 
         if autoclose_checkbox.checkState():
             self.close()
 
+    def echo(self, message):
+        widget = self.data["label"]["message"]
+        widget.setText(str(message))
+        widget.show()
+
+    def closeEvent(self, event):
+        self.data["state"]["running"] = False
+        super(Window, self).closeEvent(event)
+
 
 def show(debug=False):
-    """Display Asset Loader GUI
+    """Display Loader GUI
 
     Arguments:
-        root (str, optional): Absolute path to root directory of assets,
-            defaults to `root` defined in :mod:`pipeline`
-        loader (func, optional): Callable function, passed `name` of asset,
-            defaults to `loader` defined in :mod:`pipeline`
         debug (bool, optional): Run loader in debug-mode,
             defaults to False
 
@@ -195,9 +246,16 @@ def show(debug=False):
     except KeyError:
         parent = None
 
-    with lib.application():
-        window = Window(parent)
-        window.show()
-        window.refresh()
+    # Debug fixture
+    fixture = api.fixture(assets=["Ryan",
+                                  "Strange",
+                                  "Blonde_model"])
 
-        self._window = window
+    with fixture if debug else lib.dummy():
+        with lib.application():
+            window = Window(parent)
+            window.show()
+
+            window.refresh()
+
+            self._window = window
