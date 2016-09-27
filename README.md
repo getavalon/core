@@ -2,7 +2,7 @@
 
 A basic asset creation pipeline - batteries included.
 
-[![image](https://cloud.githubusercontent.com/assets/2152766/18874503/e2adf814-84b9-11e6-8128-25b3e23d7cbe.png)](http://pyblish.com/pyblish-starter/#introduction)
+[![image](https://cloud.githubusercontent.com/assets/2152766/18875045/0763969e-84bc-11e6-9995-f21983202766.png)](http://pyblish.com/pyblish-starter/#introduction)
 
 <br>
 

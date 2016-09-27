@@ -16,7 +16,7 @@ h1, h2, h3, h4, h5, h6 {
   margin:0 0 20px;
 }
 
-p, ul, ol, table, pre, dl {
+p, ol, table, pre, dl {
   margin:0 0 20px;
 }
 
@@ -206,6 +206,11 @@ footer {
   position:fixed;
   bottom:50px;
   -webkit-font-smoothing:subpixel-antialiased;
+}
+
+iframe {
+  border-top: 5px solid #444;
+  border-bottom: 5px solid #444;
 }
 
 @media print, screen and (max-width: 980px) {
