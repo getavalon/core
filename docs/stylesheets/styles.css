@@ -157,6 +157,12 @@ nav a {
   color: #aaa;
 }
 
+nav #github {
+  padding-left: 40px;
+  color: #444;
+  font-weight: bold;
+}
+
 strong {
   color: #222;
   font-weight: 700;
