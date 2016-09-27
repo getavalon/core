@@ -8,6 +8,7 @@ from .pipeline import (
     install,
     uninstall,
 
+    ls,
     load,
     create,
 )
@@ -21,7 +22,7 @@ __all__ = [
     "install",
     "uninstall",
 
-    "root",
+    "ls",
     "load",
     "create",
 

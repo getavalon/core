@@ -24,11 +24,14 @@ from .pipeline import (
 
     register_root,
     register_host,
+    register_format,
     register_plugins,
 
     deregister_plugins,
 
     registered_host,
+    registered_families,
+    registered_data,
     registered_root,
     fixture,
 )
@@ -49,11 +52,14 @@ __all__ = [
     "root",
 
     "register_host",
+    "register_format",
     "register_plugins",
 
     "register_root",
     "registered_root",
     "registered_host",
+    "registered_families",
+    "registered_data",
 
     "deregister_plugins",
 
