@@ -425,7 +425,7 @@ for asset in pyblish_starter.ls():
 
 <br>
 
-**Schemas**
+### Schema
 
 ![temp_08](https://cloud.githubusercontent.com/assets/2152766/18837249/f7568e26-83fa-11e6-9bdf-e2d369bf2394.png)
 
