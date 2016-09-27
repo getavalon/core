@@ -493,18 +493,18 @@ Public members of `pyblish_starter.api`
 
 | Member                           | Returns  | Description
 |:---------------------------------|:---------|:--------
-| `ls()`                           | `dict`   | List available assets, relative `root`
-| `root()`                         | `str`    | Absolute path to current working directory
-| `format_staging_dir(root, name)` | `str`    | Return absolute path or staging directory relative arguments
-| `format_shared_dir(root)`        | `str`    | Return absolute path of shared directory
-| `format_version(version)`        | `str`    | Return file-system compatible string of `version`
-| `find_latest_version(versions)`  | `int`    | Given a series of string-formatted versions, return the latest one
-| `parse_version(version)`         | `str`    | Given an arbitrarily formatted string, return version number
-| `register_root(root)`            |          | Register currently active root
-| `register_host(host)`            |          | Register currently active host
-| `register_plugins()`             |          | Register plug-ins bundled with Pyblish Starter
-| `deregister_plugins()`           |          |
-| `registered_host()`              | `module` | Return currently registered host
+| `ls()`                           | `generator` | List available assets, relative `root`
+| `root()`                         | `str`       | Absolute path to current working directory
+| `format_staging_dir(root, name)` | `str`       | Return absolute path or staging directory relative arguments
+| `format_shared_dir(root)`        | `str`       | Return absolute path of shared directory
+| `format_version(version)`        | `str`       | Return file-system compatible string of `version`
+| `find_latest_version(versions)`  | `int`       | Given a series of string-formatted versions, return the latest one
+| `parse_version(version)`         | `str`       | Given an arbitrarily formatted string, return version number
+| `register_root(root)`            |             | Register currently active root
+| `register_host(host)`            |             | Register currently active host
+| `register_plugins()`             |             | Register plug-ins bundled with Pyblish Starter
+| `deregister_plugins()`           |             |
+| `registered_host()`              | `module`    | Return currently registered host
 
 <br>
 <br>
@@ -513,10 +513,11 @@ Public members of `pyblish_starter.api`
 
 A host must implement the following members.
 
-| Member                    | Returns | Description
-|:--------------------------|:--------|:--------
-| `create(name, family)`    | `dict`  | Build fixture for outgoing data (see [instance]())
-| `load(asset, version=-1)` | `str`   | Import external data into [container]()
+| Member                    | Returns    | Description
+|:--------------------------|:-----------|:--------
+| `ls()`                    | `generator`| Build fixture for outgoing data (see [instance]())
+| `create(name, family)`    | `dict`     | Build fixture for outgoing data (see [instance]())
+| `load(asset, version=-1)` | `str`      | Import external data into [container]()
 
 <br>
 
