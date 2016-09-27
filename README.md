@@ -271,9 +271,9 @@ Starter exposes a series of interrelated APIs to the end-user.
 
 | Name                          | Purpose
 |:------------------------------|:--------------
-| [Filesystem API](#filesystem) | Defines how the **developer** interact with **data** on disk
-| [Starter API](#starter)       | Defines how the **developer** interacts with **Starter**
-| [Host API](#host)             | Defines how the **host** interacts with **Starter**
+| [Filesystem API](#filesystem-api) | Defines how the **developer** interact with **data** on disk
+| [Starter API](#starter-api)       | Defines how the **developer** interacts with **Starter**
+| [Host API](#host-api)             | Defines how the **host** interacts with **Starter**
 
 <br>
 <br>
