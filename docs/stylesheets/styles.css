@@ -1,6 +1,7 @@
 
 body {
   width: 890px;
+  padding: 0;
   margin: 0;
   margin-left: auto;
   margin-right: auto;
@@ -58,8 +59,8 @@ a:hover small {
 
 .wrapper {
   margin: 0;
-  padding-left: 50px;
-  padding-right: 50px;
+  /*padding-left: 50px;*/
+  /*padding-right: 50px;*/
 }
 
 .content {
