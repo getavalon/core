@@ -476,7 +476,9 @@ A data FORMAT.
 
 ### Starter API
 
-pyblish-starter provides a stateful API. State is set and modified by calling any of the exposed registration functions, prefixed `register_*`, or automatically when calling `pyblish_starter.install()`.
+pyblish-starter provides a stateful API.
+
+State is set and modified by calling any of the exposed registration functions, prefixed `register_*`, or automatically on calling `pyblish_starter.install()`.
 
 <br>
 
@@ -505,6 +507,9 @@ Public members of `pyblish_starter.api`
 | `register_plugins()`             |             | Register plug-ins bundled with Pyblish Starter
 | `deregister_plugins()`           |             |
 | `registered_host()`              | `module`    | Return currently registered host
+| `registered_families()`          | `list`      | Return currently registered families
+| `registered_data()`              | `list`      | Return currently registered data
+| `registered_root()`              | `str`       | Return currently registered root
 
 <br>
 <br>
@@ -515,7 +520,7 @@ A host must implement the following members.
 
 | Member                    | Returns    | Description
 |:--------------------------|:-----------|:--------
-| `ls()`                    | `generator`| Build fixture for outgoing data (see [instance]())
+| `ls()`                    | `generator`| List loaded assets
 | `create(name, family)`    | `dict`     | Build fixture for outgoing data (see [instance]())
 | `load(asset, version=-1)` | `str`      | Import external data into [container]()
 
