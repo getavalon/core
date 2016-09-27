@@ -184,6 +184,7 @@ api.register_data(
     key="myKey",
     value="My value",
     help="A special key"
+)
 ```
 
 Finally, data may be **associated** with a family.
