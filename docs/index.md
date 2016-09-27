@@ -6,6 +6,8 @@ layout: index
 
 A basic asset creation pipeline - batteries included.
 
+<iframe src="https://player.vimeo.com/video/184516397?title=0&byline=0&portrait=0" width="880" height="400" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
+
 <br>
 
 - **Keywords:** Film, games, content creation, pipeline
@@ -54,8 +56,6 @@ To make the most out of pyblish-starter, some knowledge and experience is assume
 # Introduction
 
 Welcome to pyblish-starter, a basic asset creation pipeline - batteries included.
-
-<iframe src="https://player.vimeo.com/video/184516397?title=0&byline=0&portrait=0" width="880" height="400" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
 
 <br>
 
