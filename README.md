@@ -2,6 +2,8 @@
 
 A basic asset creation pipeline - batteries included.
 
+[![image](https://cloud.githubusercontent.com/assets/2152766/18874503/e2adf814-84b9-11e6-8128-25b3e23d7cbe.png)](http://pyblish.com/pyblish-starter/#introduction)
+
 <br>
 
 - **Keywords:** Film, games, content creation, pipeline
