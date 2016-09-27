@@ -31,6 +31,7 @@ from .pipeline import (
 
     registered_host,
     registered_families,
+    registered_formats,
     registered_data,
     registered_root,
     fixture,
@@ -59,6 +60,7 @@ __all__ = [
     "registered_root",
     "registered_host",
     "registered_families",
+    "registered_formats",
     "registered_data",
 
     "deregister_plugins",
