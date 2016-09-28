@@ -2,7 +2,7 @@
 layout: index
 ---
 
-### Pyblish Starter
+### ![Pyblish Starger](https://cloud.githubusercontent.com/assets/2152766/18908293/fe0286a4-8566-11e6-8868-2a52c5adf403.png)
 
 A basic asset creation pipeline - batteries included.
 
