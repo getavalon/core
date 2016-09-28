@@ -546,8 +546,6 @@ Internally, Pyblish instances and containers are distinguished from native conte
 
 ### Contract
 
-![image](https://cloud.githubusercontent.com/assets/2152766/18839192/ff4f9670-8401-11e6-8b8b-750d96d83bbd.png)
-
 Starter defines these families.
 
 | Family              | Definition                                     | Link
