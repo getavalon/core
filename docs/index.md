@@ -139,6 +139,15 @@ In addition to contracts, the project illustrates **boundaries** between publish
 
 It includes a series of graphical user interfaces to aid the user in conforming to these contracts. These interfaces represent **placeholders** for your pipeline to fill in; you are invited to either continue from where they finish, or build your own from scratch.
 
+**Limitations**
+
+Each concept in this pipeline are compatible with pipelines of any complexity. In the interest of simplicity however, some concepts were excluded.
+
+- **Maya Only** - The overall pipeline, tools and graphical user interfaces are all platform agnostic, but at this point in time only Maya is provided.
+- **Deformation Pipeline Only** - That means only modeling, rigging and animation is considered. Additional pipeline steps are easily added, and are encouraged to by you the user, but are out of scope for the master project and documentation.
+- **No Asset Composition** - Lack of asset composition means no asset can contain another asset, and that includes shots. A shot typically contains one or more assets and depend on the relationship between these assets to be configurable and maintained throughout the lifetime of a project. Starter includes the necessary foundation of this relationship, via [`containers`](http://pyblish.com/pyblish-starter/#host-api), but does not implement the necessary tools to manage it.
+- **Static Root Directory** - By default, only Maya is provided support for, and within Maya the root directory in which assets are published (and staged) defaults to the Maya project directory.
+
 <br>
 <br>
 
