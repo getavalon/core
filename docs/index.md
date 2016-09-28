@@ -260,16 +260,7 @@ Without publishing, in any shape or form, the following essential tools are but 
 | browser           | remove file-system dependence    | Search and clear presentation of available data relative a given project or task.
 | loader            | control what goes in             | Keep tabs on where data comes from so as to enable tracking and builds.
 | builder           | associate disparate ASSETS       | Automatic composition of data that changes independently but need to somehow stay associated.
-| manager           | stay up to date                  | Notification and visualisation of data in time.
-
-<br>
-
-**Ideas**
-
-Here are a few things you might want to implement now that you have a solid framework upon which to build.
-
-- Add a **thumbnail** to ASSETS by automatically extracting one per instance
-- Enable **search** in Loader, and augment it by extracting additional metadata about an ASSET, such as `author`, `use`, `size`, `origin` or `datatype`.
+| manager           | stay up to date                  | Notification and visualisation of loaded data.
 
 <br>
 <br>
@@ -429,7 +420,7 @@ for asset in pyblish_starter.ls():
 
 ### Schema
 
-![temp_08](https://cloud.githubusercontent.com/assets/2152766/18837249/f7568e26-83fa-11e6-9bdf-e2d369bf2394.png)
+![Schema](https://cloud.githubusercontent.com/assets/2152766/18905785/aa6ed10a-855c-11e6-9786-8b9a6283bcf2.png)
 
 Available schemas are organised hierarchically, with the former containing the latter.
 
@@ -535,7 +526,15 @@ A host must implement the following members.
 
 <br>
 
-Some data within a host is special, and is identified via custom "tags".
+**Information hierarchy**
+
+Loaded data is stored in a `container`. A container hosts a loaded asset along with metadata used to associate assets that use other assets, such as a Wheel asset used in a Car asset.
+
+![Host data relationship](https://cloud.githubusercontent.com/assets/2152766/18905784/aa6a3d5c-855c-11e6-9843-b24ebd23c4ac.png)
+
+**Id**
+
+Internally, Pyblish instances and containers are distinguished from native content via an "id". For example, in Maya, the `id` is a user-defined attribute.
 
 | Name                         | Description              | Example
 |:-----------------------------|:-------------------------|:----------
