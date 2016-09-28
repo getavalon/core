@@ -2,9 +2,12 @@
 layout: index
 ---
 
-### ![Pyblish Starter](https://cloud.githubusercontent.com/assets/2152766/18908293/fe0286a4-8566-11e6-8868-2a52c5adf403.png)
+<div class="logo">
+    <img src="https://cloud.githubusercontent.com/assets/2152766/18908293/fe0286a4-8566-11e6-8868-2a52c5adf403.png"/>
+    <p>A basic asset creation pipeline - batteries included.</p>
+</div>
 
-A basic asset creation pipeline - batteries included.
+
 
 <div class="video">
 <iframe src="https://player.vimeo.com/video/184516397?title=0&byline=0&portrait=0" width="880" height="400" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>

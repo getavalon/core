@@ -69,6 +69,15 @@ a:hover small {
   padding-bottom: 100px;
 }
 
+.logo {
+  padding-top: 80px;
+  padding-bottom: 40px;
+  width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
 blockquote {
   border-left:1px solid #e5e5e5;
   margin:0;
@@ -243,6 +252,12 @@ footer {
   
   header {
     display: none;
+  }
+  
+  .logo {
+    padding-top: 20px;
+    padding-bottom: 40px;
+    width: 100%;
   }
 }
 
