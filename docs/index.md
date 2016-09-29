@@ -103,6 +103,8 @@ Starter takes the form of a Python package with embedded plug-ins.
 $ pip install pyblish-starter
 ```
 
+[![PyPI version](https://badge.fury.io/py/pyblish-starter.svg)](https://pypi.python.org/pypi/pyblish-starter)
+
 <br>
 <br>
 
