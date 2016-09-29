@@ -57,6 +57,17 @@ To make the most out of pyblish-starter, some knowledge and experience is assume
 
 <br>
 <br>
+<br>
+<br>
+
+> "Pyblish is elegantly designed and closely resembles our in-house production publishing tools here at Imageworks. The setup and documentation is straightforward and easy to understand, getting you setup with a production-quality asset publisher in no time."
+
+<b style="float: right">Dhruv Govil - Pipeline TD @ Sony Pictures Imageworks</b>
+
+<br>
+<br>
+<br>
+<br>
 
 # Introduction
 
