@@ -157,7 +157,7 @@ It includes a series of graphical user interfaces to aid the user in conforming 
 
 **Limitations**
 
-Each concept in this pipeline are compatible with pipelines of any complexity. In the interest of simplicity however, some concepts were excluded.
+Each of the concepts in this pipeline are compatible with pipelines of any complexity. In the interest of simplicity however, some concepts were excluded.
 
 - **Maya Only** - The overall pipeline, tools and graphical user interfaces are all platform agnostic, but at this point in time only Maya is provided.
 - **Deformation Pipeline Only** - That means only modeling, rigging and animation is considered. Additional pipeline steps are easily added, and are encouraged to by you the user, but are out of scope for the master project and documentation.
