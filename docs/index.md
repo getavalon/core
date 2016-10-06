@@ -609,7 +609,8 @@ The `starter.rig` contains the necessary implementation and interface for animat
 
 ![set][] **Sets**
 
-- `cache_SEL (geometry)`: Meshes suitable for pointcaching from animation
+- `in_SEL (geometry, optional)`: Geometry consumed by this rig
+- `out_SEL (geometry)`: Geometry produced by this rig
 - `controls_SEL (transforms)`: All animatable controls
 - `resources_SEL (any, optional)`: Nodes that reference an external file
 
