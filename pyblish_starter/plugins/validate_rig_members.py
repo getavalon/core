@@ -5,8 +5,9 @@ class ValidateStarterRigFormat(pyblish.api.InstancePlugin):
     """A rig must have a certain hierarchy and members
 
     - Must reside within `rig_GRP` transform
+    - out_SEL
     - controls_SEL
-    - cache_SEL
+    - in_SEL (optional)
     - resources_SEL (optional)
 
     """
@@ -20,7 +21,7 @@ class ValidateStarterRigFormat(pyblish.api.InstancePlugin):
         missing = list()
 
         for member in ("controls_SEL",
-                       "cache_SEL"):
+                       "out_SEL"):
             if member not in instance:
                 missing.append(member)
 
