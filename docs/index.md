@@ -243,7 +243,7 @@ Visualise results from `api.ls()`.
 from pyblish_starter import api
 
 for asset in api.ls():
-    print(ASSET["name"])
+    print(asset["name"])
 ```
 
 **API**
@@ -252,7 +252,6 @@ The results from `api.ls()` depends on the currently **registered root**.
 
 ```python
 from pyblish_starter import api
-
 api.register_root("/projects/gravity")
 ```
 
@@ -272,7 +271,6 @@ A host is automatically registered on `pyblish_starter.install()`.
 <br>
 <br>
 <br>
-
 <br>
 <br>
 
