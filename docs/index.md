@@ -427,14 +427,10 @@ See below for a full list of members.
 **Example**
 
 ```python
-import pyblish_starter
+from pyblish_starter import api
 
-for asset in pyblish_starter.ls():
-    assert "versions" in asset
-
+for asset in api.ls():
     for version in asset["versions"]:
-        assert "representations" in version
-
         for representation in version["representations"]:
             pass
 ```
