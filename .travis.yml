@@ -37,4 +37,4 @@ deploy:
   on:
     tags: true
     distributions: sdist bdist_wheel
-    repo: pyblish/pyblish-starter
+    repo: pyblish/pyblish-mindbender

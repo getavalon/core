@@ -18,27 +18,23 @@ layout: index
 - **Keywords:** Film, games, content creation, pipeline
 
 - **Objective:**
-    1. Provide an example of how one might go about building a pipeline around Pyblish.
-    1. Demonstrate where publishing fits within a typical production pipeline
+    1. Provide a unified framework within which artists at Mindbender may work efficiently
+    1. Enable extending of said framework for future improvements and unique projects
     1. Inspire further expansion upon basic ideas
 
-- **Mission:** Demonstrate what is made possible with publishing.
+- **Mission:** Make content creation at Mindbender more effective and less error-prone.
 
 - **Motivation:** I'm doing this for the same reason I created Pyblish. Because I see publishing as *the single most important aspect of any production pipeline*. It is on top of the advantages that it provides that the surrounding pipeline is made possible - e.g. [browser](#looking-ahead) and [loader](#looking-ahead), [builder](#looking-ahead) and [manager](#looking-ahead).
 
 - **Requirements:** Reliably output correct data with minimal impact on artist productivity.
 
-- **Technology:** Starter is built upon [Pyblish](http://pyblish.com), [Python](https://www.python.org) and [bindings](https://github.com/mottosso/Qt.py) for [Qt](https://qt.io), and depends upon a Windows, Linux or MacOS operating system with [Autodesk Maya](http://www.autodesk.com/maya).
-
-- **Audience:** Technical directors interested in pipeline working in small- to mid-sized companies with a thirst for better ways of working.
-
-- **Discaimer:** In the interest of simplicity, Starter is a very limited pipeline. If you have experience with an existing pipeline, or have thought about making your own, odds are this will look nothing like it. Take what you can from this project, and feel free to contribute your own ideas to make it simpler, or fork and expand upon it.
+- **Technology:** Mindbender is built upon [Pyblish](http://pyblish.com), [Python](https://www.python.org) and [bindings](https://github.com/mottosso/Qt.py) for [Qt](https://qt.io), and depends upon a Windows, Linux or MacOS operating system with [Autodesk Maya](http://www.autodesk.com/maya).
 
 <br>
 
 ### Prerequisities
 
-Before you start looking into pyblish-starter, it is recommended that you first familiarise yourself with Pyblish.
+Before you start looking into pyblish-mindbender, it is recommended that you first familiarise yourself with Pyblish.
 
 - [learn.pyblish.com](http://learn.pyblish.com)
 
@@ -46,7 +42,7 @@ Before you start looking into pyblish-starter, it is recommended that you first 
 
 ### Target Audience
 
-To make the most out of pyblish-starter, some knowledge and experience is assumed.
+To make the most out of pyblish-mindbender, some knowledge and experience is assumed.
 
 |                      | minimal                            | recommended             
 |:---------------------|:-----------------------------------|:--------------
@@ -71,7 +67,7 @@ To make the most out of pyblish-starter, some knowledge and experience is assume
 
 # Introduction
 
-Welcome to pyblish-starter, a basic asset creation pipeline - batteries included.
+Welcome to pyblish-mindbender, a basic asset creation pipeline - batteries included.
 
 <br>
 
@@ -92,13 +88,14 @@ Welcome to pyblish-starter, a basic asset creation pipeline - batteries included
         - [`ls()`](#ls)
         - [`asset.json`](#assetjson)
         - [`version.json`](#versionjson)
+        - [`subset.json`](#subsetjson)
         - [`representation.json`](#representationjson)
-    - [Starter API](#starter-api)
+    - [Mindbender API](#mindbender-api)
     - [Host API](#host-api)
 - [Contract](#contract)
-    - [`starter.model`](#startermodel)
-    - [`starter.rig`](#starterrig)
-    - [`starter.animation`](#starteranimation)
+    - [`mindbender.model`](#mindbendermodel)
+    - [`mindbender.rig`](#mindbenderrig)
+    - [`mindbender.animation`](#mindbenderanimation)
 - [Homework](#homework)
 - [Contributing](#contributing)
 - Help
@@ -108,23 +105,23 @@ Welcome to pyblish-starter, a basic asset creation pipeline - batteries included
 
 ### Install
 
-Starter takes the form of a Python package with embedded plug-ins.
+Mindbender takes the form of a Python package with embedded plug-ins.
 
 ```bash
-$ pip install pyblish-starter
+$ pip install pyblish-mindbender
 ```
 
-[![PyPI version](https://badge.fury.io/py/pyblish-starter.svg)](https://pypi.python.org/pypi/pyblish-starter)
+[![PyPI version](https://badge.fury.io/py/pyblish-mindbender.svg)](https://pypi.python.org/pypi/pyblish-mindbender)
 
 <br>
 <br>
 
 ### Usage
 
-Starter is initialised by calling `install()` with an interface for your host.
+Mindbender is initialised by calling `install()` with an interface for your host.
 
 ```python
->>> from pyblish_starter import install, maya
+>>> from mindbender import install, maya
 >>> install(maya)
 ```
 
@@ -161,7 +158,7 @@ Each of the concepts in this pipeline are compatible with pipelines of any compl
 
 - **Maya Only** - The overall pipeline, tools and graphical user interfaces are all platform agnostic, but at this point in time only Maya is provided.
 - **Deformation Pipeline Only** - That means only modeling, rigging and animation is considered. Additional pipeline steps are easily added, and are encouraged to by you the user, but are out of scope for the master project and documentation.
-- **No Asset Composition** - Lack of asset composition means no asset can contain another asset, and that includes shots. A shot typically contains one or more assets and depend on the relationship between these assets to be configurable and maintained throughout the lifetime of a project. Starter includes the necessary foundation of this relationship, via [`containers`](http://pyblish.com/pyblish-starter/#host-api), but does not implement the necessary tools to manage it.
+- **No Asset Composition** - Lack of asset composition means no asset can contain another asset, and that includes shots. A shot typically contains one or more assets and depend on the relationship between these assets to be configurable and maintained throughout the lifetime of a project. Mindbender includes the necessary foundation of this relationship, via [`containers`](http://pyblish.com/pyblish-mindbender/#host-api), but does not implement the necessary tools to manage it.
 - **Static Root Directory** - By default, only Maya is provided support for, and within Maya the root directory in which assets are published (and staged) defaults to the Maya project directory.
 
 <br>
@@ -169,7 +166,7 @@ Each of the concepts in this pipeline are compatible with pipelines of any compl
 
 ### Batteries
 
-In addition to providing a co-operative set of plug-ins, Starter also implements a minimal toochain for ASSET creation in a typical film pipeline.
+In addition to providing a co-operative set of plug-ins, Mindbender also implements a minimal toochain for ASSET creation in a typical film pipeline.
 
 <br>
 
@@ -183,10 +180,10 @@ The family is what determins how the content is handled throughout your pipeline
 
 **API**
 
-The creator respects families registered with Starter.
+The creator respects families registered with Mindbender.
 
 ```python
-from pyblish_starter import api
+from mindbender import api
 
 api.register_family(
     name="my.family",
@@ -198,7 +195,7 @@ For each family, a **common set of data** is automatically associated with the r
 
 ```python
 {
-    "id": "pyblish.starter.instance",
+    "id": "pyblish.mindbender.instance",
     "family": {chosen family}
     "name": {chosen name}
 }
@@ -207,7 +204,7 @@ For each family, a **common set of data** is automatically associated with the r
 **Additional common** data can be added.
 
 ```python
-from pyblish_starter import api
+from mindbender import api
 
 api.register_data(
     key="myKey",
@@ -219,7 +216,7 @@ api.register_data(
 Finally, data may be **associated** with a family.
 
 ```python
-from pyblish_starter import api
+from mindbender import api
 
 api.register_family(
     name="my.family",
@@ -240,7 +237,7 @@ api.register_family(
 Visualise results from `api.ls()`.
 
 ```python
-from pyblish_starter import api
+from mindbender import api
 
 for asset in api.ls():
     print(asset["name"])
@@ -251,18 +248,18 @@ for asset in api.ls():
 The results from `api.ls()` depends on the currently **registered root**.
 
 ```python
-from pyblish_starter import api
+from mindbender import api
 api.register_root("/projects/gravity")
 ```
 
 The chosen `ASSET` is passed to the `load()` function of the currently registered host.
 
 ```python
-from pyblish_starter import api, maya
+from mindbender import api, maya
 api.register_host(maya)
 ```
 
-A host is automatically registered on `pyblish_starter.install()`.
+A host is automatically registered on `mindbender.install()`.
 
 <br>
 <br>
@@ -290,20 +287,21 @@ Without publishing, in any shape or form, the following essential tools are but 
 
 # API
 
-Starter exposes a series of interrelated APIs to the end-user.
+Mindbender exposes a series of interrelated APIs to the end-user.
 
-| Name                          | Purpose
-|:------------------------------|:--------------
+| Name                              | Purpose
+|:----------------------------------|:--------------
+| [Terminal API](#terminal-api)     | Defines how the **artist** interacts with **tasks**
 | [Filesystem API](#filesystem-api) | Defines how the **developer** interact with **data** on disk
-| [Starter API](#starter-api)       | Defines how the **developer** interacts with **Starter**
-| [Host API](#host-api)             | Defines how the **host** interacts with **Starter**
+| [Mindbender API](#mindbender-api) | Defines how the **developer** interacts with **Mindbender**
+| [Host API](#host-api)             | Defines how the **host** interacts with **Mindbender**
 
 <br>
 <br>
 
 ### Terminology
 
-Starter reserves the following words for private and public use. Public members are exposed to the user, private ones are internal to the implementation.
+Mindbender reserves the following words for private and public use. Public members are exposed to the user, private ones are internal to the implementation.
 
 |          | Term                | Public | Description         | Example
 |:---------|:--------------------|:-------|:--------------------|:------------------------
@@ -321,11 +319,47 @@ Starter reserves the following words for private and public use. Public members 
 <br>
 <br>
 
+### Terminal API
+
+Applications are run via the terminal.
+
+<br>
+
+**start.bat**
+
+Upon starting any application, the artist is required to enter (1) project, (2) asset or shot, (3) task and finally (4) application.
+
+```bash
+$ p999_Gifts_for_Greta_Assets
+$ characters\Greta
+$ maya modeling
+Launching Maya..
+```
+
+The layout is as follows.
+
+1. `{PROJECT}` (with TAB-completion)
+2. `{ASSET}` or Shot (with TAB-COMPLETION)
+3. `{APPLICATION}` `{TASK}`
+
+The given TASK is automatically created, unless it already exists.
+
+**Environment variables**
+
+| Variable       | Description
+|:---------------|:-------------------
+| `PROJECT`      | Nice name of project, e.g. Gifts for Greta
+| `PROJECTDIR`   | Absolute path to project, e.g. m:\f01_projects\p999_Gifts_for_Greta
+| `ROOT`         | Top level directory of either shot or asset, e.g. ..\Greta
+
+<br>
+<br>
+
 ### Filesystem API
 
 Data is organised into **files** and **folders**.
 
-Some files and folders have special meaning in Starter.
+Some files and folders have special meaning in Mindbender.
 
 ![image](https://cloud.githubusercontent.com/assets/2152766/18836965/03e2f018-83fa-11e6-81d5-2dcfa19c43ab.png)
 
@@ -346,7 +380,7 @@ During the course of the creation of any ASSET, data moves between 2 of 3 states
 
 ![temp](https://cloud.githubusercontent.com/assets/2152766/18838199/798a132e-83fe-11e6-8c1f-f515978d6ce2.png)
 
-- Starter does not take into consideration the workspace and is therefore **workspace-agnostic**. 
+- Mindbender does not take into consideration the workspace and is therefore **workspace-agnostic**. 
 - The **staging area** is both implicit and transparent to the PRODUCER and CONSUMER, except for debugging purposes. This is where automatic/scheduled garbage collection may run to optimise for space constraints.
 - The **shared space** is where ASSETS ultimately reside once published.
 
@@ -354,7 +388,7 @@ During the course of the creation of any ASSET, data moves between 2 of 3 states
 
 **Workspace and Shared separation**
 
-A naive approach to content creation might be to refer to ASSETS straight from another artists workspace. Starter separates between data considered work-in-progress and data exposed to others.
+A naive approach to content creation might be to refer to ASSETS straight from another artists workspace. Mindbender separates between data considered work-in-progress and data exposed to others.
 
 Workspace data is highly **mutable** and typically **private** to an individual artist.
 
@@ -427,7 +461,7 @@ See below for a full list of members.
 **Example**
 
 ```python
-from pyblish_starter import api
+from mindbender import api
 
 for asset in api.ls():
     for version in asset["versions"]:
@@ -456,9 +490,22 @@ A unit of data
 | Key               | Value  | Description
 |:------------------|:-------|:-------------
 | `name`            | `str`  | Name of directory
+| `subsets`         | `list` | 0 or more [`subset.json`](#subsetjson)
+
+[`asset.json`]: https://github.com/pyblish/pyblish-mindbender/blob/master/mindbender/schema/asset.json
+
+<br>
+
+#### [`subset.json`][]
+
+A unit of data
+
+| Key               | Value  | Description
+|:------------------|:-------|:-------------
+| `name`            | `str`  | Name of directory
 | `versions`        | `list` | 0 or more [`version.json`](#versionjson)
 
-[`asset.json`]: https://github.com/pyblish/pyblish-starter/blob/master/pyblish_starter/schema/asset.json
+[`subset.json`]: https://github.com/pyblish/pyblish-mindbender/blob/master/mindbender/schema/subset.json
 
 <br>
 
@@ -475,7 +522,7 @@ An ASSET iteration
 | `source`          | `str`  | Original file from which this VERSION was made.
 | `representations` | `list` | 0 or more [`representation.json`](#representationjson)
 
-[`version.json`]: https://github.com/pyblish/pyblish-starter/blob/master/pyblish_starter/schema/version.json
+[`version.json`]: https://github.com/pyblish/pyblish-mindbender/blob/master/mindbender/schema/version.json
 
 <br>
 
@@ -488,29 +535,29 @@ A data FORMAT.
 | `format`          | `str`  | File extension
 | `path`            | `str`  | Unformatted path
 
-[`representation.json`]: https://github.com/pyblish/pyblish-starter/blob/master/pyblish_starter/schema/representation.json
+[`representation.json`]: https://github.com/pyblish/pyblish-mindbender/blob/master/mindbender/schema/representation.json
 
 <br>
 <br>
 
-### Starter API
+### Mindbender API
 
-pyblish-starter provides a stateful API.
+pyblish-mindbender provides a stateful API.
 
-State is set and modified by calling any of the exposed registration functions, prefixed `register_*`, or automatically on calling `pyblish_starter.install()`.
+State is set and modified by calling any of the exposed registration functions, prefixed `register_*`, or automatically on calling `mindbender.install()`.
 
 <br>
 
-Public members of `pyblish_starter`
+Public members of `mindbender`
 
 | Member                           | Returns  | Description
 |:---------------------------------|:---------|:--------
-| `install(host)`                  | `str`    | Install Starter into the current interpreter session
+| `install(host)`                  | `str`    | Install Mindbender into the current interpreter session
 | `uninstall()`                    | `str`    | Revert installation
 
 <br>
 
-Public members of `pyblish_starter.api`
+Public members of `mindbender.api`
 
 | Member                           | Returns  | Description
 |:---------------------------------|:---------|:--------
@@ -523,7 +570,7 @@ Public members of `pyblish_starter.api`
 | `parse_version(version)`         | `str`       | Given an arbitrarily formatted string, return version number
 | `register_root(root)`            |             | Register currently active root
 | `register_host(host)`            |             | Register currently active host
-| `register_plugins()`             |             | Register plug-ins bundled with Pyblish Starter
+| `register_plugins()`             |             | Register plug-ins bundled with Pyblish Mindbender
 | `deregister_plugins()`           |             |
 | `registered_host()`              | `module`    | Return currently registered host
 | `registered_families()`          | `list`      | Return currently registered families
@@ -557,25 +604,25 @@ Internally, Pyblish instances and containers are distinguished from native conte
 
 | Name                         | Description              | Example
 |:-----------------------------|:-------------------------|:----------
-| `pyblish.starter.container`  | Unit of incoming data    | `...:model_GRP`, `...:rig_GRP` 
-| `pyblish.starter.instance`   | Unit of outgoing data    | `Strange_model_default`
+| `pyblish.mindbender.container`  | Unit of incoming data    | `...:model_GRP`, `...:rig_GRP` 
+| `pyblish.mindbender.instance`   | Unit of outgoing data    | `Strange_model_default`
 
 <br>
 <br>
 
 ### Contract
 
-Starter defines these families.
+Mindbender defines these families.
 
 | Family              | Definition                                     | Link
 |:--------------------|:-----------------------------------------------|:------------
-| `starter.model`     | Geometry with deformable topology              | [Spec](#startermodel)
-| `starter.rig`       | An articulated `starter.model` for animators   | [Spec](#starterrig)
-| `starter.animation` | Pointcached `starter.rig` for rendering        | [Spec](#starteranimation)
+| `mindbender.model`     | Geometry with deformable topology              | [Spec](#mindbendermodel)
+| `mindbender.rig`       | An articulated `mindbender.model` for animators   | [Spec](#mindbenderrig)
+| `mindbender.animation` | Pointcached `mindbender.rig` for rendering        | [Spec](#mindbenderanimation)
 
 <br>
 
-### `starter.model`
+### `mindbender.model`
 
 <img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526694/7453567a-7ab9-11e6-817c-84a874092399.png"/>
 
@@ -606,11 +653,11 @@ A generic representation of geometry.
 <br>
 <br>
 
-### `starter.rig`
+### `mindbender.rig`
 
 <img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526730/9c7f040a-7ab9-11e6-9007-4795ddbadde8.png"/>
 
-The `starter.rig` contains the necessary implementation and interface for animators to animate. 
+The `mindbender.rig` contains the necessary implementation and interface for animators to animate. 
 
 ![aud][] **Target Audience**
 
@@ -635,7 +682,7 @@ The `starter.rig` contains the necessary implementation and interface for animat
 <br>
 <br>
 
-### `starter.animation`
+### `mindbender.animation`
 
 <img align="right" src="https://cloud.githubusercontent.com/assets/2152766/18526738/a0fba5ba-7ab9-11e6-934f-48ca2a2ce3d2.png"/>
 
@@ -700,8 +747,8 @@ With an understanding of this asset creation pipeline, here are some suggestions
 
 # Contributing
 
-pyblish-starter, as Pyblish itself, is an open source effort and contributions are welcome.
+pyblish-mindbender, as Pyblish itself, is an open source effort and contributions are welcome.
 
-For example, you could fork Starter, expand upon the graphical user interfaces and either make it your own or submit a pull-request to have it merge with the official project.
+For example, you could fork Mindbender, expand upon the graphical user interfaces and either make it your own or submit a pull-request to have it merge with the official project.
 
 For more information on this, contact [me](mailto:marcus@abstractfactory.io) and let's have a conversation!

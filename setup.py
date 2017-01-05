@@ -10,7 +10,7 @@ import os
 import imp
 from setuptools import setup, find_packages
 
-version_file = os.path.abspath("pyblish_starter/version.py")
+version_file = os.path.abspath("pyblish_mindbender/version.py")
 version_mod = imp.load_source("version", version_file)
 version = version_mod.version
 
@@ -33,13 +33,13 @@ classifiers = [
 ]
 
 setup(
-    name="pyblish-starter",
+    name="pyblish-mindbender",
     version=version,
     description="Build your own publishing pipeline, "
                 "starting with the basics.",
     author="Pyblish",
     author_email="marcus@abstractfactory.com",
-    url="https://github.com/pyblish/pyblish-starter",
+    url="https://github.com/pyblish/pyblish-mindbender",
     license="LGPL",
     packages=find_packages(),
     classifiers=classifiers,
@@ -48,7 +48,7 @@ setup(
         "pyblish-maya>=2.1"
     ],
     package_data={
-        "pyblish_starter": [
+        "pyblish_mindbender": [
             "maya/pythonpath/*.py",
             "schema/*.json",
             "vendor/jsonschema/schemas/*.json"
