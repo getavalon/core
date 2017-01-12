@@ -41,9 +41,15 @@ class ExtractMindbenderAnimation(pyblish.api.InstancePlugin):
         maya.export_alembic(
             nodes=instance,
             file=os.path.join(dirname, filename).replace("\\", "/"),
-            frame_range=(cmds.playbackOptions(query=True, ast=True),
-                         cmds.playbackOptions(query=True, aet=True)),
-            uv_write=True
+
+            frame_range=(instance.data["startFrame"],
+                         instance.data["endFrame"]),
+
+            # Include UVs
+            uv_write=True,
+
+            # Include all attributes prefixed with this
+            attribute_prefix="mb"
         )
 
         # Store reference for integration
