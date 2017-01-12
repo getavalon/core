@@ -23,3 +23,14 @@ $ pip install pyblish-mindbender
 ```
 
 - [Read more](http://pyblish.com/pyblish-mindbender)
+
+### Code convention
+
+Below are some of the standard practices applied to this repositories.
+
+- **PEP8**
+ 	- All code is written in PEP8. It is recommended you use a linter as you work, flake8 and pylinter are both good options.
+- **Semantic Versioning**
+	- This project follows [semantic versioning](http://semver.org).
+- **Underscore means private**
+	- Anything prefixed with an underscore means that it is internal to wherever it is used. For example, a variable name is only ever used in the parent function or class. A module is not for use by the end-user. In contrast, anything without an underscore is public, but not necessarily part of the API. Members of the API resides in `api.py`.

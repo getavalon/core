@@ -2,16 +2,7 @@
 layout: index
 ---
 
-<div class="logo">
-    <img src="https://cloud.githubusercontent.com/assets/2152766/18908293/fe0286a4-8566-11e6-8868-2a52c5adf403.png"/>
-    <p>A basic asset creation pipeline - batteries included.</p>
-</div>
-
-
-
-<div class="video">
-<iframe src="https://player.vimeo.com/video/184516397?title=0&byline=0&portrait=0" width="880" height="400" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>
-</div>
+# Mindbender
 
 <br>
 
@@ -23,8 +14,6 @@ layout: index
     1. Inspire further expansion upon basic ideas
 
 - **Mission:** Make content creation at Mindbender more effective and less error-prone.
-
-- **Motivation:** I'm doing this for the same reason I created Pyblish. Because I see publishing as *the single most important aspect of any production pipeline*. It is on top of the advantages that it provides that the surrounding pipeline is made possible - e.g. [browser](#looking-ahead) and [loader](#looking-ahead), [builder](#looking-ahead) and [manager](#looking-ahead).
 
 - **Requirements:** Reliably output correct data with minimal impact on artist productivity.
 
@@ -46,19 +35,9 @@ To make the most out of pyblish-mindbender, some knowledge and experience is ass
 
 |                      | minimal                            | recommended             
 |:---------------------|:-----------------------------------|:--------------
-| **`personality`**    | curious                            | excited
 | **`title`**          | technical director                 | pipeline technical director
 | **`experience`**     | 1 year in advertisements or games  | 5+ years in feature film
 | **`software`**       | windows, linux or macos            | maya
-
-<br>
-<br>
-<br>
-<br>
-
-> "Pyblish is elegantly designed and closely resembles our in-house production publishing tools here at Imageworks. The setup and documentation is straightforward and easy to understand, getting you setup with a production-quality asset publisher in no time."
-
-<b style="float: right">Dhruv Govil - Pipeline TD @ Sony Pictures Imageworks</b>
 
 <br>
 <br>
@@ -108,6 +87,7 @@ Welcome to pyblish-mindbender, a basic asset creation pipeline - batteries inclu
 Mindbender takes the form of a Python package with embedded plug-ins.
 
 ```bash
+# Not Yet Implemented
 $ pip install pyblish-mindbender
 ```
 
@@ -121,24 +101,44 @@ $ pip install pyblish-mindbender
 Mindbender is initialised by calling `install()` with an interface for your host.
 
 ```python
->>> from mindbender import install, maya
->>> install(maya)
+>>> from mindbender import api, maya
+>>> api.install(maya)
 ```
+
+**Supported hosts**
+
+- [`maya`]()
+- [`nuke`]()
+- [`houdini`]()
 
 From here, you model, rig and animate as per the [contract](#contract) below.
 
 <br>
 <br>
 
+### How to read this guide
+
+Here are a few of the conventions used throughout this guide.
+
+- **bold** words are used to augment important aspects of a sentence
+- UPPERCASE words are unique terminology, each detailed under [Terminology](#terminology) below.
+- (1), (2) are used to division important aspects in a sentence.
+- `code` is used to highlight words that occur in code.
+
+<br>
+<br>
+
 ### Description
 
-Build your own ASSET CREATION PIPELINE, starting with the basics.
+Content creation pipeline at Mindbender.
 
 **Overview**
 
-*Asset creation* covers aspects related to producing content used in the production of film. A film is typically partitioned into sequences and shots, where each shot consists of one or more assets.
+This pipeline covers the entire pipeline at Mindbender, including asset and shot creation.
 
-This project includes plug-ins and tools for 3 common types of ASSETS in a typical production pipeline.
+A PROJECT is partitioned into SHOTs where each shot consists of one or more ASSETs.
+
+This PROJECT includes plug-ins and tools for 3 common types of ASSETs in a typical production pipeline.
 
 - Modeling
 - Rigging
@@ -146,27 +146,19 @@ This project includes plug-ins and tools for 3 common types of ASSETS in a typic
 
 These illustrate how to **(1)** devise a contract - known as a `family` - for each *kind* of ASSET and **(2)** design their interface towards each other.
 
-**Batteries included**
-
-In addition to contracts, the project illustrates **boundaries** between publishing and setup. The definition of "setup" being anything that isn't strictly output, such as creating geometry or assigning attributes.
-
-It includes a series of graphical user interfaces to aid the user in conforming to these contracts. These interfaces represent **placeholders** for your pipeline to fill in; you are invited to either continue from where they finish, or build your own from scratch.
-
-**Limitations**
-
-Each of the concepts in this pipeline are compatible with pipelines of any complexity. In the interest of simplicity however, some concepts were excluded.
-
-- **Maya Only** - The overall pipeline, tools and graphical user interfaces are all platform agnostic, but at this point in time only Maya is provided.
-- **Deformation Pipeline Only** - That means only modeling, rigging and animation is considered. Additional pipeline steps are easily added, and are encouraged to by you the user, but are out of scope for the master project and documentation.
-- **No Asset Composition** - Lack of asset composition means no asset can contain another asset, and that includes shots. A shot typically contains one or more assets and depend on the relationship between these assets to be configurable and maintained throughout the lifetime of a project. Mindbender includes the necessary foundation of this relationship, via [`containers`](http://pyblish.com/pyblish-mindbender/#host-api), but does not implement the necessary tools to manage it.
-- **Static Root Directory** - By default, only Maya is provided support for, and within Maya the root directory in which assets are published (and staged) defaults to the Maya project directory.
-
 <br>
 <br>
 
 ### Batteries
 
-In addition to providing a co-operative set of plug-ins, Mindbender also implements a minimal toochain for ASSET creation in a typical film pipeline.
+Pyblish Mindbender includes a series of [graphical user interfaces](#batteries) that aid the user in conforming to the specified [contracts](#contracts).
+
+| Name              | Purpose                          | Description
+|:------------------|:---------------------------------|:--------------
+| creator            | control what goes out           | Manage how data is outputted from an application.
+| loader            | control what goes in             | Keep tabs on where data comes from so as to enable tracking and builds.
+| builder           | associate disparate ASSETs       | Automatic composition of data that changes independently but need to somehow stay associated.
+| manager           | stay up to date                  | Notification and visualisation of loaded data.
 
 <br>
 
@@ -187,7 +179,7 @@ from mindbender import api
 
 api.register_family(
     name="my.family",
-    help="My custom family"
+    help="My custom family",
 )
 ```
 
@@ -213,7 +205,7 @@ api.register_data(
 )
 ```
 
-Finally, data may be **associated** with a family.
+Data may be **associated** with a family.
 
 ```python
 from mindbender import api
@@ -226,6 +218,27 @@ api.register_family(
 ])
 ```
 
+Each family may be associated to one or more LOADERs.
+
+```python
+from mindbender import api
+
+def mb_loader(version):
+    """A custom loader for Maya Ascii files"""
+    subset = version["subset"]
+    asset = subset["asset"]
+    cmds.file(version["path"],
+              reference=True,
+              namespace=asset["name"] + "01_")
+
+
+api.register_family(
+    family="my.family",
+    loader=mb_loader
+)
+```
+
+Now when this asset is loaded via Loader, this custom function is called.
 
 <br>
 <br>
@@ -259,7 +272,7 @@ from mindbender import api, maya
 api.register_host(maya)
 ```
 
-A host is automatically registered on `mindbender.install()`.
+A host is automatically registered on `api.install()`.
 
 <br>
 <br>
@@ -268,20 +281,6 @@ A host is automatically registered on `mindbender.install()`.
 <br>
 <br>
 <br>
-<br>
-<br>
-
-### Looking Ahead
-
-Without publishing, in any shape or form, the following essential tools are but a dream.
-
-| Name              | Purpose                          | Description
-|:------------------|:---------------------------------|:--------------
-| browser           | remove file-system dependence    | Search and clear presentation of available data relative a given project or task.
-| loader            | control what goes in             | Keep tabs on where data comes from so as to enable tracking and builds.
-| builder           | associate disparate ASSETS       | Automatic composition of data that changes independently but need to somehow stay associated.
-| manager           | stay up to date                  | Notification and visualisation of loaded data.
-
 <br>
 <br>
 
@@ -327,7 +326,7 @@ Applications are run via the terminal.
 
 **start.bat**
 
-Upon starting any application, the artist is required to enter (1) project, (2) asset or shot, (3) task and finally (4) application.
+Upon starting any application, the artist is required to enter (1) PROJECT, (2) asset or shot, (3) task and finally (4) application.
 
 ```bash
 $ p999_Gifts_for_Greta_Assets
@@ -348,8 +347,8 @@ The given TASK is automatically created, unless it already exists.
 
 | Variable       | Description
 |:---------------|:-------------------
-| `PROJECT`      | Nice name of project, e.g. Gifts for Greta
-| `PROJECTDIR`   | Absolute path to project, e.g. m:\f01_projects\p999_Gifts_for_Greta
+| `PROJECT`      | Nice name of PROJECT, e.g. Gifts for Greta
+| `PROJECTDIR`   | Absolute path to PROJECT, e.g. m:\f01_projects\p999_Gifts_for_Greta
 | `ROOT`         | Top level directory of either shot or asset, e.g. ..\Greta
 
 <br>
@@ -382,13 +381,13 @@ During the course of the creation of any ASSET, data moves between 2 of 3 states
 
 - Mindbender does not take into consideration the workspace and is therefore **workspace-agnostic**. 
 - The **staging area** is both implicit and transparent to the PRODUCER and CONSUMER, except for debugging purposes. This is where automatic/scheduled garbage collection may run to optimise for space constraints.
-- The **shared space** is where ASSETS ultimately reside once published.
+- The **shared space** is where ASSETs ultimately reside once published.
 
 <br>
 
 **Workspace and Shared separation**
 
-A naive approach to content creation might be to refer to ASSETS straight from another artists workspace. Mindbender separates between data considered work-in-progress and data exposed to others.
+A naive approach to content creation might be to refer to ASSETs straight from another artists workspace. Mindbender separates between data considered work-in-progress and data exposed to others.
 
 Workspace data is highly **mutable** and typically **private** to an individual artist.
 
@@ -544,7 +543,7 @@ A data FORMAT.
 
 pyblish-mindbender provides a stateful API.
 
-State is set and modified by calling any of the exposed registration functions, prefixed `register_*`, or automatically on calling `mindbender.install()`.
+State is set and modified by calling any of the exposed registration functions, prefixed `register_*`, or automatically on calling `api.install()`.
 
 <br>
 
@@ -749,6 +748,6 @@ With an understanding of this asset creation pipeline, here are some suggestions
 
 pyblish-mindbender, as Pyblish itself, is an open source effort and contributions are welcome.
 
-For example, you could fork Mindbender, expand upon the graphical user interfaces and either make it your own or submit a pull-request to have it merge with the official project.
+For example, you could fork Mindbender, expand upon the graphical user interfaces and either make it your own or submit a pull-request to have it merge with the official PROJECT.
 
 For more information on this, contact [me](mailto:marcus@abstractfactory.io) and let's have a conversation!

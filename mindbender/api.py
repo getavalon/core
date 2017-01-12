@@ -21,8 +21,10 @@ import logging
 from . import schema
 
 from .pipeline import (
+    install,
+    uninstall,
+
     ls,
-    root,
 
     register_root,
     register_data,
@@ -32,12 +34,17 @@ from .pipeline import (
     register_plugins,
 
     deregister_plugins,
+    deregister_family,
+    deregister_data,
 
     registered_host,
     registered_families,
     registered_formats,
     registered_data,
     registered_root,
+
+    any_representation,
+
     fixture,
 )
 
@@ -55,18 +62,20 @@ from .lib import (
 logging.basicConfig()
 
 __all__ = [
+    "install",
+    "uninstall",
+
     "schema",
 
     "ls",
-    "root",
 
     "register_host",
     "register_data",
     "register_format",
     "register_family",
     "register_plugins",
-
     "register_root",
+
     "registered_root",
     "registered_host",
     "registered_families",
@@ -74,6 +83,8 @@ __all__ = [
     "registered_data",
 
     "deregister_plugins",
+    "deregister_family",
+    "deregister_data",
 
     "format_staging_dir",
     "format_shared_dir",
@@ -83,6 +94,8 @@ __all__ = [
     "parse_version",
 
     "time",
+
+    "any_representation",
 
     "fixture",
 ]

@@ -3,6 +3,17 @@
 from maya import cmds, mel
 
 
+def unique_name(name, format="%02d"):
+    iteration = 1
+    unique = name + format % iteration
+
+    while cmds.objExists(unique):
+        iteration += 1
+        unique = name + format % iteration
+
+    return unique
+
+
 def read(node):
     """Return user-defined attributes from `node`
 
@@ -25,7 +36,11 @@ def read(node):
     return data
 
 
-def export_alembic(nodes, file, frame_range=None, uv_write=True):
+def export_alembic(nodes,
+                   file,
+                   frame_range=None,
+                   uv_write=True,
+                   attribute_prefix=None):
     """Wrap native MEL command with limited set of arguments
 
     Arguments:
@@ -35,6 +50,8 @@ def export_alembic(nodes, file, frame_range=None, uv_write=True):
             default to current animation range.
         uv_write (bool, optional): Whether or not to include UVs,
             default to True
+        attribute_prefix (str, optional): Include all user-defined
+            attributes with this prefix.
 
     """
 
@@ -42,6 +59,14 @@ def export_alembic(nodes, file, frame_range=None, uv_write=True):
         ("file", file),
         ("frameRange", "%s %s" % frame_range),
     ] + [("root", mesh) for mesh in nodes]
+
+    if isinstance(attribute_prefix, basestring):
+        # Include all attributes prefixed with "mb"
+        # TODO(marcus): This would be a good candidate for
+        #   external registration, so that the developer
+        #   doesn't have to edit this function to modify
+        #   the behavior of Alembic export.
+        options.append(("attrPrefix", str(attribute_prefix)))
 
     if uv_write:
         options.append(("uvWrite", ""))
@@ -59,6 +84,9 @@ def export_alembic(nodes, file, frame_range=None, uv_write=True):
 
     mel_args_string = " ".join(mel_args)
     mel_cmd = "AbcExport -j \"{0}\"".format(mel_args_string)
+
+    # For debuggability, put the string passed to MEL in the Script editor.
+    print("lib.export_alembic('%s')" % mel_cmd)
 
     return mel.eval(mel_cmd)
 

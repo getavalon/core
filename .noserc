@@ -1,4 +1,5 @@
 [nosetests]
 verbosity=2
 with-doctest=1
+include=mindbender
 exclude=vendor

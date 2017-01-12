@@ -23,13 +23,74 @@ def install():
         _display_missing_dependencies()
 
     _install_menu()
-    _register_formats()
-    _register_root()
+
+    # Mindbender integrates to "root", which we define to be the PROJECT,
+    # the full path to a project. PROJECTDIR is set during application launch,
+    # via the corresponding .bat file
+
+    project = os.getenv("PROJECTDIR")
+    assert project, "Missing environment variable 'PROJECTDIR'"
+    api.register_root(project)
+
+    # Default Instance data
+    # All newly created instances will be imbued with these members.
+    api.register_data(key="id", value="pyblish.mindbender.instance")
+    api.register_data(key="name", value="{name}")
+    api.register_data(key="subset", value="{name}")
+    api.register_data(key="family", value="{family}")
+
+    # These file-types will appear in the Loader GUI
+    api.register_format(".ma")
+    api.register_format(".mb")
+    api.register_format(".abc")
+
+    # These families will appear in the Creator GUI
+    api.register_family(
+        name="mindbender.model",
+        help="Polygonal geometry for animation",
+        loader=_loader_generic
+    )
+
+    api.register_family(
+        name="mindbender.rig",
+        help="Character rig",
+        loader=_loader_rig
+    )
+
+    api.register_family(
+        name="mindbender.animation",
+        help="Pointcache",
+        loader=_loader_animation,
+        data=[
+            {
+                "key": "startFrame",
+                "value": cmds.playbackOptions(query=True,
+                                              animationStartTime=True)
+            },
+            {
+                "key": "endFrame",
+                "value": cmds.playbackOptions(query=True,
+                                              animationEndTime=True)
+            },
+        ]
+    )
 
 
 def uninstall():
     _uninstall_menu()
-    _deregister_formats()
+
+    api.deregister_format(".ma")
+    api.deregister_format(".mb")
+    api.deregister_format(".abc")
+
+    api.deregister_data("id")
+    api.deregister_data("name")
+    api.deregister_data("subset")
+    api.deregister_data("family")
+
+    api.deregister_family("mindbender.model")
+    api.deregister_family("mindbender.rig")
+    api.deregister_family("mindbender.animation")
 
 
 def _install_menu():
@@ -56,18 +117,6 @@ def _uninstall_menu():
     if menu:
         menu.deleteLater()
         del(menu)
-
-
-def _register_formats():
-    api.register_format(".ma")
-    api.register_format(".mb")
-    api.register_format(".abc")
-
-
-def _deregister_formats():
-    api.deregister_format(".ma")
-    api.deregister_format(".mb")
-    api.deregister_format(".abc")
 
 
 def _register_root():
@@ -97,12 +146,14 @@ def ls():
         yield data
 
 
-def load(subset, version=-1, representation=None):
-    """Load subset
+def load(asset, subset, version=-1, representation=None):
+    """Load data into Maya
 
     Arguments:
-        subset ("pyblish-mindbender:subset-1.0"): Asset which to import
+        asset ("pyblish-mindbender:asset-1.0"): Asset which to import
+        subset ("pyblish-mindbender:subset-1.0"): Subset within Asset to import
         version (int, optional): Version number, defaults to latest
+        representation (str, optional): File format, e.g. `.ma`, `.obj`, `.exr`
 
     Returns:
         Reference node
@@ -121,41 +172,16 @@ def load(subset, version=-1, representation=None):
     except IndexError:
         raise IndexError("\"%s\" of \"%s\" not found." % (version, subset))
 
-    supported_formats = api.registered_formats()
+    if representation is None:
+        # TODO(marcus): There's room to make the user choose one of many.
+        #   Such as choosing between `.obj` and `.ma` and `.abc`,
+        #   each compatible but different.
+        representation = api.any_representation(version)
 
-    # Pick any compatible representation.
-    # Hint: There's room to make the user choose one of many.
-    #   Such as choosing between `.obj` and `.ma` and `.abc`,
-    #   each compatible but different.
-    try:
-        representation = next(
-            rep for rep in version["representations"]
-            if rep["format"] in supported_formats and
-            rep["path"] != "{dirname}/source{format}"
-        )
-
-    except StopIteration:
-        formats = list(r["format"] for r in version["representations"])
-        raise ValueError(
-            "No supported representations for \"%s\"\n\n"
-            "Supported representations: %s"
-            % (subset["name"], "\n- ".join(formats)))
-
-    fname = representation["path"].format(
-        dirname=version["path"],
-        format=representation["format"]
-    )
-
-    nodes = cmds.file(fname,
-                      namespace=subset["name"] + "_",
-                      reference=True,
-                      returnNewNodes=True)
-
-    self.log.info("Containerising \"%s\".." % fname)
-    containerise(subset["name"], nodes, version)
-
-    self.log.info("Container created, returning reference node.")
-    return cmds.referenceQuery(nodes[0], referenceNode=True)
+    for family in api.registered_families():
+        if family["name"] in version["families"]:
+            loader = family["loader"] or _loader_generic
+            loader(asset, subset, version, representation)
 
 
 def create(name, family):
@@ -191,7 +217,7 @@ def create(name, family):
     # Convert to dictionary
     data = dict((i["key"], i["value"]) for i in data)
 
-    instance = "%s_SEL" % name
+    instance = "%s_SET" % name
 
     if cmds.objExists(instance):
         raise NameError("\"%s\" already exists." % instance)
@@ -201,7 +227,7 @@ def create(name, family):
     # Resolve template
     for key, value in data.items():
         try:
-            data[key] = value.format(
+            data[key] = str(value).format(
                 name=name,
                 family=family
             )
@@ -224,6 +250,9 @@ def containerise(name, nodes, version):
         name (str): Name of resulting assembly
         nodes (list): Long names of nodes to containerise
         version (pyblish-mindbender:version-1.0): Current version
+
+    Returns:
+        container (str): Name of container assembly
 
     """
 
@@ -249,6 +278,121 @@ def containerise(name, nodes, version):
         cmds.setAttr(container + "." + key, value, type="string")
 
     return container
+
+
+def _loader_generic(asset, subset, version, representation):
+    """All-round loader
+
+    Stores the imported asset in a container named after the asset.
+
+    Arguments:
+        asset ("pyblish-mindbender:asset-1.0"): Asset to be loaded
+        subset ("pyblish-mindbender:subset-1.0"): Subset to be loaded
+        version ("pyblish-mindbender:version-1.0"): Version to be loaded
+        representation ("pyblish-mindbender:representation-1.0"): Mindbender
+            representation to be loaded.
+
+    """
+
+    fname = representation["path"].format(
+        dirname=version["path"],
+        format=representation["format"]
+    )
+
+    name = lib.unique_name(asset["name"])
+    nodes = cmds.file(fname,
+                      namespace=name + "_",
+                      reference=True,
+                      returnNewNodes=True)
+
+    # Containerising
+    containerise(name=name, nodes=nodes, version=version)
+
+    reference = cmds.referenceQuery(nodes[0], referenceNode=True)
+
+    # Creating an animation instance from rig.
+    nodes = cmds.namespaceInfo(name + "_:", listNamespace=True)
+
+    return reference
+
+
+def _loader_rig(asset, subset, version, representation):
+    """Specific loader for rigs
+
+    This automatically creates an instance for animators upon load.
+
+    """
+
+    fname = representation["path"].format(
+        dirname=version["path"],
+        format=representation["format"]
+    )
+
+    name = lib.unique_name(asset["name"])
+    nodes = cmds.file(fname,
+                      namespace=name + "_",
+                      reference=True,
+                      returnNewNodes=True)
+
+    # Containerising
+    containerise(name=name, nodes=nodes, version=version)
+
+    reference = cmds.referenceQuery(nodes[0], referenceNode=True)
+
+    # Creating an animation instance from rig.
+    nodes = cmds.namespaceInfo(name + "_:", listNamespace=True)
+
+    # TODO(marcus): We are hardcoding the name "out_SET" here.
+    #   Better register this keyword, so that it can be used
+    #   elsewhere, such as in the Integrator plug-in,
+    #   without duplication.
+    output = next((node for node in nodes if node.endswith("out_SET")), None)
+    assert output, ("No output in rig, this is a bug.")
+
+    # Select contents of output
+    cmds.select(output, noExpand=False)
+
+    # TODO(marcus): Hardcoding the exact family here.
+    #   Better separate the relationship between loading
+    #   rigs and automatically assigning an instance to it.
+    create(name=name, family="mindbender.animation")
+
+    return reference
+
+
+def _loader_animation(asset, subset, version, representation):
+    """Specific loader for animation
+
+    This names the resulting container after the subset, rather than asset
+
+    """
+
+    cmds.loadPlugin("AbcImport.mll", quiet=True)
+
+    fname = representation["path"].format(
+        dirname=version["path"],
+        format=representation["format"]
+    )
+
+    name = subset["name"]
+
+    if cmds.objExists(name):
+        cmds.warning("Asset already imported.")
+
+    nodes = cmds.file(fname,
+                      namespace=name + "_",
+                      reference=True,
+                      returnNewNodes=True)
+
+    # Containerising
+    containerise(name=name, nodes=nodes, version=version)
+
+    reference = cmds.referenceQuery(nodes[0], referenceNode=True)
+
+    # Creating an animation instance from rig.
+    nodes = cmds.namespaceInfo(name + "_:", listNamespace=True)
+
+    return reference
 
 
 def _display_missing_dependencies():

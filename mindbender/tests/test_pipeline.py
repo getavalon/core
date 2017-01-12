@@ -44,7 +44,7 @@ def bad_fixture():
     os.makedirs(empty)
 
     try:
-        yield
+        yield empty
     finally:
         shutil.rmtree(empty)
 
@@ -59,6 +59,9 @@ def test_ls():
     |          |          |          |          |          |          |
     | version1 | version2 | version3 | version1 | version2 | version3 |
     |__________|__________|__________|__________|__________|__________|
+    |                                |                                |
+    |            subset1             |             subset1            |
+    |________________________________|________________________________|
     |                                |                                |
     |            asset1              |             asset2             |
     |________________________________|________________________________|
@@ -90,41 +93,51 @@ def test_ls():
 
     """
 
-    with pipeline.fixture() as root:
+    with pipeline.fixture(assets=["Asset1"],
+                          subsets=["animRig"],
+                          versions=1) as root:
         asset = next(pipeline.ls())
 
     reference = {
         "schema": "pyblish-mindbender:asset-1.0",
         "name": "Asset1",
-        "versions": [
+        "subsets": [
             {
-                "schema": "pyblish-mindbender:version-1.0",
-                "version": 1,
-                "path": os.path.join(
-                    root,
-                    "shared",
-                    "Asset1",
-                    "v001"
-                ),
-                "source": os.path.join(
-                    "{project}",
-                    "maya",
-                    "scenes",
-                    "scene.ma"
-                ),
-                "representations": [
+                "schema": "pyblish-mindbender:subset-1.0",
+                "name": "animRig",
+                "versions": [
                     {
-                        "schema": "pyblish-mindbender:representation-1.0",
-                        "format": ".ma",
+                        "schema": "pyblish-mindbender:version-1.0",
+                        "version": 1,
                         "path": os.path.join(
-                            "{dirname}",
-                            "Asset1{format}"
+                            root,
+                            "Asset1",
+                            "publish",
+                            "animRig",
+                            "v001"
                         ),
-                    }
-                ],
-                "time": "",
-                "author": "mottosso",
-            },
+                        "source": os.path.join(
+                            "{project}",
+                            "maya",
+                            "scenes",
+                            "scene.ma"
+                        ),
+                        "representations": [
+                            {
+                                "schema": ("pyblish-mindbender:"
+                                           "representation-1.0"),
+                                "format": ".ma",
+                                "path": os.path.join(
+                                    "{dirname}",
+                                    "Asset1{format}"
+                                ),
+                            }
+                        ],
+                        "time": "",
+                        "author": "mottosso",
+                    },
+                ]
+            }
         ]
     }
 
@@ -139,13 +152,14 @@ def test_ls():
 
 def test_ls_returns_sorted_versions():
     """Versions returned from ls() are alphanumerically sorted"""
-    with pipeline.fixture(versions=1):
+    with pipeline.fixture(assets=["Asset1"], subsets=["animRig"], versions=1):
         for asset in pipeline.ls():
             previous_version = 0
-            for version in asset["versions"]:
-                version = version["version"]
-                assert version > previous_version
-                previous_version = version
+            for subset in asset["subsets"]:
+                for version in subset["versions"]:
+                    version = version["version"]
+                    assert version > previous_version
+                    previous_version = version
 
 
 def test_ls_empty():
@@ -155,7 +169,7 @@ def test_ls_empty():
 
 
 def test_ls_no_shareddir():
-    """A root without /shared returns an empty generator"""
+    """A root without assets returns an empty generator"""
 
-    with bad_fixture():
-        assert next(pipeline.ls(), None) is None
+    with bad_fixture() as root:
+        assert next(pipeline.ls(root=root), None) is None

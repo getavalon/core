@@ -17,7 +17,8 @@ def listdir(dirname):
 
     try:
         for root, dirs, fnames in os.walk(dirname):
-            return dirs or list()
+            return sorted(dirs) or list()
+        return list()
 
     except OSError as e:
         # Only handle missing directories
@@ -26,9 +27,9 @@ def listdir(dirname):
             return list()
         raise
 
-    except Exception as e:
-        print(e)
-        return list()
+    except Exception:
+        # Any other exception is still an error
+        raise
 
 
 def time():

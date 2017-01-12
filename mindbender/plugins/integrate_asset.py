@@ -110,6 +110,10 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                 "path": versiondir,
                 "representations": list(),
 
+                "families": instance.data.get("families", list()) + [
+                    instance.data.get("family")
+                ],
+
                 # Collected by pyblish-base
                 "time": context.data["time"],
                 "author": context.data["user"],
