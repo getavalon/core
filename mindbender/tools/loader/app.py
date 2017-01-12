@@ -1,4 +1,6 @@
+import os
 import sys
+import itertools
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import api
@@ -8,6 +10,9 @@ from .. import lib
 self = sys.modules[__name__]
 self._window = None
 
+# Store previous results from api.ls()
+self._cache = list()
+self._use_cache = False
 
 # Custom roles
 AssetRole = QtCore.Qt.UserRole + 1
@@ -72,6 +77,7 @@ class Window(QtWidgets.QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
 
         load_button = QtWidgets.QPushButton("Load")
+        refresh_button = QtWidgets.QPushButton("Refresh")
         stop_button = QtWidgets.QPushButton("Searching..")
         stop_button.setToolTip("Click to stop searching")
         message = QtWidgets.QLabel()
@@ -80,6 +86,7 @@ class Window(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout(footer)
         layout.addWidget(load_button)
         layout.addWidget(stop_button)
+        layout.addWidget(refresh_button)
         layout.addWidget(message)
         layout.setContentsMargins(0, 0, 0, 0)
 
@@ -89,7 +96,7 @@ class Window(QtWidgets.QDialog):
 
         self.data = {
             "state": {
-                "running": False
+                "running": False,
             },
             "button": {
                 "load": load_button,
@@ -105,13 +112,15 @@ class Window(QtWidgets.QDialog):
             }
         }
 
-        load_button.clicked.connect(self.on_load)
-        stop_button.clicked.connect(self.on_stop)
+        load_button.clicked.connect(self.on_load_pressed)
+        stop_button.clicked.connect(self.on_stop_pressed)
+        refresh_button.clicked.connect(self.on_refresh_pressed)
         assets.currentItemChanged.connect(self.on_assetschanged)
         subsets.currentItemChanged.connect(self.on_subsetschanged)
 
         # Defaults
-        self.resize(220, 250)
+        self.resize(320, 350)
+
         load_button.hide()
         stop_button.setFocus()
 
@@ -122,15 +131,27 @@ class Window(QtWidgets.QDialog):
             return self.on_enter()
 
     def on_enter(self):
-        self.on_load()
+        self.on_load_pressed()
 
     def on_assetschanged(self, *args):
-        assets_model = self.data["model"]["assets"].currentItem()
+        assets_model = self.data["model"]["assets"]
         subsets_model = self.data["model"]["subsets"]
 
         subsets_model.clear()
 
-        for subset in assets_model.data(AssetRole)["subsets"]:
+        asset_item = assets_model.currentItem()
+
+        # The model is empty
+        if asset_item is None:
+            return
+
+        asset = asset_item.data(AssetRole)
+
+        # The model contains an empty item
+        if asset is None:
+            return
+
+        for subset in asset["subsets"]:
             item = QtWidgets.QListWidgetItem(subset["name"])
             item.setData(QtCore.Qt.ItemIsEnabled, True)
             item.setData(SubsetRole, subset)
@@ -153,17 +174,34 @@ class Window(QtWidgets.QDialog):
         """
 
         assets_model = self.data["model"]["assets"]
+        assets_model.clear()
+
         state = self.data["state"]
 
         has = {"assets": False}
-        assets = api.ls()
+
+        module = sys.modules[__name__]
+        if module._use_cache:
+            print("Using cache..")
+            iterators = iter(module._cache)
+
+        else:
+            print("Reading from disk..")
+            assets = api.ls(os.path.join(api.registered_root(), "assets"))
+            film = api.ls(os.path.join(api.registered_root(), "film"))
+            iterators = itertools.chain(assets, film)
 
         def on_next():
             if not state["running"]:
                 return on_finished()
 
             try:
-                asset = next(assets)
+                asset = next(iterators)
+
+                # Cache for re-use
+                if not module._use_cache:
+                    module._cache.append(asset)
+
             except StopIteration:
                 return on_finished()
 
@@ -178,6 +216,7 @@ class Window(QtWidgets.QDialog):
 
         def on_finished():
             state["running"] = False
+            module._use_cache = True
 
             if not has["assets"]:
                 item = QtWidgets.QListWidgetItem("No assets found")
@@ -192,42 +231,56 @@ class Window(QtWidgets.QDialog):
         state["running"] = True
         lib.defer(25, on_next)
 
-    def on_stop(self):
+    def on_refresh_pressed(self):
+        # Clear cache
+        sys.modules[__name__]._cache[:] = []
+        sys.modules[__name__]._use_cache = False
+
+        self.refresh()
+
+    def on_stop_pressed(self):
         button = self.data["button"]["stop"]
         button.setText("Stopping..")
         button.setEnabled(False)
 
         self.data["state"]["running"] = False
 
-    def on_load(self):
+    def on_load_pressed(self):
         button = self.data["button"]["load"]
         if not button.isEnabled():
             return
 
+        assets_model = self.data["model"]["assets"]
         subsets_model = self.data["model"]["subsets"]
         autoclose_checkbox = self.data["button"]["autoclose"]
 
-        item = subsets_model.currentItem()
+        asset_item = assets_model.currentItem()
+        subset_item = subsets_model.currentItem()
 
-        if item is not None:
-            subset = item.data(SubsetRole)
-            assert subset
+        if subset_item is None:
+            return
 
-            try:
-                api.registered_host().load(subset)
+        asset = asset_item.data(AssetRole)
+        subset = subset_item.data(SubsetRole)
+        assert asset
+        assert subset
 
-            except ValueError as e:
-                self.echo(e)
-                raise
+        try:
+            print(api.registered_host())
+            api.registered_host().load(asset, subset)
 
-            except NameError as e:
-                self.echo(e)
-                raise
+        except ValueError as e:
+            self.echo(e)
+            raise
 
-            # Catch-all
-            except Exception as e:
-                self.echo("Program error: %s" % str(e))
-                raise
+        except NameError as e:
+            self.echo(e)
+            raise
+
+        # Catch-all
+        except Exception as e:
+            self.echo("Program error: %s" % str(e))
+            raise
 
         if autoclose_checkbox.checkState():
             self.close()
@@ -236,13 +289,15 @@ class Window(QtWidgets.QDialog):
         widget = self.data["label"]["message"]
         widget.setText(str(message))
         widget.show()
+        print(message)
 
     def closeEvent(self, event):
+        print("Good bye")
         self.data["state"]["running"] = False
-        super(Window, self).closeEvent(event)
+        return super(Window, self).closeEvent(event)
 
 
-def show(debug=False):
+def show(root=None, debug=False):
     """Display Loader GUI
 
     Arguments:
