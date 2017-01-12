@@ -73,9 +73,7 @@ class CollectMindbenderInstances(pyblish.api.ContextPlugin):
             assert cmds.objExists(objset + ".family"), (
                 "\"%s\" was missing a family" % objset)
 
-            name = cmds.ls(objset, long=False)[0]  # Use short name
-            instance = context.create_instance(name)
-            instance[:] = cmds.sets(objset, query=True) or list()
+            data = dict()
 
             # Apply each user defined attribute as data
             for attr in cmds.listAttr(objset, userDefined=True) or list():
@@ -88,7 +86,12 @@ class CollectMindbenderInstances(pyblish.api.ContextPlugin):
                     # particular publishing pipeline.
                     value = None
 
-                instance.data[attr] = value
+                data[attr] = value
+
+            name = cmds.ls(objset, long=False)[0]  # Use short name
+            instance = context.create_instance(data.get("name", name))
+            instance[:] = cmds.sets(objset, query=True) or list()
+            instance.data.update(data)
 
             # Produce diagnostic message for any graphical
             # user interface interested in visualising it.
