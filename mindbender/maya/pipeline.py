@@ -58,6 +58,12 @@ def install():
     )
 
     api.register_family(
+        name="mindbender.lookdev",
+        help="Look development",
+        loader=_loader_lookdev
+    )
+
+    api.register_family(
         name="mindbender.animation",
         help="Pointcache",
         loader=_loader_animation,
@@ -178,9 +184,9 @@ def load(asset, subset, version=-1, representation=None):
         #   each compatible but different.
         representation = api.any_representation(version)
 
-    for family in api.registered_families():
-        if family["name"] in version["families"]:
-            loader = family["loader"] or _loader_generic
+    for family, data in api.registered_families().items():
+        if family in version.get("families"):
+            loader = data["loader"] or _loader_generic
             loader(asset, subset, version, representation)
 
 
@@ -206,13 +212,12 @@ def create(name, family):
 
     """
 
-    for item in api.registered_families():
-        if item["name"] == family:
-            break
+    family = api.registered_families().get(family)
 
-    assert item is not None, "{0} is not a valid family".format(family)
+    assert family is not None, "{0} is not a valid family".format(
+        family["name"])
 
-    data = api.registered_data() + item.get("data", [])
+    data = api.registered_data() + family.get("data", [])
 
     # Convert to dictionary
     data = dict((i["key"], i["value"]) for i in data)
@@ -229,7 +234,7 @@ def create(name, family):
         try:
             data[key] = str(value).format(
                 name=name,
-                family=family
+                family=family["name"]
             )
         except KeyError as e:
             raise KeyError("Invalid dynamic property: %s" % e)
@@ -240,7 +245,7 @@ def create(name, family):
     return instance
 
 
-def containerise(name, nodes, version):
+def containerise(name, namespace, nodes, version):
     """Bundle `nodes` into an assembly and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
@@ -249,6 +254,7 @@ def containerise(name, nodes, version):
     Arguments:
         name (str): Name of resulting assembly
         nodes (list): Long names of nodes to containerise
+        namespace (str): Namespace under which to host container
         version (pyblish-mindbender:version-1.0): Current version
 
     Returns:
@@ -256,13 +262,13 @@ def containerise(name, nodes, version):
 
     """
 
-    assemblies = cmds.ls(nodes, assemblies=True)
-    container = cmds.group(assemblies, name=name)
+    container = cmds.sets(nodes, name=namespace + ":" + name + "_CON")
 
     data = [
         ("id", "pyblish.mindbender.container"),
         ("author", version["author"]),
         ("loader", self.__name__),
+        ("families", " ".join(version.get("families", list()))),
         ("time", version["time"]),
         ("version", version["version"]),
         ("source", version["source"]),
@@ -276,6 +282,9 @@ def containerise(name, nodes, version):
 
         cmds.addAttr(container, longName=key, dataType="string")
         cmds.setAttr(container + "." + key, value, type="string")
+
+    # Hide in outliner
+    # cmds.setAttr(container + ".verticesOnlySet", True)
 
     return container
 
@@ -299,19 +308,23 @@ def _loader_generic(asset, subset, version, representation):
         format=representation["format"]
     )
 
-    name = lib.unique_name(asset["name"])
+    namespace = lib.unique_namespace(asset["name"], suffix="_")
+    name = subset["name"]
+
     nodes = cmds.file(fname,
-                      namespace=name + "_",
+                      namespace=namespace,
                       reference=True,
-                      returnNewNodes=True)
+                      returnNewNodes=True,
+                      groupReference=True,
+                      groupName=namespace + ":" + name)
 
     # Containerising
-    containerise(name=name, nodes=nodes, version=version)
+    containerise(name=name,
+                 namespace=namespace,
+                 nodes=nodes,
+                 version=version)
 
     reference = cmds.referenceQuery(nodes[0], referenceNode=True)
-
-    # Creating an animation instance from rig.
-    nodes = cmds.namespaceInfo(name + "_:", listNamespace=True)
 
     return reference
 
@@ -328,26 +341,28 @@ def _loader_rig(asset, subset, version, representation):
         format=representation["format"]
     )
 
-    name = lib.unique_name(asset["name"])
+    namespace = lib.unique_namespace(asset["name"], suffix="_")
+    name = subset["name"]
+
     nodes = cmds.file(fname,
-                      namespace=name + "_",
+                      namespace=namespace,
                       reference=True,
-                      returnNewNodes=True)
+                      returnNewNodes=True,
+                      groupReference=True,
+                      groupName=namespace + ":" + name)
 
     # Containerising
-    containerise(name=name, nodes=nodes, version=version)
-
-    reference = cmds.referenceQuery(nodes[0], referenceNode=True)
-
-    # Creating an animation instance from rig.
-    nodes = cmds.namespaceInfo(name + "_:", listNamespace=True)
+    containerise(name=name,
+                 namespace=namespace,
+                 nodes=nodes,
+                 version=version)
 
     # TODO(marcus): We are hardcoding the name "out_SET" here.
     #   Better register this keyword, so that it can be used
     #   elsewhere, such as in the Integrator plug-in,
     #   without duplication.
     output = next((node for node in nodes if node.endswith("out_SET")), None)
-    assert output, ("No output in rig, this is a bug.")
+    assert output, "No output in rig, this is a bug."
 
     # Select contents of output
     cmds.select(output, noExpand=False)
@@ -355,9 +370,10 @@ def _loader_rig(asset, subset, version, representation):
     # TODO(marcus): Hardcoding the exact family here.
     #   Better separate the relationship between loading
     #   rigs and automatically assigning an instance to it.
-    create(name=name, family="mindbender.animation")
+    create(name=lib.unique_name(asset["name"], suffix="_SET"),
+           family="mindbender.animation")
 
-    return reference
+    return cmds.referenceQuery(nodes[0], referenceNode=True)
 
 
 def _loader_animation(asset, subset, version, representation):
@@ -375,24 +391,52 @@ def _loader_animation(asset, subset, version, representation):
     )
 
     name = subset["name"]
+    namespace = subset["name"] + "_"
 
-    if cmds.objExists(name):
+    if cmds.objExists(namespace + ":" + name):
         cmds.warning("Asset already imported.")
 
+    # namespace = subset["name"] + "_"
+    # name = lib.unique_name(subset["name"], namespace=namespace)
+
     nodes = cmds.file(fname,
-                      namespace=name + "_",
+                      namespace=namespace,
+                      reference=True,
+                      returnNewNodes=True,
+                      groupReference=True,
+                      groupName=namespace + ":" + name)
+
+    # Containerising
+    containerise(name=name, namespace=namespace, nodes=nodes, version=version)
+
+    return cmds.referenceQuery(nodes[0], referenceNode=True)
+
+
+def _loader_lookdev(asset, subset, version, representation):
+    """Specific loader for lookdev
+
+    """
+
+    fname = representation["path"].format(
+        dirname=version["path"],
+        format=representation["format"]
+    )
+
+    namespace = lib.unique_namespace(asset["name"], suffix="_")
+    name = subset["name"]
+
+    nodes = cmds.file(fname,
+                      namespace=namespace,
                       reference=True,
                       returnNewNodes=True)
 
     # Containerising
-    containerise(name=name, nodes=nodes, version=version)
+    containerise(name=name,
+                 namespace=namespace,
+                 nodes=nodes,
+                 version=version)
 
-    reference = cmds.referenceQuery(nodes[0], referenceNode=True)
-
-    # Creating an animation instance from rig.
-    nodes = cmds.namespaceInfo(name + "_:", listNamespace=True)
-
-    return reference
+    return cmds.referenceQuery(nodes[0], referenceNode=True)
 
 
 def _display_missing_dependencies():

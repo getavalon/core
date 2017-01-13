@@ -8,6 +8,9 @@ def setup():
         "pyblish-mindbender depends on pyblish_maya which has not "
         "yet been setup. Run pyblish_maya.setup()")
 
+    from pyblish import api
+    api.register_gui("pyblish_lite")
+
     from mindbender import api, maya
     api.install(maya)
 

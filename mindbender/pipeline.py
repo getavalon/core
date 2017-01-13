@@ -108,29 +108,6 @@ def is_installed():
     return self._is_installed
 
 
-def register_default_data():
-    register_data(key="id", value="pyblish.mindbender.instance")
-    register_data(key="name", value="{name}")
-    register_data(key="family", value="{family}")
-
-
-def register_default_families():
-    register_family(
-        name="mindbender.model",
-        help="Polygonal geometry for animation"
-    )
-
-    register_family(
-        name="mindbender.rig",
-        help="Character rig"
-    )
-
-    register_family(
-        name="mindbender.animation",
-        help="Pointcache"
-    )
-
-
 def ls(root=None):
     """List available assets
 
@@ -238,8 +215,8 @@ def any_representation(version):
     except StopIteration:
         formats = list(r["format"] for r in version["representations"])
         raise ValueError(
-            "No supported representations for version\n\n"
-            "Available representations:\n%s"
+            "No supported representations.\n\n"
+            "Available representations:\n%s\n\n"
             "Supported representations:\n%s"
             % ("\n- ".join(formats),
                "\n- ".join(supported_formats))
@@ -413,18 +390,16 @@ def register_family(name, data=None, help=None, loader=None):
 
     """
 
-    _registered_families.append({
+    _registered_families[name] = {
         "name": name,
         "data": data or [],
         "help": help or "",
         "loader": loader
-    })
+    }
 
 
 def deregister_family(name):
-    for index, family in enumerate(list(_registered_families)):
-        if family["name"] == family:
-            _registered_families.pop(index)
+    _registered_families.pop(name)
 
 
 def registered_formats():
@@ -432,7 +407,7 @@ def registered_formats():
 
 
 def registered_families():
-    return _registered_families[:]
+    return _registered_families.copy()
 
 
 def registered_data():
@@ -441,14 +416,6 @@ def registered_data():
 
 def registered_host():
     return _registered_host["_"]
-
-
-def deregister_default_families():
-    _registered_families[:] = list()
-
-
-def deregister_default_data():
-    _registered_data[:] = list()
 
 
 def deregister_plugins():

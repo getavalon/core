@@ -46,6 +46,10 @@ class ExtractMindbenderModel(pyblish.api.InstancePlugin):
                       exportSelected=True,
                       preserveReferences=False,
 
+                      # Shader assignment is the responsibility of
+                      # riggers, for animators, and lookdev, for rendering.
+                      shaders=False,
+
                       # Construction history inherited from collection
                       # This enables a selective export of nodes relevant
                       # to this particular plug-in.

@@ -28,7 +28,8 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
     families = [
         "mindbender.model",
         "mindbender.rig",
-        "mindbender.animation"
+        "mindbender.animation",
+        "mindbender.lookdev",
     ]
 
     def process(self, instance):
@@ -123,7 +124,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                     "{root}",
                     os.path.relpath(
                         context.data["currentFile"],
-                        api.root()
+                        api.registered_root()
                     )
                 ),
             }

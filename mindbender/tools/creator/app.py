@@ -108,7 +108,7 @@ class Window(QtWidgets.QDialog):
 
         has_families = False
 
-        for family in families:
+        for family in families.values():
             item = QtWidgets.QListWidgetItem(family["name"])
             item.setData(QtCore.Qt.ItemIsEnabled, True)
             item.setData(QtCore.Qt.UserRole + 2, family.get("help"))
@@ -171,9 +171,9 @@ def show(debug=False):
         del(self._window)
 
     if debug:
-        families.append({"name": "debug.model"})
-        families.append({"name": "debug.rig"})
-        families.append({"name": "debug.animation"})
+        pipeline.register_family("debug.model")
+        pipeline.register_family("debug.rig")
+        pipeline.register_family("debug.animation")
 
     try:
         widgets = QtWidgets.QApplication.topLevelWidgets()

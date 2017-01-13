@@ -30,6 +30,7 @@ if Not exist %WORKDIR% (
 
 	mkdir %WORKDIR%\scenes
 	mkdir %WORKDIR%\data
+    mkdir %WORKDIR%\renderData\shaders
 	mkdir %WORKDIR%\images
 	rem etc..
 
