@@ -15,6 +15,8 @@ from .pipeline import (
 
 from .lib import (
     export_alembic,
+    lsattr,
+    lsattrs
 )
 
 
@@ -27,4 +29,6 @@ __all__ = [
     "create",
 
     "export_alembic",
+    "lsattr",
+    "lsattrs",
 ]

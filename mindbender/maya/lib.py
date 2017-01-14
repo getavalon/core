@@ -2,6 +2,7 @@
 
 import contextlib
 from maya import cmds, mel
+from maya.api import OpenMaya as om
 
 
 def unique_name(name, format="%02d", namespace="", suffix=""):
@@ -300,3 +301,99 @@ def serialise_shaders(nodes):
         shader_by_id[shader] = list(set(shader_by_id[shader]))
 
     return shader_by_id
+
+
+def apply_shaders(relationships):
+    """Given a dictionary of `relationships`, apply shaders to meshes
+
+    Arguments:
+        relationships (pyblish-mindbender:shaders-1.0): A dictionary of
+            shaders and how they relate to meshes.
+
+    """
+
+    for shader, ids in relationships.items():
+        shader = next(iter(cmds.ls("*:" + shader)), None)
+        assert shader, "Associated shader not part of asset, this is a bug"
+
+        for id_ in ids:
+            meshes = lsattr("mbID", value=id_)
+            if not meshes:
+                continue
+
+            print("Assigning '%s' to '%s'" % (shader, ", ".join(meshes)))
+            cmds.sets(meshes, forceElement=shader)
+
+
+def lsattr(attr, value=None):
+    """Return nodes matching `key` and `value`
+
+    Arguments:
+        attr (str): Name of Maya attribute
+        value (object, optional): Value of attribute. If none
+            is provided, return all nodes with this attribute.
+
+    Example:
+        >> lsattr("id", "myId")
+        ["myNode"]
+        >> lsattr("id")
+        ["myNode", "myOtherNode"]
+
+    """
+
+    if value is None:
+        return cmds.ls("*.%s" % attr)
+    return lsattrs({attr: value})
+
+
+def lsattrs(attrs):
+    """Return nodes with the given attribute(s).
+
+    Arguments:
+        attrs (dict): Name and value pairs of expected matches
+
+    Example:
+        >> lsattr("age")  # Return nodes with attribute `age`
+        >> lsattr({"age": 5})  # Return nodes with an `age` of 5
+        >> # Return nodes with both `age` and `color` of 5 and blue
+        >> lsattr({"age": 5, "color": "blue"})
+
+    Returns a list.
+
+    """
+
+    dep_fn = om.MFnDependencyNode()
+    dag_fn = om.MFnDagNode()
+    selection_list = om.MSelectionList()
+
+    first_attr = attrs.iterkeys().next()
+
+    try:
+        selection_list.add("*.{0}".format(first_attr),
+                           searchChildNamespaces=True)
+    except RuntimeError, e:
+        if str(e).endswith("Object does not exist"):
+            return []
+
+    matches = set()
+    for i in range(selection_list.length()):
+        node = selection_list.getDependNode(i)
+        if node.hasFn(om.MFn.kDagNode):
+            fn_node = dag_fn.setObject(node)
+            full_path_names = [path.fullPathName()
+                               for path in fn_node.getAllPaths()]
+        else:
+            fn_node = dep_fn.setObject(node)
+            full_path_names = [fn_node.name()]
+
+        for attr in attrs:
+            try:
+                plug = fn_node.findPlug(attr, True)
+                if plug.asString() != attrs[attr]:
+                    break
+            except RuntimeError:
+                break
+        else:
+            matches.update(full_path_names)
+
+    return list(matches)
