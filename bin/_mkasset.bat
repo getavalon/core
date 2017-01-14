@@ -7,15 +7,15 @@
 :: 	 %2: Absolute path to asset parent directory, e.g. m:\f01_projects\p999_Demo\assets
 ::
 :: Example:
-::   $ p999_Meindbender_Sync
 ::   $ Fiona
+::   $ sh01
 
 @echo off
 
 set ASSET=%1
 set ROOT=%2%ASSET%
 
-If Not Exist %ROOT% (
+If not exist %ROOT% (
 	mkdir %ROOT%
 )
 
