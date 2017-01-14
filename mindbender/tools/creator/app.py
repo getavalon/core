@@ -4,8 +4,13 @@ from ...vendor.Qt import QtWidgets, QtCore
 from ... import pipeline
 from .. import lib
 
+from maya import cmds
+
 self = sys.modules[__name__]
 self._window = None
+
+HelpRole = QtCore.Qt.UserRole + 2
+FamilyRole = QtCore.Qt.UserRole + 3
 
 
 class Window(QtWidgets.QDialog):
@@ -34,10 +39,13 @@ class Window(QtWidgets.QDialog):
 
         autoclose_chk = QtWidgets.QCheckBox("Close after creation")
         autoclose_chk.setCheckState(QtCore.Qt.Checked)
+        useselection_chk = QtWidgets.QCheckBox("Use selection")
+        useselection_chk.setCheckState(QtCore.Qt.Checked)
 
         layout = QtWidgets.QGridLayout(options)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(autoclose_chk, 1, 0)
+        layout.addWidget(useselection_chk, 1, 1)
 
         layout = QtWidgets.QHBoxLayout(lists)
         layout.addWidget(container)
@@ -64,7 +72,7 @@ class Window(QtWidgets.QDialog):
         names = {
             create_btn: "Create Button",
             listing: "Listing",
-            # useselection_chk: "Use Selection Checkbox",
+            useselection_chk: "Use Selection Checkbox",
             autoclose_chk: "Autoclose Checkbox",
             name: "Name",
             error_msg: "Error Message",
@@ -93,6 +101,13 @@ class Window(QtWidgets.QDialog):
             item.data(QtCore.Qt.ItemIsEnabled)
         )
 
+        # Set default name, e.g. modelDefault, lookdevDefault
+        label = item.data(FamilyRole)
+        label = label.rsplit(".")[-1]
+        label = label.lower() + "Default"
+
+        name.setText(label)
+
     def keyPressEvent(self, event):
         """Custom keyPressEvent.
 
@@ -108,10 +123,11 @@ class Window(QtWidgets.QDialog):
 
         has_families = False
 
-        for family in families.values():
-            item = QtWidgets.QListWidgetItem(family["name"])
+        for family in sorted(families.values(), key=lambda f: f["name"]):
+            item = QtWidgets.QListWidgetItem(family["label"] or family["name"])
             item.setData(QtCore.Qt.ItemIsEnabled, True)
-            item.setData(QtCore.Qt.UserRole + 2, family.get("help"))
+            item.setData(HelpRole, family["help"])
+            item.setData(FamilyRole, family["name"])
             listing.addItem(item)
 
             has_families = True
@@ -127,16 +143,25 @@ class Window(QtWidgets.QDialog):
         listing = self.findChild(QtWidgets.QWidget, "Listing")
         autoclose_chk = self.findChild(QtWidgets.QWidget,
                                        "Autoclose Checkbox")
+        useselection_chk = self.findChild(QtWidgets.QWidget,
+                                          "Use Selection Checkbox")
         error_msg = self.findChild(QtWidgets.QWidget, "Error Message")
 
         item = listing.currentItem()
 
         if item is not None:
-            family = item.text()
+            family = item.data(FamilyRole)
             name = self.findChild(QtWidgets.QWidget, "Name").text()
 
             try:
-                pipeline.registered_host().create(name, family)
+                nodes = list()
+                if useselection_chk.checkState():
+                    nodes = cmds.ls(selection=True)
+
+                host = pipeline.registered_host()
+                instance = host.create(name, family, nodes)
+
+                cmds.select(instance, noExpand=True)
 
             except NameError as e:
                 error_msg.setText(str(e))

@@ -379,11 +379,16 @@ def deregister_data(key):
             _registered_data.pop(index)
 
 
-def register_family(name, data=None, help=None, loader=None):
+def register_family(name,
+                    label=None,
+                    data=None,
+                    help=None,
+                    loader=None):
     """Register family and attributes for family
 
     Arguments:
-        name (str): Name of family
+        name (str): Name of family, e.g. mindbender.model
+        label (str): Nice name for family, e.g. Model
         data (dict, optional): Additional data, see
             :func:`register_data` for docstring on members
         help (str, optional): Briefly describe this family
@@ -392,6 +397,7 @@ def register_family(name, data=None, help=None, loader=None):
 
     _registered_families[name] = {
         "name": name,
+        "label": label,
         "data": data or [],
         "help": help or "",
         "loader": loader

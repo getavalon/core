@@ -48,25 +48,29 @@ def install():
     # These families will appear in the Creator GUI
     api.register_family(
         name="mindbender.model",
+        label="Model",
         help="Polygonal geometry for animation",
         loader=_loader_model
     )
 
     api.register_family(
         name="mindbender.rig",
+        label="Rig",
         help="Character rig",
         loader=_loader_rig
     )
 
     api.register_family(
         name="mindbender.lookdev",
-        help="Look development",
+        label="Look",
+        help="Shaders, textures and look",
         loader=_loader_lookdev
     )
 
     api.register_family(
         name="mindbender.animation",
-        help="Pointcache",
+        label="Animation",
+        help="Any character or prop animation",
         loader=_loader_animation,
         data=[
             {
@@ -191,7 +195,7 @@ def load(asset, subset, version=-1, representation=None):
             loader(asset, subset, version, representation)
 
 
-def create(name, family):
+def create(name, family, nodes=None):
     """Create new instance
 
     Associate nodes with a name and family. These nodes are later
@@ -205,6 +209,7 @@ def create(name, family):
     Arguments:
         name (str): Name of instance
         family (str): Name of family
+        nodes (list): Include these in the new instance
 
     Raises:
         NameError on `name` already exists
@@ -213,12 +218,12 @@ def create(name, family):
 
     """
 
-    family = api.registered_families().get(family)
+    data = api.registered_families().get(family)
 
-    assert family is not None, "{0} is not a valid family".format(
-        family["name"])
+    assert data is not None, "{0} is not a valid family".format(
+        family)
 
-    data = api.registered_data() + family.get("data", [])
+    data = api.registered_data() + data.get("data", [])
 
     # Convert to dictionary
     data = dict((i["key"], i["value"]) for i in data)
@@ -228,14 +233,15 @@ def create(name, family):
     if cmds.objExists(instance):
         raise NameError("\"%s\" already exists." % instance)
 
-    instance = cmds.sets(name=instance)
+    with lib.maintained_selection():
+        instance = cmds.sets(nodes, name=instance)
 
     # Resolve template
     for key, value in data.items():
         try:
             data[key] = str(value).format(
                 name=name,
-                family=family["name"]
+                family=data["name"]
             )
         except KeyError as e:
             raise KeyError("Invalid dynamic property: %s" % e)
