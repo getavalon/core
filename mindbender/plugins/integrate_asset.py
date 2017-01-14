@@ -108,7 +108,13 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
             metadata = {
                 "schema": "pyblish-mindbender:version-1.0",
                 "version": version,
-                "path": versiondir,
+                "path": os.path.join(
+                    "{root}",
+                    os.path.relpath(
+                        versiondir,
+                        api.registered_root()
+                    )
+                ),
                 "representations": list(),
 
                 # Used to identify family of assets already on disk

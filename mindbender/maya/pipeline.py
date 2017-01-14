@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import logging
 
 from .. import api
@@ -48,7 +49,7 @@ def install():
     api.register_family(
         name="mindbender.model",
         help="Polygonal geometry for animation",
-        loader=_loader_generic
+        loader=_loader_model
     )
 
     api.register_family(
@@ -186,7 +187,7 @@ def load(asset, subset, version=-1, representation=None):
 
     for family, data in api.registered_families().items():
         if family in version.get("families"):
-            loader = data["loader"] or _loader_generic
+            loader = data["loader"] or _loader_model
             loader(asset, subset, version, representation)
 
 
@@ -240,7 +241,6 @@ def create(name, family):
             raise KeyError("Invalid dynamic property: %s" % e)
 
     lib.imprint(instance, data)
-    cmds.select(instance, noExpand=True)
 
     return instance
 
@@ -271,6 +271,7 @@ def containerise(name, namespace, nodes, version):
         ("families", " ".join(version.get("families", list()))),
         ("time", version["time"]),
         ("version", version["version"]),
+        ("path", version["path"]),
         ("source", version["source"]),
         ("comment", version.get("comment", ""))
     ]
@@ -289,7 +290,7 @@ def containerise(name, namespace, nodes, version):
     return container
 
 
-def _loader_generic(asset, subset, version, representation):
+def _loader_model(asset, subset, version, representation):
     """All-round loader
 
     Stores the imported asset in a container named after the asset.
@@ -311,12 +312,13 @@ def _loader_generic(asset, subset, version, representation):
     namespace = lib.unique_namespace(asset["name"], suffix="_")
     name = subset["name"]
 
-    nodes = cmds.file(fname,
-                      namespace=namespace,
-                      reference=True,
-                      returnNewNodes=True,
-                      groupReference=True,
-                      groupName=namespace + ":" + name)
+    with lib.maintained_selection():
+        nodes = cmds.file(fname,
+                          namespace=namespace,
+                          reference=True,
+                          returnNewNodes=True,
+                          groupReference=True,
+                          groupName=namespace + ":" + name)
 
     # Containerising
     containerise(name=name,
@@ -324,9 +326,11 @@ def _loader_generic(asset, subset, version, representation):
                  nodes=nodes,
                  version=version)
 
-    reference = cmds.referenceQuery(nodes[0], referenceNode=True)
+    # Assign default shader to meshes
+    meshes = cmds.ls(nodes, type="mesh")
+    cmds.sets(meshes, forceElement="initialShadingGroup")
 
-    return reference
+    return cmds.referenceQuery(nodes[0], referenceNode=True)
 
 
 def _loader_rig(asset, subset, version, representation):
@@ -364,14 +368,15 @@ def _loader_rig(asset, subset, version, representation):
     output = next((node for node in nodes if node.endswith("out_SET")), None)
     assert output, "No output in rig, this is a bug."
 
-    # Select contents of output
-    cmds.select(output, noExpand=False)
+    with lib.maintained_selection():
+        # Select contents of output
+        cmds.select(output, noExpand=False)
 
-    # TODO(marcus): Hardcoding the exact family here.
-    #   Better separate the relationship between loading
-    #   rigs and automatically assigning an instance to it.
-    create(name=lib.unique_name(asset["name"], suffix="_SET"),
-           family="mindbender.animation")
+        # TODO(marcus): Hardcoding the exact family here.
+        #   Better separate the relationship between loading
+        #   rigs and automatically assigning an instance to it.
+        create(name=lib.unique_name(asset["name"], suffix="_SET"),
+               family="mindbender.animation")
 
     return cmds.referenceQuery(nodes[0], referenceNode=True)
 
@@ -396,9 +401,6 @@ def _loader_animation(asset, subset, version, representation):
     if cmds.objExists(namespace + ":" + name):
         cmds.warning("Asset already imported.")
 
-    # namespace = subset["name"] + "_"
-    # name = lib.unique_name(subset["name"], namespace=namespace)
-
     nodes = cmds.file(fname,
                       namespace=namespace,
                       reference=True,
@@ -422,13 +424,14 @@ def _loader_lookdev(asset, subset, version, representation):
         format=representation["format"]
     )
 
-    namespace = lib.unique_namespace(asset["name"], suffix="_")
-    name = subset["name"]
+    namespace = asset["name"] + "_"
+    name = lib.unique_name(subset["name"])
 
-    nodes = cmds.file(fname,
-                      namespace=namespace,
-                      reference=True,
-                      returnNewNodes=True)
+    with lib.maintained_selection():
+        nodes = cmds.file(fname,
+                          namespace=namespace,
+                          reference=True,
+                          returnNewNodes=True)
 
     # Containerising
     containerise(name=name,
@@ -436,55 +439,74 @@ def _loader_lookdev(asset, subset, version, representation):
                  nodes=nodes,
                  version=version)
 
+    # Assign shaders
+    representation = next(
+        (rep for rep in version["representations"]
+            if rep["format"] == ".json"), None)
+
+    if representation is None:
+        cmds.warning("Look development asset has no relationship data.")
+
+    else:
+        path = representation["path"].format(
+            dirname=version["path"],
+            format=representation["format"]
+        )
+
+        with open(path) as f:
+            relationships = json.load(f)
+
+        lib.apply_shaders(relationships)
+
     return cmds.referenceQuery(nodes[0], referenceNode=True)
 
 
 def _display_missing_dependencies():
-        import pyblish
+    import pyblish
 
-        messagebox = QtWidgets.QMessageBox()
-        messagebox.setIcon(messagebox.Warning)
-        messagebox.setWindowIcon(QtGui.QIcon(os.path.join(
-            os.path.dirname(pyblish.__file__),
-            "icons",
-            "logo-32x32.svg"))
-        )
+    messagebox = QtWidgets.QMessageBox()
+    messagebox.setIcon(messagebox.Warning)
+    messagebox.setWindowIcon(QtGui.QIcon(os.path.join(
+        os.path.dirname(pyblish.__file__),
+        "icons",
+        "logo-32x32.svg"))
+    )
 
-        spacer = QtWidgets.QWidget()
-        spacer.setMinimumSize(400, 0)
-        spacer.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
-                             QtWidgets.QSizePolicy.Expanding)
+    spacer = QtWidgets.QWidget()
+    spacer.setMinimumSize(400, 0)
+    spacer.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
+                         QtWidgets.QSizePolicy.Expanding)
 
-        layout = messagebox.layout()
-        layout.addWidget(spacer, layout.rowCount(), 0, 1, layout.columnCount())
+    layout = messagebox.layout()
+    layout.addWidget(spacer, layout.rowCount(), 0, 1, layout.columnCount())
 
-        messagebox.setWindowTitle("Uh oh")
-        messagebox.setText("Missing dependencies")
+    messagebox.setWindowTitle("Uh oh")
+    messagebox.setText("Missing dependencies")
 
-        messagebox.setInformativeText(
-            "pyblish-mindbender requires pyblish-maya.\n"
-        )
+    messagebox.setInformativeText(
+        "pyblish-mindbender requires pyblish-maya.\n"
+    )
 
-        messagebox.setDetailedText(
-            "1) Install Pyblish for Maya\n"
-            "\n"
-            "$ pip install pyblish-maya\n"
-            "\n"
-            "2) Run setup()\n"
-            "\n"
-            ">>> import pyblish_maya\n"
-            ">>> pyblish_maya.setup()\n"
-            "\n"
-            "3) Try again.\n"
-            "\n"
-            ">>> mindbender.install()\n"
+    messagebox.setDetailedText(
+        "1) Install Pyblish for Maya\n"
+        "\n"
+        "$ pip install pyblish-maya\n"
+        "\n"
+        "2) Run setup()\n"
+        "\n"
+        ">>> import pyblish_maya\n"
+        ">>> pyblish_maya.setup()\n"
+        "\n"
+        "3) Try again.\n"
+        "\n"
+        ">>> mindbender.install()\n"
 
-            "See https://github.com/pyblish/pyblish-mindbender "
-            "for more information."
-        )
+        "See https://github.com/pyblish/pyblish-mindbender "
+        "for more information."
+    )
 
-        messagebox.setStandardButtons(messagebox.Ok)
-        messagebox.exec_()
+    messagebox.setStandardButtons(messagebox.Ok)
+    messagebox.exec_()
 
-        raise RuntimeError("pyblish-mindbender requires pyblish-maya "
-                           "to have been setup.")
+    raise RuntimeError("pyblish-mindbender requires pyblish-maya "
+                       "to have been setup.")

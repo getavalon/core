@@ -746,8 +746,10 @@ With an understanding of this asset creation pipeline, here are some suggestions
 
 # Contributing
 
-pyblish-mindbender, as Pyblish itself, is an open source effort and contributions are welcome.
+Rules for Maya:
 
-For example, you could fork Mindbender, expand upon the graphical user interfaces and either make it your own or submit a pull-request to have it merge with the official PROJECT.
+1. Any function altering the currently selected nodes must restore the previous selection upon completion.
+
+Fork Mindbender, expand upon the graphical user interfaces and either make it your own or submit a pull-request to have it merge with the official PROJECT.
 
 For more information on this, contact [me](mailto:marcus@abstractfactory.io) and let's have a conversation!
