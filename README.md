@@ -30,6 +30,8 @@ Below are some of the standard practices applied to this repositories.
 
 - **PEP8**
  	- All code is written in PEP8. It is recommended you use a linter as you work, flake8 and pylinter are both good options.
+- **Napoleon docstrings**
+	- Any docstrings are made in Google Napoleon format. See [Napoleon](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html) for details.
 - **Semantic Versioning**
 	- This project follows [semantic versioning](http://semver.org).
 - **Underscore means private**
