@@ -5,6 +5,33 @@ from maya import cmds, mel
 
 
 def unique_name(name, format="%02d", namespace="", suffix=""):
+    """Return unique `name`
+
+    The function takes into consideration an optional `namespace`
+    and `suffix`. The suffix is included in evaluating whether a
+    name exists - such as `name` + "_GRP" - but isn't included
+    in the returned value.
+
+    If a namespace is provided, only names within that namespace
+    are considered when evaluating whether the name is unique.
+
+    Arguments:
+        format (str, optional): The `name` is given a number, this determines
+            how this number is formatted. Defaults to a padding of 2.
+            E.g. my_name01, my_name02.
+        namespace (str, optional): Only consider names within this namespace.
+        suffix (str, optional): Only consider names with this suffix.
+
+    Example:
+        >>> name = cmds.createNode("transform", name="MyName")
+        >>> cmds.objExists(name)
+        True
+        >>> unique = unique_name(name)
+        >>> cmds.objExists(unique)
+        False
+
+    """
+
     iteration = 1
     unique = (name + format % iteration) + suffix
 
@@ -12,10 +39,25 @@ def unique_name(name, format="%02d", namespace="", suffix=""):
         iteration += 1
         unique = (name + format % iteration) + suffix
 
-    return unique[:-len(suffix)] if suffix else unique
+    if suffix:
+        return unique[:-len(suffix)]
+
+    return unique
 
 
 def unique_namespace(namespace, format="%02d", suffix=""):
+    """Return unique namespace
+
+    Similar to :func:`unique_name` but evaluating namespaces
+    as opposed to object names.
+
+    Arguments:
+        namespace (str): Name of namespace to consider
+        format (str, optional): Formatting of the given iteration number
+        suffix (str, optional): Only consider namespaces with this suffix.
+
+    """
+
     iteration = 1
     unique = (namespace + format % iteration) + suffix
 

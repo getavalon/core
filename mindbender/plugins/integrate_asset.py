@@ -111,6 +111,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                 "path": versiondir,
                 "representations": list(),
 
+                # Used to identify family of assets already on disk
                 "families": instance.data.get("families", list()) + [
                     instance.data.get("family")
                 ],
