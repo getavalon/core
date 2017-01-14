@@ -15,12 +15,16 @@
 
 @echo off
 
+if "%1"=="" goto :missing_project
+if "%2"=="" goto :missing_subdirectory
+
 set PROJECTDIR=%1
 
 :: Use basename of path as project name, e.g. "p999_Meindbender_Sync"
+:: TODO: Have a look at making a "nice name" out of this. Such as "Meindbender Sync".
 for /F %%i in ("%1") do @set PROJECT=%%~nxi
 
-if Not exist %PROJECTDIR% (
+if not exist %PROJECTDIR% (
 	echo Creating new project "%PROJECT%"..
 
 	mkdir %PROJECTDIR%\assets
@@ -28,18 +32,32 @@ if Not exist %PROJECTDIR% (
 	rem etc..
 )
 
+pushd %PROJECTDIR%\%2
+
+
 echo+
-echo %PROJECT% -----------
+echo  ASSETS -----------
+echo+
+
+:: List available assets, without their .bat suffix
+setlocal enabledelayedexpansion
+for %%i in (*.bat) do (
+    set temp=%%i
+    echo   !temp:.bat=!
+)
+
 echo+
 echo   1. Type first letters of asset
 echo   2. Press [TAB] to auto-complete
 echo+
-echo   For example:
-echo+
-echo   $ sh01
-echo   $ Fiona
-echo   $ CatFish
-echo+
-echo --------------------------------------
+echo  --------------------------------------
 
-pushd %PROJECTDIR%\%2
+goto :eof
+
+:missing_project
+   	echo ERROR: Missing FULLPATH
+:missing_subdirectory
+    echo ERROR: Missing SUBFOLDER
+
+echo+
+echo Syntax: _mkproject FULLPATH SUBFOLDER
