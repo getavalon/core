@@ -45,6 +45,11 @@ set PYTHONPATH=%GIT%\pyblish-mindbender\mindbender\maya\pythonpath;%PYTHONPATH%
 set MAYA_PLUG_IN_PATH=M:\f03_assets\include\maya\scripts\Plugins;%MAYA_PLUG_IN_PATH%
 set PYTHONPATH=M:\f03_assets\include\maya\scripts;%PYTHONPATH%
 
+:: These cause Maya to "phone home" which occasionally causes
+:: a lag or delay in the user interface. They have no side-effect.
+set MAYA_DISABLE_CIP=1
+set MAYA_DISABLE_CER=1
+
 :: Launch (local) Maya
 echo Launching Maya @ %WORKDIR%..
 start "Maya" "c:\program files\autodesk\maya2016\bin\maya.exe" -proj %WORKDIR% %*
