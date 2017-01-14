@@ -24,46 +24,6 @@ self.log = logging.getLogger("pyblish-mindbender")
 self._is_installed = False
 
 
-def default_host():
-    """A default host, in place of anything better
-
-    This may be considered as reference for the
-    interface a host must implement. It also ensures
-    that the system runs, even when nothing is there
-    to support it.
-
-    """
-
-    host = types.ModuleType("defaultHost")
-    host.__dict__.update({
-        "ls": lambda: [],
-        "load": lambda subset, version=-1, representation=None: None,
-        "create": lambda name, family: "my_instance",
-    })
-
-    return host
-
-
-def debug_host():
-    host = types.ModuleType("debugHost")
-    host.__dict__.update({
-        "ls": lambda: [],
-        "load": lambda subset, version=-1, representation=None:
-            sys.stdout.write(json.dumps({
-                "subset": subset,
-                "version": version,
-                "representation": representation
-            }, indent=4) + "\n"),
-        "create": lambda name, family:
-            sys.stdout.write(json.dumps({
-                "name": name,
-                "family": family,
-            }, indent=4))
-    })
-
-    return host
-
-
 def install(host):
     """Install `host` into the running Python session.
 
@@ -436,3 +396,44 @@ def deregister_plugins():
 
 def deregister_host():
     _registered_host["_"] = default_host()
+
+
+def default_host():
+    """A default host, in place of anything better
+
+    This may be considered as reference for the
+    interface a host must implement. It also ensures
+    that the system runs, even when nothing is there
+    to support it.
+
+    """
+
+    host = types.ModuleType("defaultHost")
+    host.__dict__.update({
+        "ls": lambda: [],
+        "load": lambda subset, version=-1, representation=None: None,
+        "create": lambda name, family, nodes=None: "my_instance",
+    })
+
+    return host
+
+
+def debug_host():
+    """A debug host, useful to debugging features that depend on a host"""
+    host = types.ModuleType("debugHost")
+    host.__dict__.update({
+        "ls": lambda: [],
+        "load": lambda subset, version=-1, representation=None:
+            sys.stdout.write(json.dumps({
+                "subset": subset,
+                "version": version,
+                "representation": representation
+            }, indent=4) + "\n"),
+        "create": lambda name, family, nodes=None:
+            sys.stdout.write(json.dumps({
+                "name": name,
+                "family": family,
+            }, indent=4))
+    })
+
+    return host
