@@ -21,7 +21,7 @@
             "type": "string"
         },
         "path": {
-            "description": "Unformatted path",
+            "description": "Unformatted path to version.",
             "type": "string"
         }
     }
