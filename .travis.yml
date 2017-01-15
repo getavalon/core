@@ -5,26 +5,16 @@ dist: trusty
 
 python:
   - 2.7
+  - 3.5
 
-virtualenv:
-  # apt-install ends up amongst system packages
-  system_site_packages: true
+services:
+  - docker
 
 install:
-  - sudo apt-get install -y python-pyside
-  - pip install coveralls pyblish-base>=1.4.2
-
-before_script:
-  - "export DISPLAY=:99.0"
-  - "sh -e /etc/init.d/xvfb start"
-  - sleep 3 # give xvfb some time to start
+  - docker build -t pyblish/mindbender -f Dockerfile-maya2016 .
 
 script:
-  # Run tests
-  - python run_tests.py
-
-  # Test setup.py
-  - pip install file://$(pwd)
+  - docker run --rm -v $(pwd):/repo pyblish/mindbender
 
 after_success:
   - coveralls

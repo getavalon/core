@@ -7,11 +7,10 @@
 :: 	 %2: Subdirectory, e.g. asset or film
 ::
 :: Variables:
-::   %PROJECT%: Basename of project directory, e.g. p999_Meindbender_Sync
 ::   %PROJECTDIR%: Absolute path to project directory
 ::
 :: Example:
-::   $ p999_Meindbender_Sync
+::   $ call _mkproject.bat %~dp0ProjectName assets
 
 @echo off
 
@@ -19,10 +18,6 @@ if "%1"=="" goto :missing_project
 if "%2"=="" goto :missing_subdirectory
 
 set PROJECTDIR=%1
-
-:: Use basename of path as project name, e.g. "p999_Meindbender_Sync"
-:: TODO: Have a look at making a "nice name" out of this. Such as "Meindbender Sync".
-for /F %%i in ("%1") do @set PROJECT=%%~nxi
 
 if not exist %PROJECTDIR% (
 	echo Creating new project "%PROJECT%"..

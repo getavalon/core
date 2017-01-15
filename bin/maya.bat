@@ -17,9 +17,8 @@
 if Not exist "c:\program files\autodesk\maya2016\bin\maya.exe" goto :missing_app
 
 :: if user forgot to set project or asset
-if "%PROJECTDIR%"=="0" goto :missing_set_project
-
-if "%ASSET%"=="0" goto :missing_set_asset
+if "%PROJECTDIR%"=="" goto :missing_set_project
+if "%ASSET%"=="" goto :missing_set_asset
 
 :: If user forgets to include task with "maya"..
 if "%1"=="" goto :missing_task
@@ -38,12 +37,12 @@ if Not exist %WORKDIR% (
 )
 
 :: userSetup.py files
-set PYTHONPATH=%GIT%\pyblish-maya\pyblish_maya\pythonpath;%PYTHONPATH%
-set PYTHONPATH=%GIT%\pyblish-mindbender\mindbender\maya\pythonpath;%PYTHONPATH%
+set PYTHONPATH=%PYBLISH_MAYA%\pyblish_maya\pythonpath;%PYTHONPATH%
+set PYTHONPATH=%PYBLISH_MINDBENDER%\mindbender\maya\pythonpath;%PYTHONPATH%
 
 :: MB Tools
-set MAYA_PLUG_IN_PATH=M:\f03_assets\include\maya\scripts\Plugins;%MAYA_PLUG_IN_PATH%
-set PYTHONPATH=M:\f03_assets\include\maya\scripts;%PYTHONPATH%
+rem set MAYA_PLUG_IN_PATH=M:\f03_assets\include\maya\scripts\Plugins;%MAYA_PLUG_IN_PATH%
+rem set PYTHONPATH=M:\f03_assets\include\maya\scripts;%PYTHONPATH%
 
 :: These cause Maya to "phone home" which occasionally causes
 :: a lag or delay in the user interface. They have no side-effect.
@@ -57,14 +56,14 @@ start "Maya" "c:\program files\autodesk\maya2016\bin\maya.exe" -proj %WORKDIR% %
 goto :eof
 
 :missing_task
-   	Echo Which task? E.g. "maya modeling" or "maya rigging"
+   	echo Which task? E.g. "maya modeling" or "maya rigging"
 :missing_set_project
-    Echo You must set a project before Launch
-    Exit /B
+    echo You must set a project before Launch
+    exit /B
 :missing_set_asset
-    Echo You have a project set %PROJECTDIR%
-    Echo You must set a Asset before Launch
-    Exit /B
+    echo You have a project set %PROJECTDIR%
+    echo You must set a Asset before Launch
+    exit /B
 :missing_app
-    Echo You dont have the app installed on your workstation, or could be you dont have correct version
-    Exit /B
+    echo You dont have the app installed on your workstation, or could be you dont have correct version
+    exit /B

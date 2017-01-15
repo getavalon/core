@@ -4,8 +4,6 @@ from ...vendor.Qt import QtWidgets, QtCore
 from ... import pipeline
 from .. import lib
 
-from maya import cmds
-
 self = sys.modules[__name__]
 self._window = None
 
@@ -154,14 +152,10 @@ class Window(QtWidgets.QDialog):
             name = self.findChild(QtWidgets.QWidget, "Name").text()
 
             try:
-                nodes = list()
-                if useselection_chk.checkState():
-                    nodes = cmds.ls(selection=True)
-
                 host = pipeline.registered_host()
-                instance = host.create(name, family, nodes)
-
-                cmds.select(instance, noExpand=True)
+                host.create(name, family, options={
+                    "useSelection": bool(useselection_chk.checkState())
+                })
 
             except NameError as e:
                 error_msg.setText(str(e))

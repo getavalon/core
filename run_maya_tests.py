@@ -1,4 +1,9 @@
-"""Test Pure Python functionality"""
+"""Use Mayapy for testing
+
+Usage:
+    $ mayapy run_maya_tests.py
+
+"""
 
 import sys
 import nose
@@ -9,6 +14,9 @@ from nose_exclude import NoseExclude
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 if __name__ == "__main__":
+    from maya import standalone
+    standalone.initialize()
+
     argv = sys.argv[:]
     argv.extend([
 
@@ -20,9 +28,10 @@ if __name__ == "__main__":
 
         "--verbose",
         "--with-doctest",
-        "--exclude-dir=mindbender/maya",
         "--exclude-dir=mindbender/nuke",
         "--exclude-dir=mindbender/houdini",
+        "--exclude-dir=mindbender/schema",
+        "--exclude-dir=mindbender/plugins",
 
         # We can expect any vendors to
         # be well tested beforehand.

@@ -10,11 +10,16 @@
 
     "required": [
         "schema",
+        "name",
         "path"
     ],
 
     "properties": {
         "schema": {"type": "string"},
+        "name": {
+            "description": "Full name of application object",
+            "type": "string"
+        },
         "path": {
             "description": "Absolute path",
             "type": "string"

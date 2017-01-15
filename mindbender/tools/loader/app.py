@@ -266,7 +266,6 @@ class Window(QtWidgets.QDialog):
         assert subset
 
         try:
-            print(api.registered_host())
             api.registered_host().load(asset, subset)
 
         except ValueError as e:

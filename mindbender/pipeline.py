@@ -4,6 +4,7 @@ import json
 import types
 import shutil
 import logging
+import inspect
 import tempfile
 import contextlib
 
@@ -14,9 +15,12 @@ from . import (
     _registered_families,
     _registered_data,
     _registered_formats,
+    _registered_loaders_paths,
     _registered_host,
     _registered_root,
 )
+
+from .vendor import six
 
 self = sys.modules[__name__]
 
@@ -66,6 +70,106 @@ def is_installed():
     """
 
     return self._is_installed
+
+
+class Loader(object):
+    families = list()
+
+    def process(self, asset, subset, version, representation):
+        pass
+
+
+def discover_loaders():
+    """Find and return available loaders
+
+    """
+
+    loaders = dict()
+
+    # Include plug-ins from registered paths
+    for path in _registered_loaders_paths:
+        path = os.path.normpath(path)
+
+        assert os.path.isdir(path), "%s is not a directory" % path
+
+        for fname in os.listdir(path):
+            abspath = os.path.join(path, fname)
+
+            if not os.path.isfile(abspath):
+                continue
+
+            mod_name, mod_ext = os.path.splitext(fname)
+
+            if not mod_ext == ".py":
+                continue
+
+            module = types.ModuleType(mod_name)
+            module.__file__ = abspath
+
+            try:
+                with open(abspath) as f:
+                    six.exec_(f.read(), module.__dict__)
+
+                # Store reference to original module, to avoid
+                # garbage collection from collecting it's global
+                # imports, such as `import os`.
+                sys.modules[mod_name] = module
+
+            except Exception as err:
+                print("Skipped: \"%s\" (%s)", mod_name, err)
+                continue
+
+            for plugin in loaders_from_module(module):
+                if plugin.__name__ in loaders:
+                    print("Duplicate plug-in found: %s", plugin)
+                    continue
+
+                loaders[plugin.__name__] = plugin
+
+    return list(loaders.values())
+
+
+def loaders_from_module(module):
+    """Return plug-ins from module
+
+    Arguments:
+        module (types.ModuleType): Imported module from which to
+            parse valid Pyblish plug-ins.
+
+    Returns:
+        List of plug-ins, or empty list if none is found.
+
+    """
+
+    loaders = list()
+
+    for name in dir(module):
+
+        # It could be anything at this point
+        obj = getattr(module, name)
+
+        if not inspect.isclass(obj):
+            continue
+
+        if not issubclass(obj, Loader):
+            continue
+
+        loaders.append(obj)
+
+    return loaders
+
+
+def register_loaders_path(path):
+    path = os.path.normpath(path)
+    _registered_loaders_paths.add(path)
+
+
+def registered_loaders_paths():
+    return _registered_loaders_paths.copy()
+
+
+def deregister_loaders_path(path):
+    _registered_loaders_paths.pop(path)
 
 
 def ls(root=None):
@@ -311,9 +415,10 @@ def register_host(host):
 
 def register_plugins():
     """Register accompanying plugins"""
-    from . import plugins
-    plugin_path = os.path.dirname(plugins.__file__)
-    api.register_plugin_path(plugin_path)
+    module_path = sys.modules[__name__].__file__
+    package_path = os.path.dirname(module_path)
+    plugins_path = os.path.join(package_path, "plugins")
+    api.register_plugin_path(plugins_path)
 
 
 def register_data(key, value, help=None):
@@ -326,17 +431,11 @@ def register_data(key, value, help=None):
 
     """
 
-    _registered_data.append({
-        "key": key,
-        "value": value,
-        "help": help or ""
-    })
+    _registered_data[key] = value
 
 
 def deregister_data(key):
-    for index, key in enumerate(list(_registered_data)):
-        if key["name"] == key:
-            _registered_data.pop(index)
+    _registered_data.pop(key)
 
 
 def register_family(name,
@@ -358,7 +457,7 @@ def register_family(name,
     _registered_families[name] = {
         "name": name,
         "label": label,
-        "data": data or [],
+        "data": data or {},
         "help": help or "",
         "loader": loader
     }
@@ -377,7 +476,7 @@ def registered_families():
 
 
 def registered_data():
-    return _registered_data[:]
+    return _registered_data.copy()
 
 
 def registered_host():

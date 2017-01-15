@@ -1,0 +1,1 @@
+call _mkasset Bruce %~dp0

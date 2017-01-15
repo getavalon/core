@@ -70,9 +70,7 @@ def unique_namespace(namespace, format="%02d", suffix=""):
 
 
 def read(node):
-    """Return user-defined attributes from `node`
-
-    """
+    """Return user-defined attributes from `node`"""
 
     data = dict()
 
@@ -180,10 +178,13 @@ def maintained_selection():
     """Maintain selection during context
 
     Example:
+        >>> scene = cmds.file(new=True, force=True)
+        >>> node = cmds.createNode("transform", name="Test")
+        >>> cmds.select("persp")
         >>> with maintained_selection():
-        ...     # Modify selection
-        ...     cmds.select('node', replace=True)
-        >>> # Selection restored
+        ...     cmds.select("Test", replace=True)
+        >>> "Test" in cmds.ls(selection=True)
+        False
 
     """
 

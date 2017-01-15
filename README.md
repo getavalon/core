@@ -24,6 +24,16 @@ $ pip install pyblish-mindbender
 
 - [Read more](http://pyblish.com/pyblish-mindbender)
 
+### Testing
+
+```bash
+cd pyblish-mindbender
+docker build -t pyblish/mindbender -f Dockerfile-maya2016 .
+
+# Run nosetests (Linux/OSX)
+docker run --rm -v $(pwd):/repo pyblish/mindbender
+```
+
 ### Code convention
 
 Below are some of the standard practices applied to this repositories.

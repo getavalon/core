@@ -26,22 +26,28 @@ from .pipeline import (
 
     ls,
 
+    Loader,
+    discover_loaders,
+
     register_root,
     register_data,
     register_host,
     register_format,
     register_family,
+    register_loaders_path,
     register_plugins,
+
+    registered_host,
+    registered_families,
+    registered_loaders_paths,
+    registered_formats,
+    registered_data,
+    registered_root,
 
     deregister_plugins,
     deregister_family,
     deregister_data,
-
-    registered_host,
-    registered_families,
-    registered_formats,
-    registered_data,
-    registered_root,
+    deregister_loaders_path,
 
     any_representation,
 
@@ -69,14 +75,19 @@ __all__ = [
 
     "ls",
 
+    "Loader",
+    "discover_loaders",
+
     "register_host",
     "register_data",
     "register_format",
     "register_family",
+    "register_loaders_path",
     "register_plugins",
     "register_root",
 
     "registered_root",
+    "registered_loaders_paths",
     "registered_host",
     "registered_families",
     "registered_formats",
@@ -85,6 +96,7 @@ __all__ = [
     "deregister_plugins",
     "deregister_family",
     "deregister_data",
+    "deregister_loaders_path",
 
     "format_staging_dir",
     "format_shared_dir",

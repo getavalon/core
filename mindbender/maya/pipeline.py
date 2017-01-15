@@ -1,6 +1,5 @@
 import os
 import sys
-import json
 import logging
 
 from .. import api
@@ -45,45 +44,41 @@ def install():
     api.register_format(".mb")
     api.register_format(".abc")
 
+    # Register default loaders
+    lib_py_path = sys.modules[__name__].__file__
+    package_path = os.path.dirname(lib_py_path)
+    loaders_path = os.path.join(package_path, "loaders")
+    api.register_loaders_path(loaders_path)
+
     # These families will appear in the Creator GUI
     api.register_family(
         name="mindbender.model",
         label="Model",
         help="Polygonal geometry for animation",
-        loader=_loader_model
     )
 
     api.register_family(
         name="mindbender.rig",
         label="Rig",
         help="Character rig",
-        loader=_loader_rig
     )
 
     api.register_family(
         name="mindbender.lookdev",
         label="Look",
         help="Shaders, textures and look",
-        loader=_loader_lookdev
     )
 
     api.register_family(
         name="mindbender.animation",
         label="Animation",
         help="Any character or prop animation",
-        loader=_loader_animation,
-        data=[
-            {
-                "key": "startFrame",
-                "value": cmds.playbackOptions(query=True,
-                                              animationStartTime=True)
-            },
-            {
-                "key": "endFrame",
-                "value": cmds.playbackOptions(query=True,
-                                              animationEndTime=True)
-            },
-        ]
+        data={
+            "startFrame": cmds.playbackOptions(query=True,
+                                               animationStartTime=True),
+            "endFrame": cmds.playbackOptions(query=True,
+                                             animationEndTime=True),
+        }
     )
 
 
@@ -142,13 +137,10 @@ def _register_root():
 
 def ls():
     """List loaded assets"""
-    for container in cmds.ls("*.id",
-                             type="transform",
-                             objectsOnly=True,
-                             long=True):
+    for container in lib.lsattr("id", "pyblish.mindbender.container"):
         data = dict(
             schema="pyblish-mindbender:container-1.0",
-            path=container,
+            name=container,
             **lib.read(container)
         )
 
@@ -189,13 +181,13 @@ def load(asset, subset, version=-1, representation=None):
         #   each compatible but different.
         representation = api.any_representation(version)
 
-    for family, data in api.registered_families().items():
-        if family in version.get("families"):
-            loader = data["loader"] or _loader_model
-            loader(asset, subset, version, representation)
+    for Loader in api.discover_loaders():
+        for family in version.get("families", list()):
+            if family in Loader.families:
+                Loader().process(asset, subset, version, representation)
 
 
-def create(name, family, nodes=None):
+def create(name, family, options=None):
     """Create new instance
 
     Associate nodes with a name and family. These nodes are later
@@ -209,7 +201,7 @@ def create(name, family, nodes=None):
     Arguments:
         name (str): Name of instance
         family (str): Name of family
-        nodes (list): Include these in the new instance
+        options (dict, optional): Additional options
 
     Raises:
         NameError on `name` already exists
@@ -218,15 +210,15 @@ def create(name, family, nodes=None):
 
     """
 
-    data = api.registered_families().get(family)
+    family_ = api.registered_families().get(family)
 
-    assert data is not None, "{0} is not a valid family".format(
+    assert family_ is not None, "{0} is not a valid family".format(
         family)
 
-    data = api.registered_data() + data.get("data", [])
+    data = dict(api.registered_data(), **family_.get("data", {}))
 
-    # Convert to dictionary
-    data = dict((i["key"], i["value"]) for i in data)
+    import json
+    print("Data: %s" % json.dumps(data, indent=4))
 
     instance = "%s_SET" % name
 
@@ -234,6 +226,11 @@ def create(name, family, nodes=None):
         raise NameError("\"%s\" already exists." % instance)
 
     with lib.maintained_selection():
+        nodes = list()
+
+        if options.get("useSelection"):
+            nodes = cmds.ls(selection=True)
+
         instance = cmds.sets(nodes, name=instance)
 
     # Resolve template
@@ -241,7 +238,7 @@ def create(name, family, nodes=None):
         try:
             data[key] = str(value).format(
                 name=name,
-                family=data["name"]
+                family=family_["name"]
             )
         except KeyError as e:
             raise KeyError("Invalid dynamic property: %s" % e)
@@ -251,7 +248,7 @@ def create(name, family, nodes=None):
     return instance
 
 
-def containerise(name, namespace, nodes, version):
+def containerise(name, namespace, nodes, version, suffix="_CON"):
     """Bundle `nodes` into an assembly and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
@@ -268,7 +265,7 @@ def containerise(name, namespace, nodes, version):
 
     """
 
-    container = cmds.sets(nodes, name=namespace + ":" + name + "_CON")
+    container = cmds.sets(nodes, name=namespace + ":" + name + suffix)
 
     data = [
         ("id", "pyblish.mindbender.container"),
@@ -294,177 +291,6 @@ def containerise(name, namespace, nodes, version):
     # cmds.setAttr(container + ".verticesOnlySet", True)
 
     return container
-
-
-def _loader_model(asset, subset, version, representation):
-    """All-round loader
-
-    Stores the imported asset in a container named after the asset.
-
-    Arguments:
-        asset ("pyblish-mindbender:asset-1.0"): Asset to be loaded
-        subset ("pyblish-mindbender:subset-1.0"): Subset to be loaded
-        version ("pyblish-mindbender:version-1.0"): Version to be loaded
-        representation ("pyblish-mindbender:representation-1.0"): Mindbender
-            representation to be loaded.
-
-    """
-
-    fname = representation["path"].format(
-        dirname=version["path"],
-        format=representation["format"]
-    )
-
-    namespace = lib.unique_namespace(asset["name"], suffix="_")
-    name = subset["name"]
-
-    with lib.maintained_selection():
-        nodes = cmds.file(fname,
-                          namespace=namespace,
-                          reference=True,
-                          returnNewNodes=True,
-                          groupReference=True,
-                          groupName=namespace + ":" + name)
-
-    # Containerising
-    containerise(name=name,
-                 namespace=namespace,
-                 nodes=nodes,
-                 version=version)
-
-    # Assign default shader to meshes
-    meshes = cmds.ls(nodes, type="mesh")
-    cmds.sets(meshes, forceElement="initialShadingGroup")
-
-    return cmds.referenceQuery(nodes[0], referenceNode=True)
-
-
-def _loader_rig(asset, subset, version, representation):
-    """Specific loader for rigs
-
-    This automatically creates an instance for animators upon load.
-
-    """
-
-    fname = representation["path"].format(
-        dirname=version["path"],
-        format=representation["format"]
-    )
-
-    namespace = lib.unique_namespace(asset["name"], suffix="_")
-    name = subset["name"]
-
-    nodes = cmds.file(fname,
-                      namespace=namespace,
-                      reference=True,
-                      returnNewNodes=True,
-                      groupReference=True,
-                      groupName=namespace + ":" + name)
-
-    # Containerising
-    containerise(name=name,
-                 namespace=namespace,
-                 nodes=nodes,
-                 version=version)
-
-    # TODO(marcus): We are hardcoding the name "out_SET" here.
-    #   Better register this keyword, so that it can be used
-    #   elsewhere, such as in the Integrator plug-in,
-    #   without duplication.
-    output = next((node for node in nodes if node.endswith("out_SET")), None)
-    assert output, "No output in rig, this is a bug."
-
-    with lib.maintained_selection():
-        # Select contents of output
-        cmds.select(output, noExpand=False)
-
-        # TODO(marcus): Hardcoding the exact family here.
-        #   Better separate the relationship between loading
-        #   rigs and automatically assigning an instance to it.
-        create(name=lib.unique_name(asset["name"], suffix="_SET"),
-               family="mindbender.animation")
-
-    return cmds.referenceQuery(nodes[0], referenceNode=True)
-
-
-def _loader_animation(asset, subset, version, representation):
-    """Specific loader for animation
-
-    This names the resulting container after the subset, rather than asset
-
-    """
-
-    cmds.loadPlugin("AbcImport.mll", quiet=True)
-
-    fname = representation["path"].format(
-        dirname=version["path"],
-        format=representation["format"]
-    )
-
-    name = subset["name"]
-    namespace = subset["name"] + "_"
-
-    if cmds.objExists(namespace + ":" + name):
-        cmds.warning("Asset already imported.")
-
-    nodes = cmds.file(fname,
-                      namespace=namespace,
-                      reference=True,
-                      returnNewNodes=True,
-                      groupReference=True,
-                      groupName=namespace + ":" + name)
-
-    # Containerising
-    containerise(name=name, namespace=namespace, nodes=nodes, version=version)
-
-    return cmds.referenceQuery(nodes[0], referenceNode=True)
-
-
-def _loader_lookdev(asset, subset, version, representation):
-    """Specific loader for lookdev
-
-    """
-
-    fname = representation["path"].format(
-        dirname=version["path"],
-        format=representation["format"]
-    )
-
-    namespace = asset["name"] + "_"
-    name = lib.unique_name(subset["name"])
-
-    with lib.maintained_selection():
-        nodes = cmds.file(fname,
-                          namespace=namespace,
-                          reference=True,
-                          returnNewNodes=True)
-
-    # Containerising
-    containerise(name=name,
-                 namespace=namespace,
-                 nodes=nodes,
-                 version=version)
-
-    # Assign shaders
-    representation = next(
-        (rep for rep in version["representations"]
-            if rep["format"] == ".json"), None)
-
-    if representation is None:
-        cmds.warning("Look development asset has no relationship data.")
-
-    else:
-        path = representation["path"].format(
-            dirname=version["path"],
-            format=representation["format"]
-        )
-
-        with open(path) as f:
-            relationships = json.load(f)
-
-        lib.apply_shaders(relationships)
-
-    return cmds.referenceQuery(nodes[0], referenceNode=True)
 
 
 def _display_missing_dependencies():

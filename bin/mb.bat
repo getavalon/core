@@ -1,63 +1,90 @@
-rem :: Shell API
-rem ::
-rem :: This file is called whenever a user enters a shell
-rem ::
-rem :: Arguments:
-rem :: 	 %1: Absolute path to projects directory
-rem ::
-rem :: Example:
-rem ::   $ mb m:\projects
+:: Terminal API
+::
+:: This file is called whenever a user enters a shell.
+::
+:: Dependencies:
+::  - pyblish-base
+::  - pyblish-maya
+::  - pyblish-nuke
+::  - pyblish-houdini
+::  - pyblish-mindbender
+::
+:: Usage:
+:: 	1. Create a local `mb.bat` file and set the required environment variables
+::  2. Call your `mb.bat`
+::
+:: Example:
+::   $ mb
 
+@echo off
 
-rem @echo off
+if "%1"=="" goto :usage
 
-rem if "%1"=="" goto :missing_root
-rem if "%2"=="" goto :missing_pyblish
+:: External Dependencies
+if "%PYBLISH_BASE%"=="" goto :missing
+if "%PYBLISH_MAYA%"=="" goto :missing
+if "%PYBLISH_MINDBENDER%"=="" goto :missing
 
-rem :: Use $ as prefix to prompt commands
-rem :: The default PROMPT is the current working directory,
-rem :: which can make it look a little daunting due to its length.
-rem set PROMPT=$$ 
+set PYTHONPATH=%PYBLISH_BASE%;%PYTHONPATH%
+set PYTHONPATH=%PYBLISH_MAYA%;%PYTHONPATH%
+set PYTHONPATH=%PYBLISH_LITE%;%PYTHONPATH%
+set PYTHONPATH=%PYBLISH_QML%;%PYTHONPATH%
+set PYTHONPATH=%PYBLISH_MINDBENDER%;%PYTHONPATH%
 
-rem :: Helper variables
-rem rem set BIN=%~dp0%git\pyblish-mindbender\bin
+set PROJECTS=%1
 
-rem :: Expose executables
-rem set PATH=%BIN%;%PATH%
+:: Expose pipeline executables
+set PATH=%PYBLISH_MINDBENDER%\bin;%PATH%
 
-rem :: Enable typing "mb" from a running terminal to return to square 1
-rem set PATH=m:\;%PATH%
+:: --------------------
+:: User interface
+:: --------------------
 
-rem :: Setup environment
-rem call %~dp0%_pyblish.bat
+:: Use $ as prefix to prompt commands
+:: The default PROMPT is the current working directory,
+:: which can make it look a little daunting due to its length.
+set PROMPT=$$ 
 
-rem :: Go to projects directory
-rem pushd %ROOT%
+:: Go to projects directory
+pushd %PROJECTS%
 
-rem :: Print intro
-rem echo+
-rem echo  MEINDBENDER START ---------------------------
-rem echo+
-rem echo+
-rem echo                 _,--,
-rem echo              .-'---./_    __
-rem echo             /o \\     '-.' /
-rem echo             \  //    _.-'._\
-rem echo              `"\)--"`
-rem echo+
-rem echo+
-rem echo   Welcome %USERNAME%!
-rem echo+
-rem echo   1. Type application name, e.g. "maya"
-rem echo   2. Press TAB to cycle through apps/projects
-rem echo+
-rem echo  ---------------------------------------------
-rem echo+
+:: Print intro
+echo+
+echo  MEINDBENDER START ---------------------------
+echo+
+echo+
+echo                 _,--,
+echo              .-'---./_    __
+echo             /o \\     '-.' /
+echo             \  //    _.-'._\
+echo              `"\)--"`
+echo+
+echo+
+echo   Welcome %USERNAME%!
+echo+
+echo   1. Type first characters of a project, e.g. "p999_"
+echo   2. Press TAB to cycle through matching projects
+echo+
+echo  ---------------------------------------------
+echo+
 
-rem :: Open a persistent shell
-rem cmd.exe /K
+:: Clearing old Variables
+SET PROJECTDIR=
+SET ASSET=
 
-rem goto :eof
+:: Open a persistent shell
+cmd.exe /K
 
-rem :missing_root
-rem    	Echo Which ROOT environment variable
+goto :eof
+
+:usage
+	echo Not enough arguments
+	echo Example: mb.bat c:\path\to\projects
+
+:missing
+	echo ERROR: Missing environment variables.
+	if "%PYBLISH_BASE%"=="" echo   - %%PYBLISH_BASE%%
+	if "%PYBLISH_MAYA%"=="" echo   - %%PYBLISH_MAYA%%
+	if "%PYBLISH_MINDBENDER%"=="" echo   - %%PYBLISH_MINDBENDER%%
+
+	exit /b
