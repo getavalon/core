@@ -1,6 +1,6 @@
 //Maya ASCII 2016ff07 scene
 //Name: cube_v001.ma
-//Last modified: Sun, Jan 15, 2017 11:30:27 PM
+//Last modified: Mon, Jan 16, 2017 02:29:16 PM
 //Codeset: 1252
 requires maya "2016ff07";
 currentUnit -l centimeter -a degree -t film;
@@ -12,13 +12,13 @@ fileInfo "osv" "Microsoft Windows 8 Enterprise Edition, 64-bit  (Build 9200)\n";
 createNode transform -s -n "persp";
 	rename -uid "E4FCFCF4-44BC-B128-075A-9088340DD573";
 	setAttr ".v" no;
-	setAttr ".t" -type "double3" 28 21 28 ;
-	setAttr ".r" -type "double3" -27.938352729602379 44.999999999999972 -5.172681101354183e-014 ;
+	setAttr ".t" -type "double3" 1.6014380114803073 1.4353439883459052 2.3564444749488374 ;
+	setAttr ".r" -type "double3" -26.7383527296026 34.200000000000109 1.9227598739416699e-015 ;
 createNode camera -s -n "perspShape" -p "persp";
 	rename -uid "017F52D3-42F4-4FAB-026B-5FBEED6733DF";
 	setAttr -k off ".v" no;
 	setAttr ".fl" 34.999999999999993;
-	setAttr ".coi" 44.82186966202994;
+	setAttr ".coi" 3.1902424097569106;
 	setAttr ".imn" -type "string" "persp";
 	setAttr ".den" -type "string" "persp_depth";
 	setAttr ".man" -type "string" "persp_mask";
@@ -74,6 +74,8 @@ createNode transform -n "model_GRP";
 	rename -uid "AB56520C-4A63-6A2D-F69E-8F8779BE60F3";
 createNode transform -n "pCube1" -p "model_GRP";
 	rename -uid "91E05465-410C-A543-713F-3FB7EF115549";
+	addAttr -ci true -sn "mbID" -ln "mbID" -dt "string";
+	setAttr -k on ".mbID" -type "string" "23j4hk3j4h-4klj32h4k-lh5635-4kj3";
 createNode mesh -n "pCubeShape1" -p "pCube1";
 	rename -uid "8EE2FD3F-4694-E7E2-2A48-108B832CA877";
 	setAttr -k off ".v";
@@ -86,15 +88,15 @@ createNode mesh -n "pCubeShape1" -p "pCube1";
 	setAttr ".cdvm[0]"  0 1 1;
 	setAttr ".vbc" no;
 createNode lightLinker -s -n "lightLinker1";
-	rename -uid "798BD9E2-4BA5-6307-5E18-B5835754B22A";
+	rename -uid "730794A4-4D6F-94EC-A575-1A88E254DF1F";
 	setAttr -s 2 ".lnk";
 	setAttr -s 2 ".slnk";
 createNode displayLayerManager -n "layerManager";
-	rename -uid "B41A55A8-4F3F-7135-D5FC-EAB1E4B833A5";
+	rename -uid "8629A845-4D69-0944-5351-C991C6A38186";
 createNode displayLayer -n "defaultLayer";
 	rename -uid "652891ED-4151-1D81-DE50-8EBAAC51912C";
 createNode renderLayerManager -n "renderLayerManager";
-	rename -uid "94795754-4BF0-B1E8-48B9-B18283980BC1";
+	rename -uid "B6DF6642-48D0-87F0-14DE-C39D874A992F";
 createNode renderLayer -n "defaultRenderLayer";
 	rename -uid "5CF3076A-4BE1-A744-97B9-E193021A6B35";
 	setAttr ".g" yes;
@@ -108,6 +110,7 @@ createNode objectSet -n "modelDefault_SET";
 	addAttr -ci true -sn "family" -ln "family" -dt "string";
 	addAttr -ci true -sn "name" -ln "name" -dt "string";
 	setAttr ".ihi" 0;
+	setAttr -s 2 ".dsm";
 	setAttr ".subset" -type "string" "modelDefault";
 	setAttr ".id" -type "string" "pyblish.mindbender.instance";
 	setAttr ".family" -type "string" "mindbender.model";
@@ -156,6 +159,7 @@ relationship "shadowLink" ":lightLinker1" ":initialParticleSE.message" ":default
 connectAttr "layerManager.dli[0]" "defaultLayer.id";
 connectAttr "renderLayerManager.rlmi[0]" "defaultRenderLayer.rlid";
 connectAttr "model_GRP.iog" "modelDefault_SET.dsm" -na;
+connectAttr "pCube1.iog" "modelDefault_SET.dsm" -na;
 connectAttr "defaultRenderLayer.msg" ":defaultRenderingList1.r" -na;
 connectAttr "pCubeShape1.iog" ":initialShadingGroup.dsm" -na;
 // End of cube_v001.ma

@@ -5,7 +5,6 @@ dist: trusty
 
 python:
   - 2.7
-  - 3.5
 
 services:
   - docker
@@ -14,7 +13,7 @@ install:
   - docker build -t pyblish/mindbender -f Dockerfile-maya2016 .
 
 script:
-  - docker run --rm -v $(pwd):/repo pyblish/mindbender
+  - docker run --rm -v $(pwd):/workspace pyblish/mindbender
 
 after_success:
   - coveralls

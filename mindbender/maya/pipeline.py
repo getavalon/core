@@ -181,10 +181,19 @@ def load(asset, subset, version=-1, representation=None):
         #   each compatible but different.
         representation = api.any_representation(version)
 
+    loaded = False
     for Loader in api.discover_loaders():
         for family in version.get("families", list()):
             if family in Loader.families:
+                print("Running '%s' on '%s'" % (
+                    Loader.__name__, asset["name"]))
+
                 Loader().process(asset, subset, version, representation)
+                loaded = True
+
+    if not loaded:
+        cmds.warning("No loader triggered, check your "
+                     "api.registered_loaders_path()")
 
 
 def create(name, family, options=None):
@@ -217,9 +226,6 @@ def create(name, family, options=None):
 
     data = dict(api.registered_data(), **family_.get("data", {}))
 
-    import json
-    print("Data: %s" % json.dumps(data, indent=4))
-
     instance = "%s_SET" % name
 
     if cmds.objExists(instance):
@@ -228,7 +234,7 @@ def create(name, family, options=None):
     with lib.maintained_selection():
         nodes = list()
 
-        if options.get("useSelection"):
+        if (options or {}).get("useSelection"):
             nodes = cmds.ls(selection=True)
 
         instance = cmds.sets(nodes, name=instance)

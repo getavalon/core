@@ -1,0 +1,23 @@
+{
+    "source": "{root}\\assets\\Bruce", 
+    "version": 1, 
+    "families": [
+        "mindbender.rig"
+    ], 
+    "author": "marcus", 
+    "representations": [
+        {
+            "path": "{dirname}/rigDefault{format}", 
+            "format": ".ma", 
+            "schema": "pyblish-mindbender:representation-1.0"
+        }, 
+        {
+            "path": "{dirname}/source{format}", 
+            "format": ".ma", 
+            "schema": "pyblish-mindbender:representation-1.0"
+        }
+    ], 
+    "path": "{root}\\assets\\Bruce\\publish\\rigDefault\\v001", 
+    "time": "20170116T130206Z", 
+    "schema": "pyblish-mindbender:version-1.0"
+}

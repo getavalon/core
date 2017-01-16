@@ -5,18 +5,13 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && \
 	mayapy -m pip install \
 		nose \
 		nose-exclude \
+		coverage \
 		pyblish-base==1.4.2 \
 		pyblish-maya
 
+# Avoid creation of auxilliary files
+ENV PYTHONDONTWRITEBYTECODE=1
+
 WORKDIR /workspace
 
-ENTRYPOINT [ -e /repo ] && \
-
-	# Avoid the runner creating additional
-	# files in the original directory while running.
-	cp -r /repo/* ./ && \
-
-	mayapy -u run_maya_tests.py || \
-
-	echo "ERROR: Be sure to mount pyblish-mindbender" \
-		 "to '/repo' before running"
+ENTRYPOINT mayapy -u run_maya_tests.py

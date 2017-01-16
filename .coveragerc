@@ -1,0 +1,9 @@
+[run]
+source = mindbender
+
+[report]
+include = *mindbender*
+omit = 
+    */vendor*
+    */tests*
+    */run_*

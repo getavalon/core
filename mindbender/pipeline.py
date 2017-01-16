@@ -165,7 +165,7 @@ def register_loaders_path(path):
 
 
 def registered_loaders_paths():
-    return _registered_loaders_paths.copy()
+    return list(_registered_loaders_paths)
 
 
 def deregister_loaders_path(path):

@@ -9,7 +9,7 @@ from maya import cmds
 class LookLoader(api.Loader):
     """Specific loader for lookdev"""
 
-    families = ["mindbender.look"]
+    families = ["mindbender.lookdev"]
 
     def process(self, asset, subset, version, representation):
         fname = representation["path"].format(
@@ -42,7 +42,7 @@ class LookLoader(api.Loader):
 
         else:
             path = representation["path"].format(
-                dirname=version["path"],
+                dirname=version["path"].format(root=api.registered_root()),
                 format=representation["format"]
             )
 

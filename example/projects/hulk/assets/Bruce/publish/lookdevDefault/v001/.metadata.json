@@ -1,0 +1,23 @@
+{
+    "source": "{root}\\assets\\Bruce\\work\\lookdev\\marcus\\maya\\scenes\\lookdev_v001.ma", 
+    "version": 1, 
+    "families": [
+        "mindbender.lookdev"
+    ], 
+    "author": "marcus", 
+    "representations": [
+        {
+            "path": "{dirname}/lookdevDefault{format}", 
+            "format": ".json", 
+            "schema": "pyblish-mindbender:representation-1.0"
+        }, 
+        {
+            "path": "{dirname}/lookdevDefault{format}", 
+            "format": ".ma", 
+            "schema": "pyblish-mindbender:representation-1.0"
+        }
+    ], 
+    "path": "{root}\\assets\\Bruce\\publish\\lookdevDefault\\v001", 
+    "time": "20170116T143016Z", 
+    "schema": "pyblish-mindbender:version-1.0"
+}

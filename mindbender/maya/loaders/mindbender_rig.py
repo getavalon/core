@@ -51,6 +51,7 @@ class RigLoader(api.Loader):
             #   Better separate the relationship between loading
             #   rigs and automatically assigning an instance to it.
             pipeline.create(name=lib.unique_name(asset["name"], suffix="_SET"),
-                            family="mindbender.animation")
+                            family="mindbender.animation",
+                            options={"useSelection": True})
 
         return cmds.referenceQuery(nodes[0], referenceNode=True)

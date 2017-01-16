@@ -17,11 +17,10 @@
 :: if Not exist "C:\Program Files\The Foundry\NUKE\Nuke10.0v2\Nuke10.0.exe" goto :missing_app
 
 :: if user forgot to set project or asset
-if "%PROJECTDIR%"=="0" goto :missing_set_project
+if "%PROJECTDIR%"=="" goto :missing_set_project
+if "%ASSET%"=="" goto :missing_set_asset
 
-if "%ASSET%"=="0" goto :missing_set_asset
-
-:: If user forgets to include task with "nuke"..
+:: If user forgets to include task with "maya"..
 if "%1"=="" goto :missing_task
 
 set WORKDIR=%cd%\work\%1\%USERNAME%\nuke
@@ -36,15 +35,9 @@ if Not exist %WORKDIR% (
     rem etc..
 )
 
-:: Helper variables
-set PYBLISH=m:\f03_assets\include\pyblish
-set GIT=%PYBLISH%\git
-
-:: Install Nuke-specific Pyblish environment
-set NUKE_PATH=%PYBLISH%\etc\nuke;%NUKE_PATH%
-
-:: Nuke-specific plug-ins
-set PYBLISHPLUGINPATH=%PYBLISH%\plugins\nuke;%PYBLISHPLUGINPATH%
+:: Initialisation files
+set PYTHONPATH=%PYBLISH_MAYA%\pyblish_nuke\pythonpath;%PYTHONPATH%
+set PYTHONPATH=%PYBLISH_MINDBENDER%\mindbender\nuke\pythonpath;%PYTHONPATH%
 
 :: Set filepath for open script window
 pushd %WORKDIR%\nk
