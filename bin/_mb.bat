@@ -7,6 +7,8 @@
 ::  - pyblish-maya
 ::  - pyblish-nuke
 ::  - pyblish-houdini
+::  - pyblish-lite
+::  - pyblish-qml
 ::  - pyblish-mindbender
 ::
 :: Usage:
@@ -23,10 +25,14 @@ if "%1"=="" goto :usage
 :: External Dependencies
 if "%PYBLISH_BASE%"=="" goto :missing
 if "%PYBLISH_MAYA%"=="" goto :missing
+if "%PYBLISH_NUKE%"=="" goto :missing
+if "%PYBLISH_LITE%"=="" goto :missing
+if "%PYBLISH_QML%"=="" goto :missing
 if "%PYBLISH_MINDBENDER%"=="" goto :missing
 
 set PYTHONPATH=%PYBLISH_BASE%;%PYTHONPATH%
 set PYTHONPATH=%PYBLISH_MAYA%;%PYTHONPATH%
+set PYTHONPATH=%PYBLISH_NUKE%;%PYTHONPATH%
 set PYTHONPATH=%PYBLISH_LITE%;%PYTHONPATH%
 set PYTHONPATH=%PYBLISH_QML%;%PYTHONPATH%
 set PYTHONPATH=%PYBLISH_MINDBENDER%;%PYTHONPATH%
@@ -47,6 +53,10 @@ set PROMPT=$$
 
 :: Go to projects directory
 pushd %PROJECTS%
+
+:: Clear screen
+title Mindbender Pipeline
+cls
 
 :: Print intro
 echo+
@@ -85,6 +95,9 @@ goto :eof
 	echo ERROR: Missing environment variables.
 	if "%PYBLISH_BASE%"=="" echo   - %%PYBLISH_BASE%%
 	if "%PYBLISH_MAYA%"=="" echo   - %%PYBLISH_MAYA%%
+	if "%PYBLISH_NUKE%"=="" echo   - %%PYBLISH_NUKE%%
+	if "%PYBLISH_LITE%"=="" echo   - %%PYBLISH_LITE%%
+	if "%PYBLISH_QML%"=="" echo   - %%PYBLISH_QML%%
 	if "%PYBLISH_MINDBENDER%"=="" echo   - %%PYBLISH_MINDBENDER%%
 
 	exit /b

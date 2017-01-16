@@ -29,6 +29,7 @@ if Not exist %WORKDIR% (
     echo Creating new task "%1"..
 
     :: Arvid, redigera gärna den här Nuke mapp strukturen
+    mkdir %WORKDIR%\nk
     mkdir %WORKDIR%\scripts
     mkdir %WORKDIR%\cache
     mkdir %WORKDIR%\render
@@ -46,11 +47,11 @@ set NUKE_PATH=%PYBLISH%\etc\nuke;%NUKE_PATH%
 set PYBLISHPLUGINPATH=%PYBLISH%\plugins\nuke;%PYBLISHPLUGINPATH%
 
 :: Set filepath for open script window
-pushd %WORKDIR%
+pushd %WORKDIR%\nk
 
 :: Launch (local) Nuke
 echo Launching NukeX @ %WORKDIR%..
-start "NukeX" "C:\Program Files\The Foundry\NUKE\Nuke10.0v2\Nuke10.0" --nukeassist
+start "NukeX" "C:\Program Files\The Foundry\NUKE\Nuke10.0v2\Nuke10.0" --nukex
 
 popd
 goto :eof

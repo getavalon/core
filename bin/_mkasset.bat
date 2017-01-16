@@ -18,6 +18,11 @@ If not exist %ROOT% (
 	mkdir %ROOT%
 )
 
+title %PROJECTDIR% / %ASSET%
+
+:: Clear screen
+cls
+
 echo+
 echo %ASSET% -----------
 echo+

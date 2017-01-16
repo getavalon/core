@@ -3,8 +3,9 @@
 :: This file is called whenever a user enters a project, such p999_Meindbender_Sync
 ::
 :: Arguments:
-:: 	 %1: Absolute path to project
-:: 	 %2: Subdirectory, e.g. asset or film
+::   %1: Path: Absolute path to projects
+:: 	 %2: Name: Name of project
+:: 	 %3: Stage: assets or film
 ::
 :: Variables:
 ::   %PROJECTDIR%: Absolute path to project directory
@@ -14,10 +15,11 @@
 
 @echo off
 
-if "%1"=="" goto :missing_project
-if "%2"=="" goto :missing_subdirectory
+if "%1"=="" goto :missing_projectdir
+if "%2"=="" goto :missing_name
+if "%3"=="" goto :missing_stage
 
-set PROJECTDIR=%1
+set PROJECTDIR=%1%2
 
 if not exist %PROJECTDIR% (
 	echo Creating new project "%PROJECT%"..
@@ -27,8 +29,7 @@ if not exist %PROJECTDIR% (
 	rem etc..
 )
 
-pushd %PROJECTDIR%\%2
-
+pushd %PROJECTDIR%\%3
 
 echo+
 echo  ASSETS -----------
@@ -49,10 +50,14 @@ echo  --------------------------------------
 
 goto :eof
 
-:missing_project
+:missing_name
    	echo ERROR: Missing FULLPATH
-:missing_subdirectory
-    echo ERROR: Missing SUBFOLDER
+   	exit /b
+:missing_projectdir
+	exit /b
+:missing_stage
+    echo Assets or Film?
+    exit /b
 
 echo+
 echo Syntax: _mkproject FULLPATH SUBFOLDER
