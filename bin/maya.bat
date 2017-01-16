@@ -40,10 +40,6 @@ if Not exist %WORKDIR% (
 set PYTHONPATH=%PYBLISH_MAYA%\pyblish_maya\pythonpath;%PYTHONPATH%
 set PYTHONPATH=%PYBLISH_MINDBENDER%\mindbender\maya\pythonpath;%PYTHONPATH%
 
-:: MB Tools
-rem set MAYA_PLUG_IN_PATH=M:\f03_assets\include\maya\scripts\Plugins;%MAYA_PLUG_IN_PATH%
-rem set PYTHONPATH=M:\f03_assets\include\maya\scripts;%PYTHONPATH%
-
 :: These cause Maya to "phone home" which occasionally causes
 :: a lag or delay in the user interface. They have no side-effect.
 set MAYA_DISABLE_CIP=1
