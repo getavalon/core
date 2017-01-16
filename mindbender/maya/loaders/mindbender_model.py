@@ -22,7 +22,6 @@ class ModelLoader(api.Loader):
         namespace = lib.unique_namespace(asset["name"], suffix="_")
         name = subset["name"]
 
-        print("Loading %s" % fname)
         with lib.maintained_selection():
             nodes = cmds.file(fname,
                               namespace=namespace,
