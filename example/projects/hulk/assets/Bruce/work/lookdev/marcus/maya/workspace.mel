@@ -1,0 +1,4 @@
+//Maya 2016 Project Definition
+
+workspace -fr "particles" "particles";
+workspace -fr "templates" "assets";

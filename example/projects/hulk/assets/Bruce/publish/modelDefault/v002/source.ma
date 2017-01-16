@@ -1,9 +1,10 @@
 //Maya ASCII 2016ff07 scene
-//Name: cube_v001.ma
-//Last modified: Mon, Jan 16, 2017 02:29:16 PM
+//Name: source.ma
+//Last modified: Mon, Jan 16, 2017 02:29:12 PM
 //Codeset: 1252
 requires maya "2016ff07";
 currentUnit -l centimeter -a degree -t film;
+fileInfo "exportedFrom" "C:/Users/marcus/Dropbox/AF/development/marcus/pyblish/pyblish-mindbender/example/projects/hulk/assets/Bruce/work/modeling/marcus/maya/scenes/cube_v001.ma";
 fileInfo "application" "maya";
 fileInfo "product" "Maya 2016";
 fileInfo "version" "2016";
@@ -162,4 +163,4 @@ connectAttr "model_GRP.iog" "modelDefault_SET.dsm" -na;
 connectAttr "pCube1.iog" "modelDefault_SET.dsm" -na;
 connectAttr "defaultRenderLayer.msg" ":defaultRenderingList1.r" -na;
 connectAttr "pCubeShape1.iog" ":initialShadingGroup.dsm" -na;
-// End of cube_v001.ma
+// End of source.ma

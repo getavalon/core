@@ -1,0 +1,23 @@
+{
+    "source": "{root}\\assets\\Bruce\\work\\rigging\\marcus\\maya\\scenes\\rig_v001.ma", 
+    "version": 3, 
+    "families": [
+        "mindbender.rig"
+    ], 
+    "author": "marcus", 
+    "representations": [
+        {
+            "path": "{dirname}/rigDefault{format}", 
+            "format": ".ma", 
+            "schema": "pyblish-mindbender:representation-1.0"
+        }, 
+        {
+            "path": "{dirname}/source{format}", 
+            "format": ".ma", 
+            "schema": "pyblish-mindbender:representation-1.0"
+        }
+    ], 
+    "path": "{root}\\assets\\Bruce\\publish\\rigDefault\\v003", 
+    "time": "20170116T143545Z", 
+    "schema": "pyblish-mindbender:version-1.0"
+}
