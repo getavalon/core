@@ -2,7 +2,10 @@
 layout: index
 ---
 
-# Mindbender
+<div class="logo">
+    <img src="https://cloud.githubusercontent.com/assets/2152766/21991232/03cc2c82-dc12-11e6-8b95-3442f629ba42.png"/>
+    <p>A basic asset creation pipeline - batteries included.</p>
+</div>
 
 <br>
 
@@ -46,7 +49,7 @@ To make the most out of pyblish-mindbender, some knowledge and experience is ass
 
 # Introduction
 
-Welcome to pyblish-mindbender, a basic asset creation pipeline - batteries included.
+Welcome to pyblish-mindbender, the production pipeline at [Mindbender Animation Studio](http://mindbender.se).
 
 <br>
 
@@ -130,7 +133,9 @@ Here are a few of the conventions used throughout this guide.
 
 ### Description
 
-Content creation pipeline at Mindbender.
+Mindbender is a content creation studio focusing on photo-realistic, yet exaggerated cartoons. They work across continents in Sweden, Brazil and Spain and therefore require an underlying pipeline that facilitate these activities.
+
+Pyblish Mindbender works exclusively with computer generated imagery - which means no focus is put on video, sound or the integration of 3d and live action footage. It has been designed for use both locally and remotely, to bridge the gap between artists working together but in different locations.
 
 **Overview**
 
@@ -138,13 +143,14 @@ This pipeline covers the entire pipeline at Mindbender, including asset and shot
 
 A PROJECT is partitioned into SHOTs where each shot consists of one or more ASSETs.
 
-This PROJECT includes plug-ins and tools for 3 common types of ASSETs in a typical production pipeline.
+This PROJECT includes tools and Pyblish plug-ins for 4 common types of ASSETs in a typical production pipeline.
 
 - Modeling
 - Rigging
 - Animation
+- Look
 
-These illustrate how to **(1)** devise a contract - known as a `family` - for each *kind* of ASSET and **(2)** design their interface towards each other.
+These implement **(1)** a contract - known as a `family` - for each *kind* of ASSET and **(2)** their interface towards each other.
 
 <br>
 <br>
@@ -323,6 +329,57 @@ Mindbender reserves the following words for private and public use. Public membe
 Applications are run via the terminal.
 
 <br>
+
+#### `mb.bat`
+
+Main executable.
+
+This is what artists launch at the start of any task and is from where applications are started, such as Maya and Nuke.
+
+| Environment Variable     | Description
+|:-------------------------|:----------------
+| PYBLISH_MINDBENDER       | Absolute path to pyblish-mindbender
+| PYBLISH_BASE             | Absolute path to pyblish-base
+| PYBLISH_MAYA             | Absolute path to pyblish-maya
+| PYBLISH_NUKE             | Absolute path to pyblish-nuke
+| PYBLISH_QML              | Absolute path to pyblish-qml
+| PYBLISH_LITE             | Absolute path to pyblish-lite
+
+**Example**
+
+```bash
+@echo off
+
+:: Helper variables
+set GIT=M:\f03_assets\include\pyblish\git
+set MB=%GIT%\pyblish-mindbender\bin\_mb.bat
+
+:: Establish requirements
+set PYBLISH_BASE=%GIT%\pyblish-base
+set PYBLISH_MAYA=%GIT%\pyblish-maya
+set PYBLISH_NUKE=%GIT%\pyblish-nuke
+set PYBLISH_QML=%GIT%\pyblish-qml
+set PYBLISH_LITE=%GIT%\pyblish-lite
+set PYBLISH_MINDBENDER=%GIT%\pyblish-mindbender
+
+:: MB Tools
+set MAYA_PLUG_IN_PATH=M:\f03_assets\include\maya\scripts\Plugins;%MAYA_PLUG_IN_PATH%
+set PYTHONPATH=M:\f03_assets\include\maya\scripts;%PYTHONPATH%
+
+:: Install Nuke-specific Pyblish environment
+set NUKE_PATH=M:\f03_assets\include\pyblish\etc\nuke;%NUKE_PATH%
+
+call %MB% M:\f01_projects %*
+```
+
+<br>
+
+**asset.bat**
+
+```bash
+@echo off
+call _mkproject %~dp0 %~n0 %1
+```
 
 **start.bat**
 
