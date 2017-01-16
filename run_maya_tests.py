@@ -28,6 +28,12 @@ if __name__ == "__main__":
 
         "--verbose",
         "--with-doctest",
+
+        "--with-coverage",
+        "--cover-html",
+        "--cover-tests",
+        "--cover-erase",
+
         "--exclude-dir=mindbender/nuke",
         "--exclude-dir=mindbender/houdini",
         "--exclude-dir=mindbender/schema",

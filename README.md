@@ -15,7 +15,61 @@ A basic asset creation pipeline - batteries included.
 $ pip install pyblish-mindbender
 ```
 
-**Usage**
+Each studio must then define a few executables with their own local paths, that are later mapped into the pipeline automatically.
+
+**mb.bat**
+
+Main executable.
+
+This is what artists launch at the start of any task and is from where applications are started, such as Maya and Nuke.
+
+| Environment Variable     | Description
+|:-------------------------|:----------------
+| PYBLISH_MINDBENDER       | Absolute path to pyblish-mindbender
+| PYBLISH_BASE			   | Absolute path to pyblish-base
+| PYBLISH_MAYA             | Absolute path to pyblish-maya
+| PYBLISH_NUKE             | Absolute path to pyblish-nuke
+| PYBLISH_QML              | Absolute path to pyblish-qml
+| PYBLISH_LITE 			   | Absolute path to pyblish-lite
+
+**Example**
+
+```bash
+@echo off
+
+set _GIT=M:\f03_assets\include\pyblish\git
+set _MB=%_GIT%\pyblish-mindbender\bin\_mb.bat
+
+:: Establish requirements
+set PYBLISH_BASE=%_GIT%\pyblish-base
+set PYBLISH_MAYA=%_GIT%\pyblish-maya
+set PYBLISH_NUKE=%_GIT%\pyblish-nuke
+set PYBLISH_QML=%_GIT%\pyblish-qml
+set PYBLISH_LITE=%_GIT%\pyblish-lite
+set PYBLISH_MINDBENDER=%_GIT%\pyblish-mindbender
+
+:: MB Tools
+set MAYA_PLUG_IN_PATH=M:\f03_assets\include\maya\scripts\Plugins;%MAYA_PLUG_IN_PATH%
+set PYTHONPATH=M:\f03_assets\include\maya\scripts;%PYTHONPATH%
+
+:: Install Nuke-specific Pyblish environment
+set NUKE_PATH=M:\f03_assets\include\pyblish\etc\nuke;%NUKE_PATH%
+
+call %_MB% M:\f01_projects %*
+```
+
+<br>
+
+**asset.bat**
+
+```bash
+@echo off
+call _mkproject %~dp0 %~n0 %1
+```
+
+<br>
+
+### Usage
 
 ```python
 >>> from pyblish_mindbender import api, maya
