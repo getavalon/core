@@ -16,6 +16,10 @@
 @echo off
 
 if "%1"=="" goto :missing_projectdir
+if not "%3"=="assets" (
+  if not "%3"=="film" goto :missing_stage
+)
+
 if "%2"=="" goto :missing_name
 if "%3"=="" goto :missing_stage
 
@@ -30,6 +34,9 @@ if not exist %PROJECTDIR% (
 )
 
 pushd %PROJECTDIR%\%3
+
+:: Clear screen
+cls
 
 echo+
 echo  ASSETS -----------
@@ -56,7 +63,13 @@ goto :eof
 :missing_projectdir
 	exit /b
 :missing_stage
-    echo Assets or Film?
+    echo  Uh oh..
+    echo    Specify either "assets" or "film"
+    echo+
+    echo  Example:
+    set temp=%2
+    echo    $ %temp% assets
+    echo    $ %temp% film
     exit /b
 
 echo+
