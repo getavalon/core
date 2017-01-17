@@ -12,10 +12,10 @@
 @echo off
 
 set ASSET=%1
-set ROOT=%2%ASSET%
+set ASSETDIR=%2%ASSET%
 
-If not exist %ROOT% (
-	mkdir %ROOT%
+If not exist %ASSETDIR% (
+	mkdir %ASSETDIR%
 )
 
 title %PROJECTDIR% / %ASSET%
@@ -36,4 +36,4 @@ echo   $ nuke comp
 echo+
 echo --------------------------------------
 
-pushd %ROOT%
+pushd %ASSETDIR%

@@ -43,7 +43,6 @@ def install(host):
 
     register_host(host)
     register_plugins()
-    register_root(os.getenv("PROJECTDIR"))
 
     self._is_installed = True
     self.log.info("Successfully installed Pyblish Mindbender!")
@@ -172,7 +171,7 @@ def deregister_loaders_path(path):
     _registered_loaders_paths.pop(path)
 
 
-def ls(root=None):
+def ls(root):
     """List available assets
 
     Return a list of available assets.
@@ -181,7 +180,8 @@ def ls(root=None):
     to facilitate a potential transition into database-driven queries.
 
     Arguments:
-        root (str, optional): Absolute path to asset directory
+        root (str): Path to asset directory, relative the currently
+            registered root, unless absolute.
 
     A note on performance:
         This function is a generator, it scans the system one asset
@@ -207,7 +207,13 @@ def ls(root=None):
 
     """
 
-    assetsdir = root or registered_root()
+    assetsdir = (
+        root if os.path.isabs(root)
+        else os.path.join(registered_root(), root)
+    )
+
+    print(assetsdir)
+
     assert assetsdir is not None, ("No registered root.")
 
     for asset in lib.listdir(assetsdir):
@@ -256,6 +262,42 @@ def ls(root=None):
         schema.validate(asset_entry, "asset")
 
         yield asset_entry
+
+
+def search(query, root=None):
+    asset, subset, _ = query.split("/")
+    version, representation = _.split(".")
+
+    representation = "." + representation
+    version = int(version)
+
+    for asset_ in ls(root or "assets"):
+        if asset != asset_["name"]:
+            continue
+
+        for subset_ in asset_["subsets"]:
+            if subset != subset_["name"]:
+                continue
+
+            # Enable searching for the "latest"
+            version = subset_["versions"][version]
+            versions = (
+                subset_["versions"] if version != -1
+                else [subset["versions"][-1]]
+            )
+
+            for version_ in versions:
+                for representation_ in version_["representations"]:
+                    if representation_["format"] != representation:
+                        continue
+
+                    yield {
+                        "schema": "pyblish-mindbender:result-1.0",
+                        "asset": asset_,
+                        "subset": subset_,
+                        "version": version_,
+                        "representation": representation_
+                    }
 
 
 def any_representation(version):
@@ -383,7 +425,7 @@ def register_root(path):
 
 def registered_root():
     """Return currently registered root"""
-    return _registered_root["_"]
+    return _registered_root["_"] or os.getenv("PYBLISHMINDBENDERROOT") or ""
 
 
 def register_format(format):

@@ -24,14 +24,6 @@ def install():
 
     _install_menu()
 
-    # Mindbender integrates to "root", which we define to be the PROJECT,
-    # the full path to a project. PROJECTDIR is set during application launch,
-    # via the corresponding .bat file
-
-    project = os.getenv("PROJECTDIR")
-    assert project, "Missing environment variable 'PROJECTDIR'"
-    api.register_root(project)
-
     # Default Instance data
     # All newly created instances will be imbued with these members.
     api.register_data(key="id", value="pyblish.mindbender.instance")
