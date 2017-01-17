@@ -58,6 +58,9 @@ class Window(QtWidgets.QDialog):
         assets = QtWidgets.QListWidget()
         subsets = QtWidgets.QListWidget()
 
+        # Enable loading many subsets at once
+        subsets.setSelectionMode(subsets.ExtendedSelection)
+
         layout = QtWidgets.QHBoxLayout(container)
         layout.addWidget(assets)
         layout.addWidget(subsets)
@@ -255,31 +258,32 @@ class Window(QtWidgets.QDialog):
         autoclose_checkbox = self.data["button"]["autoclose"]
 
         asset_item = assets_model.currentItem()
-        subset_item = subsets_model.currentItem()
 
-        if subset_item is None:
-            return
+        for subset_item in subsets_model.selectedItems():
 
-        asset = asset_item.data(AssetRole)
-        subset = subset_item.data(SubsetRole)
-        assert asset
-        assert subset
+            if subset_item is None:
+                return
 
-        try:
-            api.registered_host().load(asset, subset)
+            asset = asset_item.data(AssetRole)
+            subset = subset_item.data(SubsetRole)
+            assert asset
+            assert subset
 
-        except ValueError as e:
-            self.echo(e)
-            raise
+            try:
+                api.registered_host().load(asset, subset)
 
-        except NameError as e:
-            self.echo(e)
-            raise
+            except ValueError as e:
+                self.echo(e)
+                raise
 
-        # Catch-all
-        except Exception as e:
-            self.echo("Program error: %s" % str(e))
-            raise
+            except NameError as e:
+                self.echo(e)
+                raise
+
+            # Catch-all
+            except Exception as e:
+                self.echo("Program error: %s" % str(e))
+                raise
 
         if autoclose_checkbox.checkState():
             self.close()

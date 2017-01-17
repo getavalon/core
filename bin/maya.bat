@@ -33,7 +33,7 @@ if Not exist %WORKDIR% (
 	mkdir %WORKDIR%\images
 	rem etc..
 
-    copy %PYBLISH%\etc\maya\workspace.mel %WORKDIR% >NUL
+    copy %PYBLISH_MINDBENDER%\res\workspace.mel %WORKDIR% >NUL
 )
 
 :: userSetup.py files
