@@ -102,10 +102,12 @@ def test_ls():
 
     """
 
+    parent = "assets"
+
     with pipeline.fixture(assets=["Asset1"],
                           subsets=["animRig"],
                           versions=1) as root:
-        asset = next(pipeline.ls())
+        asset = next(pipeline.ls(parent))
 
     reference = {
         "schema": "pyblish-mindbender:asset-1.0",
@@ -120,6 +122,7 @@ def test_ls():
                         "version": 1,
                         "path": os.path.join(
                             root,
+                            parent,
                             "Asset1",
                             "publish",
                             "animRig",
@@ -162,7 +165,7 @@ def test_ls():
 def test_ls_returns_sorted_versions():
     """Versions returned from ls() are alphanumerically sorted"""
     with pipeline.fixture(assets=["Asset1"], subsets=["animRig"], versions=1):
-        for asset in pipeline.ls():
+        for asset in pipeline.ls("assets"):
             previous_version = 0
             for subset in asset["subsets"]:
                 for version in subset["versions"]:
@@ -174,7 +177,7 @@ def test_ls_returns_sorted_versions():
 def test_ls_empty():
     """No assets results in an empty generator"""
     with pipeline.fixture(assets=[], versions=0):
-        assert_raises(StopIteration, next, pipeline.ls())
+        assert_raises(StopIteration, next, pipeline.ls("assets"))
 
 
 def test_ls_no_shareddir():
