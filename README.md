@@ -48,7 +48,7 @@ cd pyblish-mindbender
 docker build -t pyblish/mindbender -f Dockerfile-maya2016 .
 
 # Run nosetests (Linux/OSX)
-docker run --rm -v $(pwd):/repo pyblish/mindbender
+docker run --rm -v $(pwd):/workspace pyblish/mindbender
 ```
 
 <br>
