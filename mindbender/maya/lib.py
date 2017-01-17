@@ -318,7 +318,13 @@ def apply_shaders(relationships):
         assert shader, "Associated shader not part of asset, this is a bug"
 
         for id_ in ids:
-            meshes = lsattr("mbID", value=id_)
+            mesh, faces = (id_.rsplit(".", 1) + [""])[:2]
+
+            # Find all meshes matching this particular ID
+            # Convert IDs to mesh + id, e.g. "nameOfNode.f[1:100]"
+            meshes = list(".".join([mesh, faces])
+                          for mesh in lsattr("mbID", value=mesh))
+
             if not meshes:
                 continue
 
