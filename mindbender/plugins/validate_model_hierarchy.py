@@ -2,9 +2,9 @@ import pyblish.api
 
 
 class ValidateMindbenderModelHierarchy(pyblish.api.InstancePlugin):
-    """A model hierarchy must reside under a single assembly called "model_GRP"
+    """A model hierarchy must reside under a single assembly called "ROOT"
 
-    - Must reside within `model_GRP` transform
+    - Must reside within `ROOT` transform
 
     """
 
@@ -16,5 +16,5 @@ class ValidateMindbenderModelHierarchy(pyblish.api.InstancePlugin):
     def process(self, instance):
         from maya import cmds
 
-        assert cmds.ls(instance, assemblies=True) == ["model_GRP"], (
-            "Model must have a single parent called 'model_GRP'.")
+        assert cmds.ls(instance, assemblies=True) == ["ROOT"], (
+            "Model must have a single parent called 'ROOT'.")

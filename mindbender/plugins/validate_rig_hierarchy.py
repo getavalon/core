@@ -2,9 +2,9 @@ import pyblish.api
 
 
 class ValidateMindbenderRigHierarchy(pyblish.api.InstancePlugin):
-    """A rig must reside under a single assembly called "rig_GRP"
+    """A rig must reside under a single assembly called "ROOT"
 
-    - Must reside within `rig_GRP` transform
+    - Must reside within `ROOT` transform
 
     """
 
@@ -16,5 +16,5 @@ class ValidateMindbenderRigHierarchy(pyblish.api.InstancePlugin):
     def process(self, instance):
         from maya import cmds
 
-        assert cmds.ls(instance, assemblies=True) == ["rig_GRP"], (
-            "Rig must have a single parent called 'rig_GRP'.")
+        assert cmds.ls(instance, assemblies=True) == ["ROOT"], (
+            "Rig must have a single parent called 'ROOT'.")
