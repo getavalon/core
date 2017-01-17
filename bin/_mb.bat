@@ -55,7 +55,7 @@ set PROMPT=$$
 pushd %PROJECTS%
 
 :: Clear screen
-title Mindbender Pipeline
+title Mindbender Launcher
 cls
 
 :: Print intro
