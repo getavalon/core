@@ -7,7 +7,7 @@ class ValidateMindbenderID(pyblish.api.InstancePlugin):
     label = "Mindbender ID"
     order = pyblish.api.ValidatorOrder
     hosts = ["maya"]
-    families = ["mindbender.model"]
+    families = ["mindbender.model", "mindbender.lookdev"]
 
     def process(self, instance):
         from maya import cmds
