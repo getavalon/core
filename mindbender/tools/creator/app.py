@@ -81,15 +81,25 @@ class Window(QtWidgets.QDialog):
 
         create_btn.clicked.connect(self.on_create)
         name.returnPressed.connect(self.on_create)
-        name.textChanged.connect(self.on_data_changed)
-        listing.currentItemChanged.connect(self.on_data_changed)
+        name.textChanged.connect(self.on_name_changed)
+        listing.currentItemChanged.connect(self.on_selection_changed)
 
         # Defaults
         self.resize(220, 250)
         name.setFocus()
         create_btn.setEnabled(False)
 
-    def on_data_changed(self, *args):
+    def on_name_changed(self, *args):
+        button = self.findChild(QtWidgets.QPushButton, "Create Button")
+        name = self.findChild(QtWidgets.QWidget, "Name")
+        item = self.findChild(QtWidgets.QWidget, "Listing").currentItem()
+
+        button.setEnabled(
+            name.text().strip() != "" and
+            item.data(QtCore.Qt.ItemIsEnabled)
+        )
+
+    def on_selection_changed(self, *args):
         button = self.findChild(QtWidgets.QPushButton, "Create Button")
         name = self.findChild(QtWidgets.QWidget, "Name")
         item = self.findChild(QtWidgets.QWidget, "Listing").currentItem()
