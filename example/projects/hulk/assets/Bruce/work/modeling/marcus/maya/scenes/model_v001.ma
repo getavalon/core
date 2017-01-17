@@ -1,10 +1,9 @@
 //Maya ASCII 2016ff07 scene
-//Name: source.ma
-//Last modified: Tue, Jan 17, 2017 04:17:18 PM
+//Name: model_v001.ma
+//Last modified: Tue, Jan 17, 2017 04:16:55 PM
 //Codeset: 1252
 requires maya "2016ff07";
 currentUnit -l centimeter -a degree -t film;
-fileInfo "exportedFrom" "C:/Users/marcus/Dropbox/AF/development/marcus/pyblish/pyblish-mindbender/example/projects/hulk/assets/Bruce/work/modeling/marcus/maya/scenes/model_v001.ma";
 fileInfo "application" "maya";
 fileInfo "product" "Maya 2016";
 fileInfo "version" "2016";
@@ -250,4 +249,4 @@ connectAttr "renderLayerManager.rlmi[0]" "defaultRenderLayer.rlid";
 connectAttr "ROOT.iog" "modelDefault_SET.dsm" -na;
 connectAttr "defaultRenderLayer.msg" ":defaultRenderingList1.r" -na;
 connectAttr "bruce_Shape0.iog" ":initialShadingGroup.dsm" -na;
-// End of source.ma
+// End of model_v001.ma

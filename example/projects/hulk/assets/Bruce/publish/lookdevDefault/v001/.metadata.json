@@ -1,5 +1,5 @@
 {
-    "source": "{root}\\assets\\Bruce\\work\\lookdev\\marcus\\maya\\scenes\\lookdev_v001.ma", 
+    "source": "{root}\\assets\\Bruce\\work\\lookdev\\marcus\\maya\\scenes\\look_v001.ma", 
     "version": 1, 
     "families": [
         "mindbender.lookdev"
@@ -18,6 +18,6 @@
         }
     ], 
     "path": "{root}\\assets\\Bruce\\publish\\lookdevDefault\\v001", 
-    "time": "20170116T143016Z", 
+    "time": "20170117T162958Z", 
     "schema": "pyblish-mindbender:version-1.0"
 }
