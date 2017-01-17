@@ -12,8 +12,11 @@ class ValidateMindbenderID(pyblish.api.InstancePlugin):
     def process(self, instance):
         from maya import cmds
 
+        nodes = list(instance)
+        nodes += cmds.listRelatives(instance, allDescendents=True) or list()
         missing = list()
-        for node in cmds.listRelatives(instance, allDescendents=True):
+
+        for node in nodes:
 
             # Only check transforms with a shape
             if not cmds.listRelatives(node, shapes=True):
