@@ -28,19 +28,6 @@ Each studio must then define a few executables with their own local paths, that 
 
 <br>
 
-### Documentation
-
-While developing the documentation, here is how you can run a local Jekyll server that will enable you to preview what the website will look like locally.
-
-```bash
-$ cd pyblish-mindbender
-$ docker run --rm -v $(pwd)/docs:/src -p 4000:4000 grahamc/jekyll serve -w --force_polling -H 0.0.0.0
-```
-
-The server will now be available at `http://127.0.0.1:4000`. Make sure port `4000` is forwarded to your host.
-
-<br>
-
 ### Testing
 
 ```bash
