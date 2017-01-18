@@ -33,12 +33,12 @@ if Not exist %WORKDIR% (
 	mkdir %WORKDIR%\images
 	rem etc..
 
-    copy %PYBLISH_MINDBENDER%\res\workspace.mel %WORKDIR% >NUL
+    copy %MINDBENDER_CORE%\res\workspace.mel %WORKDIR% >NUL
 )
 
 :: userSetup.py files
 set PYTHONPATH=%PYBLISH_MAYA%\pyblish_maya\pythonpath;%PYTHONPATH%
-set PYTHONPATH=%PYBLISH_MINDBENDER%\mindbender\maya\pythonpath;%PYTHONPATH%
+set PYTHONPATH=%MINDBENDER_CORE%\mindbender\maya\pythonpath;%PYTHONPATH%
 
 :: These cause Maya to "phone home" which occasionally causes
 :: a lag or delay in the user interface. They have no side-effect.
