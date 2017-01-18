@@ -41,6 +41,7 @@ set PROJECTS=%1
 
 :: Expose pipeline executables
 set PATH=%MINDBENDER_CORE%\bin;%PATH%
+set PYBLISHPLUGINPATH=%MINDBENDER_CORE%\plugins;%PYBLISHPLUGINPATH%
 
 :: --------------------
 :: User interface
