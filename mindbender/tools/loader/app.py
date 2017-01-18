@@ -1,4 +1,3 @@
-import os
 import sys
 import itertools
 
@@ -190,8 +189,8 @@ class Window(QtWidgets.QDialog):
 
         else:
             print("Reading from disk..")
-            assets = api.ls(os.path.join(api.registered_root(), "assets"))
-            film = api.ls(os.path.join(api.registered_root(), "film"))
+            assets = api.ls("assets")
+            film = api.ls("film")
             iterators = itertools.chain(assets, film)
 
         def on_next():

@@ -1,5 +1,5 @@
 {
-    "source": "{root}\\assets\\Bruce\\work\\modeling\\marcus\\maya\\scenes\\cube_v001.ma", 
+    "source": "{root}\\assets\\Bruce\\work\\modeling\\marcus\\maya\\scenes\\model_v001.ma", 
     "version": 1, 
     "families": [
         "mindbender.model"
@@ -18,6 +18,6 @@
         }
     ], 
     "path": "{root}\\assets\\Bruce\\publish\\modelDefault\\v001", 
-    "time": "20170115T233031Z", 
+    "time": "20170117T161717Z", 
     "schema": "pyblish-mindbender:version-1.0"
 }

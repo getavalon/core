@@ -18,6 +18,8 @@ class ValidateMindbenderRigFormat(pyblish.api.InstancePlugin):
     families = ["mindbender.rig"]
 
     def process(self, instance):
+        from maya import cmds
+
         missing = list()
 
         for member in ("controls_SET",
@@ -27,3 +29,24 @@ class ValidateMindbenderRigFormat(pyblish.api.InstancePlugin):
 
         assert not missing, "\"%s\" is missing members: %s" % (
             instance, ", ".join("\"" + member + "\"" for member in missing))
+
+        # Ensure all output has IDs.
+        # As user may inadvertently add to the out_SET without
+        # realising, and some of the new members may be non-meshes,
+        # or meshes without and ID
+        missing = list()
+
+        for node in cmds.sets("out_SET", query=True):
+
+            # Only check transforms with a shape
+            if not cmds.listRelatives(node, shapes=True):
+                continue
+
+            try:
+                self.log.info("Checking '%s'" % node)
+                cmds.getAttr(node + ".mbID")
+            except ValueError:
+                missing.append(node)
+
+        assert not missing, ("Missing ID attribute on: %s"
+                             % ", ".join(missing))

@@ -33,6 +33,9 @@ if not exist %PROJECTDIR% (
 	rem etc..
 )
 
+:: Establish base directory for ls() and search() functions.
+set PYBLISHMINDBENDERROOT=%PROJECTDIR%
+
 pushd %PROJECTDIR%\%3
 
 :: Clear screen

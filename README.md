@@ -47,8 +47,11 @@ The server will now be available at `http://127.0.0.1:4000`. Make sure port `400
 cd pyblish-mindbender
 docker build -t pyblish/mindbender -f Dockerfile-maya2016 .
 
+# Run nosetests (Windows)
+docker run --rm -v %cd%:/workspace pyblish/mindbender
+
 # Run nosetests (Linux/OSX)
-docker run --rm -v $(pwd):/repo pyblish/mindbender
+docker run --rm -v $(pwd):/workspace pyblish/mindbender
 ```
 
 <br>

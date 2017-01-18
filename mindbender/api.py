@@ -25,6 +25,7 @@ from .pipeline import (
     uninstall,
 
     ls,
+    search,
 
     Loader,
     discover_loaders,
@@ -74,6 +75,7 @@ __all__ = [
     "schema",
 
     "ls",
+    "search",
 
     "Loader",
     "discover_loaders",

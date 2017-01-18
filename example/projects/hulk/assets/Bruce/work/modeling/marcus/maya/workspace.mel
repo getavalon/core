@@ -1,3 +1,11 @@
 //Maya 2016 Project Definition
 
+workspace -fr "shaders" "renderData/shaders";
+workspace -fr "mayaAscii" "scenes";
 workspace -fr "particles" "particles";
+workspace -fr "mayaBinary" "scenes";
+workspace -fr "scene" "scenes";
+workspace -fr "alembicCache" "cache/alembic";
+workspace -fr "renderData" "renderData";
+workspace -fr "sourceImages" "sourceimages";
+workspace -fr "fileCache" "cache/nCache";

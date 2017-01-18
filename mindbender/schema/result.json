@@ -1,0 +1,43 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+
+    "title": "pyblish-mindbender:result-1.0",
+    "description": "A fully qualified representation of an asset, used for search queries",
+
+    "type": "object",
+
+    "additionalProperties": true,
+
+    "required": [
+        "schema",
+        "asset",
+        "subset",
+        "version",
+        "representation"
+    ],
+
+    "properties": {
+        "schema": {
+            "description": "Schema identifier for payload",
+            "type": "string"
+        },
+        "asset": {
+            "type": "object",
+            "$ref": "asset.json"
+        },
+        "subset": {
+            "type": "object",
+            "$ref": "subset.json"
+        },
+        "version": {
+            "type": "object",
+            "$ref": "version.json"
+        },
+        "representation": {
+            "type": "object",
+            "$ref": "representation.json"
+        }
+    },
+
+    "definitions": {}
+}

@@ -43,7 +43,6 @@ def install(host):
 
     register_host(host)
     register_plugins()
-    register_root(os.getenv("PROJECTDIR"))
 
     self._is_installed = True
     self.log.info("Successfully installed Pyblish Mindbender!")
@@ -172,7 +171,7 @@ def deregister_loaders_path(path):
     _registered_loaders_paths.pop(path)
 
 
-def ls(root=None):
+def ls(root="assets"):
     """List available assets
 
     Return a list of available assets.
@@ -181,7 +180,8 @@ def ls(root=None):
     to facilitate a potential transition into database-driven queries.
 
     Arguments:
-        root (str, optional): Absolute path to asset directory
+        root (str, optional): Path to asset directory, relative the currently
+            registered root, unless absolute. Defaults to "assets"
 
     A note on performance:
         This function is a generator, it scans the system one asset
@@ -207,7 +207,11 @@ def ls(root=None):
 
     """
 
-    assetsdir = root or registered_root()
+    assetsdir = (
+        root if os.path.isabs(root)
+        else os.path.join(registered_root(), root)
+    )
+
     assert assetsdir is not None, ("No registered root.")
 
     for asset in lib.listdir(assetsdir):
@@ -256,6 +260,90 @@ def ls(root=None):
         schema.validate(asset_entry, "asset")
 
         yield asset_entry
+
+
+def _parse_query(query):
+    """Parse a search query
+
+    Arguments:
+        query (str): Formatted string,
+            e.g. "{asset}/{subset}/{version}.{representation}"
+            e.g. "<str>/<str>/<int>.<str>"
+            e.g. "Bruce/modelDefault/3.ma"
+
+    Raises:
+        SyntaxError on invalid query string
+
+    Example:
+        >>> result = _parse_query("Bruce/modelDefault/3.ma")
+        >>> assert result[0] == "Bruce"
+        >>> assert result[1] == "modelDefault"
+        >>> assert result[2] == 3
+        >>> assert result[3] == ".ma"
+        >>> _parse_query("Wrong <")
+        Traceback (most recent call last):
+        ...
+        SyntaxError: Invalid syntax: {asset}/{subset}/{version}.{repr}
+
+    """
+
+    try:
+        asset, subset, _ = query.split("/")
+        version, representation = _.split(".")
+    except ValueError:
+        raise SyntaxError("Invalid syntax: {asset}/{subset}/{version}.{repr}")
+
+    representation = "." + representation
+
+    try:
+        version = int(version)
+    except ValueError:
+        raise SyntaxError("Version must be a number.")
+
+    return asset, subset, version, representation
+
+
+def search(query, root=None):
+    """Search interface to ls()
+
+    Arguments:
+        query (str): Formatted string,
+            e.g. "{asset}/{subset}/{version}.{representation}"
+        root (str, optional): Subdirectory within which to search,
+            defaults to "assets"
+
+    """
+
+    asset, subset, version, representation = _parse_query(query)
+
+    for asset_ in ls(root or "assets"):
+        if asset != asset_["name"]:
+            continue
+
+        for subset_ in asset_["subsets"]:
+            if subset != subset_["name"]:
+                continue
+
+            try:
+                version_ = subset_["versions"][
+                    version - 1 if version > 0
+                    else version
+                ]
+
+            except IndexError:
+                continue
+
+            for representation_ in version_["representations"]:
+                if representation_["format"] != representation:
+                    continue
+
+                yield {
+                    "schema": "pyblish-mindbender:result-1.0",
+                    "asset": asset_,
+                    "subset": subset_,
+                    "version": version_,
+                    "representation": representation_
+                }
 
 
 def any_representation(version):
@@ -311,16 +399,17 @@ def fixture(assets=["Asset1"], subsets=["animRig"], versions=1):
 
     Usage:
         >>> with fixture(assets=["MyAsset1"]):
-        ...    for asset in ls():
+        ...    for asset in ls("assets"):
         ...       assert asset["name"] == "MyAsset1"
         ...
 
     """
 
     tempdir = tempfile.mkdtemp()
+    assetsdir = os.path.join(tempdir, "assets")
 
     for asset in assets:
-        assetdir = os.path.join(tempdir, asset)
+        assetdir = os.path.join(assetsdir, asset)
         shareddir = lib.format_shared_dir(assetdir)
         os.makedirs(shareddir)
 
@@ -383,7 +472,7 @@ def register_root(path):
 
 def registered_root():
     """Return currently registered root"""
-    return _registered_root["_"]
+    return _registered_root["_"] or os.getenv("PYBLISHMINDBENDERROOT") or ""
 
 
 def register_format(format):
