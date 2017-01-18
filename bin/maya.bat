@@ -39,7 +39,7 @@ if Not exist %WORKDIR% (
 :: userSetup.py files
 set PYTHONPATH=%PYBLISH_MAYA%\pyblish_maya\pythonpath;%PYTHONPATH%
 set PYTHONPATH=%MINDBENDER_CORE%\mindbender\maya\pythonpath;%PYTHONPATH%
-set PYBLISHPLUGINPATH=%MINDBENDER_CORE%\plugins\maya;%PYBLISHPLUGINPATH%
+set PYBLISHPLUGINPATH=%MINDBENDER_CORE%\mindbender\plugins\maya;%PYBLISHPLUGINPATH%
 
 :: These cause Maya to "phone home" which occasionally causes
 :: a lag or delay in the user interface. They have no side-effect.

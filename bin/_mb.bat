@@ -30,6 +30,13 @@ if "%PYBLISH_LITE%"=="" goto :missing
 if "%PYBLISH_QML%"=="" goto :missing
 if "%MINDBENDER_CORE%"=="" goto :missing
 
+:: Clear environment.
+::
+:: This is IMPORTANT, if one is to attempt at running
+:: an application or task from the same shell more than once.
+set PYTHONPATH=
+set PYBLISHPLUGINPATH=
+
 set PYTHONPATH=%PYBLISH_BASE%;%PYTHONPATH%
 set PYTHONPATH=%PYBLISH_MAYA%;%PYTHONPATH%
 set PYTHONPATH=%PYBLISH_NUKE%;%PYTHONPATH%
@@ -41,7 +48,7 @@ set PROJECTS=%1
 
 :: Expose pipeline executables
 set PATH=%MINDBENDER_CORE%\bin;%PATH%
-set PYBLISHPLUGINPATH=%MINDBENDER_CORE%\plugins;%PYBLISHPLUGINPATH%
+set PYBLISHPLUGINPATH=%MINDBENDER_CORE%\mindbender\plugins;%PYBLISHPLUGINPATH%
 
 :: --------------------
 :: User interface

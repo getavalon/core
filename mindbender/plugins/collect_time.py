@@ -6,7 +6,6 @@ class CollectMindbenderTime(pyblish.api.ContextPlugin):
 
     label = "Mindbender Time"
     order = pyblish.api.CollectorOrder
-    hosts = ["maya"]
 
     def process(self, context):
         from mindbender import api
