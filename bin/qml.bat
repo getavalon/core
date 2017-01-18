@@ -1,2 +1,2 @@
 @echo off
-_python -m pyblish_qml
+M:\f03_assets\include\Python27\python.exe -m pyblish_qml
