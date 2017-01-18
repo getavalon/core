@@ -36,8 +36,7 @@ if Not exist %WORKDIR% (
 )
 
 :: Initialisation files
-set PYTHONPATH=%PYBLISH_MAYA%\pyblish_nuke\pythonpath;%PYTHONPATH%
-set PYTHONPATH=%MINDBENDER_CORE%\mindbender\nuke\pythonpath;%PYTHONPATH%
+set NUKE_PATH=%MINDBENDER_CORE%\mindbender\nuke\nuke_path;%NUKE_PATH%
 
 :: Set filepath for open script window
 pushd %WORKDIR%\nk
