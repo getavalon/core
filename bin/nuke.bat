@@ -37,7 +37,7 @@ if Not exist %WORKDIR% (
 
 :: Initialisation files
 set NUKE_PATH=%MINDBENDER_CORE%\mindbender\nuke\nuke_path;%NUKE_PATH%
-set PYBLISHPLUGINPATH=%MINDBENDER_CORE%\plugins\nuke;%PYBLISHPLUGINPATH%
+set PYBLISHPLUGINPATH=%MINDBENDER_CORE%\mindbender\plugins\nuke;%PYBLISHPLUGINPATH%
 
 :: Set filepath for open script window
 pushd %WORKDIR%\nk
