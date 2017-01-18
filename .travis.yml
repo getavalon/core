@@ -10,6 +10,7 @@ services:
   - docker
 
 install:
+  - pip install coveralls
   - docker build -t pyblish/mindbender -f Dockerfile-maya2016 .
 
 script:
