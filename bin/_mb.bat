@@ -28,19 +28,19 @@ if "%PYBLISH_MAYA%"=="" goto :missing
 if "%PYBLISH_NUKE%"=="" goto :missing
 if "%PYBLISH_LITE%"=="" goto :missing
 if "%PYBLISH_QML%"=="" goto :missing
-if "%PYBLISH_MINDBENDER%"=="" goto :missing
+if "%MINDBENDER_CORE%"=="" goto :missing
 
 set PYTHONPATH=%PYBLISH_BASE%;%PYTHONPATH%
 set PYTHONPATH=%PYBLISH_MAYA%;%PYTHONPATH%
 set PYTHONPATH=%PYBLISH_NUKE%;%PYTHONPATH%
 set PYTHONPATH=%PYBLISH_LITE%;%PYTHONPATH%
 set PYTHONPATH=%PYBLISH_QML%;%PYTHONPATH%
-set PYTHONPATH=%PYBLISH_MINDBENDER%;%PYTHONPATH%
+set PYTHONPATH=%MINDBENDER_CORE%;%PYTHONPATH%
 
 set PROJECTS=%1
 
 :: Expose pipeline executables
-set PATH=%PYBLISH_MINDBENDER%\bin;%PATH%
+set PATH=%MINDBENDER_CORE%\bin;%PATH%
 
 :: --------------------
 :: User interface
@@ -98,6 +98,6 @@ goto :eof
 	if "%PYBLISH_NUKE%"=="" echo   - %%PYBLISH_NUKE%%
 	if "%PYBLISH_LITE%"=="" echo   - %%PYBLISH_LITE%%
 	if "%PYBLISH_QML%"=="" echo   - %%PYBLISH_QML%%
-	if "%PYBLISH_MINDBENDER%"=="" echo   - %%PYBLISH_MINDBENDER%%
+	if "%MINDBENDER_CORE%"=="" echo   - %%MINDBENDER_CORE%%
 
 	exit /b
