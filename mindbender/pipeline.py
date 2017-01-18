@@ -307,8 +307,10 @@ def search(query, root=None):
     """Search interface to ls()
 
     Arguments:
-        query (str): 
-        root (str, optional): 
+        query (str): Formatted string,
+            e.g. "{asset}/{subset}/{version}.{representation}"
+        root (str, optional): Subdirectory within which to search,
+            defaults to "assets"
 
     """
 
@@ -323,7 +325,11 @@ def search(query, root=None):
                 continue
 
             try:
-                version_ = subset_["versions"][version - 1]
+                version_ = subset_["versions"][
+                    version - 1 if version > 0
+                    else version
+                ]
+
             except IndexError:
                 continue
 
