@@ -19,7 +19,7 @@ import logging
 
 from .vendor import jsonschema
 
-_log = logging.getLogger("pyblish-mindbender")
+_log = logging.getLogger("mindbender-core")
 
 ValidationError = jsonschema.ValidationError
 

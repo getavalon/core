@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/schema#",
 
-    "title": "pyblish-mindbender:asset-1.0",
+    "title": "mindbender-core:asset-1.0",
     "description": "A unit of data",
 
     "type": "object",

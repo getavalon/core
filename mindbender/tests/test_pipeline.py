@@ -79,12 +79,12 @@ def test_ls():
     |_________________________________________________________________|
 
     This schema is located within each version of an asset and is
-    denoted `pyblish-mindbender:version-1.0`.
+    denoted `mindbender-core:version-1.0`.
 
     The members of this schema is also strict, they are:
 
     {
-        "schema": "pyblish-mindbender:version-1.0",
+        "schema": "mindbender-core:version-1.0",
         "name": "Name of asset",
         "representations": [List of representations],
     }
@@ -110,15 +110,15 @@ def test_ls():
         asset = next(pipeline.ls(parent))
 
     reference = {
-        "schema": "pyblish-mindbender:asset-1.0",
+        "schema": "mindbender-core:asset-1.0",
         "name": "Asset1",
         "subsets": [
             {
-                "schema": "pyblish-mindbender:subset-1.0",
+                "schema": "mindbender-core:subset-1.0",
                 "name": "animRig",
                 "versions": [
                     {
-                        "schema": "pyblish-mindbender:version-1.0",
+                        "schema": "mindbender-core:version-1.0",
                         "version": 1,
                         "path": os.path.join(
                             root,
@@ -136,7 +136,7 @@ def test_ls():
                         ),
                         "representations": [
                             {
-                                "schema": ("pyblish-mindbender:"
+                                "schema": ("mindbender-core:"
                                            "representation-1.0"),
                                 "format": ".ma",
                                 "path": os.path.join(

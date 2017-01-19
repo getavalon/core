@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/schema#",
 
-    "title": "pyblish-mindbender:shaders-1.0",
+    "title": "mindbender-core:shaders-1.0",
     "description": "Relationships between shaders and Mindbender IDs",
 
     "type": "object",

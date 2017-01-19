@@ -10,7 +10,7 @@ from maya import cmds
 from . import lib
 
 self = sys.modules[__name__]
-self.log = logging.getLogger("pyblish-mindbender")
+self.log = logging.getLogger("mindbender-core")
 self.menu = "pyblishMindbender"
 
 
@@ -131,7 +131,7 @@ def ls():
     """List loaded assets"""
     for container in lib.lsattr("id", "pyblish.mindbender.container"):
         data = dict(
-            schema="pyblish-mindbender:container-1.0",
+            schema="mindbender-core:container-1.0",
             name=container,
             **lib.read(container)
         )
@@ -145,8 +145,8 @@ def load(asset, subset, version=-1, representation=None):
     """Load data into Maya
 
     Arguments:
-        asset ("pyblish-mindbender:asset-1.0"): Asset which to import
-        subset ("pyblish-mindbender:subset-1.0"): Subset within Asset to import
+        asset ("mindbender-core:asset-1.0"): Asset which to import
+        subset ("mindbender-core:subset-1.0"): Subset within Asset to import
         version (int, optional): Version number, defaults to latest
         representation (str, optional): File format, e.g. `.ma`, `.obj`, `.exr`
 
@@ -159,7 +159,7 @@ def load(asset, subset, version=-1, representation=None):
 
     """
 
-    assert subset["schema"] == "pyblish-mindbender:subset-1.0"
+    assert subset["schema"] == "mindbender-core:subset-1.0"
     assert isinstance(version, int), "Version must be integer"
 
     try:
@@ -256,7 +256,7 @@ def containerise(name, namespace, nodes, version, suffix="_CON"):
         name (str): Name of resulting assembly
         nodes (list): Long names of nodes to containerise
         namespace (str): Namespace under which to host container
-        version (pyblish-mindbender:version-1.0): Current version
+        version (mindbender-core:version-1.0): Current version
 
     Returns:
         container (str): Name of container assembly
@@ -314,7 +314,7 @@ def _display_missing_dependencies():
     messagebox.setText("Missing dependencies")
 
     messagebox.setInformativeText(
-        "pyblish-mindbender requires pyblish-maya.\n"
+        "mindbender-core requires pyblish-maya.\n"
     )
 
     messagebox.setDetailedText(
@@ -331,12 +331,12 @@ def _display_missing_dependencies():
         "\n"
         ">>> mindbender.install()\n"
 
-        "See https://github.com/pyblish/pyblish-mindbender "
+        "See https://github.com/mindbender-studio/core "
         "for more information."
     )
 
     messagebox.setStandardButtons(messagebox.Ok)
     messagebox.exec_()
 
-    raise RuntimeError("pyblish-mindbender requires pyblish-maya "
+    raise RuntimeError("mindbender-core requires pyblish-maya "
                        "to have been setup.")

@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/schema#",
 
-    "title": "pyblish-mindbender:result-1.0",
+    "title": "mindbender-core:result-1.0",
     "description": "A fully qualified representation of an asset, used for search queries",
 
     "type": "object",

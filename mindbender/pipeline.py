@@ -24,7 +24,7 @@ from .vendor import six
 
 self = sys.modules[__name__]
 
-self.log = logging.getLogger("pyblish-mindbender")
+self.log = logging.getLogger("mindbender-core")
 self._is_installed = False
 
 
@@ -219,7 +219,7 @@ def ls(root="assets"):
         publishdir = lib.format_shared_dir(assetdir)
 
         asset_entry = {
-            "schema": "pyblish-mindbender:asset-1.0",
+            "schema": "mindbender-core:asset-1.0",
             "name": asset,
             "subsets": list()
         }
@@ -228,7 +228,7 @@ def ls(root="assets"):
             subsetdir = os.path.join(publishdir, subset)
 
             subset_entry = {
-                "schema": "pyblish-mindbender:subset-1.0",
+                "schema": "mindbender-core:subset-1.0",
                 "name": subset,
                 "versions": list(),
             }
@@ -247,7 +247,7 @@ def ls(root="assets"):
                     self.log.warning("\"%s\" not found." % fname)
                     continue
 
-                if version_entry.get("schema") != ("pyblish-mindbender"
+                if version_entry.get("schema") != ("mindbender-core"
                                                    ":version-1.0"):
                     self.log.warning("\"%s\" unsupported schema." % fname)
                     continue
@@ -338,7 +338,7 @@ def search(query, root=None):
                     continue
 
                 yield {
-                    "schema": "pyblish-mindbender:result-1.0",
+                    "schema": "mindbender-core:result-1.0",
                     "asset": asset_,
                     "subset": subset_,
                     "version": version_,
@@ -350,7 +350,7 @@ def any_representation(version):
     """Pick any compatible representation.
 
     Arguments:
-        version ("pyblish-mindbender:version-1.0"): Version from which
+        version ("mindbender-core:version-1.0"): Version from which
             to pick a representation, based on currently registered formats.
 
     """
@@ -429,7 +429,7 @@ def fixture(assets=["Asset1"], subsets=["animRig"], versions=1):
 
                 with open(fname, "w") as f:
                     json.dump({
-                        "schema": "pyblish-mindbender:version-1.0",
+                        "schema": "mindbender-core:version-1.0",
                         "version": lib.parse_version(version),
                         "path": versiondir,
                         "time": "",
@@ -442,7 +442,7 @@ def fixture(assets=["Asset1"], subsets=["animRig"], versions=1):
                         ),
                         "representations": [
                             {
-                                "schema": ("pyblish-mindbender:"
+                                "schema": ("mindbender-core:"
                                            "representation-1.0"),
                                 "format": ".ma",
                                 "path": os.path.join(
@@ -579,7 +579,7 @@ def deregister_plugins():
     try:
         api.deregister_plugin_path(plugin_path)
     except ValueError:
-        self.log.warning("pyblish-mindbender plug-ins not registered.")
+        self.log.warning("mindbender-core plug-ins not registered.")
 
 
 def deregister_host():

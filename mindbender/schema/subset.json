@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/schema#",
 
-    "title": "pyblish-mindbender:subset-1.0",
+    "title": "mindbender-core:subset-1.0",
     "description": "A container of instances",
 
     "type": "object",

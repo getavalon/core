@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/schema#",
 
-    "title": "pyblish-mindbender:version-1.0",
+    "title": "mindbender-core:version-1.0",
     "description": "An individual version",
 
     "type": "object",
@@ -39,7 +39,7 @@
             "type": "number"
         },
         "path": {
-            "description": "Unformatted path",
+            "description": "Unformatted path, e.g. '{root}/assets/Bruce/publish/lookdevDefault/v001",
             "type": "string"
         },
         "source": {
