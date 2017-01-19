@@ -406,7 +406,7 @@ def fixture(assets=["Asset1"], subsets=["animRig"], versions=1):
 
     Usage:
         >>> with fixture(assets=["MyAsset1"]):
-        ...    for asset in ls("assets"):
+        ...    for asset in ls(["assets"]):
         ...       assert asset["name"] == "MyAsset1"
         ...
 
