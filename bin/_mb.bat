@@ -46,6 +46,9 @@ set PYTHONPATH=%MINDBENDER_CORE%;%PYTHONPATH%
 
 set PROJECTS=%1
 
+:: Enable typing "back" funktion
+set PATH=%_GIT%\mindbender-core\bin\back\;%PATH%
+
 :: Expose pipeline executables
 set PATH=%MINDBENDER_CORE%\bin;%PATH%
 set PYBLISHPLUGINPATH=%MINDBENDER_CORE%\mindbender\plugins;%PYBLISHPLUGINPATH%
