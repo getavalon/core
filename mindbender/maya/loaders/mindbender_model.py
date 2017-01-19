@@ -34,7 +34,10 @@ class ModelLoader(api.Loader):
         pipeline.containerise(name=name,
                               namespace=namespace,
                               nodes=nodes,
-                              version=version)
+                              asset=asset,
+                              subset=subset,
+                              version=version,
+                              representation=representation)
 
         # Assign default shader to meshes
         meshes = cmds.ls(nodes, type="mesh")

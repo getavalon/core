@@ -28,7 +28,7 @@ class ExtractMindbenderSource(pyblish.api.InstancePlugin):
         except OSError:
             pass
 
-        filename = "source.ma"
+        filename = "{name}.source".format(**instance.data)
 
         path = os.path.join(dirname, filename)
 
@@ -38,6 +38,7 @@ class ExtractMindbenderSource(pyblish.api.InstancePlugin):
                   force=True,
                   typ="mayaAscii",
                   exportAll=True,
+                  defaultExtensions=False,
                   preserveReferences=False,
                   constructionHistory=True)
 

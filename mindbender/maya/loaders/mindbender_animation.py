@@ -39,6 +39,9 @@ class AnimationLoader(api.Loader):
         pipeline.containerise(name=name,
                               namespace=namespace,
                               nodes=nodes,
-                              version=version)
+                              asset=asset,
+                              subset=subset,
+                              version=version,
+                              representation=representation)
 
         return cmds.referenceQuery(nodes[0], referenceNode=True)

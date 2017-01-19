@@ -107,7 +107,7 @@ def test_ls():
     with pipeline.fixture(assets=["Asset1"],
                           subsets=["animRig"],
                           versions=1) as root:
-        asset = next(pipeline.ls(parent))
+        asset = next(pipeline.ls([parent]))
 
     reference = {
         "schema": "mindbender-core:asset-1.0",
@@ -165,7 +165,7 @@ def test_ls():
 def test_ls_returns_sorted_versions():
     """Versions returned from ls() are alphanumerically sorted"""
     with pipeline.fixture(assets=["Asset1"], subsets=["animRig"], versions=1):
-        for asset in pipeline.ls("assets"):
+        for asset in pipeline.ls(["assets"]):
             previous_version = 0
             for subset in asset["subsets"]:
                 for version in subset["versions"]:
@@ -177,14 +177,15 @@ def test_ls_returns_sorted_versions():
 def test_ls_empty():
     """No assets results in an empty generator"""
     with pipeline.fixture(assets=[], versions=0):
-        assert_raises(StopIteration, next, pipeline.ls("assets"))
+        assert_raises(StopIteration, next, pipeline.ls(["assets"]))
 
 
 def test_ls_no_shareddir():
     """A root without assets returns an empty generator"""
 
     with bad_fixture() as root:
-        assert next(pipeline.ls(root=root), None) is None
+        pipeline.register_root(root)
+        assert next(pipeline.ls(), None) is None
 
 
 @with_setup(clear)

@@ -13,6 +13,12 @@ self._window = None
 self._cache = list()
 self._use_cache = False
 
+# This enables caching of results asset listing of the network.
+# It means less strain on the network, but also that artists must
+# not forget to hit the "refresh" button if there are new assets
+# since they first opened the loader.
+self._optimal_network_performance = False
+
 # Custom roles
 AssetRole = QtCore.Qt.UserRole + 1
 SubsetRole = QtCore.Qt.UserRole + 2
@@ -69,7 +75,7 @@ class Window(QtWidgets.QDialog):
         layout = QtWidgets.QGridLayout(options)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        autoclose_checkbox = QtWidgets.QCheckBox("Close after load")
+        autoclose_checkbox = QtWidgets.QCheckBox("Auto-close")
         autoclose_checkbox.setCheckState(QtCore.Qt.Checked)
         layout.addWidget(autoclose_checkbox, 1, 0)
 
@@ -183,22 +189,20 @@ class Window(QtWidgets.QDialog):
         has = {"assets": False}
 
         module = sys.modules[__name__]
-        if module._use_cache:
+        if module._optimal_network_performance and module._use_cache:
             print("Using cache..")
-            iterators = iter(module._cache)
+            iterator = iter(module._cache)
 
         else:
             print("Reading from disk..")
-            assets = api.ls("assets")
-            film = api.ls("film")
-            iterators = itertools.chain(assets, film)
+            iterator = api.ls(silos=["assets", "film"])
 
         def on_next():
             if not state["running"]:
                 return on_finished()
 
             try:
-                asset = next(iterators)
+                asset = next(iterator)
 
                 # Cache for re-use
                 if not module._use_cache:
@@ -225,7 +229,7 @@ class Window(QtWidgets.QDialog):
                 item.setData(QtCore.Qt.ItemIsEnabled, False)
                 assets_model.addItem(item)
 
-            assets_model.setCurrentItem(assets_model.item(0))
+            # assets_model.setCurrentItem(assets_model.item(0))
             assets_model.setFocus()
             self.data["button"]["load"].show()
             self.data["button"]["stop"].hide()

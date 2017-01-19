@@ -11,6 +11,8 @@ from .pipeline import (
     ls,
     load,
     create,
+    remove,
+    update,
 )
 
 from .lib import (
@@ -27,6 +29,8 @@ __all__ = [
     "ls",
     "load",
     "create",
+    "remove",
+    "update",
 
     "export_alembic",
     "lsattr",

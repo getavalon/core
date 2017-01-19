@@ -122,9 +122,11 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                     instance.data.get("family")
                 ],
 
-                # Collected by pyblish-base
                 "time": context.data["time"],
                 "author": context.data["user"],
+
+                # Record within which silo this asset was made.
+                "silo": os.environ["MINDBENDER_SILO"],
 
                 # Collected by pyblish-maya
                 "source": os.path.join(

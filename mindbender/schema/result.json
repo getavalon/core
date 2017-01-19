@@ -23,19 +23,30 @@
         },
         "asset": {
             "type": "object",
-            "$ref": "asset.json"
+            "oneOf": [
+                {"$ref": "asset.json"},
+                {"type": "null"}
+            ]
         },
         "subset": {
             "type": "object",
-            "$ref": "subset.json"
+            "oneOf": [
+                {"$ref": "subset.json"},
+                {"type": "null"}
+            ]
         },
         "version": {
             "type": "object",
-            "$ref": "version.json"
+            "oneOf": [
+                {"$ref": "version.json"},
+                {"type": "null"}
+            ]
         },
         "representation": {
-            "type": "object",
-            "$ref": "representation.json"
+            "oneOf": [
+                {"$ref": "representation.json"},
+                {"type": "null"}
+            ]
         }
     },
 

@@ -14,7 +14,7 @@ FamilyRole = QtCore.Qt.UserRole + 3
 class Window(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
-        self.setWindowTitle("Asset Creator")
+        self.setWindowTitle("Instance Creator")
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
         body = QtWidgets.QWidget()
@@ -35,7 +35,7 @@ class Window(QtWidgets.QDialog):
 
         options = QtWidgets.QWidget()
 
-        autoclose_chk = QtWidgets.QCheckBox("Close after creation")
+        autoclose_chk = QtWidgets.QCheckBox("Auto-close")
         autoclose_chk.setCheckState(QtCore.Qt.Checked)
         useselection_chk = QtWidgets.QCheckBox("Use selection")
         useselection_chk.setCheckState(QtCore.Qt.Checked)

@@ -33,7 +33,10 @@ class RigLoader(api.Loader):
         pipeline.containerise(name=name,
                               namespace=namespace,
                               nodes=nodes,
-                              version=version)
+                              asset=asset,
+                              subset=subset,
+                              version=version,
+                              representation=representation)
 
         # TODO(marcus): We are hardcoding the name "out_SET" here.
         #   Better register this keyword, so that it can be used

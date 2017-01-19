@@ -3,9 +3,9 @@
 :: This file is called whenever a user enters a project, such p999_Meindbender_Sync
 ::
 :: Arguments:
-::   %1: Path: Absolute path to projects
-:: 	 %2: Name: Name of project
-:: 	 %3: Stage: assets or film
+::   %1: Path = Absolute path to projects
+:: 	 %2: Name = Name of project
+:: 	 %3: Silo = Parent directory name of assets
 ::
 :: Variables:
 ::   %PROJECTDIR%: Absolute path to project directory
@@ -17,11 +17,11 @@
 
 if "%1"=="" goto :missing_projectdir
 if not "%3"=="assets" (
-  if not "%3"=="film" goto :missing_stage
+  if not "%3"=="film" goto :missing_silo
 )
 
 if "%2"=="" goto :missing_name
-if "%3"=="" goto :missing_stage
+if "%3"=="" goto :missing_silo
 
 set PROJECTDIR=%1%2
 set curPROJECT=%1
@@ -29,17 +29,18 @@ set curPROJECTNAME=%2
 set PROJECTSTAGE=%3
 
 if not exist %PROJECTDIR% (
-	echo Creating new project "%PROJECT%"..
+  echo Creating new project "%PROJECT%"..
 
-	mkdir %PROJECTDIR%\assets
-	mkdir %PROJECTDIR%\film
-	rem etc..
+  mkdir %PROJECTDIR%\assets
+  mkdir %PROJECTDIR%\film
+  rem etc..
 )
 
-:: Establish base directory for ls() and search() functions.
-set PYBLISHMINDBENDERROOT=%PROJECTDIR%
+:: Establish base directories for ls() and search() functions.
+set MINDBENDER_ROOT=%PROJECTDIR%
+set MINDBENDER_SILO=%3
 
-pushd %PROJECTDIR%\%3
+pushd %PROJECTDIR%\%MINDBENDER_SILO%
 
 :: Clear screen
 cls
@@ -68,7 +69,7 @@ goto :eof
    	exit /b
 :missing_projectdir
 	exit /b
-:missing_stage
+:missing_silo
     echo  Uh oh..
     echo    Specify either "assets" or "film"
     echo+
