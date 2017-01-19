@@ -24,4 +24,5 @@ IF NOT "%ASSET%"=="" goto :return_to_projects
 :return_to_projects
     call _mkproject.bat %curPROJECT% %curPROJECTNAME% %PROJECTSTAGE%
     SET ASSET=
+    SET ASSETDIR=
     exit /b
