@@ -1,5 +1,4 @@
 import sys
-import itertools
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import api

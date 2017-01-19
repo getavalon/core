@@ -289,10 +289,14 @@ class Window(QtWidgets.QDialog):
             containers_model.setFocus()
             self.data["button"]["load"].show()
 
+        self.data["button"]["load"].hide()
+        self.data["button"]["remove"].hide()
+
     def on_remove_pressed(self):
         containers_model = self.data["model"]["containers"]
         container_item = containers_model.currentItem()
         container = container_item.data(ContainerRole)
+        autoclose_checkbox = self.data["button"]["autoclose"]
 
         messagebox = QtWidgets.QMessageBox()
         messagebox.setIcon(messagebox.Warning)
@@ -303,8 +307,14 @@ class Window(QtWidgets.QDialog):
         messagebox.setDefaultButton(messagebox.No)
 
         if messagebox.exec_() == messagebox.Yes:
+
             self.echo("Removing '%s'.." % container["name"])
             api.registered_host().remove(container)
+
+            if autoclose_checkbox.checkState():
+                self.close()
+            else:
+                self.refresh()
 
     def on_load_pressed(self):
         button = self.data["button"]["load"]
@@ -353,6 +363,8 @@ class Window(QtWidgets.QDialog):
 
         if autoclose_checkbox.checkState():
             self.close()
+        else:
+            self.refresh()
 
     def echo(self, message):
         widget = self.data["label"]["message"]

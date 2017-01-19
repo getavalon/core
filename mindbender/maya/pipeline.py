@@ -134,7 +134,7 @@ def _register_root():
 
 def ls():
     """List loaded assets"""
-    for container in lib.lsattr("id", "pyblish.mindbender.container"):
+    for container in sorted(lib.lsattr("id", "pyblish.mindbender.container")):
         data = dict(
             schema="mindbender-core:container-1.0",
             objectName=container,
@@ -251,7 +251,22 @@ def create(name, family, options=None):
     return instance
 
 
-def update(container, version):
+def update(container, version=-1):
+    """Update `container` to `version`
+
+    This function relies on a container being referenced. At the time of this
+    writing, all assets - models, rigs, animations, shaders - are referenced
+    and should pose no problem. But should there be an asset that isn't
+    referenced then this function will need to see an update.
+
+    Arguments:
+        container (mindbender-core:container-1.0): Container to update,
+            from `host.ls()`.
+        version (int, optional): Update the container to this version.
+            If no version is passed, the latest is assumed.
+
+    """
+
     node = container["objectName"]
 
     # Assume asset has been referenced
@@ -327,7 +342,27 @@ def update(container, version):
 
 
 def remove(container):
+    """Remove an existing `container` from Maya scene
+
+    Arguments:
+        container (mindbender-core:container-1.0): Which container
+            to remove from scene.
+
+    """
+
+    node = container["objectName"]
+
+    # Assume asset has been referenced
+    reference_node = next((node for node in cmds.sets(node, query=True)
+                          if cmds.nodeType(node) == "reference"), None)
+
+    assert reference_node, ("Imported container not supported; "
+                            "container must be referenced.")
+
     print("Removing '%s' from Maya.." % container["name"])
+
+    fname = cmds.referenceQuery(reference_node, filename=True)
+    cmds.file(fname, removeReference=True)
 
 
 def containerise(name,
