@@ -26,22 +26,25 @@ cls
 echo+
 echo %ASSET% -----------
 echo+
-echo   Type application and task.
+
+:: List available tasks
+setlocal enabledelayedexpansion
+set FOLDERQUERRY=%ASSETDIR%
+for /f %%i in ('dir %FOLDERQUERRY%\work /b ') do (
+   set x=%%i
+   echo   !x!
+)
+endlocal
+
+echo+
+echo   1. Type application and task.
+echo   2. Press [Enter] to launch application.
 echo+
 echo   For example:
 echo+
 echo   $ maya animation
 echo   $ houdini sim
 echo   $ nuke comp
-echo+
-echo   The following assets are allready created:
-setlocal EnableDelayedExpansion
-set FOLDERQUERRY=%ASSETDIR%
-for /f %%i in ('dir %FOLDERQUERRY%\work /b ') do (
-   set x=%%i
-   echo     !x!
-)
-endlocal
 echo+
 echo --------------------------------------
 
