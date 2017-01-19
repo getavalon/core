@@ -20,10 +20,8 @@ IF NOT "%ASSET%"=="" goto :return_to_projects
 :return_to_mb
     call %_MB% M:\f01_projects %*
     SET PROJECTDIR=
-    endlocal
     exit /b
 :return_to_projects
     call _mkproject.bat %curPROJECT% %curPROJECTNAME% %PROJECTSTAGE%
     SET ASSET=
-    endlocal
     exit /b
