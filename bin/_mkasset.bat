@@ -36,10 +36,12 @@ echo   $ nuke comp
 echo+
 echo   The following assets are allready created:
 setlocal EnableDelayedExpansion
-for /f %%i in ('dir %ASSETDIR%\work /b ') do (
+set FOLDERQUERRY=%ASSETDIR%
+for /f %%i in ('dir %FOLDERQUERRY%\work /b ') do (
    set x=%%i
    echo     !x!
 )
+endlocal
 echo+
 echo --------------------------------------
 
