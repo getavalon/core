@@ -30,9 +30,16 @@ echo   Type application and task.
 echo+
 echo   For example:
 echo+
-echo   $ maya modeling
-echo   $ maya rigging
+echo   $ maya animation
+echo   $ houdini sim
 echo   $ nuke comp
+echo+
+echo   The following assets are allready created:
+setlocal EnableDelayedExpansion
+for /f %%i in ('dir %ASSETDIR%\work /b ') do (
+   set x=%%i
+   echo     !x!
+)
 echo+
 echo --------------------------------------
 
