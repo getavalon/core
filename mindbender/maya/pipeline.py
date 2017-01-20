@@ -114,29 +114,46 @@ def _install_menu():
 
         cmds.menuItem(divider=True)
 
-        # Rigging sub-menu
-        cmds.menuItem("Rigging",
-                      label="Mindbender/Rigging",
-                      tearOff=True,
-                      subMenu=True)
-
         def command(func, **kwargs):
             # Maya passes a few additional arguments to#
             # any given function. We squash (ignore) those here.
             return lambda *args: func(**kwargs)
 
+        # Modeling sub-menu
+        cmds.menuItem("Modeling",
+                      label="Modeling",
+                      tearOff=True,
+                      subMenu=True,
+                      parent=self.menu)
+
+        cmds.menuItem("Combine",
+                      command=command(interactive.combine))
+
+        # Rigging sub-menu
+        cmds.menuItem("Rigging",
+                      label="Rigging",
+                      tearOff=True,
+                      subMenu=True,
+                      parent=self.menu)
+
+        cmds.menuItem("Auto Connect",
+                      command=command(interactive.auto_connect))
         cmds.menuItem("Clone (Local)",
                       command=command(interactive.clone, worldspace=False))
         cmds.menuItem("Clone (Worldspace)",
                       command=command(interactive.clone, worldspace=True))
-        cmds.menuItem("Combine",
-                      command=command(interactive.combine))
-        cmds.menuItem("Auto Connect",
-                      command=command(interactive.auto_connect))
-        cmds.menuItem("Set Defaults",
-                      command=command(interactive.set_defaults))
         cmds.menuItem("Create Follicle",
                       command=command(interactive.follicle))
+
+        # Animation sub-menu
+        cmds.menuItem("Animation",
+                      label="Animation",
+                      tearOff=True,
+                      subMenu=True,
+                      parent=self.menu)
+
+        cmds.menuItem("Set Defaults",
+                      command=command(interactive.set_defaults))
 
     # Allow time for uninstallation to finish.
     QtCore.QTimer.singleShot(100, deferred)
@@ -296,6 +313,8 @@ def update(container, version=-1):
 
     """
 
+    print("TEST")
+
     node = container["objectName"]
 
     # Assume asset has been referenced
@@ -311,7 +330,13 @@ def update(container, version=-1):
     representation = None
 
     for asset in api.ls(silos=[container["silo"]]):
+        if asset["name"] == container["asset"]:
+            continue
+
         for subset in asset["subsets"]:
+            if subset["name"] == container["subset"]:
+                continue
+
             try:
                 version_ = subset["versions"][version - 1]
             except IndexError:

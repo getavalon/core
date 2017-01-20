@@ -1,3 +1,9 @@
+"""Standalone functionality
+
+Does NOT depend on any other module.
+
+"""
+
 import re
 import contextlib
 from maya import cmds
@@ -8,10 +14,13 @@ def maintained_selection():
     """Maintain selection during context
 
     Example:
+        >>> node1 = cmds.createNode("transform", name="node1")
+        >>> node2 = cmds.createNode("transform", name="node2")
+        >>> cmds.select(node2, replace=True)
         >>> with maintained_selection():
         ...     # Modify selection
-        ...     cmds.select('node', replace=True)
-        >>> # Selection restored
+        ...     cmds.select(node1, replace=True)
+        >>> assert cmds.ls(selection=True) == [node2]
 
     """
 

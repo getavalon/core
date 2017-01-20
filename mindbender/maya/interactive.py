@@ -1,4 +1,9 @@
-"""Used interactively"""
+"""Interactive functionality
+
+These depend on user selection in Maya, and may be used as-is. They
+implement the functionality in :mod:`commands.py`.
+
+"""
 
 from maya import cmds, mel
 from . import commands, util
@@ -162,16 +167,6 @@ def create_ncloth():
 
     # Mimic default nCloth command
     cmds.hide(selection)
-
-
-def orient_joints():
-    joints = cmds.ls(selection=True, type="joint")
-
-    if not joints:
-        return cmds.warning("Select joints prior to "
-                            "running this command")
-
-    commands.orient_joints(joints)
 
 
 def follicle():

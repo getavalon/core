@@ -1,10 +1,17 @@
-"""Used for scripting"""
+"""Used for scripting
+
+These are used in other scripts and mostly require explicit input,
+such as which specific nodes they apply to.
+
+For interactive use, see :mod:`interactive.py`
+
+"""
 
 import sys
 
 from maya import cmds
 
-from . import util, lib
+from . import util
 
 if sys.version_info[0] == 3:
     basestring = str
@@ -94,7 +101,7 @@ def auto_connect(src, dst):
         >>> # Create cube and transfer mesh into new shape
         >>> shape = cmds.createNode("mesh", name="newShape")
         >>> transform, generator = cmds.polyCube(name="original")
-        >>> commands.auto_connect(generator, shape)
+        >>> auto_connect(generator, shape)
         >>> cmds.delete(transform)
 
     """
@@ -518,6 +525,9 @@ def connect_matching_attributes(source, target):
 
     Example:
         >>> # Select two matching nodes
+        >>> source = cmds.createNode("transform", name="source")
+        >>> target = cmds.createNode("transform", name="target")
+        >>> cmds.select([source, target], replace=True)
         >>> source, target = cmds.ls(selection=True)
         >>> connect_matching_attributes(source, target)
 
@@ -571,160 +581,6 @@ def create_ncloth(input_mesh):
     cmds.sets(current_mesh, addElement="initialShadingGroup")
 
     return current_mesh
-
-
-def orient_joints(joints=None,
-                  aim_axis=(1, 0, 0),
-                  up_axis=(0, 0, 1),
-                  up_dir=(0, 1, 0),
-                  auto=True):
-    """Converted from Michael Comet's 'cometJointOrient.mel'"""
-
-    previous_up = lib.Point()
-
-    for joint in joints:
-        children = cmds.listRelatives(joint,
-                                      children=True,
-                                      type=["transform", "joint"]) or []
-
-        # Operate in worldspace
-        for child in children:
-            children = cmds.parent(child, world=True)
-
-        # Find parent for later
-        parent = next((
-            parent for parent in cmds.listRelatives(joint, parent=True) or []
-            if cmds.nodeType(parent) == "joint"), None
-        )
-
-        # Aim to the child
-        aim_target = next((
-            child for child in children
-            if cmds.nodeType(child) == "joint"), None
-        )
-
-        if aim_target:
-            up_vector = [0, 0, 0]
-
-            if auto:
-                # We want to match children to it's parent joint,
-                # but first we must make sure that there is a parent
-                # AND that that parent isn't sitting at the same location
-                # in space as the next.
-
-                joint_pos = cmds.xform(joint,
-                                       query=True,
-                                       worldSpace=True,
-                                       rotatePivot=True)
-                parent_pos = joint_pos if parent else cmds.xform(
-                    parent,
-                    query=True,
-                    worldSpace=True,
-                    rotatePivot=True)
-
-                tolerance = 0.0001  # How close do we consider 'same'?
-
-                distance = (lib.Point(joint_pos) - lib.Point(parent_pos))
-                is_identical = distance.length <= tolerance
-
-                if not parent or is_identical:
-                    aim_children = cmds.listRelatives(aim_target,
-                                                      children=True) or []
-                    aim_child = next((
-                        child for child in aim_children
-                        if cmds.nodeType(child) == "joint"), None
-                    )
-
-                    up_vector = _cross(joint, aim_target, aim_child)
-
-                else:
-                    up_vector = _cross(parent, joint, aim_target)
-
-            # If we aren't doing any guesswork,
-            # use what the user has specified.
-            if not auto or (up_vector[0] == 0.0 and
-                            up_vector[1] == 0.0 and
-                            up_vector[2] == 0.0):
-                up_vector = up_dir
-
-            aim_constraint = cmds.aimConstraint(aim_target, joint,
-                                                aim=aim_axis,
-                                                upVector=up_axis,
-                                                worldUpVector=up_vector,
-                                                worldUpType="vector",
-                                                weight=1.0)
-            cmds.delete(aim_constraint)
-
-            # Now compare the up we used to the prev one
-            current_up = lib.Point(up_vector)
-            current_up = current_up.normalized
-
-            dot = current_up.dotproduct(previous_up)
-            previous_up = lib.Point([up_vector[0], up_vector[1], up_vector[2]])
-
-            if joints.index(joint) > 0 and dot <= 0.0:
-                # Adjust the rotation axis 180 if it
-                # looks like we've flopped the wrong way!
-                cmds.xform(joint, r=1, os=1, ra=[(aim_axis[0] * 180.0),
-                                                 (aim_axis[1] * 180.0),
-                                                 (aim_axis[2] * 180.0)])
-                previous_up *= -1.0
-
-            # Finish clearing out joint axis
-            cmds.joint(joint, edit=True, zso=True)
-            cmds.makeIdentity(joint, apply=True)
-
-        elif not parent:
-            # If there is no target, duplicate
-            # the orientation of the parent.
-            orientConstraint = cmds.orientConstraint(parent, joint, w=1.0)
-            cmds.delete(orientConstraint)
-
-            # And finish clearing out joint axis
-            cmds.joint(joint, e=1, zso=1)
-            cmds.makeIdentity(joint, apply=1)
-
-        # Now we are done! Let's reparent
-        if len(children) > 0:
-            cmds.parent(children, joint)
-
-    cmds.select(joints)
-
-
-def _cross(obj_a, obj_b, obj_c):
-    """Find out the crossproduct direction based on three positions in space.
-
-    Returns an axis based on the cross product of B->A and B->C
-
-    angle=1 returns the angle inbetween the vectors instead of the axis.
-
-    """
-
-    cross = [0, 0, 0]
-
-    for obj in [obj_a, obj_b, obj_c]:
-        if not obj or not cmds.objExists(obj):
-            return cross
-
-    pos_a = cmds.xform(obj_a, query=True, worldSpace=True, rotatePivot=True)
-    pos_b = cmds.xform(obj_b, query=True, worldSpace=True, rotatePivot=True)
-    pos_c = cmds.xform(obj_c, query=True, worldSpace=True, rotatePivot=True)
-
-    v1 = lib.Point([pos_a[0] - pos_b[0],
-                    pos_a[1] - pos_b[1],
-                    pos_a[2] - pos_b[2]])
-    v2 = lib.Point([pos_c[0] - pos_b[0],
-                    pos_c[1] - pos_b[1],
-                    pos_c[2] - pos_b[2]])
-
-    vc = v1.crossproduct(v2)
-    vc = vc.normalized
-
-    cross[0] = vc[0]
-    cross[1] = vc[1]
-    cross[2] = vc[2]
-
-    return cross
 
 
 def enhanced_parent(child, parent):

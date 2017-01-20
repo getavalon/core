@@ -1,18 +1,13 @@
-# validate_pipeline_filesaved.py
 import pyblish.api
-
-# from os.path import splitext
 
 
 class ValidateCurrentSaveFile(pyblish.api.ContextPlugin):
-
-    """
-     ~ Validates if you have saved your application savefile yet ?
-    """
+    """File must be saved before publishing"""
 
     label = "Validate File Saved"
     order = pyblish.api.ValidatorOrder - 0.1
     optional = True
+    hosts = ["maya", "houdini"]
 
     def process(self, context):
 
@@ -23,31 +18,21 @@ class ValidateCurrentSaveFile(pyblish.api.ContextPlugin):
             resitem.reverse()
             return resitem[0]
 
-        savefileFromContext = []
-        # for backward compatible reasons there are two values collected bellow
-        savefileFromContext.append(str(context.data["current_file"]))
-        savefileFromContext.append(str(context.data["currentFile"]))
-        # for houdini sake we allter the context before use in this tool
-        savefileFromContext.append(houdini(str(context.data["currentFile"])))
-        # savefileFromContext.append()
+        current_file = context.data["currentFile"]
 
-        # reset if statement variable
-        invalid = True
+        if "houdini" in pyblish.api.registered_hosts():
+            current_file = houdini(current_file)
 
-        savefilepattern = []
-        # these are the patterns that are tested by the later if condition
-        savefilepattern.append("Root")
-        savefilepattern.append(".")
-        savefilepattern.append("untitled.hip")
-        # savefilepattern.append()
+        unsaved_values = [
+            # An unsaved file in Maya has this value.
+            ".",
 
-        # self.log.debug(invalid)
-        for apppatern in savefilepattern:
-            for appfile in savefileFromContext:
-                if (str(appfile) == str(apppatern)):
-                    invalid = False
-                    # self.log.debug(str(appfile) + str(apppatern))
-        # self.log.debug(invalid)
-        # self.log.info(invalid)
-        assert invalid, (
+            # An unsaved file in Houdini has one of these values.
+            "Root",
+            "untitled.hip"
+        ]
+
+        is_saved = current_file not in unsaved_values
+
+        assert is_saved, (
             "You haven't saved your file yet")
