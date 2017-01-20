@@ -92,22 +92,51 @@ def uninstall():
 
 
 def _install_menu():
-    from mindbender.tools import (
+    from ..tools import (
         creator,
         loader,
         manager
     )
 
+    from . import interactive
+
     _uninstall_menu()
 
     def deferred():
         cmds.menu(self.menu,
-                  label="Pipeline",
+                  label="Mindbender",
                   tearOff=True,
                   parent="MayaWindow")
+
         cmds.menuItem("Show Creator", command=creator.show)
         cmds.menuItem("Show Loader", command=loader.show)
         cmds.menuItem("Show Manager", command=manager.show)
+
+        cmds.menuItem(divider=True)
+
+        # Rigging sub-menu
+        cmds.menuItem("Rigging",
+                      label="Mindbender/Rigging",
+                      tearOff=True,
+                      subMenu=True)
+
+        def command(func, **kwargs):
+            # Maya passes a few additional arguments to#
+            # any given function. We squash (ignore) those here.
+            return lambda *args: func(**kwargs)
+
+        cmds.menuItem("Clone (Local)",
+                      command=command(interactive.clone, worldspace=False))
+        cmds.menuItem("Clone (Worldspace)",
+                      command=command(interactive.clone, worldspace=True))
+        cmds.menuItem("Combine",
+                      command=command(interactive.combine))
+        cmds.menuItem("Auto Connect",
+                      command=command(interactive.auto_connect))
+        cmds.menuItem("Set Defaults",
+                      command=command(interactive.set_defaults))
+        cmds.menuItem("Create Follicle",
+                      command=command(interactive.follicle))
 
     # Allow time for uninstallation to finish.
     QtCore.QTimer.singleShot(100, deferred)
