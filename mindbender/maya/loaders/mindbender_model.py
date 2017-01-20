@@ -43,4 +43,4 @@ class ModelLoader(api.Loader):
         meshes = cmds.ls(nodes, type="mesh")
         cmds.sets(meshes, forceElement="initialShadingGroup")
 
-        return cmds.referenceQuery(nodes[0], referenceNode=True)
+        return nodes

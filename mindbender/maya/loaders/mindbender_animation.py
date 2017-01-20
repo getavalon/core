@@ -44,4 +44,4 @@ class AnimationLoader(api.Loader):
                               version=version,
                               representation=representation)
 
-        return cmds.referenceQuery(nodes[0], referenceNode=True)
+        return nodes

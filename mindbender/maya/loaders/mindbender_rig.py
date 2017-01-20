@@ -57,4 +57,4 @@ class RigLoader(api.Loader):
                             family="mindbender.animation",
                             options={"useSelection": True})
 
-        return cmds.referenceQuery(nodes[0], referenceNode=True)
+        return nodes
