@@ -30,9 +30,11 @@ echo+
 :: List available tasks
 setlocal enabledelayedexpansion
 set FOLDERQUERRY=%ASSETDIR%
-for /f %%i in ('dir %FOLDERQUERRY%\work /b ') do (
-   set x=%%i
-   echo   !x!
+if {%FOLDERQUERRY%\work\*}=={} (
+	for /f %%i in ('dir %FOLDERQUERRY%\work /b ') do (
+   		set x=%%i
+   		echo   !x!
+	)
 )
 endlocal
 
