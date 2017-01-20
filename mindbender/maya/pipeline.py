@@ -313,8 +313,6 @@ def update(container, version=-1):
 
     """
 
-    print("TEST")
-
     node = container["objectName"]
 
     # Assume asset has been referenced
@@ -330,11 +328,11 @@ def update(container, version=-1):
     representation = None
 
     for asset in api.ls(silos=[container["silo"]]):
-        if asset["name"] == container["asset"]:
+        if asset["name"] != container["asset"]:
             continue
 
         for subset in asset["subsets"]:
-            if subset["name"] == container["subset"]:
+            if subset["name"] != container["subset"]:
                 continue
 
             try:
@@ -383,7 +381,7 @@ def update(container, version=-1):
         fname=fname
     ))
 
-    # cmds.file(fname, loadReference=reference_node, type=file_type)
+    cmds.file(fname, loadReference=reference_node, type=file_type)
 
     # Update metadata
     cmds.setAttr(container["objectName"] + ".version", version_["version"])
