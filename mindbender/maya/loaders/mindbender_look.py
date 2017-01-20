@@ -54,4 +54,4 @@ class LookLoader(api.Loader):
 
             lib.apply_shaders(relationships)
 
-        return cmds.referenceQuery(nodes[0], referenceNode=True)
+        return nodes

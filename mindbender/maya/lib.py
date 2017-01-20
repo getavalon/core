@@ -271,6 +271,12 @@ def serialise_shaders(nodes):
         for shader in cmds.listConnections(shape,
                                            type="shadingEngine") or list():
 
+            # Objects in this group are those that haven't got
+            # any shaders. These are expected to be managed
+            # elsewhere, such as by the default model loader.
+            if shader == "initialShadingGroup":
+                continue
+
             if shader not in meshes_by_shader:
                 meshes_by_shader[shader] = list()
 
@@ -314,6 +320,7 @@ def apply_shaders(relationships):
     """
 
     for shader, ids in relationships.items():
+        print("Looking for '*:%s'.." % shader)
         shader = next(iter(cmds.ls("*:" + shader)), None)
         assert shader, "Associated shader not part of asset, this is a bug"
 
