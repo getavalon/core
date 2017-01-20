@@ -142,6 +142,8 @@ def _install_menu():
                       command=command(interactive.clone, worldspace=False))
         cmds.menuItem("Clone (Worldspace)",
                       command=command(interactive.clone, worldspace=True))
+        cmds.menuItem("Clone (Special)",
+                      command=command(interactive.clone_with_attributes))
         cmds.menuItem("Create Follicle",
                       command=command(interactive.follicle))
 
