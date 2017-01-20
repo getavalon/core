@@ -1,6 +1,9 @@
 """Maya initialisation for Mindbender pipeline"""
 
 from maya import cmds
+import os
+
+fps = os.getenv("MINDBENDER_FPS")
 
 
 def setup():
@@ -14,6 +17,7 @@ def setup():
     from mindbender import api, maya
     api.install(maya)
 
+    cmds.playbackOptions(edit=True, framesPerSecond=fps)
 
 # Allow time for dependencies (e.g. pyblish-maya)
 # to be installed first.
