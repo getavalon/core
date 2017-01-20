@@ -11,7 +11,7 @@ class ValidateCurrentSaveFile(pyblish.api.ContextPlugin):
     """
 
     label = "Saved file"
-    order = pyblish.api.CollectorOrder + 0.1
+    order = pyblish.api.ValidatorOrder - 0.1
     optional = True
 
     def process(self, context):
