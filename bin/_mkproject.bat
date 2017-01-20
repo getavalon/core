@@ -25,11 +25,8 @@ if "%3"=="" goto :missing_silo
 
 set PROJECTDIR=%1%2
 :: This is a variable for the function back.bat.
-set CURRENTPROJECT=%1
-set CURRENTPROJECT_NAME=%2
-:: this variable has become obsolete with the addition of MINDBENDER_SILO variable
-:: this can be removed safly if back.bat is removed or changed for something better.
-set PROJECTSTAGE=%3
+set PROJECT=%1
+set PROJECTNAME=%2
 
 if not exist %PROJECTDIR% (
   echo Creating new project "%PROJECT%"..
