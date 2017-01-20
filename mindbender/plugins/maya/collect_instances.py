@@ -51,7 +51,7 @@ class CollectMindbenderInstances(pyblish.api.ContextPlugin):
             assert pyblish_maya.is_setup()
 
         except (ImportError, AssertionError):
-            raise RuntimeError("pyblish-mindbender requires pyblish-maya "
+            raise RuntimeError("mindbender-core requires pyblish-maya "
                                "to have been setup.")
 
         for objset in cmds.ls("*.id",

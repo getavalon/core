@@ -30,7 +30,10 @@ class LookLoader(api.Loader):
         pipeline.containerise(name=name,
                               namespace=namespace,
                               nodes=nodes,
-                              version=version)
+                              asset=asset,
+                              subset=subset,
+                              version=version,
+                              representation=representation)
 
         # Assign shaders
         representation = next(

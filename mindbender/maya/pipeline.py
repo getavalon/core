@@ -10,7 +10,7 @@ from maya import cmds
 from . import lib
 
 self = sys.modules[__name__]
-self.log = logging.getLogger("pyblish-mindbender")
+self.log = logging.getLogger("mindbender-core")
 self.menu = "pyblishMindbender"
 
 
@@ -92,7 +92,11 @@ def uninstall():
 
 
 def _install_menu():
-    from mindbender.tools import creator, loader
+    from mindbender.tools import (
+        creator,
+        loader,
+        manager
+    )
 
     _uninstall_menu()
 
@@ -103,6 +107,7 @@ def _install_menu():
                   parent="MayaWindow")
         cmds.menuItem("Show Creator", command=creator.show)
         cmds.menuItem("Show Loader", command=loader.show)
+        cmds.menuItem("Show Manager", command=manager.show)
 
     # Allow time for uninstallation to finish.
     QtCore.QTimer.singleShot(100, deferred)
@@ -129,10 +134,10 @@ def _register_root():
 
 def ls():
     """List loaded assets"""
-    for container in lib.lsattr("id", "pyblish.mindbender.container"):
+    for container in sorted(lib.lsattr("id", "pyblish.mindbender.container")):
         data = dict(
-            schema="pyblish-mindbender:container-1.0",
-            name=container,
+            schema="mindbender-core:container-1.0",
+            objectName=container,
             **lib.read(container)
         )
 
@@ -145,8 +150,8 @@ def load(asset, subset, version=-1, representation=None):
     """Load data into Maya
 
     Arguments:
-        asset ("pyblish-mindbender:asset-1.0"): Asset which to import
-        subset ("pyblish-mindbender:subset-1.0"): Subset within Asset to import
+        asset ("mindbender-core:asset-1.0"): Asset which to import
+        subset ("mindbender-core:subset-1.0"): Subset within Asset to import
         version (int, optional): Version number, defaults to latest
         representation (str, optional): File format, e.g. `.ma`, `.obj`, `.exr`
 
@@ -159,7 +164,7 @@ def load(asset, subset, version=-1, representation=None):
 
     """
 
-    assert subset["schema"] == "pyblish-mindbender:subset-1.0"
+    assert subset["schema"] == "mindbender-core:subset-1.0"
     assert isinstance(version, int), "Version must be integer"
 
     try:
@@ -246,7 +251,128 @@ def create(name, family, options=None):
     return instance
 
 
-def containerise(name, namespace, nodes, version, suffix="_CON"):
+def update(container, version=-1):
+    """Update `container` to `version`
+
+    This function relies on a container being referenced. At the time of this
+    writing, all assets - models, rigs, animations, shaders - are referenced
+    and should pose no problem. But should there be an asset that isn't
+    referenced then this function will need to see an update.
+
+    Arguments:
+        container (mindbender-core:container-1.0): Container to update,
+            from `host.ls()`.
+        version (int, optional): Update the container to this version.
+            If no version is passed, the latest is assumed.
+
+    """
+
+    node = container["objectName"]
+
+    # Assume asset has been referenced
+    reference_node = next((node for node in cmds.sets(node, query=True)
+                          if cmds.nodeType(node) == "reference"), None)
+
+    assert reference_node, ("Imported container not supported; "
+                            "container must be referenced.")
+
+    asset = None
+    subset = None
+    version_ = None
+    representation = None
+
+    for asset in api.ls(silos=[container["silo"]]):
+        for subset in asset["subsets"]:
+            try:
+                version_ = subset["versions"][version - 1]
+            except IndexError:
+                raise IndexError("Version '%s' does not exist." % version)
+
+            for representation in version_["representations"]:
+                if representation["format"] == container["representation"]:
+                    break
+
+            if subset["name"] == container["subset"]:
+                break
+
+        if asset["name"] == container["asset"]:
+            break
+
+    assert all([asset, subset, version_, representation]), (
+        "Could not fully qualify container in available assets.\n"
+        "This is a bug.\n"
+        "\n"
+        "Data\n"
+        "asset: %s\n"
+        "subset: %s\n"
+        "version: %s\n"
+        "representation: %s\n" % (asset, subset, version_, representation)
+    )
+
+    fname = representation["path"].format(
+        dirname=version_["path"].format(root=api.registered_root()),
+        format=representation["format"]
+    )
+
+    file_type = {
+        ".ma": "mayaAscii",
+        ".mb": "mayaBinary",
+        ".mb": "alembic"
+    }.get(representation["format"])
+
+    assert file_type, ("Unsupported representation: %s" % representation)
+
+    print("Grading '{name}' from '{from_}' to '{to_}' with '{fname}'".format(
+        name=container["name"],
+        from_=container["version"],
+        to_=version,
+        fname=fname
+    ))
+
+    # cmds.file(fname, loadReference=reference_node, type=file_type)
+
+    # Update metadata
+    cmds.setAttr(container["objectName"] + ".version", version_["version"])
+    cmds.setAttr(container["objectName"] + ".path",
+                 version_["path"],
+                 type="string")
+    cmds.setAttr(container["objectName"] + ".source",
+                 version_["source"],
+                 type="string")
+
+
+def remove(container):
+    """Remove an existing `container` from Maya scene
+
+    Arguments:
+        container (mindbender-core:container-1.0): Which container
+            to remove from scene.
+
+    """
+
+    node = container["objectName"]
+
+    # Assume asset has been referenced
+    reference_node = next((node for node in cmds.sets(node, query=True)
+                          if cmds.nodeType(node) == "reference"), None)
+
+    assert reference_node, ("Imported container not supported; "
+                            "container must be referenced.")
+
+    print("Removing '%s' from Maya.." % container["name"])
+
+    fname = cmds.referenceQuery(reference_node, filename=True)
+    cmds.file(fname, removeReference=True)
+
+
+def containerise(name,
+                 namespace,
+                 nodes,
+                 asset,
+                 subset,
+                 version,
+                 representation,
+                 suffix="_CON"):
     """Bundle `nodes` into an assembly and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
@@ -256,7 +382,9 @@ def containerise(name, namespace, nodes, version, suffix="_CON"):
         name (str): Name of resulting assembly
         nodes (list): Long names of nodes to containerise
         namespace (str): Namespace under which to host container
-        version (pyblish-mindbender:version-1.0): Current version
+        asset (mindbender-core:asset-1.0): Current asset
+        subset (mindbender-core:subset-1.0): Current subset
+        version (mindbender-core:version-1.0): Current version
 
     Returns:
         container (str): Name of container assembly
@@ -267,11 +395,21 @@ def containerise(name, namespace, nodes, version, suffix="_CON"):
 
     data = [
         ("id", "pyblish.mindbender.container"),
+        ("name", namespace),
         ("author", version["author"]),
         ("loader", self.__name__),
         ("families", " ".join(version.get("families", list()))),
         ("time", version["time"]),
+        ("asset", asset["name"]),
+        ("subset", subset["name"]),
+        ("representation", representation["format"]),
         ("version", version["version"]),
+
+        # TEMPORARY, REMOVE PLEASE
+        # Temporarily assume "assets", as existing published assets
+        # won't have this new variable.
+        ("silo", version.get("silo", "assets")),
+
         ("path", version["path"]),
         ("source", version["source"]),
         ("comment", version.get("comment", ""))
@@ -282,8 +420,13 @@ def containerise(name, namespace, nodes, version, suffix="_CON"):
         if not value:
             continue
 
-        cmds.addAttr(container, longName=key, dataType="string")
-        cmds.setAttr(container + "." + key, value, type="string")
+        if isinstance(value, (int, float)):
+            cmds.addAttr(container, longName=key, attributeType="short")
+            cmds.setAttr(container + "." + key, value)
+
+        else:
+            cmds.addAttr(container, longName=key, dataType="string")
+            cmds.setAttr(container + "." + key, value, type="string")
 
     # Hide in outliner
     # cmds.setAttr(container + ".verticesOnlySet", True)
@@ -314,7 +457,7 @@ def _display_missing_dependencies():
     messagebox.setText("Missing dependencies")
 
     messagebox.setInformativeText(
-        "pyblish-mindbender requires pyblish-maya.\n"
+        "mindbender-core requires pyblish-maya.\n"
     )
 
     messagebox.setDetailedText(
@@ -331,12 +474,12 @@ def _display_missing_dependencies():
         "\n"
         ">>> mindbender.install()\n"
 
-        "See https://github.com/pyblish/pyblish-mindbender "
+        "See https://github.com/mindbender-studio/core "
         "for more information."
     )
 
     messagebox.setStandardButtons(messagebox.Ok)
     messagebox.exec_()
 
-    raise RuntimeError("pyblish-mindbender requires pyblish-maya "
+    raise RuntimeError("mindbender-core requires pyblish-maya "
                        "to have been setup.")

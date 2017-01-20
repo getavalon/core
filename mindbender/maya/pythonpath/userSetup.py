@@ -5,7 +5,7 @@ from maya import cmds
 
 def setup():
     assert __import__("pyblish_maya").is_setup(), (
-        "pyblish-mindbender depends on pyblish_maya which has not "
+        "mindbender-core depends on pyblish_maya which has not "
         "yet been setup. Run pyblish_maya.setup()")
 
     from pyblish import api

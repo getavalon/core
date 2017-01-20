@@ -14,6 +14,7 @@ from . import lib, schema
 from . import (
     _registered_families,
     _registered_data,
+    _registered_silos,
     _registered_formats,
     _registered_loaders_paths,
     _registered_host,
@@ -24,7 +25,7 @@ from .vendor import six
 
 self = sys.modules[__name__]
 
-self.log = logging.getLogger("pyblish-mindbender")
+self.log = logging.getLogger("mindbender-core")
 self._is_installed = False
 
 
@@ -171,7 +172,7 @@ def deregister_loaders_path(path):
     _registered_loaders_paths.pop(path)
 
 
-def ls(root="assets"):
+def ls(silos=None):
     """List available assets
 
     Return a list of available assets.
@@ -180,8 +181,8 @@ def ls(root="assets"):
     to facilitate a potential transition into database-driven queries.
 
     Arguments:
-        root (str, optional): Path to asset directory, relative the currently
-            registered root, unless absolute. Defaults to "assets"
+        silo (str, optional): Path to asset silo, relative the currently
+            registered silo, unless absolute. Defaults to an empty string.
 
     A note on performance:
         This function is a generator, it scans the system one asset
@@ -207,59 +208,66 @@ def ls(root="assets"):
 
     """
 
-    assetsdir = (
-        root if os.path.isabs(root)
-        else os.path.join(registered_root(), root)
+    silos = silos or registered_silos()
+
+    assert isinstance(silos, list), (
+        "Argument `silos` must be a list of strings."
     )
 
-    assert assetsdir is not None, ("No registered root.")
+    for silo in silos:
+        assetsdir = (
+            silo if os.path.isabs(silo)
+            else os.path.join(registered_root(), silo)
+        )
 
-    for asset in lib.listdir(assetsdir):
-        assetdir = os.path.join(assetsdir, asset)
-        publishdir = lib.format_shared_dir(assetdir)
+        assert assetsdir is not None, ("No registered root.")
 
-        asset_entry = {
-            "schema": "pyblish-mindbender:asset-1.0",
-            "name": asset,
-            "subsets": list()
-        }
+        for asset in lib.listdir(assetsdir):
+            assetdir = os.path.join(assetsdir, asset)
+            publishdir = lib.format_shared_dir(assetdir)
 
-        for subset in lib.listdir(publishdir):
-            subsetdir = os.path.join(publishdir, subset)
-
-            subset_entry = {
-                "schema": "pyblish-mindbender:subset-1.0",
-                "name": subset,
-                "versions": list(),
+            asset_entry = {
+                "schema": "mindbender-core:asset-1.0",
+                "name": asset,
+                "subsets": list()
             }
 
-            asset_entry["subsets"].append(subset_entry)
+            for subset in lib.listdir(publishdir):
+                subsetdir = os.path.join(publishdir, subset)
 
-            for version in lib.listdir(subsetdir):
-                versiondir = os.path.join(subsetdir, version)
-                fname = os.path.join(versiondir, ".metadata.json")
+                subset_entry = {
+                    "schema": "mindbender-core:subset-1.0",
+                    "name": subset,
+                    "versions": list(),
+                }
 
-                try:
-                    with open(fname) as f:
-                        version_entry = json.load(f)
+                asset_entry["subsets"].append(subset_entry)
 
-                except IOError:
-                    self.log.warning("\"%s\" not found." % fname)
-                    continue
+                for version in lib.listdir(subsetdir):
+                    versiondir = os.path.join(subsetdir, version)
+                    fname = os.path.join(versiondir, ".metadata.json")
 
-                if version_entry.get("schema") != ("pyblish-mindbender"
-                                                   ":version-1.0"):
-                    self.log.warning("\"%s\" unsupported schema." % fname)
-                    continue
+                    try:
+                        with open(fname) as f:
+                            version_entry = json.load(f)
 
-                subset_entry["versions"].append(version_entry)
+                    except IOError:
+                        self.log.warning("\"%s\" not found." % fname)
+                        continue
 
-            # Sort versions by integer
-            subset_entry["versions"].sort(key=lambda v: v["version"])
+                    if version_entry.get("schema") != ("mindbender-core"
+                                                       ":version-1.0"):
+                        self.log.warning("\"%s\" unsupported schema." % fname)
+                        continue
 
-        schema.validate(asset_entry, "asset")
+                    subset_entry["versions"].append(version_entry)
 
-        yield asset_entry
+                # Sort versions by integer
+                subset_entry["versions"].sort(key=lambda v: v["version"])
+
+            schema.validate(asset_entry, "asset")
+
+            yield asset_entry
 
 
 def _parse_query(query):
@@ -338,7 +346,7 @@ def search(query, root=None):
                     continue
 
                 yield {
-                    "schema": "pyblish-mindbender:result-1.0",
+                    "schema": "mindbender-core:result-1.0",
                     "asset": asset_,
                     "subset": subset_,
                     "version": version_,
@@ -350,7 +358,7 @@ def any_representation(version):
     """Pick any compatible representation.
 
     Arguments:
-        version ("pyblish-mindbender:version-1.0"): Version from which
+        version ("mindbender-core:version-1.0"): Version from which
             to pick a representation, based on currently registered formats.
 
     """
@@ -360,8 +368,7 @@ def any_representation(version):
     try:
         representation = next(
             rep for rep in version["representations"]
-            if rep["format"] in supported_formats and
-            rep["path"] != "{dirname}/source{format}"
+            if rep["format"] in supported_formats
         )
 
     except StopIteration:
@@ -399,7 +406,7 @@ def fixture(assets=["Asset1"], subsets=["animRig"], versions=1):
 
     Usage:
         >>> with fixture(assets=["MyAsset1"]):
-        ...    for asset in ls("assets"):
+        ...    for asset in ls(["assets"]):
         ...       assert asset["name"] == "MyAsset1"
         ...
 
@@ -429,7 +436,7 @@ def fixture(assets=["Asset1"], subsets=["animRig"], versions=1):
 
                 with open(fname, "w") as f:
                     json.dump({
-                        "schema": "pyblish-mindbender:version-1.0",
+                        "schema": "mindbender-core:version-1.0",
                         "version": lib.parse_version(version),
                         "path": versiondir,
                         "time": "",
@@ -442,7 +449,7 @@ def fixture(assets=["Asset1"], subsets=["animRig"], versions=1):
                         ),
                         "representations": [
                             {
-                                "schema": ("pyblish-mindbender:"
+                                "schema": ("mindbender-core:"
                                            "representation-1.0"),
                                 "format": ".ma",
                                 "path": os.path.join(
@@ -472,7 +479,10 @@ def register_root(path):
 
 def registered_root():
     """Return currently registered root"""
-    return _registered_root["_"] or os.getenv("PYBLISHMINDBENDERROOT") or ""
+    return (
+        _registered_root["_"] or
+        os.getenv("MINDBENDER_ROOT") or ""
+    ).replace("\\", "/")
 
 
 def register_format(format):
@@ -508,6 +518,17 @@ def register_plugins():
     package_path = os.path.dirname(module_path)
     plugins_path = os.path.join(package_path, "plugins")
     api.register_plugin_path(plugins_path)
+
+
+def register_silo(name):
+    _registered_silos.add(name)
+
+
+def registered_silos():
+    return (
+        list(_registered_silos) or
+        os.getenv("MINDBENDER_SILO", "").split()
+    )
 
 
 def register_data(key, value, help=None):
@@ -579,7 +600,7 @@ def deregister_plugins():
     try:
         api.deregister_plugin_path(plugin_path)
     except ValueError:
-        self.log.warning("pyblish-mindbender plug-ins not registered.")
+        self.log.warning("mindbender-core plug-ins not registered.")
 
 
 def deregister_host():
@@ -597,10 +618,24 @@ def default_host():
     """
 
     host = types.ModuleType("defaultHost")
+
+    def ls():
+        return list()
+
+    def load(asset, subset, version=-1, representation=None):
+        return None
+
+    def create(name, family, nodes=None):
+        return "instanceFromDefaultHost"
+
+    def remove(container):
+        print("Removing '%s' from defaultHost.." % container["name"])
+
     host.__dict__.update({
-        "ls": lambda: [],
-        "load": lambda subset, version=-1, representation=None: None,
-        "create": lambda name, family, nodes=None: "my_instance",
+        "ls": ls,
+        "load": load,
+        "create": create,
+        "remove": remove,
     })
 
     return host
@@ -609,19 +644,43 @@ def default_host():
 def debug_host():
     """A debug host, useful to debugging features that depend on a host"""
     host = types.ModuleType("debugHost")
+
+    def ls():
+        return list()
+
+    def load(asset, subset, version=-1, representation=None):
+        sys.stdout.write(json.dumps({
+            "asset": asset,
+            "subset": subset,
+            "version": version,
+            "representation": representation
+        }, indent=4) + "\n"),
+
+        return None
+
+    def create(name, family, nodes=None):
+        sys.stdout.write(json.dumps({
+            "name": name,
+            "family": family,
+        }, indent=4))
+        return "instanceFromDebugHost"
+
+    def update(container, version=-1):
+        print("Grading '{name}' from '{from_}' to '{to_}'".format(
+            name=container["name"],
+            from_=container["version"],
+            to_=version
+        ))
+
+    def remove(container):
+        print("Removing '%s' from debugHost.." % container["name"])
+
     host.__dict__.update({
-        "ls": lambda: [],
-        "load": lambda subset, version=-1, representation=None:
-            sys.stdout.write(json.dumps({
-                "subset": subset,
-                "version": version,
-                "representation": representation
-            }, indent=4) + "\n"),
-        "create": lambda name, family, nodes=None:
-            sys.stdout.write(json.dumps({
-                "name": name,
-                "family": family,
-            }, indent=4))
+        "ls": ls,
+        "load": load,
+        "create": create,
+        "update": update,
+        "remove": remove,
     })
 
     return host

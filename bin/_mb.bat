@@ -48,6 +48,7 @@ set PYTHONPATH=%MINDBENDER_CORE%;%PYTHONPATH%
 set PROJECTS=%1
 
 :: Expose pipeline executables
+set PYTHONPATH=%MAYA_SCRIPT_PATH%;%PYTHONPATH%
 set PATH=%MINDBENDER_CORE%\bin;%PATH%
 set PYBLISHPLUGINPATH=%MINDBENDER_CORE%\mindbender\plugins;%PYBLISHPLUGINPATH%
 
@@ -83,6 +84,7 @@ echo   Welcome %USERNAME%!
 echo+
 echo   1. Type first characters of a project, e.g. "p999_"
 echo   2. Press TAB to cycle through matching projects
+echo   3. Press SPACE and specify whether to enter "assets" or "film"
 echo+
 echo  ---------------------------------------------
 echo+

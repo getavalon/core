@@ -308,7 +308,7 @@ def apply_shaders(relationships):
     """Given a dictionary of `relationships`, apply shaders to meshes
 
     Arguments:
-        relationships (pyblish-mindbender:shaders-1.0): A dictionary of
+        relationships (mindbender-core:shaders-1.0): A dictionary of
             shaders and how they relate to meshes.
 
     """

@@ -40,27 +40,48 @@ def teardown():
 
 def test_containerise():
     """A containerised asset should appear in maya.ls()"""
+    asset = {
+        "schema": "mindbender-core:asset-1.0",
+        "name": "Doe",
+        "subsets": [],
+    }
+
+    subset = {
+        "schema": "mindbender-core:subset-1.0",
+        "name": "modelDefault",
+        "versions": [],
+    }
+
     version = {
-        "id": "pyblish.mindbender.container",
-        "author": "Doe",
-        "time": "2017Z5454542",
+        "schema": "mindbender-core:version-1.0",
         "version": 2,
         "path": "{root}/this.ma",
+        "time": "2017Z5454542",
+        "author": "Doe",
         "source": "{root}/some/dir/file.ma",
+    }
+
+    representation = {
+        "schema": "mindbender-core:representation-1.0",
+        "format": ".ma",
+        "path": "{dirname}/lookdevDefault{format}",
     }
 
     node = cmds.createNode("transform", name="Group")
     container = pipeline.containerise(name="Asset",
-                                      namespace="temp",
+                                      namespace="Asset01_",
                                       nodes=[node],
+                                      asset=asset,
+                                      subset=subset,
                                       version=version,
+                                      representation=representation,
                                       suffix="_CON")
     assert_equals(container, "Asset_CON")
 
     print(lib.lsattr("id", "pyblish.mindbender.container"))
 
     containers = list(c["name"] for c in pipeline.ls())
-    assert container in containers, containers
+    assert "Asset01_" in containers, containers
 
 
 @with_setup(clear)
@@ -86,7 +107,7 @@ class DemoLoader(api.Loader):
 
     try:
         with mindbender.api.fixture(assets=["Asset1"], subsets=["subset1"]):
-            asset = next(mindbender.api.ls())
+            asset = next(mindbender.api.ls(["assets"]))
             subset = asset["subsets"][0]
             version = subset["versions"][0]
             representation = version["representations"][0]

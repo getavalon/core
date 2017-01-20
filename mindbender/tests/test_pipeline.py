@@ -79,12 +79,12 @@ def test_ls():
     |_________________________________________________________________|
 
     This schema is located within each version of an asset and is
-    denoted `pyblish-mindbender:version-1.0`.
+    denoted `mindbender-core:version-1.0`.
 
     The members of this schema is also strict, they are:
 
     {
-        "schema": "pyblish-mindbender:version-1.0",
+        "schema": "mindbender-core:version-1.0",
         "name": "Name of asset",
         "representations": [List of representations],
     }
@@ -107,18 +107,18 @@ def test_ls():
     with pipeline.fixture(assets=["Asset1"],
                           subsets=["animRig"],
                           versions=1) as root:
-        asset = next(pipeline.ls(parent))
+        asset = next(pipeline.ls([parent]))
 
     reference = {
-        "schema": "pyblish-mindbender:asset-1.0",
+        "schema": "mindbender-core:asset-1.0",
         "name": "Asset1",
         "subsets": [
             {
-                "schema": "pyblish-mindbender:subset-1.0",
+                "schema": "mindbender-core:subset-1.0",
                 "name": "animRig",
                 "versions": [
                     {
-                        "schema": "pyblish-mindbender:version-1.0",
+                        "schema": "mindbender-core:version-1.0",
                         "version": 1,
                         "path": os.path.join(
                             root,
@@ -136,7 +136,7 @@ def test_ls():
                         ),
                         "representations": [
                             {
-                                "schema": ("pyblish-mindbender:"
+                                "schema": ("mindbender-core:"
                                            "representation-1.0"),
                                 "format": ".ma",
                                 "path": os.path.join(
@@ -165,7 +165,7 @@ def test_ls():
 def test_ls_returns_sorted_versions():
     """Versions returned from ls() are alphanumerically sorted"""
     with pipeline.fixture(assets=["Asset1"], subsets=["animRig"], versions=1):
-        for asset in pipeline.ls("assets"):
+        for asset in pipeline.ls(["assets"]):
             previous_version = 0
             for subset in asset["subsets"]:
                 for version in subset["versions"]:
@@ -177,14 +177,15 @@ def test_ls_returns_sorted_versions():
 def test_ls_empty():
     """No assets results in an empty generator"""
     with pipeline.fixture(assets=[], versions=0):
-        assert_raises(StopIteration, next, pipeline.ls("assets"))
+        assert_raises(StopIteration, next, pipeline.ls(["assets"]))
 
 
 def test_ls_no_shareddir():
     """A root without assets returns an empty generator"""
 
     with bad_fixture() as root:
-        assert next(pipeline.ls(root=root), None) is None
+        pipeline.register_root(root)
+        assert next(pipeline.ls(), None) is None
 
 
 @with_setup(clear)

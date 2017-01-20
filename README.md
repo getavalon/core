@@ -1,30 +1,11 @@
-### Pyblish Mindbender
+### Mindbender Core
 
-[![Build Status](https://travis-ci.org/pyblish/pyblish-mindbender.svg?branch=master)](https://travis-ci.org/pyblish/pyblish-mindbender) [![Coverage Status](https://coveralls.io/repos/github/pyblish/pyblish-mindbender/badge.svg?branch=master)](https://coveralls.io/github/pyblish/pyblish-mindbender?branch=master) [![PyPI version](https://badge.fury.io/py/pyblish-mindbender.svg)](https://pypi.python.org/pypi/pyblish-mindbender)
+[![Build Status](https://travis-ci.org/pyblish/pyblish-mindbender.svg?branch=master)](https://travis-ci.org/pyblish/pyblish-mindbender) [![Coverage Status](https://coveralls.io/repos/github/pyblish/pyblish-mindbender/badge.svg?branch=master)](https://coveralls.io/github/pyblish/pyblish-mindbender?branch=master)
 
-A basic asset creation pipeline - batteries included.
+The production pipeline at Mindbender Animation Studio.
 
-- [Website](http://pyblish.com/pyblish-mindbender)
-- [Forums](http://forums.pyblish.com)
-
-<br>
-
-### Install
-
-```bash
-$ pip install pyblish-mindbender
-```
-
-Each studio must then define a few executables with their own local paths, that are later mapped into the pipeline automatically.
-
-<br>
-
-### Usage
-
-```python
->>> from pyblish_mindbender import api, maya
->>> api.install(maya)
-```
+- [Documentation](https://mindbender-studio.github.io)
+- [Installation](https://mindbender-studio.github.io/#install)
 
 <br>
 
@@ -47,11 +28,13 @@ docker run --rm -v $(pwd):/workspace pyblish/mindbender
 
 Below are some of the standard practices applied to this repositories.
 
-- **PEP8**
+- **Etiquette: PEP8**
  	- All code is written in PEP8. It is recommended you use a linter as you work, flake8 and pylinter are both good options.
-- **Napoleon docstrings**
+- **Etiquette: Napoleon docstrings**
 	- Any docstrings are made in Google Napoleon format. See [Napoleon](https://sphinxcontrib-napoleon.readthedocs.io/en/latest/example_google.html) for details.
-- **Semantic Versioning**
+- **Etiquette: Semantic Versioning**
 	- This project follows [semantic versioning](http://semver.org).
-- **Underscore means private**
+- **Etiquette: Underscore means private**
 	- Anything prefixed with an underscore means that it is internal to wherever it is used. For example, a variable name is only ever used in the parent function or class. A module is not for use by the end-user. In contrast, anything without an underscore is public, but not necessarily part of the API. Members of the API resides in `api.py`.
+- **API: Idempotence**
+ 	- A public function must be able to be called twice and produce the exact same result. This means no changing of state without restoring previous state when finishing. For example, if a function requires changing the current selection in Autodesk Maya, it must restore the previous selection prior to completing.

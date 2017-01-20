@@ -58,8 +58,8 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
         #   \       /
         #    o   __/
         #
-        if not all(result["success"] for result in context.data["results"]):
-            raise Exception("Atomicity not held, aborting.")
+        assert all(result["success"] for result in context.data["results"]), (
+            "Atomicity not held, aborting.")
 
         # Assemble
         #
@@ -106,7 +106,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
 
         except IOError:
             metadata = {
-                "schema": "pyblish-mindbender:version-1.0",
+                "schema": "mindbender-core:version-1.0",
                 "version": version,
                 "path": os.path.join(
                     "{root}",
@@ -114,7 +114,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                         versiondir,
                         api.registered_root()
                     )
-                ),
+                ).replace("\\", "/"),
                 "representations": list(),
 
                 # Used to identify family of assets already on disk
@@ -122,9 +122,11 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                     instance.data.get("family")
                 ],
 
-                # Collected by pyblish-base
                 "time": context.data["time"],
                 "author": context.data["user"],
+
+                # Record within which silo this asset was made.
+                "silo": os.environ["MINDBENDER_SILO"],
 
                 # Collected by pyblish-maya
                 "source": os.path.join(
@@ -133,16 +135,19 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                         context.data["currentFile"],
                         api.registered_root()
                     )
-                ),
+                ).replace("\\", "/"),
             }
 
         for filename in instance.data.get("files", list()):
             name, ext = os.path.splitext(filename)
             metadata["representations"].append(
                 {
-                    "schema": "pyblish-mindbender:representation-1.0",
+                    "schema": "mindbender-core:representation-1.0",
                     "format": ext,
-                    "path": "{dirname}/%s{format}" % name
+                    "path": os.path.join(
+                        "{dirname}",
+                        "%s{format}" % name,
+                    ).replace("\\", "/")
                 }
             )
 

@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/schema#",
 
-    "title": "pyblish-mindbender:container-1.0",
+    "title": "mindbender-core:container-1.0",
     "description": "A loaded asset",
 
     "type": "object",
@@ -11,6 +11,10 @@
     "required": [
         "schema",
         "name",
+        "objectName",
+        "asset",
+        "subset",
+        "version",
         "path"
     ],
 
@@ -22,6 +26,26 @@
         },
         "path": {
             "description": "Absolute path",
+            "type": "string"
+        },
+        "objectName": {
+            "description": "Name of internal object, such as the objectSet in Maya.",
+            "type": "string"
+        },
+        "subset": {
+            "description": "Name of subset",
+            "type": "string"
+        },
+        "asset": {
+            "description": "Name of asset",
+            "type": "string"  
+        },
+        "version": {
+            "description": "Version number",
+            "type": "number"
+        },
+        "author": {
+            "description": "Name of the author of the published version",
             "type": "string"
         }
     }
