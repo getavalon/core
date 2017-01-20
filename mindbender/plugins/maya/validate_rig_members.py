@@ -12,7 +12,7 @@ class ValidateMindbenderRigFormat(pyblish.api.InstancePlugin):
 
     """
 
-    label = "Rig Format"
+    label = "Validate Rig Format"
     order = pyblish.api.ValidatorOrder
     hosts = ["maya"]
     families = ["mindbender.rig"]

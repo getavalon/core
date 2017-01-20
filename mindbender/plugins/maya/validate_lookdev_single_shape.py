@@ -1,13 +1,16 @@
 import pyblish.api
 
 
-class ValidateMindbenderLookdevSingleShape(pyblish.api.InstancePlugin):
+class ValidateMindbenderSingleShape(pyblish.api.InstancePlugin):
     """One mesh per transform"""
 
-    label = "Lookdev Member Shapes"
+    label = "Validate Single Shape"
     order = pyblish.api.ValidatorOrder
     hosts = ["maya"]
-    families = ["mindbender.lookdev"]
+    families = [
+        "mindbender.model",
+        "mindbender.lookdev"
+    ]
 
     def process(self, instance):
         from maya import cmds

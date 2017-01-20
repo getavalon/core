@@ -8,7 +8,7 @@ class ValidateMindbenderRigHierarchy(pyblish.api.InstancePlugin):
 
     """
 
-    label = "Rig Hierarchy"
+    label = "Validate Rig Hierarchy"
     order = pyblish.api.ValidatorOrder
     hosts = ["maya"]
     families = ["mindbender.rig"]

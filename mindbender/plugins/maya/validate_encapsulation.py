@@ -11,7 +11,7 @@ class ValidateMindbenderEncapsulation(pyblish.api.InstancePlugin):
 
     """
 
-    label = "Encapsulation"
+    label = "Validate Encapsulation"
     order = pyblish.api.ValidatorOrder
     hosts = ["maya"]
     families = ["mindbender.model", "mindbender.rig"]

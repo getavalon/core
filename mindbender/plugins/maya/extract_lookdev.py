@@ -10,7 +10,7 @@ class ExtractMindbenderLookdev(pyblish.api.InstancePlugin):
 
     """
 
-    label = "Mindbender Lookdev"
+    label = "Extract Mindbender Lookdev"
     order = pyblish.api.ExtractorOrder
     hosts = ["maya"]
     families = ["mindbender.lookdev"]

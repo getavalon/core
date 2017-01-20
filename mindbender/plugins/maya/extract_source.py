@@ -4,7 +4,7 @@ import pyblish.api
 class ExtractMindbenderSource(pyblish.api.InstancePlugin):
     """Extract copy of working file at time of publish"""
 
-    label = "Mindbender Source"
+    label = "Extract Mindbender Source"
     order = pyblish.api.ExtractorOrder
     hosts = ["maya"]
     families = [

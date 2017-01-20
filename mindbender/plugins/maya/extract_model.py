@@ -10,7 +10,7 @@ class ExtractMindbenderModel(pyblish.api.InstancePlugin):
 
     """
 
-    label = "Mindbender Model"
+    label = "Extract Mindbender Model"
     order = pyblish.api.ExtractorOrder
     hosts = ["maya"]
     families = ["mindbender.model"]

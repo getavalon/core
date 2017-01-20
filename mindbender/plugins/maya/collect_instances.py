@@ -36,7 +36,7 @@ class CollectMindbenderInstances(pyblish.api.ContextPlugin):
 
     """
 
-    label = "Mindbender Instances"
+    label = "Collect Mindbender Instances"
     order = pyblish.api.CollectorOrder
     hosts = ["maya"]
 
