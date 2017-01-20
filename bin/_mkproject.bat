@@ -24,8 +24,8 @@ if "%2"=="" goto :missing_name
 if "%3"=="" goto :missing_silo
 
 set PROJECTDIR=%1%2
-set curPROJECT=%1
-set curPROJECTNAME=%2
+set CURRENTPROJECT=%1
+set CURRENTPROJECT_NAME=%2
 set PROJECTSTAGE=%3
 
 if not exist %PROJECTDIR% (
