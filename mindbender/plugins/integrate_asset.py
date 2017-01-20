@@ -23,7 +23,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
 
     """
 
-    label = "Mindbender Asset"
+    label = "Integrate Mindbender Asset"
     order = pyblish.api.IntegratorOrder
     families = [
         "mindbender.model",

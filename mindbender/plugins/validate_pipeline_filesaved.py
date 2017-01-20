@@ -10,7 +10,7 @@ class ValidateCurrentSaveFile(pyblish.api.ContextPlugin):
      ~ Validates if you have saved your application savefile yet ?
     """
 
-    label = "Saved file"
+    label = "Validate File Saved"
     order = pyblish.api.ValidatorOrder - 0.1
     optional = True
 

@@ -10,7 +10,7 @@ class ValidateMindbenderNormals(pyblish.api.InstancePlugin):
 
     """
 
-    label = "Normals"
+    label = "Validate Normals"
     order = pyblish.api.ValidatorOrder
     hosts = ["maya"]
     families = ["mindbender.model"]

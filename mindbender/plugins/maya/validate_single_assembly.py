@@ -4,7 +4,7 @@ import pyblish.api
 class ValidateMindbenderSingleAssembly(pyblish.api.InstancePlugin):
     """Each asset must have a single top-level group"""
 
-    label = "Single assembly"
+    label = "Validate Single assembly"
     order = pyblish.api.ValidatorOrder
     hosts = ["maya"]
     families = ["mindbender.model", "mindbender.rig"]

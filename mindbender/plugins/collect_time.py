@@ -4,7 +4,7 @@ import pyblish.api
 class CollectMindbenderTime(pyblish.api.ContextPlugin):
     """Store global time at the time of publish"""
 
-    label = "Mindbender Time"
+    label = "Collect Mindbender Time"
     order = pyblish.api.CollectorOrder
 
     def process(self, context):
