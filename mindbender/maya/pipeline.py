@@ -1,26 +1,29 @@
 import os
 import sys
-import logging
-
-from .. import api
-from ..vendor.Qt import QtWidgets, QtGui, QtCore
 
 from maya import cmds
+from ..vendor.Qt import QtCore, QtWidgets
 
+from .. import api
 from . import lib
 
 self = sys.modules[__name__]
-self.log = logging.getLogger("mindbender-core")
 self.menu = "pyblishMindbender"
 
 
 def install():
+    """Install Maya-specific functionality of mindbender-core.
+
+    This function is called automatically on calling `api.install(maya)`.
+
+    """
+
     try:
         import pyblish_maya
         assert pyblish_maya.is_setup()
 
     except (ImportError, AssertionError):
-        _display_missing_dependencies()
+        raise ImportError("mindbender-core depends on pyblish-maya.")
 
     _install_menu()
 
@@ -89,6 +92,7 @@ def uninstall():
     api.deregister_family("mindbender.model")
     api.deregister_family("mindbender.rig")
     api.deregister_family("mindbender.animation")
+    api.deregister_family("mindbender.lookdev")
 
 
 def _install_menu():
@@ -114,11 +118,6 @@ def _install_menu():
 
         cmds.menuItem(divider=True)
 
-        def command(func, **kwargs):
-            # Maya passes a few additional arguments to#
-            # any given function. We squash (ignore) those here.
-            return lambda *args: func(**kwargs)
-
         # Modeling sub-menu
         cmds.menuItem("Modeling",
                       label="Modeling",
@@ -126,8 +125,7 @@ def _install_menu():
                       subMenu=True,
                       parent=self.menu)
 
-        cmds.menuItem("Combine",
-                      command=command(interactive.combine))
+        cmds.menuItem("Combine", command=interactive.combine)
 
         # Rigging sub-menu
         cmds.menuItem("Rigging",
@@ -136,16 +134,11 @@ def _install_menu():
                       subMenu=True,
                       parent=self.menu)
 
-        cmds.menuItem("Auto Connect",
-                      command=command(interactive.auto_connect))
-        cmds.menuItem("Clone (Local)",
-                      command=command(interactive.clone, worldspace=False))
-        cmds.menuItem("Clone (Worldspace)",
-                      command=command(interactive.clone, worldspace=True))
-        cmds.menuItem("Clone (Special)",
-                      command=command(interactive.clone_with_attributes))
-        cmds.menuItem("Create Follicle",
-                      command=command(interactive.follicle))
+        cmds.menuItem("Auto Connect", command=interactive.auto_connect)
+        cmds.menuItem("Clone (Local)", command=interactive.clone_localspace)
+        cmds.menuItem("Clone (World)", command=interactive.clone_localspace)
+        cmds.menuItem("Clone (Special)", command=interactive.clone_special)
+        cmds.menuItem("Create Follicle", command=interactive.follicle)
 
         # Animation sub-menu
         cmds.menuItem("Animation",
@@ -154,8 +147,7 @@ def _install_menu():
                       subMenu=True,
                       parent=self.menu)
 
-        cmds.menuItem("Set Defaults",
-                      command=command(interactive.set_defaults))
+        cmds.menuItem("Set Defaults", command=interactive.set_defaults)
 
     # Allow time for uninstallation to finish.
     QtCore.QTimer.singleShot(100, deferred)
@@ -170,18 +162,15 @@ def _uninstall_menu():
         del(menu)
 
 
-def _register_root():
-    """Register project root or directory of current working file"""
-    root = (
-        cmds.workspace(rootDirectory=True, query=True) or
-        cmds.workspace(directory=True, query=True)
-    )
-
-    api.register_root(root)
-
-
 def ls():
-    """List loaded assets"""
+    """List containers from active Maya scene
+
+    This is the host-equivalent of api.ls(), but instead of listing
+    assets on disk, it lists assets already loaded in Maya; once loaded
+    they are called 'containers'
+
+    """
+
     for container in sorted(lib.lsattr("id", "pyblish.mindbender.container")):
         data = dict(
             schema="mindbender-core:container-1.0",
@@ -204,7 +193,7 @@ def load(asset, subset, version=-1, representation=None):
         representation (str, optional): File format, e.g. `.ma`, `.obj`, `.exr`
 
     Returns:
-        Reference node
+        None
 
     Raises:
         IndexError on no version found
@@ -233,12 +222,18 @@ def load(asset, subset, version=-1, representation=None):
                 print("Running '%s' on '%s'" % (
                     Loader.__name__, asset["name"]))
 
-                Loader().process(asset, subset, version, representation)
+                Loader().process(
+                    asset=asset,
+                    subset=subset,
+                    version=version,
+                    representation=representation,
+                )
+
                 loaded = True
 
     if not loaded:
-        cmds.warning("No loader triggered, check your "
-                     "api.registered_loaders_path()")
+        raise ValueError("No loader triggered, check your "
+                         "api.registered_loaders_path()")
 
 
 def create(name, family, options=None):
@@ -261,6 +256,9 @@ def create(name, family, options=None):
         NameError on `name` already exists
         KeyError on invalid dynamic property
         RuntimeError on host error
+
+    Returns:
+        Instance as str
 
     """
 
@@ -417,123 +415,3 @@ def remove(container):
 
     fname = cmds.referenceQuery(reference_node, filename=True)
     cmds.file(fname, removeReference=True)
-
-
-def containerise(name,
-                 namespace,
-                 nodes,
-                 asset,
-                 subset,
-                 version,
-                 representation,
-                 suffix="_CON"):
-    """Bundle `nodes` into an assembly and imprint it with metadata
-
-    Containerisation enables a tracking of version, author and origin
-    for loaded assets.
-
-    Arguments:
-        name (str): Name of resulting assembly
-        nodes (list): Long names of nodes to containerise
-        namespace (str): Namespace under which to host container
-        asset (mindbender-core:asset-1.0): Current asset
-        subset (mindbender-core:subset-1.0): Current subset
-        version (mindbender-core:version-1.0): Current version
-
-    Returns:
-        container (str): Name of container assembly
-
-    """
-
-    container = cmds.sets(nodes, name=namespace + ":" + name + suffix)
-
-    data = [
-        ("id", "pyblish.mindbender.container"),
-        ("name", namespace),
-        ("author", version["author"]),
-        ("loader", self.__name__),
-        ("families", " ".join(version.get("families", list()))),
-        ("time", version["time"]),
-        ("asset", asset["name"]),
-        ("subset", subset["name"]),
-        ("representation", representation["format"]),
-        ("version", version["version"]),
-
-        # TEMPORARY, REMOVE PLEASE
-        # Temporarily assume "assets", as existing published assets
-        # won't have this new variable.
-        ("silo", version.get("silo", "assets")),
-
-        ("path", version["path"]),
-        ("source", version["source"]),
-        ("comment", version.get("comment", ""))
-    ]
-
-    for key, value in data:
-
-        if not value:
-            continue
-
-        if isinstance(value, (int, float)):
-            cmds.addAttr(container, longName=key, attributeType="short")
-            cmds.setAttr(container + "." + key, value)
-
-        else:
-            cmds.addAttr(container, longName=key, dataType="string")
-            cmds.setAttr(container + "." + key, value, type="string")
-
-    # Hide in outliner
-    # cmds.setAttr(container + ".verticesOnlySet", True)
-
-    return container
-
-
-def _display_missing_dependencies():
-    import pyblish
-
-    messagebox = QtWidgets.QMessageBox()
-    messagebox.setIcon(messagebox.Warning)
-    messagebox.setWindowIcon(QtGui.QIcon(os.path.join(
-        os.path.dirname(pyblish.__file__),
-        "icons",
-        "logo-32x32.svg"))
-    )
-
-    spacer = QtWidgets.QWidget()
-    spacer.setMinimumSize(400, 0)
-    spacer.setSizePolicy(QtWidgets.QSizePolicy.Minimum,
-                         QtWidgets.QSizePolicy.Expanding)
-
-    layout = messagebox.layout()
-    layout.addWidget(spacer, layout.rowCount(), 0, 1, layout.columnCount())
-
-    messagebox.setWindowTitle("Uh oh")
-    messagebox.setText("Missing dependencies")
-
-    messagebox.setInformativeText(
-        "mindbender-core requires pyblish-maya.\n"
-    )
-
-    messagebox.setDetailedText(
-        "1) Install Pyblish for Maya\n"
-        "\n"
-        "$ pip install pyblish-maya\n"
-        "\n"
-        "2) Run setup()\n"
-        "\n"
-        ">>> import pyblish_maya\n"
-        ">>> pyblish_maya.setup()\n"
-        "\n"
-        "3) Try again.\n"
-        "\n"
-        ">>> mindbender.install()\n"
-
-        "See https://github.com/mindbender-studio/core "
-        "for more information."
-    )
-
-    messagebox.setStandardButtons(messagebox.Ok)
-    messagebox.exec_()
-
-    raise RuntimeError("mindbender-core requires pyblish-maya "
-                       "to have been setup.")
