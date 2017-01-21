@@ -1,7 +1,5 @@
-from mindbender import api
-from mindbender.maya import lib, pipeline
-
 from maya import cmds
+from mindbender import api, maya
 
 
 class ModelLoader(api.Loader):
@@ -19,10 +17,10 @@ class ModelLoader(api.Loader):
             format=representation["format"]
         )
 
-        namespace = lib.unique_namespace(asset["name"], suffix="_")
+        namespace = maya.unique_namespace(asset["name"], suffix="_")
         name = subset["name"]
 
-        with lib.maintained_selection():
+        with maya.maintained_selection():
             nodes = cmds.file(fname,
                               namespace=namespace,
                               reference=True,
@@ -31,13 +29,14 @@ class ModelLoader(api.Loader):
                               groupName=namespace + ":" + name)
 
         # Containerising
-        pipeline.containerise(name=name,
-                              namespace=namespace,
-                              nodes=nodes,
-                              asset=asset,
-                              subset=subset,
-                              version=version,
-                              representation=representation)
+        maya.containerise(name=name,
+                          namespace=namespace,
+                          nodes=nodes,
+                          asset=asset,
+                          subset=subset,
+                          version=version,
+                          representation=representation,
+                          loader=type(self).__name__)
 
         # Assign default shader to meshes
         meshes = cmds.ls(nodes, type="mesh")

@@ -1,9 +1,7 @@
 import json
 
-from mindbender import api
-from mindbender.maya import lib, pipeline
-
 from maya import cmds
+from mindbender import api, maya
 
 
 class LookLoader(api.Loader):
@@ -18,22 +16,23 @@ class LookLoader(api.Loader):
         )
 
         namespace = asset["name"] + "_"
-        name = lib.unique_name(subset["name"])
+        name = maya.unique_name(subset["name"])
 
-        with lib.maintained_selection():
+        with maya.maintained_selection():
             nodes = cmds.file(fname,
                               namespace=namespace,
                               reference=True,
                               returnNewNodes=True)
 
         # Containerising
-        pipeline.containerise(name=name,
-                              namespace=namespace,
-                              nodes=nodes,
-                              asset=asset,
-                              subset=subset,
-                              version=version,
-                              representation=representation)
+        maya.containerise(name=name,
+                          namespace=namespace,
+                          nodes=nodes,
+                          asset=asset,
+                          subset=subset,
+                          version=version,
+                          representation=representation,
+                          loader=type(self).__name__)
 
         # Assign shaders
         representation = next(
@@ -52,6 +51,6 @@ class LookLoader(api.Loader):
             with open(path) as f:
                 relationships = json.load(f)
 
-            lib.apply_shaders(relationships)
+            maya.apply_shaders(relationships)
 
         return nodes

@@ -1,7 +1,5 @@
-from mindbender import api
-from mindbender.maya import lib, pipeline
-
 from maya import cmds
+from mindbender import api, maya
 
 
 class RigLoader(api.Loader):
@@ -19,7 +17,7 @@ class RigLoader(api.Loader):
             format=representation["format"]
         )
 
-        namespace = lib.unique_namespace(asset["name"], suffix="_")
+        namespace = maya.unique_namespace(asset["name"], suffix="_")
         name = subset["name"]
 
         nodes = cmds.file(fname,
@@ -30,13 +28,14 @@ class RigLoader(api.Loader):
                           groupName=namespace + ":" + name)
 
         # Containerising
-        pipeline.containerise(name=name,
-                              namespace=namespace,
-                              nodes=nodes,
-                              asset=asset,
-                              subset=subset,
-                              version=version,
-                              representation=representation)
+        maya.containerise(name=name,
+                          namespace=namespace,
+                          nodes=nodes,
+                          asset=asset,
+                          subset=subset,
+                          version=version,
+                          representation=representation,
+                          loader=type(self).__name__)
 
         # TODO(marcus): We are hardcoding the name "out_SET" here.
         #   Better register this keyword, so that it can be used
@@ -46,15 +45,15 @@ class RigLoader(api.Loader):
                       if node.endswith("out_SET")), None)
         assert output, "No output in rig, this is a bug."
 
-        with lib.maintained_selection():
+        with maya.maintained_selection():
             # Select contents of output
             cmds.select(output, noExpand=False)
 
             # TODO(marcus): Hardcoding the exact family here.
             #   Better separate the relationship between loading
             #   rigs and automatically assigning an instance to it.
-            pipeline.create(name=lib.unique_name(asset["name"], suffix="_SET"),
-                            family="mindbender.animation",
-                            options={"useSelection": True})
+            maya.create(name=maya.unique_name(asset["name"], suffix="_SET"),
+                        family="mindbender.animation",
+                        options={"useSelection": True})
 
         return nodes

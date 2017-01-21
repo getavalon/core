@@ -18,7 +18,15 @@ from .pipeline import (
 from .lib import (
     export_alembic,
     lsattr,
-    lsattrs
+    lsattrs,
+
+    apply_shaders,
+    maintained_selection,
+
+    unique_name,
+    unique_namespace,
+
+    containerise,
 )
 
 
@@ -35,4 +43,12 @@ __all__ = [
     "export_alembic",
     "lsattr",
     "lsattrs",
+
+    "unique_name",
+    "unique_namespace",
+
+    "apply_shaders",
+    "maintained_selection",
+
+    "containerise",
 ]

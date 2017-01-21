@@ -1,7 +1,5 @@
-from mindbender import api
-from mindbender.maya import pipeline
-
 from maya import cmds
+from mindbender import api, maya
 
 
 class AnimationLoader(api.Loader):
@@ -36,12 +34,13 @@ class AnimationLoader(api.Loader):
                           groupName=namespace + ":" + name)
 
         # Containerising
-        pipeline.containerise(name=name,
-                              namespace=namespace,
-                              nodes=nodes,
-                              asset=asset,
-                              subset=subset,
-                              version=version,
-                              representation=representation)
+        maya.containerise(name=name,
+                          namespace=namespace,
+                          nodes=nodes,
+                          asset=asset,
+                          subset=subset,
+                          version=version,
+                          representation=representation,
+                          loader=type(self).__name__)
 
         return nodes
