@@ -169,7 +169,7 @@ def registered_loaders_paths():
 
 
 def deregister_loaders_path(path):
-    _registered_loaders_paths.pop(path)
+    _registered_loaders_paths.remove(path)
 
 
 def ls(silos=None):
@@ -496,6 +496,11 @@ def register_format(format):
     _registered_formats.append(format)
 
 
+def deregister_format(format):
+    """Deregister a supported format"""
+    _registered_formats.remove(format)
+
+
 def register_host(host):
     """Register a new host for the current process
 
@@ -601,6 +606,13 @@ def register_plugins():
     api.register_plugin_path(plugins_path)
 
 
+def deregister_plugins():
+    module_path = sys.modules[__name__].__file__
+    package_path = os.path.dirname(module_path)
+    plugins_path = os.path.join(package_path, "plugins")
+    api.deregister_plugin_path(plugins_path)
+
+
 def register_silo(name):
     _registered_silos.add(name)
 
@@ -672,16 +684,6 @@ def registered_data():
 
 def registered_host():
     return _registered_host["_"]
-
-
-def deregister_plugins():
-    from . import plugins
-    plugin_path = os.path.dirname(plugins.__file__)
-
-    try:
-        api.deregister_plugin_path(plugin_path)
-    except ValueError:
-        self.log.warning("mindbender-core plug-ins not registered.")
 
 
 def deregister_host():
