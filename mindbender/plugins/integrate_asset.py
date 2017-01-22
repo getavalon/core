@@ -45,6 +45,12 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
             "manually, outside of the pipeline."
         )
 
+        assert os.getenv("MINDBENDER_SILO"), (
+            "Missing environment variable MINDBENDER_SILO\n"
+            "This can sometimes happen when an application was launched \n"
+            "manually, outside of the pipeline."
+        )
+
         context = instance.context
 
         # Atomicity
@@ -76,6 +82,8 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
             % instance
         )
 
+        self.log.debug("Establishing staging directory @ %s" % stagingdir)
+
         root = os.getenv("ASSETDIR")
         instancedir = os.path.join(root, "publish", instance.data["subset"])
 
@@ -88,6 +96,8 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
 
         version = api.find_latest_version(os.listdir(instancedir)) + 1
         versiondir = os.path.join(instancedir, api.format_version(version))
+
+        self.log.debug("New version: %i" % version)
 
         # Metadata
         #  _________
@@ -137,6 +147,9 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                     )
                 ).replace("\\", "/"),
             }
+
+        self.log.debug("Finished generating metadata: %s"
+                       % json.dumps(metadata, indent=4))
 
         for filename in instance.data.get("files", list()):
             name, ext = os.path.splitext(filename)
