@@ -25,7 +25,7 @@ self = sys.modules[__name__]
 
 def clear():
     for path in pipeline.registered_loaders_paths():
-        pipeline.deregister_loaders_path()
+        pipeline.deregister_loaders_path(path)
 
 
 def setup():
@@ -35,9 +35,11 @@ def setup():
     # Mock host
     host = types.ModuleType("Test")
     host.__dict__.update({
-        "ls": lambda *args, **kwargs: [],
-        "create": lambda *args, **kwargs: None,
-        "load": lambda *args, **kwargs: None,
+        "ls": lambda: [],
+        "create": lambda name, family, options: None,
+        "load": lambda asset, subset, version, representation: None,
+        "update": lambda container, version: None,
+        "remove": lambda container: None,
     })
 
     pipeline.register_host(host)
