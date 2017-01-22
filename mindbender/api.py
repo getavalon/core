@@ -48,6 +48,7 @@ from .pipeline import (
     registered_silos,
 
     deregister_plugins,
+    deregister_format,
     deregister_family,
     deregister_data,
     deregister_loaders_path,
