@@ -1,14 +1,15 @@
 import os
 import sys
 
+import pyblish.api
 from maya import cmds
+
+from . import lib
+from .. import api
 from ..vendor.Qt import QtCore, QtWidgets
 
-from .. import api
-from . import lib
-
 self = sys.modules[__name__]
-self.menu = "pyblishMindbender"
+self.menu = "mindbenderCore"
 
 
 def install():
@@ -27,54 +28,11 @@ def install():
 
     _install_menu()
 
-    # Default Instance data
-    # All newly created instances will be imbued with these members.
-    api.register_data(key="id", value="pyblish.mindbender.instance")
-    api.register_data(key="name", value="{name}")
-    api.register_data(key="subset", value="{name}")
-    api.register_data(key="family", value="{family}")
-
-    # These file-types will appear in the Loader GUI
-    api.register_format(".ma")
-    api.register_format(".mb")
-    api.register_format(".abc")
-
-    # Register default loaders
-    lib_py_path = sys.modules[__name__].__file__
-    package_path = os.path.dirname(lib_py_path)
-    loaders_path = os.path.join(package_path, "loaders")
-    api.register_loaders_path(loaders_path)
-
-    # These families will appear in the Creator GUI
-    api.register_family(
-        name="mindbender.model",
-        label="Model",
-        help="Polygonal geometry for animation",
-    )
-
-    api.register_family(
-        name="mindbender.rig",
-        label="Rig",
-        help="Character rig",
-    )
-
-    api.register_family(
-        name="mindbender.lookdev",
-        label="Look",
-        help="Shaders, textures and look",
-    )
-
-    api.register_family(
-        name="mindbender.animation",
-        label="Animation",
-        help="Any character or prop animation",
-        data={
-            "startFrame": cmds.playbackOptions(query=True,
-                                               animationStartTime=True),
-            "endFrame": cmds.playbackOptions(query=True,
-                                             animationEndTime=True),
-        }
-    )
+    _register_data()
+    _register_formats()
+    _register_plugins()
+    _register_loaders()
+    _register_families()
 
 
 def uninstall():
@@ -160,6 +118,69 @@ def _uninstall_menu():
     if menu:
         menu.deleteLater()
         del(menu)
+
+
+def _register_data():
+    # Default Instance data
+    # All newly created instances will be imbued with these members.
+    api.register_data(key="id", value="pyblish.mindbender.instance")
+    api.register_data(key="name", value="{name}")
+    api.register_data(key="subset", value="{name}")
+    api.register_data(key="family", value="{family}")
+
+
+def _register_formats():
+    # These file-types will appear in the Loader GUI
+    api.register_format(".ma")
+    api.register_format(".mb")
+    api.register_format(".abc")
+
+
+def _register_families():
+    # These families will appear in the Creator GUI
+    api.register_family(
+        name="mindbender.model",
+        label="Model",
+        help="Polygonal geometry for animation",
+    )
+
+    api.register_family(
+        name="mindbender.rig",
+        label="Rig",
+        help="Character rig",
+    )
+
+    api.register_family(
+        name="mindbender.lookdev",
+        label="Look",
+        help="Shaders, textures and look",
+    )
+
+    api.register_family(
+        name="mindbender.animation",
+        label="Animation",
+        help="Any character or prop animation",
+        data={
+            "startFrame": cmds.playbackOptions(query=True,
+                                               animationStartTime=True),
+            "endFrame": cmds.playbackOptions(query=True,
+                                             animationEndTime=True),
+        }
+    )
+
+
+def _register_plugins():
+    lib_py_path = sys.modules[__name__].__file__
+    package_path = os.path.dirname(lib_py_path)
+    plugin_path = os.path.join(package_path, "plugins")
+    pyblish.api.register_plugin_path(plugin_path)
+
+
+def _register_loaders():
+    lib_py_path = sys.modules[__name__].__file__
+    package_path = os.path.dirname(lib_py_path)
+    loaders_path = os.path.join(package_path, "loaders")
+    api.register_loaders_path(loaders_path)
 
 
 def ls():
