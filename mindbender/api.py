@@ -101,6 +101,7 @@ __all__ = [
     "registered_data",
 
     "deregister_plugins",
+    "deregister_format",
     "deregister_family",
     "deregister_data",
     "deregister_loaders_path",
