@@ -58,7 +58,7 @@ def teardown():
 
 
 def clear():
-    pass
+    cmds.file(new=True, force=True)
 
 
 def test_setup():
@@ -69,9 +69,6 @@ def test_setup():
 @with_setup(clear)
 def test_modeling():
     """Modeling workflow is functional"""
-
-    cmds.file(new=True, force=True)
-
     transform, generator = cmds.polyCube(name="body_PLY")
     group = cmds.group(transform, name="ROOT")
 
