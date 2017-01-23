@@ -3,13 +3,17 @@
 These depend on user selection in Maya, and may be used as-is. They
 implement the functionality in :mod:`commands.py`.
 
+Each of these functions take `*args` as argument, because when used
+in a Maya menu an additional argument is passed with metadata about
+what state the button was pressed in. None of this data is used here.
+
 """
 
 from maya import cmds, mel
 from . import commands, util
 
 
-def connect_shapes():
+def connect_shapes(*args):
     """Connect the first selection to the last selection(s)"""
     selection = cmds.ls(selection=True)
 
@@ -17,7 +21,7 @@ def connect_shapes():
     commands.connect_shapes(src, dst=selection)
 
 
-def combine():
+def combine(*args):
     """Combine currently selected meshes
 
     This differs from the default Maya combine in that it
@@ -28,7 +32,7 @@ def combine():
     commands.combine(cmds.ls(sl=1))
 
 
-def read_selected_channels():
+def read_selected_channels(*args):
     """Return a list of selected channels in the Channel Box"""
     channelbox = mel.eval("global string $gChannelBoxName; "
                           "$temp=$gChannelBoxName;")
@@ -37,7 +41,7 @@ def read_selected_channels():
                            selectedMainAttributes=True) or []
 
 
-def set_defaults():
+def set_defaults(*args):
     """Set currently selected values from channel box to their default value
 
     If no channel is selected, default all keyable attributes.
@@ -59,7 +63,7 @@ def set_defaults():
                 cmds.setAttr(node + "." + channel, default)
 
 
-def transfer_outgoing_connections():
+def transfer_outgoing_connections(*args):
     """Connect outgoing connections from first to second selected node"""
 
     try:
@@ -70,12 +74,9 @@ def transfer_outgoing_connections():
     commands.transfer_outgoing_connections(src, dst)
 
 
-def parent_group(transferTransform=True):
-    for node in cmds.ls(selection=True):
-        commands.parent_group(node, transferTransform)
+def clone_special(*args):
+    """Clone in localspace, and preserve user-defined attributes"""
 
-
-def clone_with_attributes():
     for transform in cmds.ls(selection=True, long=True):
         if cmds.nodeType(transform) != "transform":
             cmds.warning("Skipping '%s', not a `transform`" % transform)
@@ -85,7 +86,7 @@ def clone_with_attributes():
         type = cmds.nodeType(shape)
 
         if type not in ("mesh", "nurbsSurface", "nurbsCurve"):
-            cmds.warning("Skipping '{node}': cannot clone nodes "
+            cmds.warning("Skipping '{transform}': cannot clone nodes "
                          "of type '{type}'".format(**locals()))
             continue
 
@@ -108,7 +109,15 @@ def clone_with_attributes():
             cmds.setAttr(new_transform + "." + attr, value, type="string")
 
 
-def clone(worldspace=False):
+def clone_worldspace(*args):
+    return _clone(worldspace=True)
+
+
+def clone_localspace(*args):
+    return _clone(worldspace=False)
+
+
+def _clone(worldspace=False):
     """Clone selected objects in viewport
 
     Arguments:
@@ -169,7 +178,7 @@ def _find_shape(element):
         return node
 
 
-def connect_matching_attributes_from_selection():
+def connect_matching_attributes_from_selection(*args):
     try:
         source, target = cmds.ls(sl=True)
     except ValueError:
@@ -178,7 +187,7 @@ def connect_matching_attributes_from_selection():
     return commands.connect_matching_attributes(source, target)
 
 
-def auto_connect():
+def auto_connect(*args):
     """Connect `src` to `dst` via the most likely input and output"""
     try:
         commands.auto_connect(*cmds.ls(selection=True))
@@ -202,7 +211,7 @@ def create_ncloth():
     cmds.hide(selection)
 
 
-def follicle():
+def follicle(*args):
     supported = ["mesh", "nurbsSurface"]
     selection = cmds.ls(sl=1)
 

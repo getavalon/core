@@ -169,7 +169,7 @@ def registered_loaders_paths():
 
 
 def deregister_loaders_path(path):
-    _registered_loaders_paths.pop(path)
+    _registered_loaders_paths.remove(path)
 
 
 def ls(silos=None):
@@ -496,20 +496,106 @@ def register_format(format):
     _registered_formats.append(format)
 
 
+def deregister_format(format):
+    """Deregister a supported format"""
+    _registered_formats.remove(format)
+
+
 def register_host(host):
+    """Register a new host for the current process
+
+    A majority of this function relates to validating
+    the registered host. No host may be registered unless
+    it fulfils the required interface, as specified in the
+    Host API documentation.
+
+    Arguments:
+        host (ModuleType): A module implementing the
+            Host API interface. See the Host API
+            documentation for details on what is
+            required, or browse the source code.
+
+    """
+
+    # Required signatures for each member
+    signatures = {
+        "load": [
+            "asset",
+            "subset",
+            "version",
+            "representation"
+        ],
+        "create": [
+            "name",
+            "family",
+            "options"
+        ],
+        "ls": [
+        ],
+        "update": [
+            "container",
+            "version"
+        ],
+        "remove": [
+            "container"
+        ],
+
+    }
+
     missing = list()
-    for member in ("load",
-                   "create",
-                   "ls",):
+    invalid = list()
+    success = True
+
+    for member in signatures:
         if not hasattr(host, member):
             missing.append(member)
+            success = False
 
-    assert not missing, (
-        "Incomplete interface for host: '%s'\n"
-        "Missing: %s" % (host, ", ".join(missing))
-    )
+        else:
+            attr = getattr(host, member)
+            signature = inspect.getargspec(attr)[0]
+            required_signature = signatures[member]
 
-    _registered_host["_"] = host
+            assert isinstance(signature, list)
+            assert isinstance(required_signature, list)
+
+            if not all(member in signature
+                       for member in required_signature):
+                invalid.append({
+                    "member": member,
+                    "signature": ", ".join(signature),
+                    "required": ", ".join(required_signature)
+                })
+                success = False
+
+    if not success:
+        report = list()
+
+        if missing:
+            report.append(
+                "Incomplete interface for host: '%s'\n"
+                "Missing: %s" % (host, ", ".join(
+                    "'%s'" % member for member in missing))
+            )
+
+        if invalid:
+            report.append(
+                "One or more members were found, but didn't "
+                "have the right argument signature."
+            )
+
+            for member in invalid:
+                report.append(
+                    "     Found: {member}({signature})".format(**member)
+                )
+                report.append(
+                    "  Expected: {member}({required})".format(**member)
+                )
+
+        raise ValueError("\n".join(report))
+
+    else:
+        _registered_host["_"] = host
 
 
 def register_plugins():
@@ -518,6 +604,13 @@ def register_plugins():
     package_path = os.path.dirname(module_path)
     plugins_path = os.path.join(package_path, "plugins")
     api.register_plugin_path(plugins_path)
+
+
+def deregister_plugins():
+    module_path = sys.modules[__name__].__file__
+    package_path = os.path.dirname(module_path)
+    plugins_path = os.path.join(package_path, "plugins")
+    api.deregister_plugin_path(plugins_path)
 
 
 def register_silo(name):
@@ -591,16 +684,6 @@ def registered_data():
 
 def registered_host():
     return _registered_host["_"]
-
-
-def deregister_plugins():
-    from . import plugins
-    plugin_path = os.path.dirname(plugins.__file__)
-
-    try:
-        api.deregister_plugin_path(plugin_path)
-    except ValueError:
-        self.log.warning("mindbender-core plug-ins not registered.")
 
 
 def deregister_host():

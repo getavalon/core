@@ -5,6 +5,79 @@ from maya import cmds, mel
 from maya.api import OpenMaya as om
 
 
+def containerise(name,
+                 namespace,
+                 nodes,
+                 asset,
+                 subset,
+                 version,
+                 representation,
+                 loader=None,
+                 suffix="_CON"):
+    """Bundle `nodes` into an assembly and imprint it with metadata
+
+    Containerisation enables a tracking of version, author and origin
+    for loaded assets.
+
+    Arguments:
+        name (str): Name of resulting assembly
+        nodes (list): Long names of nodes to containerise
+        namespace (str): Namespace under which to host container
+        asset (mindbender-core:asset-1.0): Current asset
+        subset (mindbender-core:subset-1.0): Current subset
+        version (mindbender-core:version-1.0): Current version
+        representation (mindbender-core:representation-1.0): ...
+        loader (str, optional): Name of loader used to produce this container.
+        suffix (str, optional): Suffix of container, defaults to `_CON`.
+
+    Returns:
+        container (str): Name of container assembly
+
+    """
+
+    container = cmds.sets(nodes, name=namespace + ":" + name + suffix)
+
+    data = [
+        ("id", "pyblish.mindbender.container"),
+        ("name", namespace),
+        ("author", version["author"]),
+        ("loader", str(loader)),
+        ("families", " ".join(version.get("families", list()))),
+        ("time", version["time"]),
+        ("asset", asset["name"]),
+        ("subset", subset["name"]),
+        ("representation", representation["format"]),
+        ("version", version["version"]),
+
+        # TODO(marcus): Temporarily assume "assets".
+        #   remove the assumption once a project new project
+        #   is started.
+        ("silo", version.get("silo", "assets")),
+
+        ("path", version["path"]),
+        ("source", version["source"]),
+        ("comment", version.get("comment", ""))
+    ]
+
+    for key, value in data:
+
+        if not value:
+            continue
+
+        if isinstance(value, (int, float)):
+            cmds.addAttr(container, longName=key, attributeType="short")
+            cmds.setAttr(container + "." + key, value)
+
+        else:
+            cmds.addAttr(container, longName=key, dataType="string")
+            cmds.setAttr(container + "." + key, value, type="string")
+
+    # Hide in outliner
+    cmds.setAttr(container + ".verticesOnlySet", True)
+
+    return container
+
+
 def unique_name(name, format="%02d", namespace="", suffix=""):
     """Return unique `name`
 
