@@ -1,6 +1,6 @@
 ### Mindbender Core
 
-[![Build Status](https://travis-ci.org/pyblish/pyblish-mindbender.svg?branch=master)](https://travis-ci.org/pyblish/pyblish-mindbender) [![Coverage Status](https://coveralls.io/repos/github/pyblish/pyblish-mindbender/badge.svg?branch=master)](https://coveralls.io/github/pyblish/pyblish-mindbender?branch=master)
+[![Build Status](https://travis-ci.org/mindbender-studio/core.svg?branch=master)](https://travis-ci.org/mindbender-studio/core) [![Coverage Status](https://coveralls.io/repos/github/mindbender-studio/core/badge.svg?branch=master)](https://coveralls.io/github/mindbender-studio/core?branch=master)
 
 The production pipeline at Mindbender Animation Studio.
 
@@ -12,14 +12,14 @@ The production pipeline at Mindbender Animation Studio.
 ### Testing
 
 ```bash
-cd pyblish-mindbender
-docker build -t pyblish/mindbender -f Dockerfile-maya2016 .
+cd mindbender-core
+docker build -t mindbender/core -f Dockerfile-maya2016 .
 
 # Run nosetests (Windows)
-docker run --rm -v %cd%:/workspace pyblish/mindbender
+docker run --rm -v %cd%:/workspace mindbender/core
 
 # Run nosetests (Linux/OSX)
-docker run --rm -v $(pwd):/workspace pyblish/mindbender
+docker run --rm -v $(pwd):/workspace mindbender/core
 ```
 
 <br>
