@@ -47,7 +47,8 @@ pushd %PROJECTDIR%\%MINDBENDER_SILO%
 cls
 
 echo+
-echo  ASSETS CATEGORY ---
+echo    Active Project: %PROJECTNAME%
+echo    You are in: %MINDBENDER_SILO%
 echo+
 
 :: List available assets, without their .bat suffix
