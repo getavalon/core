@@ -21,8 +21,8 @@ cd %ASSETSCATE%
 cls
 
 echo+
-echo %PROJECTNAME%
-echo You are in: %ASSETSCATE% -------
+echo    Active Project: %PROJECTNAME%
+echo    You are in: %ASSETSCATE% -------
 echo+
 
 :: List available assets, without their .bat suffix
