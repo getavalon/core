@@ -22,7 +22,7 @@ IF NOT "%ASSET%"=="" goto :return_to_projects
     SET PROJECTDIR=
     exit /b
 :return_to_projects
-    call _mkproject.bat %curPROJECT% %curPROJECTNAME% %PROJECTSTAGE%
+    call _mkproject.bat %PROJECT% %PROJECTNAME% %MINDBENDER_SILO%
     SET ASSET=
     SET ASSETDIR=
     exit /b

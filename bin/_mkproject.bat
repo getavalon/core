@@ -24,9 +24,9 @@ if "%2"=="" goto :missing_name
 if "%3"=="" goto :missing_silo
 
 set PROJECTDIR=%1%2
-set curPROJECT=%1
-set curPROJECTNAME=%2
-set PROJECTSTAGE=%3
+:: This is a variable for the function back.bat.
+set PROJECT=%1
+set PROJECTNAME=%2
 
 if not exist %PROJECTDIR% (
   echo Creating new project "%PROJECT%"..
