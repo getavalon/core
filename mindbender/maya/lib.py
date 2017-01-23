@@ -49,9 +49,9 @@ def containerise(name,
         ("representation", representation["format"]),
         ("version", version["version"]),
 
-        # TEMPORARY, REMOVE PLEASE
-        # Temporarily assume "assets", as existing published assets
-        # won't have this new variable.
+        # TODO(marcus): Temporarily assume "assets".
+        #   remove the assumption once a project new project
+        #   is started.
         ("silo", version.get("silo", "assets")),
 
         ("path", version["path"]),
