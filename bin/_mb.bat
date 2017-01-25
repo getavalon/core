@@ -29,7 +29,7 @@ if "%PYBLISH_NUKE%"=="" goto :missing
 if "%PYBLISH_LITE%"=="" goto :missing
 if "%PYBLISH_QML%"=="" goto :missing
 if "%MINDBENDER_CORE%"=="" goto :missing
-:: if "%PYBLISH_USERNAME%"=="" goto :missing
+if "%PYBLISH_USERNAME%"=="" goto :missing
 
 :: Clear environment.
 ::
@@ -110,6 +110,6 @@ goto :eof
 	if "%PYBLISH_LITE%"=="" echo   - %%PYBLISH_LITE%%
 	if "%PYBLISH_QML%"=="" echo   - %%PYBLISH_QML%%
 	if "%MINDBENDER_CORE%"=="" echo   - %%MINDBENDER_CORE%%
-::	if "%PYBLISH_USERNAME%"=="" echo   - %%PYBLISH_USERNAME%%
+	if "%PYBLISH_USERNAME%"=="" echo   - %%PYBLISH_USERNAME%%
 
 	exit /b
