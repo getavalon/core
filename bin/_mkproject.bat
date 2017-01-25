@@ -1,18 +1,27 @@
-:: Project API
+::  Project API
 ::
-:: This file is called whenever a user enters a project, such p999_Meindbender_Sync
+::  This file is called whenever a user enters a project, such p999_Meindbender_Sync
 ::
-:: Arguments:
-::   %1: Path = Absolute path to projects
-:: 	 %2: Name = Name of project
-::   %3: \f02_prod
-:: 	 %4: Silo = Parent directory name of assets
+::  Arguments:
+::    %1: Path = Absolute path to projects
+:: 	  %2: Name = Name of project
+::    %3: \f02_prod
+::    %4: Silo = Parent directory name of assets
 ::
-:: Variables:
-::   %PROJECTDIR%: Absolute path to project directory
+::  Variables set by bat:
+::    %MINDBENDER_SETASSETCATEGORY%: Is the currently chosen category of assets
+::    %MINDBENDER_ASSETCATEGORY%: Is a list of asset category to be listed
+::    %%
+::    %MINDBENDER_FPS%: Is the project FPS 
+::    %MINDBENDER_RESOLUTION_WIDTH%: Is the project width
+::    %MINDBENDER_RESOLUTION_HEIGHT%: Is the project height
 ::
-:: Example:
-::   $ call _mkproject.bat %~dp0ProjectName assets
+::  Variables:
+::    %PROJECTDIR%: Absolute path to project directory
+::
+::  Example:
+::    $ call _mkproject.bat %~dp0ProjectName assets
+::    $ set MINDBENDER_FPS=24
 
 @echo off
 
