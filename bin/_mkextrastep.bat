@@ -1,17 +1,31 @@
-:: Assets Category API
+:: Extra Step Terminal API
 ::
 :: This file is called whenever a user enters an asset, such as Cat or Shot01.
 ::
 :: Arguments:
-::   %1: Name of asset, e.g. Bruce
-::   %2: Absolute path to asset parent directory, e.g. m:\f01_projects\p999_Demo\assets
+::   %1: Name of bat and also the step
+::   %2: Absolute path to parent directory, e.g. m:\f01_projects\p999_Demo\assets
+::   %3: function to be called e.g. 
+::   %4: 
 ::
 :: Example:
-::   $ call _mkasset Bruce %~dp0
+::   $ call _mkextrastep %~n0 %~dp0 function MINDBENDER_CATEGORY
 
-@echo off
+ @echo off
 
-If "%ASSETSCATE%"=="" goto :missing
+:: Usage Dependencies
+If "%1"=="" goto :usage
+If "%2"=="" goto :usage
+If "%3"=="" goto :usage
+
+:: Extra Dependencies
+IF "%PROJECTS%"=="" goto :missing
+
+:: Variable assining
+SET EXTRASTEP=%1
+SET FUNCTION=%3
+
+title Mindbender Launcher - %PROJECTS% - %EXTRASTEP%
 
 title %PROJECTDIR% / %ASSETSCATE%
 
