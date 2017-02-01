@@ -1,3 +1,5 @@
+from maya import cmds
+
 def mayafpsconverter(Sfps):
     condition = 0
     if Sfps == "":
@@ -26,13 +28,12 @@ def mayafpsconverter(Sfps):
         return "ntscf"
     ERRORSTRING = "MINDBENDER_FPS has bad value in the bat file"
     if str(Sfps).isdigit() is False:
-        cmds.confirmDialog(
-        title="Enviroment variable error",
-        message=ERRORSTRING,
-        button="",
-        defaultButton="",
-        cancelButton="",
-        dismissString="")
+        cmds.confirmDialog(title="Enviroment variable error",
+                           message=ERRORSTRING,
+                           button="",
+                           defaultButton="",
+                           cancelButton="",
+                           dismissString="")
         return ""
     if condition == 0:
         Sfps = str(Sfps) + "fps"
