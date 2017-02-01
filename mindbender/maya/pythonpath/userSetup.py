@@ -33,8 +33,7 @@ def mayafpsconverter(Sfps):
         return "ntscf"
     ERRORSTRING = "MINDBENDER_FPS has bad value in the bat file"
     if str(Sfps).isdigit() is False:
-        cmds.confirmDialog(
-        title="Enviroment variable error",
+        cmds.confirmDialog(title="Enviroment variable error",
         message=ERRORSTRING,
         button="",
         defaultButton="",
@@ -64,13 +63,14 @@ def setup():
     from mindbender import api, maya
     api.install(maya)
 
+    if not MINDBENDER_FPS == "":
+        cmds.currentUnit(time=MINDBENDER_FPS)
+    if not MINDBENDER_EDIT_IN == "":
+        cmds.playbackOptions(animationStartTime=MINDBENDER_EDIT_IN)
+    if not MINDBENDER_EDIT_OUT == "":
+        cmds.playbackOptions(animationEndTime=MINDBENDER_EDIT_OUT)
+
 
 # Allow time for dependencies (e.g. pyblish-maya)
 # to be installed first.
 cmds.evalDeferred(setup)
-if not MINDBENDER_FPS == "":
-    cmds.currentUnit(time=MINDBENDER_FPS)
-if not MINDBENDER_EDIT_IN == "":
-    cmds.playbackOptions(animationStartTime=MINDBENDER_EDIT_IN)
-if not MINDBENDER_EDIT_OUT == "":
-    cmds.playbackOptions(animationEndTime=MINDBENDER_EDIT_OUT)
