@@ -1,5 +1,6 @@
 from maya import cmds
 
+
 def mayafpsconverter(Sfps):
     condition = 0
     if Sfps == "":
