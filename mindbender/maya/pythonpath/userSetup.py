@@ -64,11 +64,11 @@ def setup():
     MINDBENDER_RESOLUTION_WIDTH = os.getenv("MINDBENDER_RESOLUTION_WIDTH")
     MINDBENDER_RESOLUTION_HEIGHT = os.getenv("MINDBENDER_RESOLUTION_HEIGHT")
 
-    if not MINDBENDER_FPS == "":
+    if MINDBENDER_FPS != "":
         cmds.currentUnit(time=(mayafpsconverter(MINDBENDER_FPS)))
-    if not MINDBENDER_EDIT_IN == "":
+    if MINDBENDER_EDIT_IN != "":
         cmds.playbackOptions(animationStartTime=MINDBENDER_EDIT_IN)
-    if not MINDBENDER_EDIT_OUT == "":
+    if MINDBENDER_EDIT_OUT != "":
         cmds.playbackOptions(animationEndTime=MINDBENDER_EDIT_OUT)
 
 
