@@ -71,6 +71,6 @@ cmds.evalDeferred(setup)
 if not MINDBENDER_FPS == "":
     cmds.currentUnit(time=MINDBENDER_FPS)
 if not MINDBENDER_EDIT_IN == "":
-    cmds.playbackOption(animationEndTime=MINDBENDER_EDIT_IN)
+    cmds.playbackOptions(animationStartTime=MINDBENDER_EDIT_IN)
 if not MINDBENDER_EDIT_OUT == "":
-    cmds.playbackOption(animationEndTime=MINDBENDER_EDIT_OUT)
+    cmds.playbackOptions(animationEndTime=MINDBENDER_EDIT_OUT)
