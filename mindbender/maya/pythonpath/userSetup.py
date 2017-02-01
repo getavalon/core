@@ -7,6 +7,8 @@ import os
 
 def mayafpsconverter(Sfps):
     condition = 0
+    if Sfps is None:
+        return ""
     if Sfps == "":
         condition = 1
         return Sfps
@@ -34,22 +36,15 @@ def mayafpsconverter(Sfps):
     ERRORSTRING = "MINDBENDER_FPS has bad value in the bat file"
     if str(Sfps).isdigit() is False:
         cmds.confirmDialog(title="Enviroment variable error",
-        message=ERRORSTRING,
-        button="",
-        defaultButton="",
-        cancelButton="",
-        dismissString="")
+                           message=ERRORSTRING,
+                           button="",
+                           defaultButton="",
+                           cancelButton="",
+                           dismissString="")
         return ""
     if condition == 0:
         Sfps = str(Sfps) + "fps"
         return Sfps
-
-
-MINDBENDER_FPS = mayafpsconverter(os.getenv("MINDBENDER_FPS"))
-MINDBENDER_EDIT_IN = os.getenv("MINDBENDER_EDIT_IN")
-MINDBENDER_EDIT_OUT = os.getenv("MINDBENDER_EDIT_OUT")
-MINDBENDER_RESOLUTION_WIDTH = os.getenv("MINDBENDER_RESOLUTION_WIDTH")
-MINDBENDER_RESOLUTION_HEIGHT = os.getenv("MINDBENDER_RESOLUTION_HEIGHT")
 
 
 def setup():
@@ -63,8 +58,14 @@ def setup():
     from mindbender import api, maya
     api.install(maya)
 
-    if not MINDBENDER_FPS == "":
-        cmds.currentUnit(time=MINDBENDER_FPS)
+    MINDBENDER_FPS = os.getenv("MINDBENDER_FPS")
+    MINDBENDER_EDIT_IN = os.getenv("MINDBENDER_EDIT_IN")
+    MINDBENDER_EDIT_OUT = os.getenv("MINDBENDER_EDIT_OUT")
+    MINDBENDER_RESOLUTION_WIDTH = os.getenv("MINDBENDER_RESOLUTION_WIDTH")
+    MINDBENDER_RESOLUTION_HEIGHT = os.getenv("MINDBENDER_RESOLUTION_HEIGHT")
+
+    if not MINDBENDER_FPS == "" or MINDBENDER_FPS is not None:
+        cmds.currentUnit(time=(mayafpsconverter(MINDBENDER_FPS)))
     if not MINDBENDER_EDIT_IN == "":
         cmds.playbackOptions(animationStartTime=MINDBENDER_EDIT_IN)
     if not MINDBENDER_EDIT_OUT == "":
