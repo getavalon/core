@@ -5,8 +5,7 @@
 ::  Arguments:
 ::    %1: Path = Absolute path to projects
 :: 	  %2: Name = Name of project
-::    %3: \f02_prod
-::    %4: Silo = Parent directory name of assets
+::    %3: Silo = Parent directory name of assets
 ::
 ::  Variables set by bat:
 ::    %MINDBENDER_SETASSETCATEGORY%: Is the currently chosen category of assets
@@ -26,14 +25,14 @@
 @echo off
 
 if "%1"=="" goto :missing_projectdir
-if not "%4"=="assets" (
-  if not "%4"=="film" goto :missing_silo
+if not "%3"=="assets" (
+  if not "%3"=="film" goto :missing_silo
 )
 
 if "%2"=="" goto :missing_name
-if "%4"=="" goto :missing_silo
+if "%3"=="" goto :missing_silo
 
-set PROJECTDIR=%1%2%3
+set PROJECTDIR=%1%2
 :: This is a variable for the function back.bat.
 set PROJECT=%1
 set PROJECTNAME=%2
@@ -48,7 +47,7 @@ if not exist %PROJECTDIR% (
 
 :: Establish base directories for ls() and search() functions.
 set MINDBENDER_ROOT=%PROJECTDIR%
-set MINDBENDER_SILO=%4
+set MINDBENDER_SILO=%3
 
 pushd %PROJECTDIR%\%MINDBENDER_SILO%
 

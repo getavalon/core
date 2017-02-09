@@ -5,7 +5,7 @@
 :: \\f02_prod is the folder that you will be
 :: %1 is the entry by the user for asset
 @echo off
-call _mkproject %~dp0 %~n0 \\f02_prod %1
+call _mkproject %~dp0 %~n0 %1
 
 :: :: Following is the variables that can be set in the bat
 :: :: They are default set to "nothing"
