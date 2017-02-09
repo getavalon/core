@@ -6,7 +6,12 @@ import os
 
 
 def mayafpsconverter(fps):
-    ERRORSTRING = "MINDBENDER_FPS has bad value in the bat file"
+    ERRORSTRING = "MINDBENDER_FPS variable has letters or bad value check the bat file"
+    """This checks to see that the value in MINDBENDER_FPS.string
+    doesn't conttain any letters
+    exampel "12" is valid
+    exampel "1a2" is invalid
+    """
     if str(fps).isdigit() is False:
         cmds.confirmDialog(title="Enviroment variable error",
                            message=ERRORSTRING,
