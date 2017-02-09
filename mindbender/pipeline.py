@@ -16,7 +16,7 @@ from . import (
     _registered_data,
     _registered_silos,
     _registered_formats,
-    _registered_loaders_paths,
+    _registered_loader_paths,
     _registered_host,
     _registered_root,
 )
@@ -87,7 +87,7 @@ def discover_loaders():
     loaders = dict()
 
     # Include plug-ins from registered paths
-    for path in _registered_loaders_paths:
+    for path in _registered_loader_paths:
         path = os.path.normpath(path)
 
         assert os.path.isdir(path), "%s is not a directory" % path
@@ -159,17 +159,17 @@ def loaders_from_module(module):
     return loaders
 
 
-def register_loaders_path(path):
+def register_loader_path(path):
     path = os.path.normpath(path)
-    _registered_loaders_paths.add(path)
+    _registered_loader_paths.add(path)
 
 
-def registered_loaders_paths():
-    return list(_registered_loaders_paths)
+def registered_loader_paths():
+    return list(_registered_loader_paths)
 
 
-def deregister_loaders_path(path):
-    _registered_loaders_paths.remove(path)
+def deregister_loader_path(path):
+    _registered_loader_paths.remove(path)
 
 
 def ls(silos=None):

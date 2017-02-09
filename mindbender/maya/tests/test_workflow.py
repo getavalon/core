@@ -81,9 +81,6 @@ def test_modeling():
     cmds.file(rename="temp.ma")
     cmds.file(save=True)
 
-    # Comply with ID validator
-    cmds.addAttr(transform, longName="mbID", dataType="string")
-
     pyblish.util.publish()
 
     asset = next(api.ls())

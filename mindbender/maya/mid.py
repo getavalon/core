@@ -11,8 +11,6 @@ import uuid
 
 from maya import cmds, OpenMaya
 
-from .. import api
-
 self = sys.modules[__name__]
 self._mid_callback = None
 
@@ -30,13 +28,13 @@ def register_callback():
             OpenMaya.MMessage.removeCallback(self._mid_callback)
             self._mid_callback = None
         except RuntimeError, e:
-            api.echo(e)
+            print(e)
 
     self._mid_callback = OpenMaya.MSceneMessage.addCallback(
         OpenMaya.MSceneMessage.kBeforeSave, _callback
     )
 
-    api.echo("Registered _callback")
+    print("Registered _callback")
 
 
 def _set_uuid(node):
