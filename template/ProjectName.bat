@@ -1,5 +1,5 @@
 :: Following is the commands that needs to be called in the bat
-:: always call _mkproject
+:: call _mkproject
 :: %~dp0 is drive plus path variable
 :: %~n0 is the name of this project as the name of the .bat
 :: %1 is the entry by the user for asset
