@@ -24,8 +24,8 @@ self = sys.modules[__name__]
 
 
 def clear():
-    for path in pipeline.registered_loaders_paths():
-        pipeline.deregister_loaders_path(path)
+    for path in pipeline.registered_loader_paths():
+        pipeline.deregister_loader_path(path)
 
 
 def setup():
@@ -209,7 +209,7 @@ class DemoLoader(api.Loader):
         f.write(loader)
 
     try:
-        pipeline.register_loaders_path(tempdir)
+        pipeline.register_loader_path(tempdir)
         loaders = pipeline.discover_loaders()
 
         assert "DemoLoader" in list(

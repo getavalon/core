@@ -2,41 +2,47 @@ import pyblish.api
 
 
 class ValidateMindbenderSingleShape(pyblish.api.InstancePlugin):
-    """One mesh per transform"""
+    """Transforms with a mesh must ever only contain a single mesh
+
+    This ensures models only contain a single shape node.
+
+    """
 
     label = "Validate Single Shape"
     order = pyblish.api.ValidatorOrder
     hosts = ["maya"]
-    active = False
-    optional = True
     families = [
         "mindbender.model",
-        "mindbender.lookdev"
     ]
 
     def process(self, instance):
         from maya import cmds
 
         has_multiple_shapes = list()
-        for node in instance:
 
-            children = cmds.listRelatives(node, allDescendents=True) or list()
-            shapes = cmds.listRelatives(node, shapes=True) or list()
+        # Consider entire hierarchy of nodes included in an Instance
+        hierarchy = cmds.listRelatives(instance, allDescendents=True)
 
-            # Ensure there is only one child; there could be many,
-            # including other transform nodes.
-            has_single_shape = len(children) == 1
+        # Consider only nodes of type="mesh"
+        meshes = cmds.ls(hierarchy, type="mesh", long=True)
+        transforms = cmds.listRelatives(meshes, parent=True)
+
+        for transform in set(transforms):
+            shapes = cmds.listRelatives(transform, shapes=True) or list()
 
             # Ensure the one child is a shape
-            has_single_child = len(shapes) == 1
+            has_single_shape = len(shapes) == 1
+            self.log.info("has single shape: %s" % has_single_shape)
 
-            # Ensure the one child is of type "mesh"
-            has_single_mesh = cmds.nodeType(shapes[0]) == "mesh"
+            # Ensure the one shape is of type "mesh"
+            has_single_mesh = (
+                has_single_shape and
+                cmds.nodeType(shapes[0]) == "mesh"
+            )
+            self.log.info("has single mesh: %s" % has_single_mesh)
 
-            if not all([has_single_child,
-                        has_single_shape,
-                        has_single_mesh]):
-                has_multiple_shapes.append(node)
+            if not all([has_single_shape, has_single_mesh]):
+                has_multiple_shapes.append(transform)
 
         assert not has_multiple_shapes, (
             "\"%s\" has transforms with multiple shapes: %s" % (

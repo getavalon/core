@@ -36,12 +36,12 @@ from .pipeline import (
     register_format,
     register_silo,
     register_family,
-    register_loaders_path,
+    register_loader_path,
     register_plugins,
 
     registered_host,
     registered_families,
-    registered_loaders_paths,
+    registered_loader_paths,
     registered_formats,
     registered_data,
     registered_root,
@@ -51,7 +51,7 @@ from .pipeline import (
     deregister_format,
     deregister_family,
     deregister_data,
-    deregister_loaders_path,
+    deregister_loader_path,
 
     any_representation,
 
@@ -88,13 +88,13 @@ __all__ = [
     "register_format",
     "register_silo",
     "register_family",
-    "register_loaders_path",
+    "register_loader_path",
     "register_plugins",
     "register_root",
 
     "registered_root",
     "registered_silos",
-    "registered_loaders_paths",
+    "registered_loader_paths",
     "registered_host",
     "registered_families",
     "registered_formats",
@@ -104,7 +104,7 @@ __all__ = [
     "deregister_format",
     "deregister_family",
     "deregister_data",
-    "deregister_loaders_path",
+    "deregister_loader_path",
 
     "format_staging_dir",
     "format_shared_dir",

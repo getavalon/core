@@ -25,8 +25,8 @@ self = sys.modules[__name__]
 def clear():
     cmds.file(new=True, force=True)
 
-    for path in mindbender.api.registered_loaders_paths():
-        mindbender.api.deregister_loaders_path(path)
+    for path in mindbender.api.registered_loader_paths():
+        mindbender.api.deregister_loader_path(path)
 
     for fmt in mindbender.api.registered_formats():
         mindbender.api.deregister_format(fmt)

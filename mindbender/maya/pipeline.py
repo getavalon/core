@@ -4,7 +4,7 @@ import sys
 import pyblish.api
 from maya import cmds
 
-from . import lib
+from . import lib, mid
 from .. import api
 from ..vendor.Qt import QtCore, QtWidgets
 
@@ -33,6 +33,9 @@ def install():
     _register_plugins()
     _register_loaders()
     _register_families()
+
+    # Setup automatic model id
+    mid.register_callback()
 
 
 def uninstall():
@@ -112,7 +115,8 @@ def _install_menu():
 
 
 def _uninstall_menu():
-    widgets = dict((w.objectName(), w) for w in QtWidgets.qApp.allWidgets())
+    app = QtWidgets.QApplication.instance()
+    widgets = dict((w.objectName(), w) for w in app.allWidgets())
     menu = widgets.get(self.menu)
 
     if menu:
@@ -180,7 +184,7 @@ def _register_loaders():
     lib_py_path = sys.modules[__name__].__file__
     package_path = os.path.dirname(lib_py_path)
     loaders_path = os.path.join(package_path, "loaders")
-    api.register_loaders_path(loaders_path)
+    api.register_loader_path(loaders_path)
 
 
 def ls():
@@ -222,6 +226,7 @@ def load(asset, subset, version=-1, representation=None):
 
     """
 
+    assert asset["schema"] == "mindbender-core:asset-1.0"
     assert subset["schema"] == "mindbender-core:subset-1.0"
     assert isinstance(version, int), "Version must be integer"
 
