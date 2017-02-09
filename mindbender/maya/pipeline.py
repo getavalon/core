@@ -187,13 +187,6 @@ def _register_loaders():
     api.register_loader_path(loaders_path)
 
 
-def _register_creators():
-    lib_py_path = sys.modules[__name__].__file__
-    package_path = os.path.dirname(lib_py_path)
-    creators_path = os.path.join(package_path, "creators")
-    api.register_creator_path(creators_path)
-
-
 def ls():
     """List containers from active Maya scene
 
@@ -249,7 +242,7 @@ def load(asset, subset, version=-1, representation=None):
         representation = api.any_representation(version)
 
     loaded = False
-    for Loader in api.discover(api.Loader):
+    for Loader in api.discover_loaders():
         for family in version.get("families", list()):
             if family in Loader.families:
                 print("Running '%s' on '%s'" % (
@@ -326,15 +319,6 @@ def create(name, family, options=None):
             raise KeyError("Invalid dynamic property: %s" % e)
 
     lib.imprint(instance, data)
-
-    for Creator in api.discover(api.Creator):
-        if family in Creator.families:
-            print("Running '%s' on '%s'" % (Creator.__name__, name))
-
-            Creator().process(
-                instance=instance,
-                data=data,
-            )
 
     return instance
 
