@@ -5,36 +5,9 @@ from maya import cmds
 import os
 
 
-def mayafpsconverter(Sfps):
-    condition = 0
-    if Sfps is None:
-        return ""
-    if Sfps == "":
-        condition = 1
-        return Sfps
-    if Sfps == "15":
-        condition = 1
-        return "game"
-    if Sfps == "24":
-        condition = 1
-        return "film"
-    if Sfps == "25":
-        condition = 1
-        return "pal"
-    if Sfps == "30":
-        condition = 1
-        return "ntsc"
-    if Sfps == "48":
-        condition = 1
-        return "show"
-    if Sfps == "50":
-        condition = 1
-        return "palf"
-    if Sfps == "60":
-        condition = 1
-        return "ntscf"
+def mayafpsconverter(fps):
     ERRORSTRING = "MINDBENDER_FPS has bad value in the bat file"
-    if str(Sfps).isdigit() is False:
+    if str(fps).isdigit() is False:
         cmds.confirmDialog(title="Enviroment variable error",
                            message=ERRORSTRING,
                            button="",
@@ -42,9 +15,16 @@ def mayafpsconverter(Sfps):
                            cancelButton="",
                            dismissString="")
         return ""
-    if condition == 0:
-        Sfps = str(Sfps) + "fps"
-        return Sfps
+    return {
+        "15": "game",
+        "24": "film",
+        "25": "pal",
+        "30": "ntsc",
+        "48": "show",
+        "50": "palf",
+        "60": "ntscf",
+        None: "",
+        "": "", }.get(fps, fps + "fps")
 
 
 def setup():
