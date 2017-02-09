@@ -1,4 +1,5 @@
 :: Following is the commands that needs to be called in the bat
+::
 :: call _mkasset
 :: %~n0 is the name of this project as the name of the .bat
 :: %~dp0 is drive plus path variable
@@ -6,6 +7,7 @@
 call _mkasset %~n0 %~dp0%
 
 :: Following is the variables that can be set in the bat
+::
 :: They are default set to "nothing"
 :: leave them be if you dont have the info for them and return to them later.
 :: setOBJECT expects a string like "prop, char"
