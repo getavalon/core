@@ -29,7 +29,6 @@ if "%PYBLISH_NUKE%"=="" goto :missing
 if "%PYBLISH_LITE%"=="" goto :missing
 if "%PYBLISH_QML%"=="" goto :missing
 if "%MINDBENDER_CORE%"=="" goto :missing
-if "%PYBLISH_USERNAME%"=="" goto :missing
 
 :: Clear environment.
 ::
