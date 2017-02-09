@@ -110,7 +110,7 @@ class Window(QtWidgets.QDialog):
         )
 
         # Set default name, e.g. modelDefault, lookdevDefault
-        label = item.data(FamilyRole)
+        label = item.data(FamilyRole) or "null"
         label = label.rsplit(".")[-1]
         label = label.lower() + "Default"
 
