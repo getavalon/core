@@ -580,8 +580,8 @@ def register_host(host):
 
         if invalid:
             report.append(
-                "One or more members were found, but didn't "
-                "have the right argument signature."
+                "'%s': One or more members were found, but didn't "
+                "have the right argument signature." % host.__name__
             )
 
             for member in invalid:
@@ -741,7 +741,7 @@ def debug_host():
 
         return None
 
-    def create(name, family, nodes=None):
+    def create(name, family, options=None):
         sys.stdout.write(json.dumps({
             "name": name,
             "family": family,
