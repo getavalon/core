@@ -8,9 +8,6 @@
 ::    %3: Silo = Parent directory name of assets
 ::
 ::  Variables set by bat:
-::    %MINDBENDER_SETASSETCATEGORY%: Is the currently chosen category of assets
-::    %MINDBENDER_ASSETCATEGORY%: Is a list of asset category to be listed
-::    %%
 ::    %MINDBENDER_FPS%: Is the project FPS 
 ::    %MINDBENDER_RESOLUTION_WIDTH%: Is the project width
 ::    %MINDBENDER_RESOLUTION_HEIGHT%: Is the project height
@@ -68,7 +65,7 @@ for %%i in (*.bat) do (
 endlocal
 
 echo+
-echo   1. Type first letters of asset category
+echo   1. Type first letters of asset
 echo   2. Press [TAB] to auto-complete
 echo+
 echo  --------------------------------------
