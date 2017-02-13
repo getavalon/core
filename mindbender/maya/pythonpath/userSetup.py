@@ -26,8 +26,8 @@ def setup():
         "60": "ntscf"
     }.get(os.getenv("MINDBENDER_FPS"), "pal")  # Default to "pal"
 
-    EDIT_IN = os.getenv("MINDBENDER_EDIT_IN") or 1000
-    EDIT_OUT = os.getenv("MINDBENDER_EDIT_OUT") or 1200
+    EDIT_IN = os.getenv("MINDBENDER_EDIT_IN") or 101
+    EDIT_OUT = os.getenv("MINDBENDER_EDIT_OUT") or 201
     RESOLUTION_WIDTH = os.getenv("MINDBENDER_RESOLUTION_WIDTH") or 1920
     RESOLUTION_HEIGHT = os.getenv("MINDBENDER_RESOLUTION_HEIGHT") or 1080
 

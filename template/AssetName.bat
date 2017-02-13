@@ -14,7 +14,7 @@ call _mkasset %~n0 %~dp0%
 set MINDBENDER_OBJECT3D=
 
 :: (int, optional): In-time used in the edit
-set MINDBENDER_EDIT_IN=1000
+set MINDBENDER_EDIT_IN=101
 
 :: (int, optional): Out-time used in the edit
-set MINDBENDER_EDIT_OUT=1200
+set MINDBENDER_EDIT_OUT=201
