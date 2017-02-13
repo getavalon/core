@@ -7,9 +7,15 @@
 @echo off
 call _mkproject %~dp0 %~n0 %1
 
-:: Following is the variables that can be set in the bat
-::
-set MINDBENDER_ASSETCATEGORY=
-set MINDBENDER_FPS=
-set MINDBENDER_RESOLUTION_WIDTH=
-set MINDBENDER_RESOLUTION_HEIGHT=
+:: --------------------
+:: Additional Variables
+:: --------------------
+
+:: (int): Current frames per second for the project
+set MINDBENDER_FPS=25
+
+:: (str): Render resolution width
+set MINDBENDER_RESOLUTION_WIDTH=1920
+
+:: (str): Render resolution height
+set MINDBENDER_RESOLUTION_HEIGHT=1080
