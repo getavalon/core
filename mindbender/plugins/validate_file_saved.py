@@ -26,9 +26,9 @@ class ValidateCurrentSaveFile(pyblish.api.ContextPlugin):
         unsaved_values = [
             # An unsaved file in Maya has this value.
             ".",
-
-            # An unsaved file in Houdini has one of these values.
+            # An unsaved file in Nuke has this value.
             "Root",
+            # An unsaved file in Houdini has one of these values.
             "untitled.hip"
         ]
 

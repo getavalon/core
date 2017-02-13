@@ -1,17 +1,23 @@
-:: Project API
+::  Project API
 ::
-:: This file is called whenever a user enters a project, such p999_Meindbender_Sync
+::  This file is called whenever a user enters a project, such p999_Meindbender_Sync
 ::
-:: Arguments:
-::   %1: Path = Absolute path to projects
-:: 	 %2: Name = Name of project
-:: 	 %3: Silo = Parent directory name of assets
+::  Arguments:
+::    %1: Path = Absolute path to projects
+:: 	  %2: Name = Name of project
+::    %3: Silo = Parent directory name of assets
 ::
-:: Variables:
-::   %PROJECTDIR%: Absolute path to project directory
+::  Variables set by bat:
+::    %MINDBENDER_FPS%: Is the project FPS 
+::    %MINDBENDER_RESOLUTION_WIDTH%: Is the project width
+::    %MINDBENDER_RESOLUTION_HEIGHT%: Is the project height
 ::
-:: Example:
-::   $ call _mkproject.bat %~dp0ProjectName assets
+::  Variables:
+::    %PROJECTDIR%: Absolute path to project directory
+::
+::  Example:
+::    $ call _mkproject.bat %~dp0ProjectName assets
+::    $ set MINDBENDER_FPS=24
 
 @echo off
 
@@ -46,7 +52,8 @@ pushd %PROJECTDIR%\%MINDBENDER_SILO%
 cls
 
 echo+
-echo  ASSETS -----------
+echo    Active Project: %PROJECTNAME%
+echo    You are in: %MINDBENDER_SILO%
 echo+
 
 :: List available assets, without their .bat suffix
@@ -55,6 +62,7 @@ for %%i in (*.bat) do (
     set temp=%%i
     echo   !temp:.bat=!
 )
+endlocal
 
 echo+
 echo   1. Type first letters of asset
