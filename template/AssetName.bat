@@ -10,9 +10,6 @@ call _mkasset %~n0 %~dp0%
 :: Additional variables
 :: ------------------
 
-:: (str, optional): This variable is ??????, for example "prop, char"
-set MINDBENDER_OBJECT3D=
-
 :: (int, optional): In-time used in the edit
 set MINDBENDER_EDIT_IN=101
 
