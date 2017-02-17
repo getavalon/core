@@ -276,7 +276,8 @@ class Window(QtWidgets.QDialog):
         for container in self.ls():
             has["containers"] = True
 
-            item = QtWidgets.QListWidgetItem(container["subset"])
+            name = "{name}\t({subset})".format(**container)
+            item = QtWidgets.QListWidgetItem(name)
             item.setData(QtCore.Qt.ItemIsEnabled, True)
             item.setData(ContainerRole, container)
             containers_model.addItem(item)
