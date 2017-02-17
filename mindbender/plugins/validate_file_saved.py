@@ -28,7 +28,7 @@ class ValidateCurrentSaveFile(pyblish.api.ContextPlugin):
             ".",
             # An unsaved file in Nuke has this value.
             "Root",
-            # An unsaved file in Houdini has one of these values.
+            # An unsaved file in Houdini has this value.
             "untitled.hip"
         ]
 

@@ -51,6 +51,13 @@ class LookLoader(api.Loader):
             with open(path) as f:
                 relationships = json.load(f)
 
+            # Append namespace to shader group identifier.
+            # E.g. `blinn1SG` -> `Bruce_:blinn1SG`
+            relationships = {
+                "%s:%s" % (namespace, shader): relationships[shader]
+                for shader in relationships
+            }
+
             maya.apply_shaders(relationships)
 
         return nodes

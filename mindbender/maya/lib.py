@@ -393,8 +393,8 @@ def apply_shaders(relationships):
     """
 
     for shader, ids in relationships.items():
-        print("Looking for '*:%s'.." % shader)
-        shader = next(iter(cmds.ls("*:" + shader)), None)
+        print("Looking for '%s'.." % shader)
+        shader = next(iter(cmds.ls(shader)), None)
         assert shader, "Associated shader not part of asset, this is a bug"
 
         for id_ in ids:
