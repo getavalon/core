@@ -11,25 +11,25 @@
 
 @echo off
 
-set ASSET=%1
-set ASSETDIR=%2%ASSET%
+set MINDBENDER_ASSET=%1
+set MINDBENDER_ASSETPATH=%2%MINDBENDER_ASSET%
 
-If not exist %ASSETDIR% (
-	mkdir %ASSETDIR%
+If not exist %MINDBENDER_ASSETPATH% (
+	mkdir %MINDBENDER_ASSETPATH%
 )
 
-title %PROJECTDIR% / %ASSET%
+title %MINDBENDER_PROJECTPATH% / %MINDBENDER_ASSET%
 
 :: Clear screen
 cls
 
 echo+
-echo %ASSET% -----------
+echo %MINDBENDER_ASSET% -----------
 echo+
 
 :: List available tasks
 setlocal enabledelayedexpansion
-set FOLDERQUERRY=%ASSETDIR%
+set FOLDERQUERRY=%MINDBENDER_ASSETPATH%
 if {%FOLDERQUERRY%\work\*}=={} (
 	for /f %%i in ('dir %FOLDERQUERRY%\work /b ') do (
    		set x=%%i
@@ -50,4 +50,4 @@ echo   $ nuke comp
 echo+
 echo --------------------------------------
 
-pushd %ASSETDIR%
+pushd %MINDBENDER_ASSETPATH%

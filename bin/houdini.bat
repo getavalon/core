@@ -17,21 +17,20 @@
 if Not exist "C:\Program Files\Side Effects Software\Houdini 15.5.523\bin\houdinifx.exe" goto :missing_app
 
 :: if user forgot to set project or asset
-if "%PROJECTDIR%"=="0" goto :missing_set_project
-
-if "%ASSET%"=="0" goto :missing_set_asset
+if "%MINDBENDER_PROJECTPATH%"=="0" goto :missing_set_project
+if "%MINDBENDER_ASSET%"=="0" goto :missing_set_asset
 
 :: If user forgets to include task with "houdini"..
 if "%1"=="" goto :missing_task
 
-set WORKDIR=%cd%\work\%1\%USERNAME%\houdini
-if Not exist %WORKDIR% (
+set MINDBENDER_WORKDIR=%cd%\work\%1\%USERNAME%\houdini
+if Not exist %MINDBENDER_WORKDIR% (
     echo Creating new task "%1"..
 
     :: Arvid, redigera gärna den här Houdini mapp strukturen
-    mkdir %WORKDIR%\scenes
-    mkdir %WORKDIR%\data
-    mkdir %WORKDIR%\images
+    mkdir %MINDBENDER_WORKDIR%\scenes
+    mkdir %MINDBENDER_WORKDIR%\data
+    mkdir %MINDBENDER_WORKDIR%\images
     rem etc..
 )
 
@@ -47,10 +46,10 @@ set "HOUDINI_PATH=%PYBLISH%\etc\houdini\;&;%HOUDINI_PATH%"
 set PYBLISHPLUGINPATH=%PYBLISH%\plugins\nuke;%PYBLISHPLUGINPATH%
 
 :: Set filepath for open script window
-pushd %WORKDIR%
+pushd %MINDBENDER_WORKDIR%
 
 :: Launch (local) Houdini
-echo Launching Houdini @ %WORKDIR% ..
+echo Launching Houdini @ %MINDBENDER_WORKDIR% ..
 start "Houdini" "C:\Program Files\Side Effects Software\Houdini 15.5.523\bin\happrentice.exe"
 popd
 
@@ -62,7 +61,7 @@ goto :eof
     Echo You must set a project before Launch
     Exit /B
 :missing_set_asset
-    Echo You have a project set %PROJECTDIR%
+    Echo You have a project set %MINDBENDER_PROJECTPATH%
     Echo You must set a Asset before Launch
     Exit /B
 :missing_app
