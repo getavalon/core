@@ -13,7 +13,7 @@
 ::    %MINDBENDER_RESOLUTION_HEIGHT%: Is the project height
 ::
 ::  Variables:
-::    %PROJECTDIR%: Absolute path to project directory
+::    %MINDBENDER_PROJECTPATH%: Absolute path to project directory
 ::
 ::  Example:
 ::    $ call _mkproject.bat %~dp0ProjectName assets
@@ -29,30 +29,28 @@ if not "%3"=="assets" (
 if "%2"=="" goto :missing_name
 if "%3"=="" goto :missing_silo
 
-set PROJECTDIR=%1%2
-:: This is a variable for the function back.bat.
-set PROJECT=%1
-set PROJECTNAME=%2
+set MINDBENDER_PROJECT=%2
+set MINDBENDER_PROJECTPATH=%1%2
 
-if not exist %PROJECTDIR% (
-  echo Creating new project "%PROJECT%"..
+if not exist %MINDBENDER_PROJECTPATH% (
+  echo Creating new project "%MINDBENDER_PROJECTPATH%"..
 
-  mkdir %PROJECTDIR%\assets
-  mkdir %PROJECTDIR%\film
+  mkdir %MINDBENDER_PROJECTPATH%\assets
+  mkdir %MINDBENDER_PROJECTPATH%\film
   rem etc..
 )
 
 :: Establish base directories for ls() and search() functions.
-set MINDBENDER_ROOT=%PROJECTDIR%
+set MINDBENDER_ROOT=%MINDBENDER_PROJECTPATH%
 set MINDBENDER_SILO=%3
 
-pushd %PROJECTDIR%\%MINDBENDER_SILO%
+pushd %MINDBENDER_PROJECTPATH%\%MINDBENDER_SILO%
 
 :: Clear screen
 cls
 
 echo+
-echo    Active Project: %PROJECTNAME%
+echo    Active Project: %MINDBENDER_PROJECT%
 echo    You are in: %MINDBENDER_SILO%
 echo+
 

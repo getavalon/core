@@ -89,8 +89,8 @@ echo  ---------------------------------------------
 echo+
 
 :: Clearing old Variables
-SET PROJECTDIR=
-SET ASSET=
+SET MINDBENDER_PROJECTPATH=
+SET MINDBENDER_ASSET=
 
 :: Open a persistent shell
 cmd.exe /K
