@@ -3,9 +3,10 @@
 ::  This file is called whenever a user enters a project, such p999_Meindbender_Sync
 ::
 ::  Arguments:
-::    %1: Path = Absolute path to projects
-:: 	  %2: Name = Name of project
-::    %3: Silo = Parent directory name of assets
+::    %1: Path = Absolute path bat is located
+::    %2: Path = Absolute path to where work folder is
+:: 	  %3: Name = Name of project
+::    %4: Silo = Parent directory name of assets
 ::
 ::  Variables set by bat:
 ::    %MINDBENDER_FPS%: Is the project FPS 
@@ -16,20 +17,22 @@
 ::    %MINDBENDER_PROJECTPATH%: Absolute path to project directory
 ::
 ::  Example:
-::    $ call _mkproject.bat %~dp0ProjectName assets
+::    $ call _mkproject.bat %~dp0 %~n0 ProjectName assets
 ::    $ set MINDBENDER_FPS=24
 
 @echo off
 
 if "%1"=="" goto :missing_projectdir
-if not "%3"=="assets" (
-  if not "%3"=="film" goto :missing_silo
+if "%2"=="" goto :missing_projectdir
+
+if not "%4"=="assets" (
+  if not "%4"=="film" goto :missing_silo
 )
 
-if "%2"=="" goto :missing_name
-if "%3"=="" goto :missing_silo
+if "%3"=="" goto :missing_name
+if "%4"=="" goto :missing_silo
 
-set MINDBENDER_PROJECT=%2
+set MINDBENDER_PROJECT=%3
 set MINDBENDER_PROJECTPATH=%1%2
 
 if not exist %MINDBENDER_PROJECTPATH% (
@@ -42,7 +45,7 @@ if not exist %MINDBENDER_PROJECTPATH% (
 
 :: Establish base directories for ls() and search() functions.
 set MINDBENDER_ROOT=%MINDBENDER_PROJECTPATH%
-set MINDBENDER_SILO=%3
+set MINDBENDER_SILO=%4
 
 pushd %MINDBENDER_PROJECTPATH%\%MINDBENDER_SILO%
 
@@ -80,7 +83,7 @@ goto :eof
     echo    Specify either "assets" or "film"
     echo+
     echo  Example:
-    set temp=%2
+    set temp=%3
     echo    $ %temp% assets
     echo    $ %temp% film
     exit /b
