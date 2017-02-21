@@ -17,21 +17,21 @@
 :: if Not exist "C:\Program Files\The Foundry\NUKE\Nuke10.0v2\Nuke10.0.exe" goto :missing_app
 
 :: if user forgot to set project or asset
-if "%PROJECTDIR%"=="" goto :missing_set_project
-if "%ASSET%"=="" goto :missing_set_asset
+if "%MINDBENDER_PROJECTPATH%"=="" goto :missing_set_project
+if "%MINDBENDER_ASSET%"=="" goto :missing_set_asset
 
 :: If user forgets to include task with "maya"..
 if "%1"=="" goto :missing_task
 
-set WORKDIR=%cd%\work\%1\%USERNAME%\nuke
-if Not exist %WORKDIR% (
+set MINDBENDER_WORKDIR=%cd%\work\%1\%USERNAME%\nuke
+if Not exist %MINDBENDER_WORKDIR% (
     echo Creating new task "%1"..
 
     :: Arvid, redigera gärna den här Nuke mapp strukturen
-    mkdir %WORKDIR%\nk
-    mkdir %WORKDIR%\scripts
-    mkdir %WORKDIR%\cache
-    mkdir %WORKDIR%\render
+    mkdir %MINDBENDER_WORKDIR%\nk
+    mkdir %MINDBENDER_WORKDIR%\scripts
+    mkdir %MINDBENDER_WORKDIR%\cache
+    mkdir %MINDBENDER_WORKDIR%\render
     rem etc..
 )
 
@@ -40,10 +40,10 @@ set NUKE_PATH=%MINDBENDER_CORE%\mindbender\nuke\nuke_path;%NUKE_PATH%
 set PYBLISHPLUGINPATH=%MINDBENDER_CORE%\mindbender\plugins\nuke;%PYBLISHPLUGINPATH%
 
 :: Set filepath for open script window
-pushd %WORKDIR%\nk
+pushd %MINDBENDER_WORKDIR%\nk
 
 :: Launch (local) Nuke
-echo Launching NukeX @ %WORKDIR%..
+echo Launching NukeX @ %MINDBENDER_WORKDIR%..
 start "NukeX" "C:\Program Files\The Foundry\NUKE\Nuke10.0v2\Nuke10.0" --nukex
 
 popd
@@ -55,7 +55,7 @@ goto :eof
     Echo You must set a project before Launch
     Exit /B
 :missing_set_asset
-    Echo You have a project set %PROJECTDIR%
+    Echo You have a project set %MINDBENDER_PROJECTPATH%
     Echo You must set a Asset before Launch
     Exit /B
 :missing_app

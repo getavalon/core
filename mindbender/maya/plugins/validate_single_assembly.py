@@ -31,8 +31,11 @@ class ValidateMindbenderSingleAssembly(pyblish.api.InstancePlugin):
 
         assemblies = cmds.ls(nodes, assemblies=True)
 
-        assert len(assemblies) == 1, (
-            ("Multiple assemblies found."
-                if len(assemblies) > 1
-                else "No assembly found")
-        )
+        if not assemblies:
+            raise Exception("No assembly found.")
+
+        if len(assemblies) != 1:
+            assemblies = '"%s"' % '", "'.join(assemblies)
+            raise Exception(
+                "Multiple assemblies found: %s" % assemblies
+            )

@@ -46,7 +46,7 @@ def setup():
     api.register_silo("assets")
 
     # Setup environment
-    os.environ["ASSETDIR"] = assetdir
+    os.environ["MINDBENDER_ASSETPATH"] = assetdir
     os.environ["MINDBENDER_SILO"] = "assets"
 
 

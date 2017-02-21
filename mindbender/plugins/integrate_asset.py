@@ -39,8 +39,8 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
         import shutil
         from mindbender import api
 
-        assert os.getenv("ASSETDIR"), (
-            "Missing environment variable ASSETDIR\n"
+        assert os.getenv("MINDBENDER_ASSETPATH"), (
+            "Missing environment variable MINDBENDER_ASSETPATH\n"
             "This can sometimes happen when an application was launched \n"
             "manually, outside of the pipeline."
         )
@@ -84,7 +84,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
 
         self.log.debug("Establishing staging directory @ %s" % stagingdir)
 
-        root = os.getenv("ASSETDIR")
+        root = os.getenv("MINDBENDER_ASSETPATH")
         instancedir = os.path.join(root, "publish", instance.data["subset"])
 
         try:

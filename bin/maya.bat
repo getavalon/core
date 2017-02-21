@@ -17,23 +17,23 @@
 if Not exist "c:\program files\autodesk\maya2016\bin\maya.exe" goto :missing_app
 
 :: if user forgot to set project or asset
-if "%PROJECTDIR%"=="" goto :missing_set_project
-if "%ASSET%"=="" goto :missing_set_asset
+if "%MINDBENDER_PROJECTPATH%"=="" goto :missing_set_project
+if "%MINDBENDER_ASSET%"=="" goto :missing_set_asset
 
 :: If user forgets to include task with "maya"..
 if "%1"=="" goto :missing_task
 
-set WORKDIR=%CD%\work\%1\%USERNAME%\maya
-if Not exist %WORKDIR% (
+set MINDBENDER_WORKDIR=%CD%\work\%1\%USERNAME%\maya
+if Not exist %MINDBENDER_WORKDIR% (
 	echo Creating new task "%1"..
 
-	mkdir %WORKDIR%\scenes
-	mkdir %WORKDIR%\data
-    mkdir %WORKDIR%\renderData\shaders
-	mkdir %WORKDIR%\images
+	mkdir %MINDBENDER_WORKDIR%\scenes
+	mkdir %MINDBENDER_WORKDIR%\data
+    mkdir %MINDBENDER_WORKDIR%\renderData\shaders
+	mkdir %MINDBENDER_WORKDIR%\images
 	rem etc..
 
-    copy %MINDBENDER_CORE%\res\workspace.mel %WORKDIR% >NUL
+    copy %MINDBENDER_CORE%\res\workspace.mel %MINDBENDER_WORKDIR% >NUL
 )
 
 :: userSetup.py files
@@ -46,8 +46,8 @@ set MAYA_DISABLE_CIP=1
 set MAYA_DISABLE_CER=1
 
 :: Launch (local) Maya
-echo Launching Maya @ %WORKDIR%..
-start "Maya" "c:\program files\autodesk\maya2016\bin\maya.exe" -proj %WORKDIR% %*
+echo Launching Maya @ %MINDBENDER_WORKDIR%..
+start "Maya" "c:\program files\autodesk\maya2016\bin\maya.exe" -proj %MINDBENDER_WORKDIR% %*
 
 goto :eof
 
@@ -57,7 +57,7 @@ goto :eof
     echo You must set a project before Launch
     exit /B
 :missing_set_asset
-    echo You have a project set %PROJECTDIR%
+    echo You have a project set %MINDBENDER_PROJECTPATH%
     echo You must set a Asset before Launch
     exit /B
 :missing_app
