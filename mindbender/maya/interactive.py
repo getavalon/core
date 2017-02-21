@@ -108,6 +108,42 @@ def clone_special(*args):
             value = cmds.getAttr(transform + "." + attr)
             cmds.setAttr(new_transform + "." + attr, value, type="string")
 
+def clone_special_visibility(*args):
+    """Clone in localspace, and preserve user-defined attributes also links visibility"""
+
+    for transform in cmds.ls(selection=True, long=True):
+        if cmds.nodeType(transform) != "transform":
+            cmds.warning("Skipping '%s', not a `transform`" % transform)
+            continue
+
+        shape = _find_shape(transform)
+        type = cmds.nodeType(shape)
+
+        if type not in ("mesh", "nurbsSurface", "nurbsCurve"):
+            cmds.warning("Skipping '{transform}': cannot clone nodes "
+                         "of type '{type}'".format(**locals()))
+            continue
+
+        cloned = commands.clone(shape, worldspace=False)
+        new_transform = cmds.listRelatives(cloned,
+                                           parent=True,
+                                           fullPath=True)[0]
+
+        new_transform = cmds.rename(new_transform,
+                                    new_transform.rsplit(":", 1)[-1])
+
+        for attr in cmds.listAttr(transform,
+                                  userDefined=True) or list():
+            try:
+                cmds.addAttr(new_transform, longName=attr, dataType="string")
+                cmds.addAttr(new_transform, shortName="v", dataType="string")
+            except:
+                continue
+
+            value = cmds.getAttr(transform + "." + attr)
+            cmds.setAttr(new_transform + "." + attr, value, type="string")
+            cmds.connectAttr(transform + ".v", new_transform + ".v")
+
 
 def clone_worldspace(*args):
     return _clone(worldspace=True)
