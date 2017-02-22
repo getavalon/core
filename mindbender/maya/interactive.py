@@ -110,7 +110,7 @@ def clone_special(*args):
 
 
 def clone_special_visibility(*args):
-    """Clone in localspace, and preserve user-defined attributes also links visibility"""
+    """Clone in localspace, and preserve user-defined attributes"""
 
     for transform in cmds.ls(selection=True, long=True):
         if cmds.nodeType(transform) != "transform":
@@ -142,7 +142,8 @@ def clone_special_visibility(*args):
 
             value = cmds.getAttr(transform + "." + attr)
             cmds.setAttr(new_transform + "." + attr, value, type="string")
-            cmds.connectAttr(transform + ".v", new_transform + ".v")
+            cmds.connectAttr(transform + ".visibility",
+                             new_transform + ".visibility")
 
 
 def clone_worldspace(*args):
