@@ -5,7 +5,7 @@
 ::  Arguments:
 ::    %1: Path = Absolute path bat is located
 ::    %2: Path = Absolute path to where work folder is
-:: 	  %3: Name = Name of project
+::    %3: Name = Name of project
 ::    %4: Silo = Parent directory name of assets
 ::
 ::  Variables set by bat:
