@@ -108,6 +108,7 @@ def clone_special(*args):
             value = cmds.getAttr(transform + "." + attr)
             cmds.setAttr(new_transform + "." + attr, value, type="string")
 
+
 def clone_special_visibility(*args):
     """Clone in localspace, and preserve user-defined attributes also links visibility"""
 
@@ -136,7 +137,6 @@ def clone_special_visibility(*args):
                                   userDefined=True) or list():
             try:
                 cmds.addAttr(new_transform, longName=attr, dataType="string")
-                cmds.addAttr(new_transform, shortName="v", dataType="string")
             except:
                 continue
 
