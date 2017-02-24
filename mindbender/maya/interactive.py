@@ -108,6 +108,10 @@ def clone_special(*args):
             value = cmds.getAttr(transform + "." + attr)
             cmds.setAttr(new_transform + "." + attr, value, type="string")
 
+        # Connect visibility
+        cmds.connectAttr(transform + ".visibility",
+                         new_transform + ".visibility")
+
 
 def clone_worldspace(*args):
     return _clone(worldspace=True)
