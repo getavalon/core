@@ -99,8 +99,6 @@ def _install_menu():
         cmds.menuItem("Clone (Local)", command=interactive.clone_localspace)
         cmds.menuItem("Clone (World)", command=interactive.clone_localspace)
         cmds.menuItem("Clone (Special)", command=interactive.clone_special)
-        cmds.menuItem("Clone (Special with visibility)",
-                      command=interactive.clone_special_visibility)
         cmds.menuItem("Create Follicle", command=interactive.follicle)
 
         # Animation sub-menu
