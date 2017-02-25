@@ -166,6 +166,7 @@ def export_alembic(nodes,
                    file,
                    frame_range=None,
                    uv_write=True,
+                   write_Visibility=True,
                    attribute_prefix=None):
     """Wrap native MEL command with limited set of arguments
 
@@ -196,6 +197,9 @@ def export_alembic(nodes,
 
     if uv_write:
         options.append(("uvWrite", ""))
+
+    if write_Visibility:
+        options.append(("writeVisibility", ""))
 
     if frame_range is None:
         frame_range = (

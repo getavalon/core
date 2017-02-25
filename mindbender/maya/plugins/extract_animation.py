@@ -48,6 +48,9 @@ class ExtractMindbenderAnimation(pyblish.api.InstancePlugin):
             # Include UVs
             uv_write=True,
 
+            # Include Visibility
+            write_Visibility=True,
+
             # Include all attributes prefixed with this
             attribute_prefix="mb"
         )
