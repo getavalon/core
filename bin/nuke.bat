@@ -27,7 +27,7 @@ if not exist "%1" goto :missing_taskfolder
 
 set MINDBENDER_WORKDIR=%cd%\%1\%USERNAME%\nuke
 if Not exist %MINDBENDER_WORKDIR% (
-    echo Creating folders for task "%1"..
+    echo Creating new task "%1"..
 
     :: Arvid, redigera gärna den här Nuke mapp strukturen
     mkdir %MINDBENDER_WORKDIR%\nk
