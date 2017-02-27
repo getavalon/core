@@ -16,6 +16,8 @@ set MINDBENDER_ASSETPATH=%2%MINDBENDER_ASSET%
 
 If not exist %MINDBENDER_ASSETPATH% (
 	mkdir %MINDBENDER_ASSETPATH%
+	mkdir %MINDBENDER_ASSETPATH%\work
+	mkdir %MINDBENDER_ASSETPATH%\publish
 )
 
 title %MINDBENDER_PROJECTPATH% / %MINDBENDER_ASSET%
@@ -24,20 +26,8 @@ title %MINDBENDER_PROJECTPATH% / %MINDBENDER_ASSET%
 cls
 
 echo+
-echo %MINDBENDER_ASSET% -----------
+echo   %MINDBENDER_ASSET% -----------
 echo+
-
-:: List available tasks
-setlocal enabledelayedexpansion
-set FOLDERQUERRY=%MINDBENDER_ASSETPATH%
-if {%FOLDERQUERRY%\work\*}=={} (
-	for /f %%i in ('dir %FOLDERQUERRY%\work /b ') do (
-   		set x=%%i
-   		echo   !x!
-	)
-)
-endlocal
-
 echo+
 echo   1. Type application and task.
 echo   2. Press [Enter] to launch application.
@@ -45,9 +35,22 @@ echo+
 echo   For example:
 echo+
 echo   $ maya animation
-echo   $ houdini sim
 echo   $ nuke comp
+echo+
+
+:: List available tasks
+setlocal enabledelayedexpansion
+set FOLDERQUERRY=%MINDBENDER_ASSETPATH%
+if exist %FOLDERQUERRY%\work\*.bat (
+	echo   These are available:
+	for /r %MINDBENDER_ASSETPATH%\work\. %%g in (*.bat) do (
+		set temp=%%~nxg
+    	echo   $ !temp:.bat=!
+	)
+)
+endlocal
+
 echo+
 echo --------------------------------------
 
-pushd %MINDBENDER_ASSETPATH%
+pushd %MINDBENDER_ASSETPATH%\work
