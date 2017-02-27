@@ -40,8 +40,8 @@ echo+
 
 :: List available tasks
 setlocal enabledelayedexpansion
-set FOLDERQUERRY=%MINDBENDER_ASSETPATH%
-if exist %FOLDERQUERRY%\work\*.bat (
+set FOLDERQUERY=%MINDBENDER_ASSETPATH%
+if exist %FOLDERQUERY%\work\*.bat (
 	echo   These are available:
 	for /r %MINDBENDER_ASSETPATH%\work\. %%g in (*.bat) do (
 		set temp=%%~nxg
