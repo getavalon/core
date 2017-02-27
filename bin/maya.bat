@@ -27,7 +27,7 @@ if not exist "%1" goto :missing_taskfolder
 
 set MINDBENDER_WORKDIR=%CD%\%1\%USERNAME%\maya
 if Not exist %MINDBENDER_WORKDIR% (
-	echo Creating folder for task "%1"..
+	echo Creating new task "%1"..
 
 	mkdir %MINDBENDER_WORKDIR%\scenes
 	mkdir %MINDBENDER_WORKDIR%\data

@@ -13,42 +13,43 @@
 
 if "%1"=="" goto :usage
 
-if "%2"=="" goto :missingname
+if "%2"=="" goto :missing_name
 
-if "%1"=="project" goto :copyProject
+if "%1"=="project" goto :copy_project
 
-if "%1"=="asset" goto :copyAsset
+if "%1"=="asset" goto :copy_asset
 
-if "%1"=="shot" goto :copyAsset
+if "%1"=="shot" goto :copy_asset
 
-if "%1"=="maya" goto :createMaya
+if "%1"=="maya" goto :create_maya
 
-if "%1"=="nuke" goto :createNuke
+if "%1"=="nuke" goto :create_nuke
 
 :usage
-echo Enter what you want to create
+echo You need to enter two arguments.
+echo Example: "new maya animation"
 goto :eof
 
-:missingname
+:missing_name
 echo Enter the name of what you want to create
 goto :eof
 
-:copyProject
+:copy_project
 if not "%CD%"=="%PROJECTS%" goto :usage
 >NUL copy %MINDBENDER_CORE%\template\ProjectName.bat .
 ren ProjectName.bat %2.bat
 echo new project %2 created
 goto :eof
 
-:copyAsset
+:copy_asset
 if not "%CD%"=="%MINDBENDER_ROOT%\%MINDBENDER_SILO%" goto :missing
 >NUL copy %MINDBENDER_CORE%\template\AssetName.bat .
 >NUL ren AssetName.bat %2.bat
 if "%1"=="shot" echo new shot %2 created
-if "%1"=="asset" echo new Asset %2 created
+if "%1"=="asset" echo new asset %2 created
 goto :eof
 
-:createMaya
+:create_maya
 if "%MINDBENDER_PROJECT%"=="" goto :missing
 if "%MINDBENDER_ASSET%"=="" goto :missing
 > "maya %2".bat (
@@ -59,7 +60,7 @@ mkdir %2
 echo new app bat created
 goto :eof
 
-:createNuke
+:create_nuke
 if "%MINDBENDER_PROJECT%"=="" goto :missing
 if "%MINDBENDER_ASSET%"=="" goto :missing
 > "nuke %2".bat (
