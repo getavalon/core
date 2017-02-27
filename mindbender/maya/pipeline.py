@@ -241,25 +241,21 @@ def load(asset, subset, version=-1, representation=None):
         #   each compatible but different.
         representation = api.any_representation(version)
 
-    loaded = False
     for Loader in api.discover_loaders():
         for family in version.get("families", list()):
             if family in Loader.families:
                 print("Running '%s' on '%s'" % (
                     Loader.__name__, asset["name"]))
 
-                Loader().process(
+                return Loader().process(
                     asset=asset,
                     subset=subset,
                     version=version,
                     representation=representation,
                 )
 
-                loaded = True
-
-    if not loaded:
-        raise ValueError("No loader triggered, check your "
-                         "api.registered_loaders_path()")
+    raise ValueError("No loader triggered, check your "
+                     "api.registered_loaders_path()")
 
 
 def create(name, family, options=None):

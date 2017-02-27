@@ -58,7 +58,11 @@ def teardown():
 
 
 def clear():
+    shutil.rmtree(self.tempdir)
+    self.tempdir = tempfile.mkdtemp()
+
     cmds.file(new=True, force=True)
+    cmds.file(rename="temp.ma")
 
 
 def test_setup():
@@ -78,7 +82,6 @@ def test_modeling():
                 options={"useSelection": True})
 
     # Comply with save validator
-    cmds.file(rename="temp.ma")
     cmds.file(save=True)
 
     pyblish.util.publish()
@@ -94,3 +97,60 @@ def test_modeling():
 
     representation = version["representations"][0]
     assert_equals(representation["format"], ".ma")
+
+
+@with_setup(clear)
+def test_alembic_export():
+    """Exporting Alembic works"""
+
+    cube, generator = cmds.polyCube(name="myCube_GEO")
+    transform = cmds.ls(selection=True)
+
+    visibility_keys = [
+        (10, True),
+        (20, False),
+        (30, True)
+    ]
+
+    for time, value in visibility_keys:
+        cmds.setKeyframe(transform,
+                         time=time,
+                         attribute="visibility",
+                         value=value)
+
+    cmds.group(name="ROOT")
+
+    maya.create(
+        "animationDefault",
+        family="mindbender.animation",
+        options={"useSelection": True}
+    )
+
+    cmds.file(save=True)
+
+    pyblish.util.publish()
+
+    # Import and test result
+    cmds.file(new=True, force=True)
+
+    asset = next(api.ls())
+    assert_equals(asset["name"], "Test")
+
+    subset = asset["subsets"][0]
+    assert_equals(subset["name"], "animationDefault")
+
+    version = subset["versions"][0]
+    assert_equals(version["version"], 1)
+
+    representation = version["representations"][0]
+    assert_equals(representation["format"], ".abc")
+
+    container = maya.load(asset, subset, 0, representation)
+
+    cube = cmds.ls(container, type="mesh")
+    transform = cmds.listRelatives(cube, parent=True)[0]
+
+    for time, value in visibility_keys:
+        cmds.currentTime(time, edit=True)
+        assert cmds.getAttr(transform + ".visibility") == value, (
+            "Cached visibility did not match original visibility")
