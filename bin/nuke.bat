@@ -23,7 +23,9 @@ if "%MINDBENDER_ASSET%"=="" goto :missing_set_asset
 :: If user forgets to include task with "maya"..
 if "%1"=="" goto :missing_task
 
-set MINDBENDER_WORKDIR=%cd%\work\%1\%USERNAME%\nuke
+if not exist "%1" goto :missing_taskfolder
+
+set MINDBENDER_WORKDIR=%cd%\%1\%USERNAME%\nuke
 if Not exist %MINDBENDER_WORKDIR% (
     echo Creating new task "%1"..
 
@@ -61,3 +63,6 @@ goto :eof
 :missing_app
     Echo You dont have the app installed on your workstation, or could be you dont have correct version
     Exit /B
+:missing_taskfolder
+    echo ERROR: Unrecognised command "%1"
+    exit /B
