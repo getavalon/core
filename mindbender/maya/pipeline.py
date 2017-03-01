@@ -393,7 +393,7 @@ def update(container, version=-1):
     file_type = {
         ".ma": "mayaAscii",
         ".mb": "mayaBinary",
-        ".mb": "alembic"
+        ".abc": "Alembic"
     }.get(representation["format"])
 
     assert file_type, ("Unsupported representation: %s" % representation)
