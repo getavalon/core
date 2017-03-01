@@ -1,15 +1,18 @@
 import os
 import sys
+import uuid
 
 import pyblish.api
-from maya import cmds
+from maya import cmds, OpenMaya
 
-from . import lib, mid
+from . import lib
 from .. import api
 from ..vendor.Qt import QtCore, QtWidgets
 
+
 self = sys.modules[__name__]
-self.menu = "mindbenderCore"
+self._menu = "mindbenderCore"
+self._id_callback = None
 
 
 def install():
@@ -34,8 +37,7 @@ def install():
     _register_loaders()
     _register_families()
 
-    # Setup automatic model id
-    mid.register_callback()
+    _register_id_callback()
 
 
 def uninstall():
@@ -68,7 +70,7 @@ def _install_menu():
     _uninstall_menu()
 
     def deferred():
-        cmds.menu(self.menu,
+        cmds.menu(self._menu,
                   label="Mindbender",
                   tearOff=True,
                   parent="MayaWindow")
@@ -84,7 +86,7 @@ def _install_menu():
                       label="Modeling",
                       tearOff=True,
                       subMenu=True,
-                      parent=self.menu)
+                      parent=self._menu)
 
         cmds.menuItem("Combine", command=interactive.combine)
 
@@ -93,7 +95,7 @@ def _install_menu():
                       label="Rigging",
                       tearOff=True,
                       subMenu=True,
-                      parent=self.menu)
+                      parent=self._menu)
 
         cmds.menuItem("Auto Connect", command=interactive.auto_connect)
         cmds.menuItem("Clone (Local)", command=interactive.clone_localspace)
@@ -106,7 +108,7 @@ def _install_menu():
                       label="Animation",
                       tearOff=True,
                       subMenu=True,
-                      parent=self.menu)
+                      parent=self._menu)
 
         cmds.menuItem("Set Defaults", command=interactive.set_defaults)
 
@@ -117,7 +119,7 @@ def _install_menu():
 def _uninstall_menu():
     app = QtWidgets.QApplication.instance()
     widgets = dict((w.objectName(), w) for w in app.allWidgets())
-    menu = widgets.get(self.menu)
+    menu = widgets.get(self._menu)
 
     if menu:
         menu.deleteLater()
@@ -437,3 +439,52 @@ def remove(container):
 
     fname = cmds.referenceQuery(reference_node, filename=True)
     cmds.file(fname, removeReference=True)
+
+
+def _register_id_callback():
+    """Automatically add IDs to new nodes
+
+    Any transform of a mesh, without an exising ID,
+    is given one automatically on file save.
+
+    """
+
+    if self._id_callback is not None:
+        try:
+            OpenMaya.MMessage.removeCallback(self._id_callback)
+            self._id_callback = None
+        except RuntimeError, e:
+            print(e)
+
+    self._id_callback = OpenMaya.MSceneMessage.addCallback(
+        OpenMaya.MSceneMessage.kBeforeSave, _callback
+    )
+
+    print("Registered _callback")
+
+
+def _set_uuid(node):
+    """Add mbID to `node`
+
+    Unless one already exists.
+
+    """
+
+    attr = "{0}.mbID".format(node)
+
+    if not cmds.objExists(attr):
+        cmds.addAttr(node, longName="mbID", dataType="string")
+        _, uid = str(uuid.uuid4()).rsplit("-", 1)
+        cmds.setAttr(attr, uid, type="string")
+
+
+def _callback(_):
+    nodes = (set(cmds.ls(type="mesh", long=True)) -
+             set(cmds.ls(long=True, readOnly=True)) -
+             set(cmds.ls(long=True, lockedNodes=True)))
+
+    transforms = cmds.listRelatives(list(nodes), parent=True) or list()
+
+    # Add unique identifiers
+    for node in transforms:
+        _set_uuid(node)
