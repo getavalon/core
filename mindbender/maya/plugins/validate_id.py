@@ -21,8 +21,11 @@ class ValidateMindbenderID(pyblish.api.InstancePlugin):
 
         for node in nodes:
 
-            # Only check transforms with a shape
-            if not cmds.listRelatives(node, shapes=True):
+            # Only check transforms with shapes that are meshes
+            shapes = cmds.listRelatives(node, shapes=True) or list()
+            meshes = cmds.ls(shapes, type="mesh")
+
+            if not meshes:
                 continue
 
             try:
