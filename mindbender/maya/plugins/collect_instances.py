@@ -62,8 +62,8 @@ class CollectMindbenderInstances(pyblish.api.ContextPlugin):
                                                     # than its members
 
             # Check if objectset is empty
-            if cmds.sets(objset, q=True) is None:
-                self.log.info("Skiped following Set: \"%s\" " % objset)
+            if cmds.sets(objset, query=True) is None:
+                self.log.info("Skipped following Set: \"%s\" " % objset)
                 continue
 
             if not cmds.objExists(objset + ".id"):
