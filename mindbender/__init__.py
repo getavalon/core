@@ -9,6 +9,9 @@ the currently held state of mindbender-core.
 
 _state = {
 
+    # Applications, such as `maya` and `nuke`.
+    "apps": dict(),
+
     # Data associated to a family, such as `startFrame`
     # for `mindbender.animation`.
     "data": dict(),

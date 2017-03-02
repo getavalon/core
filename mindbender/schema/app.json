@@ -1,0 +1,44 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+
+    "title": "mindbender-core:app-1.0",
+    "description": "Known application",
+
+    "type": "object",
+
+    "additionalProperties": true,
+
+    "required": [
+        "schema",
+        "executable",
+        "label",
+        "icon"
+    ],
+
+    "properties": {
+        "schema": {
+            "description": "Schema identifier for payload",
+            "type": "string"
+        },
+        "executable": {
+            "description": "Absolute or relative path to executable",
+            "type": "string"
+        },
+        "label": {
+            "description": "Optional nice name of application, such as 'Maya'",
+            "oneOf": [
+                {"type": "string"},
+                {"type": "null"}
+            ]
+        },
+        "icon": {
+            "description": "Optional absolute patht to application icon",
+            "oneOf": [
+                {"type": "string"},
+                {"type": "null"}
+            ]
+        }
+    },
+
+    "definitions": {}
+}

@@ -36,7 +36,7 @@ def install():
     _register_plugins()
     _register_loaders()
     _register_families()
-
+    _register_apps()
     _register_id_callback()
 
 
@@ -187,6 +187,26 @@ def _register_loaders():
     package_path = os.path.dirname(lib_py_path)
     loaders_path = os.path.join(package_path, "loaders")
     api.register_loader_path(loaders_path)
+
+
+def _register_apps():
+    api.register_app({
+        "executable": "maya2016",
+        "label": "Maya 2016",
+        "icon": None,
+    })
+
+    api.register_app({
+        "executable": "nuke10.0",
+        "label": "Nuke 10.0",
+        "icon": None,
+    })
+
+    api.register_app({
+        "executable": "houdini15",
+        "label": "Houdini 15",
+        "icon": None,
+    })
 
 
 def ls():

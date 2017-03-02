@@ -603,6 +603,26 @@ def deregister_plugins():
     api.deregister_plugin_path(plugins_path)
 
 
+def register_app(app):
+    """Register application as absolute or relative `app`"""
+
+    assert isinstance(app, dict), app
+
+    # See schema/app.json
+    app["schema"] = "mindbender-core:app-1.0"
+    schema.validate(app, schema="app")
+
+    # Ensure stored executables conform to the
+    # same case and formatting.
+    app["executable"] = os.path.normpath(app["executable"])
+
+    _state["apps"][app["executable"]] = app
+
+
+def registered_apps():
+    return _state["apps"].copy()
+
+
 def register_silo(name):
     _state["silos"].add(name)
 
