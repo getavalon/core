@@ -9,7 +9,6 @@ from . import lib
 from .. import api
 from ..vendor.Qt import QtCore, QtWidgets
 
-
 self = sys.modules[__name__]
 self._menu = "mindbenderCore"
 self._id_callback = None
@@ -210,17 +209,20 @@ def ls():
         yield data
 
 
-def load(asset, subset, version=-1, representation=None):
+def load(asset, subset, version=None, representation=None):
     """Load data into Maya
 
     Arguments:
         asset ("mindbender-core:asset-1.0"): Asset which to import
         subset ("mindbender-core:subset-1.0"): Subset within Asset to import
-        version (int, optional): Version number, defaults to latest
-        representation (str, optional): File format, e.g. `.ma`, `.obj`, `.exr`
+        version ("mindbender-core:version-1.0", optional): Defaults to
+            latest version.
+        representation ("mindbender-core:representation-1.0", optional):
+            File format, e.g. `.ma`, `.obj`, `.exr`. String may also
+            be provided.
 
     Returns:
-        None
+        Newly created objects
 
     Raises:
         IndexError on no version found
@@ -230,18 +232,43 @@ def load(asset, subset, version=-1, representation=None):
 
     assert asset["schema"] == "mindbender-core:asset-1.0"
     assert subset["schema"] == "mindbender-core:subset-1.0"
-    assert isinstance(version, int), "Version must be integer"
 
     try:
-        version = subset["versions"][version]
-    except IndexError:
+        if isinstance(version, dict):
+            pass
+
+        elif version is None:
+            # Not passing a version retusn last
+            version = subset["versions"][-1]
+
+        else:
+            # Find the version matching the provided number
+            version = next(
+                v for v in subset["versions"]
+                if v["version"] == version
+            )
+
+    except (IndexError, StopIteration):
         raise IndexError("\"%s\" of \"%s\" not found." % (version, subset))
 
-    if representation is None:
-        # TODO(marcus): There's room to make the user choose one of many.
-        #   Such as choosing between `.obj` and `.ma` and `.abc`,
-        #   each compatible but different.
-        representation = api.any_representation(version)
+    try:
+        supported_formats = api.registered_formats()
+
+        representation = next(
+            rep for rep in version["representations"]
+            if rep["format"] == representation or
+            rep["format"] in supported_formats
+        )
+
+    except StopIteration:
+        formats = list(r["format"] for r in version["representations"])
+        raise ValueError(
+            "No supported representations.\n\n"
+            "Available representations:\n%s\n\n"
+            "Supported representations:\n%s"
+            % ("\n- ".join(formats),
+               "\n- ".join(supported_formats))
+        )
 
     for Loader in api.discover_loaders():
         for family in version.get("families", list()):

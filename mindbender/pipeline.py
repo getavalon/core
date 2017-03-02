@@ -440,6 +440,7 @@ def fixture(assets=["Asset1"], subsets=["animRig"], versions=1):
                         "version": lib.parse_version(version),
                         "path": versiondir,
                         "time": "",
+                        "families": ["mindbender.model"],
                         "author": "mottosso",
                         "source": os.path.join(
                             "{project}",
