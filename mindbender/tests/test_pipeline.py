@@ -107,7 +107,7 @@ def test_ls():
     parent = "assets"
 
     with pipeline.fixture(assets=["Asset1"],
-                          subsets=["animRig"],
+                          subsets=["modelDefault"],
                           versions=1) as root:
         asset = next(pipeline.ls([parent]))
 
@@ -117,17 +117,18 @@ def test_ls():
         "subsets": [
             {
                 "schema": "mindbender-core:subset-1.0",
-                "name": "animRig",
+                "name": "modelDefault",
                 "versions": [
                     {
                         "schema": "mindbender-core:version-1.0",
+                        "families": ["mindbender.model"],
                         "version": 1,
                         "path": os.path.join(
                             root,
                             parent,
                             "Asset1",
                             "publish",
-                            "animRig",
+                            "modelDefault",
                             "v001"
                         ),
                         "source": os.path.join(
@@ -166,7 +167,9 @@ def test_ls():
 
 def test_ls_returns_sorted_versions():
     """Versions returned from ls() are alphanumerically sorted"""
-    with pipeline.fixture(assets=["Asset1"], subsets=["animRig"], versions=1):
+    with pipeline.fixture(assets=["Asset1"],
+                          subsets=["modelDefault"],
+                          versions=1):
         for asset in pipeline.ls(["assets"]):
             previous_version = 0
             for subset in asset["subsets"]:

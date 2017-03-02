@@ -140,12 +140,13 @@ def test_alembic_export():
     assert_equals(subset["name"], "animationDefault")
 
     version = subset["versions"][0]
-    assert_equals(version["version"], 1)
+    assumed_version = 1
+    assert_equals(version["version"], assumed_version)
 
     representation = version["representations"][0]
     assert_equals(representation["format"], ".abc")
 
-    container = maya.load(asset, subset, 0, representation)
+    container = maya.load(asset, subset, assumed_version, representation)
 
     cube = cmds.ls(container, type="mesh")
     transform = cmds.listRelatives(cube, parent=True)[0]
