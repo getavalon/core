@@ -9,6 +9,8 @@ parser.add_argument("--loader", action="store_true",
                     help="Launch Asset Loader in standalone mode")
 parser.add_argument("--manager", action="store_true",
                     help="Launch Manager in standalone mode")
+parser.add_argument("--launcher", action="store_true",
+                    help="Launch Launcher in standalone mode")
 parser.add_argument("--root",
                     help="Absolute path to root directory of assets")
 
@@ -29,3 +31,7 @@ elif args.loader:
 elif args.manager:
     from .tools import manager
     manager.show(debug=True)
+
+elif args.launcher:
+    from .tools import launcher
+    launcher.show(debug=True)
