@@ -10,17 +10,7 @@ import contextlib
 
 from pyblish import api
 
-from . import lib, schema
-from . import (
-    _registered_families,
-    _registered_data,
-    _registered_silos,
-    _registered_formats,
-    _registered_loader_paths,
-    _registered_host,
-    _registered_root,
-)
-
+from . import lib, schema, _state
 from .vendor import six
 
 self = sys.modules[__name__]
@@ -87,7 +77,7 @@ def discover_loaders():
     loaders = dict()
 
     # Include plug-ins from registered paths
-    for path in _registered_loader_paths:
+    for path in _state["loader_paths"]:
         path = os.path.normpath(path)
 
         assert os.path.isdir(path), "%s is not a directory" % path
@@ -161,15 +151,15 @@ def loaders_from_module(module):
 
 def register_loader_path(path):
     path = os.path.normpath(path)
-    _registered_loader_paths.add(path)
+    _state["loader_paths"].add(path)
 
 
 def registered_loader_paths():
-    return list(_registered_loader_paths)
+    return list(_state["loader_paths"])
 
 
 def deregister_loader_path(path):
-    _registered_loader_paths.remove(path)
+    _state["loader_paths"].remove(path)
 
 
 def ls(silos=None):
@@ -461,26 +451,26 @@ def fixture(assets=["Asset1"], subsets=["animRig"], versions=1):
                     }, f)
 
     # Keep track of original root
-    _ = _registered_root["_"]
+    _ = _state["root"]
 
     try:
-        _registered_root["_"] = tempdir
+        _state["root"] = tempdir
         yield tempdir
     finally:
-        _registered_root["_"] = _
+        _state["root"] = _
         shutil.rmtree(tempdir)
 
 
 def register_root(path):
     """Register currently active root"""
     self.log.info("Registering root: %s" % path)
-    _registered_root["_"] = path
+    _state["root"] = path
 
 
 def registered_root():
     """Return currently registered root"""
     return (
-        _registered_root["_"] or
+        _state["root"] or
         os.getenv("MINDBENDER_ROOT") or ""
     ).replace("\\", "/")
 
@@ -493,12 +483,12 @@ def register_format(format):
 
     """
 
-    _registered_formats.append(format)
+    _state["formats"].append(format)
 
 
 def deregister_format(format):
     """Deregister a supported format"""
-    _registered_formats.remove(format)
+    _state["formats"].remove(format)
 
 
 def register_host(host):
@@ -595,7 +585,7 @@ def register_host(host):
         raise ValueError("\n".join(report))
 
     else:
-        _registered_host["_"] = host
+        _state["host"] = host
 
 
 def register_plugins():
@@ -614,12 +604,12 @@ def deregister_plugins():
 
 
 def register_silo(name):
-    _registered_silos.add(name)
+    _state["silos"].add(name)
 
 
 def registered_silos():
     return (
-        list(_registered_silos) or
+        list(_state["silos"]) or
         os.getenv("MINDBENDER_SILO", "").split()
     )
 
@@ -634,11 +624,11 @@ def register_data(key, value, help=None):
 
     """
 
-    _registered_data[key] = value
+    _state["data"][key] = value
 
 
 def deregister_data(key):
-    _registered_data.pop(key)
+    _state["data"].pop(key)
 
 
 def register_family(name,
@@ -657,7 +647,7 @@ def register_family(name,
 
     """
 
-    _registered_families[name] = {
+    _state["families"][name] = {
         "name": name,
         "label": label,
         "data": data or {},
@@ -667,27 +657,27 @@ def register_family(name,
 
 
 def deregister_family(name):
-    _registered_families.pop(name)
+    _state["families"].pop(name)
 
 
 def registered_formats():
-    return _registered_formats[:]
+    return _state["formats"][:]
 
 
 def registered_families():
-    return _registered_families.copy()
+    return _state["families"].copy()
 
 
 def registered_data():
-    return _registered_data.copy()
+    return _state["data"].copy()
 
 
 def registered_host():
-    return _registered_host["_"]
+    return _state["host"]
 
 
 def deregister_host():
-    _registered_host["_"] = default_host()
+    _state["host"] = default_host()
 
 
 def default_host():
