@@ -143,8 +143,9 @@ def test_alembic_export():
     assumed_version = 1
     assert_equals(version["version"], assumed_version)
 
-    representation = version["representations"][0]
-    assert_equals(representation["format"], ".abc")
+    # There may be more than one representation, such as .source
+    representation = next(r for r in version["representations"]
+                          if r["format"] == ".abc")
 
     container = maya.load(asset, subset, assumed_version, representation)
 
