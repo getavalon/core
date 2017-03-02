@@ -26,6 +26,8 @@ from .pipeline import (
 
     ls,
     search,
+    launch,
+    stream,
 
     Loader,
     discover_loaders,
@@ -81,6 +83,8 @@ __all__ = [
 
     "ls",
     "search",
+    "launch",
+    "stream",
 
     "Loader",
     "discover_loaders",

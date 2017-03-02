@@ -10,9 +10,7 @@
 
     "required": [
         "schema",
-        "executable",
-        "label",
-        "icon"
+        "executable"
     ],
 
     "properties": {
@@ -24,19 +22,20 @@
             "description": "Absolute or relative path to executable",
             "type": "string"
         },
+        "args": {
+            "description": "Flags passed to executable, such as '--help'",
+            "type": "array",
+            "items": {
+                "type": "string"
+            }
+        },
         "label": {
             "description": "Optional nice name of application, such as 'Maya'",
-            "oneOf": [
-                {"type": "string"},
-                {"type": "null"}
-            ]
+            "type": "string"
         },
         "icon": {
             "description": "Optional absolute patht to application icon",
-            "oneOf": [
-                {"type": "string"},
-                {"type": "null"}
-            ]
+            "type": "string"
         }
     },
 

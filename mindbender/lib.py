@@ -137,3 +137,27 @@ def find_latest_version(versions):
             highest_version = version
 
     return highest_version
+
+
+def which(program):
+    """Locate `program` in PATH
+
+    Arguments:
+        program (str): Name of program, e.g. "python"
+
+    """
+
+    def is_exe(fpath):
+        if os.path.isfile(fpath) and os.access(fpath, os.X_OK):
+            return True
+        return False
+
+    for path in os.environ["PATH"].split(os.pathsep):
+        for ext in os.getenv("PATHEXT", "").split(os.pathsep):
+            fname = program + ext.lower()
+            abspath = os.path.join(path.strip('"'), fname)
+
+            if is_exe(abspath):
+                return abspath
+
+    return None

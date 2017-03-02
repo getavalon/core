@@ -6,6 +6,7 @@ import shutil
 import logging
 import inspect
 import tempfile
+import subprocess
 import contextlib
 
 from pyblish import api
@@ -152,10 +153,6 @@ def loaders_from_module(module):
 def register_loader_path(path):
     path = os.path.normpath(path)
     _state["loader_paths"].add(path)
-
-
-def registered_loader_paths():
-    return list(_state["loader_paths"])
 
 
 def deregister_loader_path(path):
@@ -344,6 +341,57 @@ def search(query, root=None):
                 }
 
 
+def launch(executable, args=None, environment=None):
+    """Launch a new subprocess of `args`
+
+    Arguments:
+        executable (str): Relative or absolute path to executable
+        args (list): Command passed to `subprocess.Popen`
+        environment (dict, optional): Custom environment passed
+            to Popen instance.
+
+    Returns:
+        Popen instance of newly spawned process
+
+    Exceptions:
+        OSError on internal error
+        ValueError on `executable` not found
+
+    """
+
+    CREATE_NO_WINDOW = 0x08000000
+    IS_WIN32 = sys.platform == "win32"
+
+    abspath = executable
+
+    # Convert relative path to absolute
+    if not os.path.isabs(abspath):
+        abspath = lib.which(abspath)
+
+    if abspath is None:
+        raise ValueError("'%s' was not found." % executable)
+
+    kwargs = dict(
+        args=[abspath] + args or list(),
+        env=environment or os.environ,
+
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+
+    if IS_WIN32:
+        kwargs["creationflags"] = CREATE_NO_WINDOW
+
+    popen = subprocess.Popen(**kwargs)
+
+    return popen
+
+
+def stream(stream):
+    for line in iter(stream.readline, b""):
+        yield line
+
+
 def any_representation(version):
     """Pick any compatible representation.
 
@@ -465,14 +513,6 @@ def register_root(path):
     """Register currently active root"""
     self.log.info("Registering root: %s" % path)
     _state["root"] = path
-
-
-def registered_root():
-    """Return currently registered root"""
-    return (
-        _state["root"] or
-        os.getenv("MINDBENDER_ROOT") or ""
-    ).replace("\\", "/")
 
 
 def register_format(format):
@@ -619,19 +659,8 @@ def register_app(app):
     _state["apps"][app["executable"]] = app
 
 
-def registered_apps():
-    return _state["apps"].copy()
-
-
 def register_silo(name):
     _state["silos"].add(name)
-
-
-def registered_silos():
-    return (
-        list(_state["silos"]) or
-        os.getenv("MINDBENDER_SILO", "").split()
-    )
 
 
 def register_data(key, value, help=None):
@@ -694,6 +723,29 @@ def registered_data():
 
 def registered_host():
     return _state["host"]
+
+
+def registered_silos():
+    return (
+        list(_state["silos"]) or
+        os.getenv("MINDBENDER_SILO", "").split()
+    )
+
+
+def registered_apps():
+    return _state["apps"].copy()
+
+
+def registered_loader_paths():
+    return list(_state["loader_paths"])
+
+
+def registered_root():
+    """Return currently registered root"""
+    return (
+        _state["root"] or
+        os.getenv("MINDBENDER_ROOT") or ""
+    ).replace("\\", "/")
 
 
 def deregister_host():
