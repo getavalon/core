@@ -26,6 +26,10 @@ def setup():
         "60": "ntscf"
     }.get(os.getenv("MINDBENDER_FPS"), "pal")  # Default to "pal"
 
+    # Load dependencies
+    cmds.loadPlugin("AbcExport.mll", quiet=True)
+    cmds.loadPlugin("AbcImport.mll", quiet=True)
+
     EDIT_IN = getenv("MINDBENDER_EDIT_IN", int) or 101
     EDIT_OUT = getenv("MINDBENDER_EDIT_OUT", int) or 201
     RESOLUTION_WIDTH = getenv("MINDBENDER_RESOLUTION_WIDTH", int) or 1920
