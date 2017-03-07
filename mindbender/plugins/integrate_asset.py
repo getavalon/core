@@ -30,6 +30,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
         "mindbender.rig",
         "mindbender.animation",
         "mindbender.lookdev",
+        "mindbender.historyLookdev",
     ]
 
     def process(self, instance):

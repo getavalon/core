@@ -276,3 +276,13 @@ def follicle(*args):
         cmds.select(new_follicles, r=1)
 
     return new_follicles
+
+
+def auto_connect_assets(*args):
+    references = cmds.ls(selection=True, type="reference")
+
+    if not len(references) == 2:
+        raise RuntimeError("Select source and destination "
+                           "reference nodes, in that order.")
+
+    return commands.auto_connect_assets(*references)

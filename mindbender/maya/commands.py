@@ -11,7 +11,7 @@ import sys
 
 from maya import cmds
 
-from . import util
+from . import util, lib
 
 if sys.version_info[0] == 3:
     basestring = str
@@ -588,3 +588,42 @@ def enhanced_parent(child, parent):
         cmds.parent(relative=True, shape=True)
     else:
         cmds.parent(child, parent)
+
+
+def auto_connect_assets(src, dst):
+    """Attempt to automatically two assets
+
+    Arguments:
+        src (str): Name of source reference node
+        dst (str): Name of destination reference node
+
+    Raises:
+        StopIteration on missing in_SET
+
+    """
+
+    in_set = None
+
+    for node in cmds.referenceQuery(dst, nodes=True):
+        if node.endswith("in_SET"):
+            in_set = node
+            break
+
+    for input_ in cmds.sets(in_set, query=True):
+        mbid = cmds.getAttr(input_ + ".mbID")
+        input_ = cmds.listRelatives(input_, shapes=True)[0]
+
+        for output in lib.lsattr("mbID", value=mbid):
+
+            ref = cmds.referenceQuery(output, referenceNode=True)
+            if ref != src:
+                continue
+
+            print("Connecting %s -> %s" % (output, input_))
+            output = cmds.listRelatives(output, shapes=True)[0]
+            try:
+                return auto_connect(output, input_)
+            except RuntimeError:
+                cmds.warning(
+                    "Already connected - '%s' -> '%s'" % (src, dst)
+                )

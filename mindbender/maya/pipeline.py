@@ -111,6 +111,12 @@ def _install_menu():
 
         cmds.menuItem("Set Defaults", command=interactive.set_defaults)
 
+        cmds.setParent("..", menu=True)
+
+        cmds.menuItem(divider=True)
+
+        cmds.menuItem("Auto Connect", command=interactive.auto_connect_assets)
+
     # Allow time for uninstallation to finish.
     QtCore.QTimer.singleShot(100, deferred)
 
@@ -159,6 +165,12 @@ def _register_families():
         name="mindbender.lookdev",
         label="Look",
         help="Shaders, textures and look",
+    )
+
+    api.register_family(
+        name="mindbender.historyLookdev",
+        label="History Look",
+        help="Shaders, textures and look with History",
     )
 
     api.register_family(
