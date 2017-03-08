@@ -47,4 +47,4 @@ class ValidateMindbenderProjectEditInfo(pyblish.api.ContextPlugin):
 
         assert sceneOut == validEditOut, (
             ("Animation End is set to %s" % sceneOut) +
-            ("not set to \"%s\"" % validEditOut))
+            (" and not set to \"%s\"" % validEditOut))
