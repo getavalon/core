@@ -22,7 +22,7 @@ class ValidateMindbenderProjectEditInfo(pyblish.api.ContextPlugin):
         from maya import cmds
 
         sceneIn = cmds.playbackOptions(query=True, animationStartTime=True)
-        sceneOUT = cmds.playbackOptions(query=True, animationEndTime=True)
+        sceneOut = cmds.playbackOptions(query=True, animationEndTime=True)
         sceneFPS = {
             "12fps" : 12,
             "game"  : 15,
@@ -42,7 +42,9 @@ class ValidateMindbenderProjectEditInfo(pyblish.api.ContextPlugin):
             ("fps and not to %sfps" % validFPS))
 
         assert sceneIn == validEditIn, (
-            "Animation Start is not set to \"%s\"" % validEditIn)
+            ("Animation Start is set to %s" % sceneIn) +
+            (" and not set to \"%s\"" % validEditIn))
 
-        assert sceneOUT == validEditOut, (
-            "Animation End is not set to \"%s\"" % validEditOut)
+        assert sceneOut == validEditOut, (
+            ("Animation End is set to %s" % sceneOut) +
+            ("not set to \"%s\"" % validEditOut))
