@@ -38,7 +38,7 @@ class ValidateMindbenderProjectEditInfo(pyblish.api.ContextPlugin):
         validEditOut = context.data.get("project_edit_out")
 
         assert validFPS == sceneFPS, (
-            "The FPS is not set to \"%s\"" % validFPS)
+            ("The FPS is set to %s" % sceneFPS) + ("fps and not to %sfps" % validFPS))
 
         assert sceneIn == validEditIn, (
             "The Start is not set to \"%s\"" % validEditIn)
