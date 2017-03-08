@@ -48,7 +48,7 @@ def setup():
     # Setup environment
     os.environ["MINDBENDER_ASSETPATH"] = assetdir
     os.environ["MINDBENDER_SILO"] = "assets"
-    os.environ["MINDBENDER_FPS"] = "25"
+    os.environ["MINDBENDER_FPS"] = "24"
     os.environ["MINDBENDER_EDIT_IN"] = ""
     os.environ["MINDBENDER_EDIT_OUT"] = ""
 
