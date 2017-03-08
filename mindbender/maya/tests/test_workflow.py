@@ -49,8 +49,8 @@ def setup():
     os.environ["MINDBENDER_ASSETPATH"] = assetdir
     os.environ["MINDBENDER_SILO"] = "assets"
     os.environ["MINDBENDER_FPS"] = "24"
-    os.environ["MINDBENDER_EDIT_IN"] = ""
-    os.environ["MINDBENDER_EDIT_OUT"] = ""
+    os.environ["MINDBENDER_EDIT_IN"] = "1"
+    os.environ["MINDBENDER_EDIT_OUT"] = "200"
 
 
 def teardown():
