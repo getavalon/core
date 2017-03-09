@@ -25,16 +25,16 @@ class CollectMindbenderEditInfo(pyblish.api.ContextPlugin):
                     mindbender_edit_out = env
 
         if mindbender_fps == "" or mindbender_fps is None:
-            context.data["projectFPS"] = 24
+            context.data["projectFPS"] = 25
         elif mindbender_fps is not None:
             context.data["projectFPS"] = int(mindbender_fps)
 
         if mindbender_edit_in == "" or mindbender_edit_in is None:
-            context.data["projectEditIn"] = 1
+            context.data["projectEditIn"] = 101
         elif mindbender_edit_in is not None:
             context.data["projectEditIn"] = int(mindbender_edit_in)
 
         if mindbender_edit_out == "" or mindbender_edit_out is None:
-            context.data["projectEditOut"] = 48
+            context.data["projectEditOut"] = 201
         elif mindbender_edit_out is not None:
             context.data["projectEditOut"] = int(mindbender_edit_out)
