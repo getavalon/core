@@ -3,7 +3,8 @@ import pyblish.api
 
 
 class ValidateMindbenderProjectEditInfo(pyblish.api.ContextPlugin):
-    """
+    """ Checks your scene with editorial info
+
     All the info that gets validated
     has been set by the projects
     bat files.
@@ -16,35 +17,38 @@ class ValidateMindbenderProjectEditInfo(pyblish.api.ContextPlugin):
     label = "Validate Project Edit Info"
     optional = True
     order = pyblish.api.ValidatorOrder
-    hosts = ["maya"]
 
     def process(self, context):
         from maya import cmds
 
-        sceneIn = cmds.playbackOptions(query=True, animationStartTime=True)
-        sceneOut = cmds.playbackOptions(query=True, animationEndTime=True)
-        sceneFPS = {
-            "12fps" : 12,
-            "game"  : 15,
-            "film"  : 24,
-            "pal"   : 25,
-            "ntsc"  : 30,
-            "show"  : 48,
-            "palf"  : 50,
-            "ntscf" : 60}.get(cmds.currentUnit(query=True, time=True))
+        scene_in = cmds.playbackOptions(query=True, animationStartTime=True)
+        scene_out = cmds.playbackOptions(query=True, animationEndTime=True)
+        scene_fps = {
+                "12fps" : 12,
+                "16fps" : 16,
+                "game"  : 15,
+                "film"  : 24,
+                "pal"   : 25,
+                "ntsc"  : 30,
+                "show"  : 48,
+                "palf"  : 50,
+                "ntscf" : 60}.get(cmds.currentUnit(query=True, time=True))
 
-        validFPS = context.data.get("project_fps")
-        validEditIn = context.data.get("project_edit_in")
-        validEditOut = context.data.get("project_edit_out")
+        if scene_fps is None:
+            scene_fps = "New Value"
 
-        assert validFPS == sceneFPS, (
-            ("The FPS is set to %s" % sceneFPS) +
-            ("fps and not to %sfps" % validFPS))
+        valid_fps = context.data.get("project_fps")
+        valid_edit_in = context.data.get("project_edit_in")
+        valid_edit_out = context.data.get("project_edit_out")
 
-        assert sceneIn == validEditIn, (
-            ("Animation Start is set to %s" % sceneIn) +
-            (" and not set to \"%s\"" % validEditIn))
+        assert valid_fps == scene_fps, (
+            "The FPS is set to %sfps and not to %sfps"
+            % (scene_fps, valid_fps))
 
-        assert sceneOut == validEditOut, (
-            ("Animation End is set to %s" % sceneOut) +
-            (" and not set to \"%s\"" % validEditOut))
+        assert scene_in == valid_edit_in, (
+            "Animation Start is set to %s and not set to \"%s\""
+            % (scene_in, valid_edit_in))
+
+        assert scene_out == valid_edit_out, (
+            "Animation End is set to %s and not set to \"%s\""
+            % (scene_out, valid_edit_out))
