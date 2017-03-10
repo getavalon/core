@@ -3,14 +3,11 @@ import pyblish.api
 
 
 class ValidateMindbenderProjectEditInfo(pyblish.api.ContextPlugin):
-    """ Checks your scene with editorial info
+    """Checks your scene with editorial info
 
-    All the info that gets validated
-    has been set by the projects
-    bat files.
-    If you are surtain that the info
-    is incorrect, talk to
-    project Supervisor with haste !
+    All the info that gets validated has been set by the projects bat files.
+    If you are certain that the info is incorrect, talk to your project
+    Supervisor with haste!
 
     """
 
@@ -35,23 +32,25 @@ class ValidateMindbenderProjectEditInfo(pyblish.api.ContextPlugin):
                 "ntscf" : 60}.get(cmds.currentUnit(query=True, time=True))
 
         if scene_fps is None:
-            scene_fps = "New Value"
+            scene_fps = "a Strange "
 
-        valid_fps = context.data.get("projectFPS")
-        valid_edit_in = context.data.get("projectEditIn")
-        valid_edit_out = context.data.get("projectEditOut")
+        if "environment" not in context.data:
+            continue
 
-        if valid_fps is None:
-            return None
+        env = context.data.get("environment")
 
-        assert valid_fps == scene_fps, (
+        valid_fps = env.get("mindbenderFps")
+        valid_edit_in = env.get("mindbenderEditIn")
+        valid_edit_out = env.get("mindbenderEditOut")
+
+        assert int(valid_fps) == int(scene_fps), (
             "The FPS is set to %sfps and not to %sfps"
             % (scene_fps, valid_fps))
 
-        assert scene_in == valid_edit_in, (
+        assert int(scene_in) == int(valid_edit_in), (
             "Animation Start is set to %s and not set to \"%s\""
             % (scene_in, valid_edit_in))
 
-        assert scene_out == valid_edit_out, (
+        assert int(scene_out) == int(valid_edit_out), (
             "Animation End is set to %s and not set to \"%s\""
             % (scene_out, valid_edit_out))

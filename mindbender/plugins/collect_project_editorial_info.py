@@ -15,26 +15,22 @@ class CollectMindbenderEditInfo(pyblish.api.ContextPlugin):
     def process(self, context):
         import os
 
-        for env in os.environ:
-            if "MINDBENDER" in env:
-                if "FPS" in env:
-                    mindbender_fps = env
-                if "EDIT_IN" in env:
-                    mindbender_edit_in = env
-                if "EDIT_OUT" in env:
-                    mindbender_edit_out = env
+        if "environment" not in context.data:
+            context.data["environment"] = dict()
 
-        if mindbender_fps == "" or mindbender_fps is None:
-            context.data["projectFPS"] = 25
-        elif mindbender_fps is not None:
-            context.data["projectFPS"] = int(mindbender_fps)
+        prefix = "MINDBENDER_"
+        for key, value in os.environ.items():
+            if not key.startswith(prefix):
+                continue
 
-        if mindbender_edit_in == "" or mindbender_edit_in is None:
-            context.data["projectEditIn"] = 101
-        elif mindbender_edit_in is not None:
-            context.data["projectEditIn"] = int(mindbender_edit_in)
+            key = key[len(prefix):]
 
-        if mindbender_edit_out == "" or mindbender_edit_out is None:
-            context.data["projectEditOut"] = 201
-        elif mindbender_edit_out is not None:
-            context.data["projectEditOut"] = int(mindbender_edit_out)
+            # Convert EDIT_IN to EditIn, FPS to Fps.
+            key = "".join(k.title() for k in key.split("_"))
+
+            # Decorate key with "mindbender" to match prev namning convention
+            decoration = prefix.replace("_", "")
+            decoration = decoration.lower()
+            key = decoration + key
+
+            context.data["environment"][key] = value
