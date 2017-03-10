@@ -32,7 +32,7 @@ class ValidateMindbenderProjectEditInfo(pyblish.api.ContextPlugin):
                 "ntscf" : 60}.get(cmds.currentUnit(query=True, time=True))
 
         if scene_fps is None:
-            scene_fps = "a Strange "
+            scene_fps = "a strange "
 
         if "environment" not in context.data:
             continue
