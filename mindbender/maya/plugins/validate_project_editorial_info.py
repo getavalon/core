@@ -35,13 +35,14 @@ class ValidateMindbenderProjectEditInfo(pyblish.api.ContextPlugin):
             scene_fps = "a strange "
 
         if "environment" not in context.data:
-            continue
+            self.log.debug(" environment no set")
+            return
 
-        env = context.data.get("environment")
+        env = context.data.get("environment", dict())
 
-        valid_fps = env.get("mindbenderFps")
-        valid_edit_in = env.get("mindbenderEditIn")
-        valid_edit_out = env.get("mindbenderEditOut")
+        valid_fps = env.get("mindbenderFps", 0)
+        valid_edit_in = env.get("mindbenderEditIn", 0)
+        valid_edit_out = env.get("mindbenderEditOut", 0)
 
         assert int(valid_fps) == int(scene_fps), (
             "The FPS is set to %sfps and not to %sfps"
