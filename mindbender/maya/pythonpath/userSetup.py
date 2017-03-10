@@ -40,6 +40,8 @@ def setup():
     cmds.currentUnit(time=FPS)
     cmds.playbackOptions(animationStartTime=EDIT_IN)
     cmds.playbackOptions(animationEndTime=EDIT_OUT)
+    cmds.playbackOptions(minTime=EDIT_IN)
+    cmds.playbackOptions(maxTime=EDIT_OUT)
 
 
 def getenv(var, typ):
