@@ -115,7 +115,8 @@ def auto_connect(src, dst):
                             ".outScale"),
         "transform": (".translate",
                       ".rotate",
-                      ".scale")
+                      ".scale",
+                      ".visibility")
     }
 
     in_ = {
@@ -125,7 +126,8 @@ def auto_connect(src, dst):
         "decomposeMatrix": "inputMatrix",
         "transform": (".translate",
                       ".rotate",
-                      ".scale"),
+                      ".scale",
+                      ".visibility"),
         "objectSet": ["dnSetMembers", "dgSetMembers"]
     }
 
@@ -609,21 +611,27 @@ def auto_connect_assets(src, dst):
             in_set = node
             break
 
-    for input_ in cmds.sets(in_set, query=True):
-        mbid = cmds.getAttr(input_ + ".mbID")
-        input_ = cmds.listRelatives(input_, shapes=True)[0]
+    for input_transform in cmds.sets(in_set, query=True):
+        mbid = cmds.getAttr(input_transform + ".mbID")
+        input_shape = cmds.listRelatives(input_transform, shapes=True)[0]
 
-        for output in lib.lsattr("mbID", value=mbid):
+        for output_transform in lib.lsattr("mbID", value=mbid):
 
-            ref = cmds.referenceQuery(output, referenceNode=True)
+            ref = cmds.referenceQuery(output_transform, referenceNode=True)
             if ref != src:
                 continue
 
-            print("Connecting %s -> %s" % (output, input_))
-            output = cmds.listRelatives(output, shapes=True)[0]
+            print("Connecting %s -> %s" % (output_transform, input_transform))
+            output_shape = cmds.listRelatives(output_transform, shapes=True)[0]
+
             try:
-                return auto_connect(output, input_)
+                auto_connect(output_transform, input_transform)
             except RuntimeError:
-                cmds.warning(
-                    "Already connected - '%s' -> '%s'" % (src, dst)
-                )
+                # Already connected
+                pass
+
+            try:
+                auto_connect(output_shape, input_shape)
+            except RuntimeError:
+                # Already connected
+                pass
