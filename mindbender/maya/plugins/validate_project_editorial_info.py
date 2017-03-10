@@ -8,7 +8,6 @@ class ValidateMindbenderProjectEditInfo(pyblish.api.ContextPlugin):
     All the info that gets validated has been set by the projects bat files.
     If you are certain that the info is incorrect, talk to your project
     Supervisor with haste!
-
     """
 
     label = "Validate Project Edit Info"
@@ -43,7 +42,7 @@ class ValidateMindbenderProjectEditInfo(pyblish.api.ContextPlugin):
         skip_on_none = [valid_fps, valid_edit_in, valid_edit_out]
 
         if None in skip_on_none:
-            self.log.debug(" environment no set")
+            self.log.debug(" environment not set")
             return
 
         assert int(valid_fps) == int(scene_fps), (
