@@ -23,14 +23,11 @@ class CollectMindbenderEditInfo(pyblish.api.ContextPlugin):
             if not key.startswith(prefix):
                 continue
 
-            key = key[len(prefix):]
-
-            # Convert EDIT_IN to EditIn, FPS to Fps.
+            # Convert MINDBENDER_EDIT_IN to MindbenderEditIn
+            # or MINDBENDER_FPS to MindbenderFps
             key = "".join(k.title() for k in key.split("_"))
 
-            # Decorate key with "mindbender" to match prev namning convention
-            decoration = prefix.replace("_", "")
-            decoration = decoration.lower()
-            key = decoration + key
+            # Decorate key to match mixedCase
+            key = key[0].lower + key[1:]
 
             context.data["environment"][key] = value
