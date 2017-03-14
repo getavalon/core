@@ -28,6 +28,6 @@ class CollectMindbenderEditInfo(pyblish.api.ContextPlugin):
             key = "".join(k.title() for k in key.split("_"))
 
             # Decorate key to match mixedCase
-            key = key[0].lower + key[1:]
+            deckey = key[0].lower() + key[1:]
 
-            context.data["environment"][key] = value
+            context.data["environment"][deckey] = value
