@@ -11,7 +11,7 @@ import sys
 
 from maya import cmds
 
-from . import util
+from . import util, lib
 
 if sys.version_info[0] == 3:
     basestring = str
@@ -115,7 +115,8 @@ def auto_connect(src, dst):
                             ".outScale"),
         "transform": (".translate",
                       ".rotate",
-                      ".scale")
+                      ".scale",
+                      ".visibility")
     }
 
     in_ = {
@@ -125,7 +126,8 @@ def auto_connect(src, dst):
         "decomposeMatrix": "inputMatrix",
         "transform": (".translate",
                       ".rotate",
-                      ".scale"),
+                      ".scale",
+                      ".visibility"),
         "objectSet": ["dnSetMembers", "dgSetMembers"]
     }
 
@@ -588,3 +590,48 @@ def enhanced_parent(child, parent):
         cmds.parent(relative=True, shape=True)
     else:
         cmds.parent(child, parent)
+
+
+def auto_connect_assets(src, dst):
+    """Attempt to automatically two assets
+
+    Arguments:
+        src (str): Name of source reference node
+        dst (str): Name of destination reference node
+
+    Raises:
+        StopIteration on missing in_SET
+
+    """
+
+    in_set = None
+
+    for node in cmds.referenceQuery(dst, nodes=True):
+        if node.endswith("in_SET"):
+            in_set = node
+            break
+
+    for input_transform in cmds.sets(in_set, query=True):
+        mbid = cmds.getAttr(input_transform + ".mbID")
+        input_shape = cmds.listRelatives(input_transform, shapes=True)[0]
+
+        for output_transform in lib.lsattr("mbID", value=mbid):
+
+            ref = cmds.referenceQuery(output_transform, referenceNode=True)
+            if ref != src:
+                continue
+
+            print("Connecting %s -> %s" % (output_transform, input_transform))
+            output_shape = cmds.listRelatives(output_transform, shapes=True)[0]
+
+            try:
+                auto_connect(output_transform, input_transform)
+            except RuntimeError:
+                # Already connected
+                pass
+
+            try:
+                auto_connect(output_shape, input_shape)
+            except RuntimeError:
+                # Already connected
+                pass
