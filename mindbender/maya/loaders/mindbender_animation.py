@@ -28,10 +28,15 @@ class AnimationLoader(api.Loader):
 
         nodes = cmds.file(fname,
                           namespace=namespace,
-                          reference=True,
-                          returnNewNodes=True,
+
+                          # Prevent identical alembic nodes
+                          # from being shared.
+                          sharedReferenceFile=False,
+
                           groupReference=True,
-                          groupName=namespace + ":" + name)
+                          groupName=namespace + ":" + name,
+                          reference=True,
+                          returnNewNodes=True)
 
         # Containerising
         maya.containerise(name=name,
