@@ -38,6 +38,8 @@ def setup():
     cmds.setAttr("defaultResolution.width", RESOLUTION_WIDTH)
     cmds.setAttr("defaultResolution.height", RESOLUTION_HEIGHT)
     cmds.currentUnit(time=FPS)
+    cmds.playbackOptions(minTime=EDIT_IN)
+    cmds.playbackOptions(maxTime=EDIT_OUT)
     cmds.playbackOptions(animationStartTime=EDIT_IN)
     cmds.playbackOptions(animationEndTime=EDIT_OUT)
 
