@@ -59,9 +59,13 @@ echo+
 
 :: List available assets, without their .bat suffix
 setlocal enabledelayedexpansion
-for %%i in (*.bat) do (
-    set temp=%%i
-    echo   !temp:.bat=!
+set FOLDERQUERY=%CD%
+if exist %FOLDERQUERY%\*.bat (
+    echo    These are available:
+    for /f %%i in ('dir %FOLDERQUERY%\. /b /a:-d /o:n') do (
+        set temp=%%i
+        echo    !temp:.bat=!
+    )
 )
 endlocal
 
@@ -74,10 +78,10 @@ echo  --------------------------------------
 goto :eof
 
 :missing_name
-   	echo ERROR: Missing FULLPATH
-   	exit /b
+    echo ERROR: Missing FULLPATH
+    exit /b
 :missing_projectdir
-	exit /b
+    exit /b
 :missing_silo
     echo  Uh oh..
     echo    Specify either "assets" or "film"

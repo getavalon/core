@@ -37,15 +37,15 @@ echo   $ maya animation
 echo   $ nuke comp
 echo+
 
-:: List available tasks
+:: List available tasks, without their .bat suffix
 setlocal enabledelayedexpansion
-set FOLDERQUERY=%MINDBENDER_ASSETPATH%
-if exist %FOLDERQUERY%\work\*.bat (
-	echo   These are available:
-	for /r %MINDBENDER_ASSETPATH%\work\. %%g in (*.bat) do (
-		set temp=%%~nxg
-    	echo   $ !temp:.bat=!
-	)
+set FOLDERQUERY=%MINDBENDER_ASSETPATH%\work
+if exist %FOLDERQUERY%\*.bat (
+	echo    These are available:
+	for /f %%i in ('dir %FOLDERQUERY%\. /b /a:-d /o:n') do (
+    	set temp=%%i
+    	echo    !temp:.bat=!
+    )
 )
 endlocal
 
