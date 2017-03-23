@@ -25,29 +25,30 @@ title %MINDBENDER_PROJECTPATH% / %MINDBENDER_ASSET%
 cls
 
 echo+
-echo   %MINDBENDER_ASSET% -----------
+echo    %MINDBENDER_ASSET% -----------
 echo+
 echo+
-echo   1. Type application and task.
-echo   2. Press [Enter] to launch application.
+echo    1. Type application and task.
+echo    2. Press [Enter] to launch application.
 echo+
-echo   For example:
+echo    For example:
 echo+
-echo   $ maya animation
-echo   $ nuke comp
+echo    $ maya animation
+echo    $ nuke comp
 echo+
 
 :: List available tasks, without their .bat suffix
 setlocal enabledelayedexpansion
 set FOLDERQUERY=%MINDBENDER_ASSETPATH%\work
 if exist %FOLDERQUERY%\*.bat (
-	echo    These are available:
-	for /f %%i in ('dir %FOLDERQUERY%\. /b /a:-d /o:n') do (
-    	set temp=%%i
-    	echo    !temp:.bat=!
-    )
+	echo   These are available:
+	for /r %FOLDERQUERY%\. %%g in (*.bat) do (
+		set temp=%%~nxg
+    	echo    $ !temp:.bat=!
+	)
 )
 endlocal
+
 
 echo+
 echo --------------------------------------
