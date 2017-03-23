@@ -17,7 +17,9 @@ def setup():
     api.install(maya)
 
     FPS = {
+        "12": "12fps",
         "15": "game",
+        "16": "16fps",
         "24": "film",
         "25": "pal",
         "30": "ntsc",
