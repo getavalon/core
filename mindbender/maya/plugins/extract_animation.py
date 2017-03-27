@@ -31,6 +31,9 @@ class ExtractMindbenderAnimation(pyblish.api.InstancePlugin):
             time=instance.context.data["time"],
             name=instance.data["name"])
 
+        animstart = cmds.playbackOptions(query=True, animationStartTime=True)
+        animend = cmds.playbackOptions(query=True, animationStartTime=True)
+
         try:
             os.makedirs(dirname)
         except OSError:
@@ -42,8 +45,8 @@ class ExtractMindbenderAnimation(pyblish.api.InstancePlugin):
             nodes=instance,
             file=os.path.join(dirname, filename).replace("\\", "/"),
 
-            frame_range=(instance.data["startFrame"],
-                         instance.data["endFrame"]),
+            frame_range=(int(animstart),
+                         int(animend)),
 
             # Include UVs
             write_uv=True,
