@@ -13,6 +13,7 @@ class ValidateMindbenderProjectEditInfo(pyblish.api.ContextPlugin):
     label = "Validate Project Edit Info"
     optional = True
     order = pyblish.api.ValidatorOrder
+    families = ["mindbender.animation"]
 
     def process(self, context):
         from maya import cmds
