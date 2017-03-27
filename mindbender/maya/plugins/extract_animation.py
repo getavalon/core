@@ -34,6 +34,9 @@ class ExtractMindbenderAnimation(pyblish.api.InstancePlugin):
         animstart = cmds.playbackOptions(query=True, animationStartTime=True)
         animend = cmds.playbackOptions(query=True, animationStartTime=True)
 
+        if animstart == animend:
+            animend = int(animend) + 100
+
         try:
             os.makedirs(dirname)
         except OSError:
