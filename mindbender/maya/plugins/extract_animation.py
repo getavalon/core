@@ -31,8 +31,8 @@ class ExtractMindbenderAnimation(pyblish.api.InstancePlugin):
             time=instance.context.data["time"],
             name=instance.data["name"])
 
-        animstart = instance.context.data["mindbenderEditIn"]
-        animend = instance.context.data["mindbenderEditOut"]
+        animstart = cmds.playbackOptions(query=True, animationStartTime=True)
+        animend = cmds.playbackOptions(query=True, animationEndTime=True)
 
         try:
             os.makedirs(dirname)
