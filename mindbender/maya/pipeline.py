@@ -178,10 +178,10 @@ def _register_families():
         label="Animation",
         help="Any character or prop animation",
         data={
-            "startFrame": cmds.playbackOptions(query=True,
-                                               animationStartTime=True),
-            "endFrame": cmds.playbackOptions(query=True,
-                                             animationEndTime=True),
+            "startFrame": lambda: cmds.playbackOptions(
+                query=True, animationStartTime=True),
+            "endFrame": lambda: cmds.playbackOptions(
+                query=True, animationEndTime=True),
         }
     )
 
@@ -347,14 +347,16 @@ def create(name, family, options=None):
 
     # Resolve template
     for key, value in data.items():
-        try:
-            data[key] = str(value).format(
-                name=name,
-                family=family_["name"]
-            )
-        except KeyError as e:
-            raise KeyError("Invalid dynamic property: %s" % e)
+        if isinstance(value, basestring):
+            try:
+                data[key] = str(value).format(
+                    name=name,
+                    family=family_["name"]
+                )
+            except KeyError as e:
+                raise KeyError("Invalid dynamic property: %s" % e)
 
+    print("About to imprint")
     lib.imprint(instance, data)
 
     return instance
