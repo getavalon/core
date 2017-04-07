@@ -228,9 +228,28 @@ def imprint(node, data):
         node (str): Long name of node
         data (dict): Dictionary of key/value pairs
 
+    Example:
+        >>> from maya import cmds
+        >>> def compute():
+        ...   return 6
+        ...
+        >>> cube, generator = cmds.polyCube()
+        >>> imprint(cube, {
+        ...   "regularString": "myFamily",
+        ...   "computedValue": lambda: compute()
+        ... })
+        ...
+        >>> cmds.getAttr(cube + ".computedValue")
+        6
+
     """
 
     for key, value in data.items():
+
+        if callable(value):
+            # Support values evaluated at imprint
+            value = value()
+
         if isinstance(value, bool):
             add_type = {"attributeType": "bool"}
             set_type = {"keyable": False, "channelBox": True}
