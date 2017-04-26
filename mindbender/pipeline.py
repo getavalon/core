@@ -208,6 +208,8 @@ def ls(silos=None):
 
     """
 
+    assert registered_root(), "No root registered"
+
     silos = silos or registered_silos()
 
     assert isinstance(silos, list), (
@@ -482,7 +484,7 @@ def registered_root():
     """Return currently registered root"""
     return (
         _registered_root["_"] or
-        os.getenv("MINDBENDER_ROOT") or ""
+        os.getenv("MINDBENDER_PROJECTPATH") or ""
     ).replace("\\", "/")
 
 
