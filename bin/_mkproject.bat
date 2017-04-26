@@ -44,7 +44,6 @@ if not exist %MINDBENDER_PROJECTPATH% (
 )
 
 :: Establish base directories for ls() and search() functions.
-set MINDBENDER_ROOT=%MINDBENDER_PROJECTPATH%
 set MINDBENDER_SILO=%4
 
 pushd %MINDBENDER_PROJECTPATH%\%MINDBENDER_SILO%

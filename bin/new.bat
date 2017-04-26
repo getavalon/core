@@ -42,7 +42,7 @@ echo new project %2 created
 goto :eof
 
 :copy_asset
-if not "%CD%"=="%MINDBENDER_ROOT%\%MINDBENDER_SILO%" goto :missing
+if not "%CD%"=="%MINDBENDER_PROJECTPATH%\%MINDBENDER_SILO%" goto :missing
 >NUL copy %MINDBENDER_CORE%\template\AssetName.bat .
 >NUL ren AssetName.bat %2.bat
 if "%1"=="shot" echo new shot %2 created
