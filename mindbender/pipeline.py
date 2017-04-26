@@ -208,6 +208,8 @@ def ls(silos=None):
 
     """
 
+    assert registered_root(), "No root registered"
+
     silos = silos or registered_silos()
 
     assert isinstance(silos, list), (

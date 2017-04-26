@@ -185,6 +185,17 @@ class Window(QtWidgets.QDialog):
 
         state = self.data["state"]
 
+        if not api.registered_root():
+            item = QtWidgets.QListWidgetItem("No root registered.")
+            item.setData(QtCore.Qt.ItemIsEnabled, False)
+            state["running"] = False
+
+            assets_model.setFocus()
+            # self.data["button"]["load"].show()
+            self.data["button"]["stop"].hide()
+
+            return assets_model.addItem(item)
+
         has = {"assets": False}
 
         module = sys.modules[__name__]
@@ -228,7 +239,6 @@ class Window(QtWidgets.QDialog):
                 item.setData(QtCore.Qt.ItemIsEnabled, False)
                 assets_model.addItem(item)
 
-            # assets_model.setCurrentItem(assets_model.item(0))
             assets_model.setFocus()
             self.data["button"]["load"].show()
             self.data["button"]["stop"].hide()
