@@ -51,7 +51,7 @@ class Window(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
-        self.setWindowTitle("Asset Loader")
+        self.setWindowTitle("Asset Loader 2.0")
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
         body = QtWidgets.QWidget()
