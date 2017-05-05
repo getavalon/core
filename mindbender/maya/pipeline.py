@@ -478,8 +478,15 @@ def remove(container):
 
     print("Removing '%s' from Maya.." % container["name"])
 
+    namespace = cmds.referenceQuery(reference_node, namespace=True)
     fname = cmds.referenceQuery(reference_node, filename=True)
     cmds.file(fname, removeReference=True)
+
+    try:
+        # If container is not automatically cleaned up by May (issue #118)
+        cmds.namespace(removeNamespace=namespace, deleteNamespaceContent=True)
+    except RuntimeError:
+        pass
 
 
 def _register_id_callback():
