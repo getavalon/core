@@ -150,7 +150,7 @@ def read(node):
     for attr in cmds.listAttr(node, userDefined=True) or list():
         try:
             value = cmds.getAttr(node + "." + attr)
-        except:
+        except ValueError:
             # Some attributes cannot be read directly,
             # such as mesh and color attributes. These
             # are considered non-essential to this
@@ -397,7 +397,7 @@ def serialise_shaders(nodes):
             try:
                 id_ = cmds.getAttr(transform + ".mbID")
                 shader_by_id[shader].append(mesh.replace(name, id_))
-            except:
+            except KeyError:
                 continue
 
         # Remove duplicates
