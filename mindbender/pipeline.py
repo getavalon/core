@@ -6,21 +6,12 @@ import shutil
 import logging
 import inspect
 import tempfile
+import subprocess
 import contextlib
 
 from pyblish import api
 
-from . import lib, schema
-from . import (
-    _registered_families,
-    _registered_data,
-    _registered_silos,
-    _registered_formats,
-    _registered_loader_paths,
-    _registered_host,
-    _registered_root,
-)
-
+from . import lib, schema, _state
 from .vendor import six
 
 self = sys.modules[__name__]
@@ -87,7 +78,7 @@ def discover_loaders():
     loaders = dict()
 
     # Include plug-ins from registered paths
-    for path in _registered_loader_paths:
+    for path in _state["loader_paths"]:
         path = os.path.normpath(path)
 
         assert os.path.isdir(path), "%s is not a directory" % path
@@ -161,15 +152,11 @@ def loaders_from_module(module):
 
 def register_loader_path(path):
     path = os.path.normpath(path)
-    _registered_loader_paths.add(path)
-
-
-def registered_loader_paths():
-    return list(_registered_loader_paths)
+    _state["loader_paths"].add(path)
 
 
 def deregister_loader_path(path):
-    _registered_loader_paths.remove(path)
+    _state["loader_paths"].remove(path)
 
 
 def ls(silos=None):
@@ -356,6 +343,57 @@ def search(query, root=None):
                 }
 
 
+def launch(executable, args=None, environment=None):
+    """Launch a new subprocess of `args`
+
+    Arguments:
+        executable (str): Relative or absolute path to executable
+        args (list): Command passed to `subprocess.Popen`
+        environment (dict, optional): Custom environment passed
+            to Popen instance.
+
+    Returns:
+        Popen instance of newly spawned process
+
+    Exceptions:
+        OSError on internal error
+        ValueError on `executable` not found
+
+    """
+
+    CREATE_NO_WINDOW = 0x08000000
+    IS_WIN32 = sys.platform == "win32"
+
+    abspath = executable
+
+    # Convert relative path to absolute
+    if not os.path.isabs(abspath):
+        abspath = lib.which(abspath)
+
+    if abspath is None:
+        raise ValueError("'%s' was not found." % executable)
+
+    kwargs = dict(
+        args=[abspath] + args or list(),
+        env=environment or os.environ,
+
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+
+    if IS_WIN32:
+        kwargs["creationflags"] = CREATE_NO_WINDOW
+
+    popen = subprocess.Popen(**kwargs)
+
+    return popen
+
+
+def stream(stream):
+    for line in iter(stream.readline, b""):
+        yield line
+
+
 def any_representation(version):
     """Pick any compatible representation.
 
@@ -464,28 +502,20 @@ def fixture(assets=["Asset1"], subsets=["animRig"], versions=1):
                     }, f)
 
     # Keep track of original root
-    _ = _registered_root["_"]
+    _ = _state["root"]
 
     try:
-        _registered_root["_"] = tempdir
+        _state["root"] = tempdir
         yield tempdir
     finally:
-        _registered_root["_"] = _
+        _state["root"] = _
         shutil.rmtree(tempdir)
 
 
 def register_root(path):
     """Register currently active root"""
     self.log.info("Registering root: %s" % path)
-    _registered_root["_"] = path
-
-
-def registered_root():
-    """Return currently registered root"""
-    return (
-        _registered_root["_"] or
-        os.getenv("MINDBENDER_ROOT") or ""
-    ).replace("\\", "/")
+    _state["root"] = path
 
 
 def register_format(format):
@@ -496,12 +526,12 @@ def register_format(format):
 
     """
 
-    _registered_formats.append(format)
+    _state["formats"].append(format)
 
 
 def deregister_format(format):
     """Deregister a supported format"""
-    _registered_formats.remove(format)
+    _state["formats"].remove(format)
 
 
 def register_host(host):
@@ -598,7 +628,7 @@ def register_host(host):
         raise ValueError("\n".join(report))
 
     else:
-        _registered_host["_"] = host
+        _state["host"] = host
 
 
 def register_plugins():
@@ -616,15 +646,24 @@ def deregister_plugins():
     api.deregister_plugin_path(plugins_path)
 
 
+def register_app(app):
+    """Register application as absolute or relative `app`"""
+
+    assert isinstance(app, dict), app
+
+    # See schema/app.json
+    app["schema"] = "mindbender-core:app-1.0"
+    schema.validate(app, schema="app")
+
+    # Ensure stored executables conform to the
+    # same case and formatting.
+    app["executable"] = os.path.normpath(app["executable"])
+
+    _state["apps"][app["executable"]] = app
+
+
 def register_silo(name):
-    _registered_silos.add(name)
-
-
-def registered_silos():
-    return (
-        list(_registered_silos) or
-        os.getenv("MINDBENDER_SILO", "").split()
-    )
+    _state["silos"].add(name)
 
 
 def register_data(key, value, help=None):
@@ -637,11 +676,11 @@ def register_data(key, value, help=None):
 
     """
 
-    _registered_data[key] = value
+    _state["data"][key] = value
 
 
 def deregister_data(key):
-    _registered_data.pop(key)
+    _state["data"].pop(key)
 
 
 def register_family(name,
@@ -660,7 +699,7 @@ def register_family(name,
 
     """
 
-    _registered_families[name] = {
+    _state["families"][name] = {
         "name": name,
         "label": label,
         "data": data or {},
@@ -670,27 +709,50 @@ def register_family(name,
 
 
 def deregister_family(name):
-    _registered_families.pop(name)
+    _state["families"].pop(name)
 
 
 def registered_formats():
-    return _registered_formats[:]
+    return _state["formats"][:]
 
 
 def registered_families():
-    return _registered_families.copy()
+    return _state["families"].copy()
 
 
 def registered_data():
-    return _registered_data.copy()
+    return _state["data"].copy()
 
 
 def registered_host():
-    return _registered_host["_"]
+    return _state["host"]
+
+
+def registered_silos():
+    return (
+        list(_state["silos"]) or
+        os.getenv("MINDBENDER_SILO", "").split()
+    )
+
+
+def registered_apps():
+    return _state["apps"].copy()
+
+
+def registered_loader_paths():
+    return list(_state["loader_paths"])
+
+
+def registered_root():
+    """Return currently registered root"""
+    return (
+        _state["root"] or
+        os.getenv("MINDBENDER_ROOT") or ""
+    ).replace("\\", "/")
 
 
 def deregister_host():
-    _registered_host["_"] = default_host()
+    _state["host"] = default_host()
 
 
 def default_host():

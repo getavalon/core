@@ -26,6 +26,8 @@ from .pipeline import (
 
     ls,
     search,
+    launch,
+    stream,
 
     Loader,
     discover_loaders,
@@ -38,6 +40,7 @@ from .pipeline import (
     register_family,
     register_loader_path,
     register_plugins,
+    register_app,
 
     registered_host,
     registered_families,
@@ -46,6 +49,7 @@ from .pipeline import (
     registered_data,
     registered_root,
     registered_silos,
+    registered_apps,
 
     deregister_plugins,
     deregister_format,
@@ -79,6 +83,8 @@ __all__ = [
 
     "ls",
     "search",
+    "launch",
+    "stream",
 
     "Loader",
     "discover_loaders",
@@ -91,14 +97,16 @@ __all__ = [
     "register_loader_path",
     "register_plugins",
     "register_root",
+    "register_app",
 
     "registered_root",
-    "registered_silos",
     "registered_loader_paths",
     "registered_host",
     "registered_families",
     "registered_formats",
     "registered_data",
+    "registered_silos",
+    "registered_apps",
 
     "deregister_plugins",
     "deregister_format",

@@ -185,9 +185,6 @@ def show(debug=False):
     """Display asset creator GUI
 
     Arguments:
-        creator (func, optional): Callable function, passed `name`,
-            `family` and `use_selection`, defaults to `creator`
-            defined in :mod:`pipeline`
         debug (bool, optional): Run loader in debug-mode,
             defaults to False
 
