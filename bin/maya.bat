@@ -25,7 +25,7 @@ if "%1"=="" goto :missing_task
 
 if not exist "%1" goto :missing_taskfolder
 
-set MINDBENDER_WORKDIR=%CD%\%1\%USERNAME%\maya
+set MINDBENDER_WORKDIR=%CD%\%1\maya
 if Not exist %MINDBENDER_WORKDIR% (
 	echo Creating new task "%1"..
 

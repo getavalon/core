@@ -23,7 +23,7 @@ if "%MINDBENDER_ASSET%"=="0" goto :missing_set_asset
 :: If user forgets to include task with "houdini"..
 if "%1"=="" goto :missing_task
 
-set MINDBENDER_WORKDIR=%cd%\work\%1\%USERNAME%\houdini
+set MINDBENDER_WORKDIR=%cd%\work\%1\houdini
 if Not exist %MINDBENDER_WORKDIR% (
     echo Creating new task "%1"..
 
