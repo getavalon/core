@@ -10,11 +10,14 @@ services:
   - docker
 
 install:
-  - pip install coveralls
+  - docker run --name mindbender-mongo -d mongo
   - docker build -t pyblish/mindbender -f Dockerfile-maya2016 .
 
 script:
-  - docker run --rm -v $(pwd):/workspace pyblish/mindbender
-
-after_success:
-  - coveralls
+  - docker run \
+    --rm \
+    -v $(pwd):/workspace \
+    --link mindbender-mongo:mongo \
+    -e COVERALLS_REPO_TOKEN \
+    -e MINDBENDER_MONGO=mongodb://mongo:27017 \
+    pyblish/mindbender
