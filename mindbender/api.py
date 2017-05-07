@@ -24,9 +24,6 @@ from .pipeline import (
     install,
     uninstall,
 
-    ls,
-    search,
-
     Loader,
     discover_loaders,
 
@@ -52,10 +49,6 @@ from .pipeline import (
     deregister_family,
     deregister_data,
     deregister_loader_path,
-
-    any_representation,
-
-    fixture,
 )
 
 from .lib import (
@@ -76,9 +69,6 @@ __all__ = [
     "uninstall",
 
     "schema",
-
-    "ls",
-    "search",
 
     "Loader",
     "discover_loaders",
@@ -114,8 +104,4 @@ __all__ = [
     "parse_version",
 
     "time",
-
-    "any_representation",
-
-    "fixture",
 ]
