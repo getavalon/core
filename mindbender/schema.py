@@ -22,39 +22,22 @@ from .vendor import jsonschema
 _log = logging.getLogger("mindbender-core")
 
 ValidationError = jsonschema.ValidationError
+SchemaError = jsonschema.SchemaError
 
 
-def validate(data, schema):
+def validate(data, schema=None):
     """Validate `data` with `schema`
-
-    Usage:
-        >>> validate({"key": "value"}, "_doctest")
-        >>> validate({"wrong": "value"}, "_doctest")
-        Traceback (most recent call last):
-        ...
-        ValidationError: 'key' is a required property
-        <BLANKLINE>
-        Failed validating 'required' in schema:
-            {'$schema': 'http://json-schema.org/schema#',
-             'additionalProperties': False,
-             'description': 'A test schema',
-             'properties': {'key': {'description': 'A test key',
-                                    'type': 'string'}},
-             'required': ['key'],
-             'title': '_doctest',
-             'type': 'object'}
-        <BLANKLINE>
-        On instance:
-            {'wrong': 'value'}
 
     Arguments:
         data (dict): JSON-compatible data
-        schema (dict): jsonschema-compatible schema
+        schema (str): DEPRECATED Name of schema. Now included in the data.
 
     Raises:
         ValidationError on invalid schema
 
     """
+
+    schema = data["schema"].rsplit(":", 1)[-1].split("-", 1)[0]
 
     if isinstance(schema, basestring):
         schema = _cache[schema + ".json"]
