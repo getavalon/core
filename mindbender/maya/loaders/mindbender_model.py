@@ -11,11 +11,19 @@ class ModelLoader(api.Loader):
 
     families = ["mindbender.model"]
 
-    def process(self, asset, subset, version, representation):
-        fname = representation["path"].format(
-            dirname=version["path"].format(root=api.registered_root()),
-            format=representation["format"]
-        )
+    def process(self, project, asset, subset, version, representation):
+        template = project["template"]["publish"]
+        data = {
+            "root": api.registered_root(),
+            "project": project["name"],
+            "asset": asset["name"],
+            "silo": asset["silo"],
+            "subset": subset["name"],
+            "version": version["name"],
+            "representation": representation["name"].strip("."),
+        }
+
+        fname = template.format(**data)
 
         namespace = maya.unique_namespace(asset["name"], suffix="_")
         name = subset["name"]

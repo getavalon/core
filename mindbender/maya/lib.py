@@ -40,21 +40,11 @@ def containerise(name,
     data = [
         ("id", "pyblish.mindbender.container"),
         ("name", namespace),
-        ("author", version["author"]),
         ("loader", str(loader)),
         ("families", " ".join(version.get("families", list()))),
-        ("time", version["time"]),
-        ("asset", asset["name"]),
         ("subset", subset["name"]),
-        ("representation", representation["format"]),
-        ("version", version["version"]),
-
-        # TODO(marcus): Temporarily assume "assets".
-        #   remove the assumption once a project new project
-        #   is started.
-        ("silo", version.get("silo", "assets")),
-
-        ("path", version["path"]),
+        ("representation", str(representation["_id"])),
+        ("version", version["name"]),
         ("source", version["source"]),
         ("comment", version.get("comment", ""))
     ]
@@ -150,7 +140,7 @@ def read(node):
     for attr in cmds.listAttr(node, userDefined=True) or list():
         try:
             value = cmds.getAttr(node + "." + attr)
-        except:
+        except ValueError:
             # Some attributes cannot be read directly,
             # such as mesh and color attributes. These
             # are considered non-essential to this
@@ -397,7 +387,7 @@ def serialise_shaders(nodes):
             try:
                 id_ = cmds.getAttr(transform + ".mbID")
                 shader_by_id[shader].append(mesh.replace(name, id_))
-            except:
+            except KeyError:
                 continue
 
         # Remove duplicates

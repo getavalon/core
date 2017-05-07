@@ -16,38 +16,95 @@ import pyblish_maya
 import pyblish.api
 import pyblish.util
 
-from mindbender import api, maya
+from mindbender import api, maya, io, inventory
+from mindbender.vendor import toml
 
 from nose.tools import (
-    assert_equals,
     with_setup
 )
 
+PROJECT_NAME = "hulk"
+ASSET_NAME = "Bruce"
+
 self = sys.modules[__name__]
 self.tempdir = None
+
+self._inventory = """\
+schema = "mindbender-core:inventory-1.0"
+
+[assets.%s]
+label = "Bruce Wayne"
+""" % ASSET_NAME
+
+self._config = """\
+schema = "mindbender-core:config-1.0"
+
+[metadata]
+name = "%s"
+fps = 25
+resolution_width = 1920
+resolution_height = 1080
+label = "The Hulk"
+
+[template]
+work = "{root}/{project}/{silo}/{asset}/work/{task}/{user}/{app}"
+publish = "{root}/{project}/{silo}/{asset}/publish/{subset}/v{version:0>3}/{subset}.{representation}"
+
+[apps.maya2016]
+label = "Autodesk Maya 2016"
+
+[apps.nuke10]
+label = "The Foundry Nuke 10.0"
+
+[tasks.modeling]
+[tasks.animation]
+[tasks.rigging]
+[tasks.lighting]
+[tasks.lookdev]
+[tasks.layout]
+""" % PROJECT_NAME
 
 
 def setup():
     pyblish_maya.setup()
     api.install(maya)
 
+    io.install(collection="test")
+
     self.tempdir = tempfile.mkdtemp()
 
-    assetdir = os.path.join(
-        self.tempdir,
-        "assets",
-        "Test"
-    )
+    with open(os.path.join(self.tempdir, ".inventory.toml"), "w") as f:
+        toml.dump(toml.loads(self._inventory), f)
 
-    os.makedirs(assetdir)
+    with open(os.path.join(self.tempdir, ".config.toml"), "w") as f:
+        toml.dump(toml.loads(self._config), f)
 
+    inventory.save(self.tempdir)
     api.register_root(self.tempdir)
-    assert api.registered_root() == self.tempdir
-    api.register_silo("assets")
+
+    project = io.find_one({
+        "type": "project",
+        "name": PROJECT_NAME
+    })
+
+    asset = io.find_one({
+        "type": "asset",
+        "parent": project["_id"],
+        "name": ASSET_NAME
+    })
 
     # Setup environment
-    os.environ["MINDBENDER_ASSETPATH"] = assetdir
+    os.environ["MINDBENDER__PROJECT"] = str(project["_id"])
+    os.environ["MINDBENDER__ASSET"] = str(asset["_id"])
+    os.environ["MINDBENDER_ASSET"] = asset["name"]
+    os.environ["MINDBENDER_ASSETPATH"] = os.path.join(
+        self.tempdir,
+        "assets",
+        ASSET_NAME
+    )
     os.environ["MINDBENDER_SILO"] = "assets"
+
+    print(list(io.find({})))
 
 
 def teardown():
@@ -56,6 +113,8 @@ def teardown():
 
     shutil.rmtree(self.tempdir)
 
+    io.drop()
+
 
 def clear():
     shutil.rmtree(self.tempdir)
@@ -63,11 +122,6 @@ def clear():
 
     cmds.file(new=True, force=True)
     cmds.file(rename="temp.ma")
-
-
-def test_setup():
-    """Fixture is setup ok"""
-    assert_equals(next(api.ls())["name"], "Test")
 
 
 @with_setup(clear)
@@ -86,17 +140,28 @@ def test_modeling():
 
     pyblish.util.publish()
 
-    asset = next(api.ls())
-    assert_equals(asset["name"], "Test")
+    asset = io.find_one({
+        "type": "asset",
+        "name": ASSET_NAME
+    })
 
-    subset = asset["subsets"][0]
-    assert_equals(subset["name"], "modelDefault")
+    subset = io.find_one({
+        "parent": asset["_id"],
+        "type": "subset",
+        "name": "modelDefault"
+    })
 
-    version = subset["versions"][0]
-    assert_equals(version["version"], 1)
+    version = io.find_one({
+        "parent": subset["_id"],
+        "type": "version",
+        "name": 1
+    })
 
-    representation = version["representations"][0]
-    assert_equals(representation["format"], ".ma")
+    assert io.find_one({
+        "parent": version["_id"],
+        "type": "representation",
+        "name": "ma"
+    }) is not None
 
 
 @with_setup(clear)
@@ -133,21 +198,32 @@ def test_alembic_export():
     # Import and test result
     cmds.file(new=True, force=True)
 
-    asset = next(api.ls())
-    assert_equals(asset["name"], "Test")
+    asset = io.find_one({
+        "type": "asset",
+        "name": ASSET_NAME
+    })
 
-    subset = asset["subsets"][0]
-    assert_equals(subset["name"], "animationDefault")
+    subset = io.find_one({
+        "parent": asset["_id"],
+        "type": "subset",
+        "name": "animationDefault"
+    })
 
-    version = subset["versions"][0]
-    assumed_version = 1
-    assert_equals(version["version"], assumed_version)
+    version = io.find_one({
+        "parent": subset["_id"],
+        "type": "version",
+        "name": 1
+    })
 
-    # There may be more than one representation, such as .source
-    representation = next(r for r in version["representations"]
-                          if r["format"] == ".abc")
+    representation = io.find_one({
+        "parent": version["_id"],
+        "type": "representation",
+        "name": "abc"
+    })
 
-    container = maya.load(asset, subset, assumed_version, representation)
+    assert representation is not None
+
+    container = maya.load(representation)
 
     cube = cmds.ls(container, type="mesh")
     transform = cmds.listRelatives(cube, parent=True)[0]

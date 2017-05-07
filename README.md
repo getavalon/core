@@ -9,17 +9,23 @@ The production pipeline at Mindbender Animation Studio.
 
 <br>
 
+### Dependencies
+
+- pymongo
+
+<br>
+
 ### Testing
 
 ```bash
-cd mindbender-core
-docker build -t mindbender/core -f Dockerfile-maya2016 .
+$ cd mindbender-core
 
-# Run nosetests (Windows)
-docker run --rm -v %cd%:/workspace mindbender/core
+# One-time build and database
+$ docker run --name mindbender-mongo -d mongo
+$ . build_docker.sh
 
-# Run nosetests (Linux/OSX)
-docker run --rm -v $(pwd):/workspace mindbender/core
+# Run
+$ . test_docker.sh
 ```
 
 <br>
