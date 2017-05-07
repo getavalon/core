@@ -40,21 +40,11 @@ def containerise(name,
     data = [
         ("id", "pyblish.mindbender.container"),
         ("name", namespace),
-        ("author", version["author"]),
         ("loader", str(loader)),
         ("families", " ".join(version.get("families", list()))),
-        ("time", version["time"]),
-        ("asset", asset["name"]),
         ("subset", subset["name"]),
-        ("representation", representation["format"]),
-        ("version", version["version"]),
-
-        # TODO(marcus): Temporarily assume "assets".
-        #   remove the assumption once a project new project
-        #   is started.
-        ("silo", version.get("silo", "assets")),
-
-        ("path", version["path"]),
+        ("representation", str(representation["_id"])),
+        ("version", version["name"]),
         ("source", version["source"]),
         ("comment", version.get("comment", ""))
     ]
