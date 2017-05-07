@@ -1,73 +1,57 @@
+import os
 import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import api
 from .. import lib
 
+# Third-party dependencies
+import pymongo
+from bson.objectid import ObjectId
 
-self = sys.modules[__name__]
-self._window = None
-
-# Store previous results from api.ls()
-self._cache = list()
-self._use_cache = False
-
-# This enables caching of results asset listing of the network.
-# It means less strain on the network, but also that artists must
-# not forget to hit the "refresh" button if there are new assets
-# since they first opened the loader.
-self._optimal_network_performance = False
+module = sys.modules[__name__]
+module.window = None
+module.io = None
+module.root = api.registered_root()
+module.project = os.getenv("MINDBENDER_PROJECT")
 
 # Custom roles
-AssetRole = QtCore.Qt.UserRole + 1
-SubsetRole = QtCore.Qt.UserRole + 2
+DocumentRole = QtCore.Qt.UserRole + 1
 
 
 class Window(QtWidgets.QDialog):
-    """Basic asset loader interface
-
-     _________________________________________
-    |                                         |
-    | Assets                                  |
-    |  _____________________________________  |
-    | |                  |                  | |
-    | | Asset 1          | Subset 1         | |
-    | | Asset 2          | Subset 2         | |
-    | | ...              | ...              | |
-    | |                  |                  | |
-    | |                  |                  | |
-    | |                  |                  | |
-    | |                  |                  | |
-    | |                  |                  | |
-    | |                  |                  | |
-    | |__________________|__________________| |
-    |  _____________________________________  |
-    | |                                     | |
-    | |                Load                 | |
-    | |_____________________________________| |
-    |_________________________________________|
-
-    """
+    """Asset loader interface"""
 
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
-        self.setWindowTitle("Asset Loader 2.0")
+        self.setWindowTitle(
+            "Asset Loader 2.0 - %s/%s" % (
+                module.root, module.project))
+
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         body = QtWidgets.QWidget()
+        sidepanel = QtWidgets.QWidget()
         footer = QtWidgets.QWidget()
 
         container = QtWidgets.QWidget()
 
         assets = QtWidgets.QListWidget()
         subsets = QtWidgets.QListWidget()
+        versions = QtWidgets.QListWidget()
+        representations = QtWidgets.QListWidget()
 
         # Enable loading many subsets at once
-        subsets.setSelectionMode(subsets.ExtendedSelection)
+        # subsets.setSelectionMode(subsets.ExtendedSelection)
+        # versions.setSelectionMode(subsets.ExtendedSelection)
+        # representations.setSelectionMode(subsets.ExtendedSelection)
 
         layout = QtWidgets.QHBoxLayout(container)
         layout.addWidget(assets)
         layout.addWidget(subsets)
+        layout.addWidget(versions)
+        layout.addWidget(representations)
         layout.setContentsMargins(0, 0, 0, 0)
 
         options = QtWidgets.QWidget()
@@ -78,9 +62,9 @@ class Window(QtWidgets.QDialog):
         autoclose_checkbox.setCheckState(QtCore.Qt.Checked)
         layout.addWidget(autoclose_checkbox, 1, 0)
 
-        layout = QtWidgets.QVBoxLayout(body)
+        layout = QtWidgets.QHBoxLayout(body)
         layout.addWidget(container)
-        layout.addWidget(options, 0, QtCore.Qt.AlignLeft)
+        layout.addWidget(sidepanel)
         layout.setContentsMargins(0, 0, 0, 0)
 
         load_button = QtWidgets.QPushButton("Load")
@@ -90,10 +74,15 @@ class Window(QtWidgets.QDialog):
         message = QtWidgets.QLabel()
         message.hide()
 
-        layout = QtWidgets.QVBoxLayout(footer)
+        layout = QtWidgets.QVBoxLayout(sidepanel)
         layout.addWidget(load_button)
         layout.addWidget(stop_button)
         layout.addWidget(refresh_button)
+        layout.addWidget(options, 0, QtCore.Qt.AlignBottom)
+        layout.addWidget(QtWidgets.QWidget(), 1)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        layout = QtWidgets.QVBoxLayout(footer)
         layout.addWidget(message)
         layout.setContentsMargins(0, 0, 0, 0)
 
@@ -113,6 +102,8 @@ class Window(QtWidgets.QDialog):
             "model": {
                 "assets": assets,
                 "subsets": subsets,
+                "versions": versions,
+                "representations": representations
             },
             "label": {
                 "message": message,
@@ -124,9 +115,12 @@ class Window(QtWidgets.QDialog):
         refresh_button.clicked.connect(self.on_refresh_pressed)
         assets.currentItemChanged.connect(self.on_assetschanged)
         subsets.currentItemChanged.connect(self.on_subsetschanged)
+        versions.currentItemChanged.connect(self.on_versionschanged)
+        representations.currentItemChanged.connect(
+            self.on_representationschanged)
 
         # Defaults
-        self.resize(320, 350)
+        self.resize(620, 350)
 
         load_button.hide()
         stop_button.setFocus()
@@ -140,6 +134,31 @@ class Window(QtWidgets.QDialog):
     def on_enter(self):
         self.on_load_pressed()
 
+    def refresh(self):
+        """Load assets from disk and add them to a QListView"""
+
+        assets_model = self.data["model"]["assets"]
+        assets_model.clear()
+
+        has = {"children": False}
+
+        project = ObjectId(os.environ["MINDBENDER__PROJECT"])
+        for asset in module.io.find({"type": "asset", "parent": project}):
+            item = QtWidgets.QListWidgetItem(asset["name"])
+            item.setData(QtCore.Qt.ItemIsEnabled, True)
+            item.setData(DocumentRole, asset)
+            assets_model.addItem(item)
+            has["children"] = True
+
+        if not has["children"]:
+            item = QtWidgets.QListWidgetItem("No assets found")
+            item.setData(QtCore.Qt.ItemIsEnabled, False)
+            assets_model.addItem(item)
+
+        assets_model.setFocus()
+        self.data["button"]["load"].show()
+        self.data["button"]["stop"].hide()
+
     def on_assetschanged(self, *args):
         assets_model = self.data["model"]["assets"]
         subsets_model = self.data["model"]["subsets"]
@@ -152,105 +171,92 @@ class Window(QtWidgets.QDialog):
         if asset_item is None:
             return
 
-        asset = asset_item.data(AssetRole)
+        document = asset_item.data(DocumentRole)
 
         # The model contains an empty item
-        if asset is None:
+        if document is None:
             return
 
-        for subset in asset["subsets"]:
-            item = QtWidgets.QListWidgetItem(subset["name"])
+        has = {"children": False}
+
+        for child in module.io.find({"type": "subset",
+                                     "parent": document["_id"]}):
+            item = QtWidgets.QListWidgetItem(child["name"])
             item.setData(QtCore.Qt.ItemIsEnabled, True)
-            item.setData(SubsetRole, subset)
+            item.setData(DocumentRole, child)
+            subsets_model.addItem(item)
+            has["children"] = True
+
+        if not has["children"]:
+            item = QtWidgets.QListWidgetItem("No subsets found")
+            item.setData(QtCore.Qt.ItemIsEnabled, False)
             subsets_model.addItem(item)
 
     def on_subsetschanged(self, *args):
+        subsets_model = self.data["model"]["subsets"]
+        versions_model = self.data["model"]["versions"]
+
+        versions_model.clear()
+
+        subset_item = subsets_model.currentItem()
+
+        # The model is empty
+        if subset_item is None:
+            return
+
+        document = subset_item.data(DocumentRole)
+
+        has = {"children": False}
+
+        for child in module.io.find({"type": "version",
+                                     "parent": document["_id"]}):
+            item = QtWidgets.QListWidgetItem("v%03d" % child["name"])
+            item.setData(QtCore.Qt.ItemIsEnabled, True)
+            item.setData(DocumentRole, child)
+            versions_model.addItem(item)
+            has["children"] = True
+
+        if not has["children"]:
+            item = QtWidgets.QListWidgetItem("No versions found")
+            item.setData(QtCore.Qt.ItemIsEnabled, False)
+            versions_model.addItem(item)
+
+    def on_versionschanged(self, *args):
+        versions_model = self.data["model"]["versions"]
+        representations_model = self.data["model"]["representations"]
+
+        representations_model.clear()
+
+        version_item = versions_model.currentItem()
+
+        # The model is empty
+        if version_item is None:
+            return
+
+        document = version_item.data(DocumentRole)
+
+        has = {"children": False}
+
+        for child in module.io.find({"type": "representation",
+                                     "parent": document["_id"]}):
+            label = child.get("label") or child["name"]
+            item = QtWidgets.QListWidgetItem(label)
+            item.setData(QtCore.Qt.ItemIsEnabled, True)
+            item.setData(DocumentRole, child)
+            representations_model.addItem(item)
+            has["children"] = True
+
+        if not has["children"]:
+            item = QtWidgets.QListWidgetItem("No representations found")
+            item.setData(QtCore.Qt.ItemIsEnabled, False)
+            representations_model.addItem(item)
+
+    def on_representationschanged(self, *args):
         button = self.data["button"]["load"]
         item = self.data["model"]["assets"].currentItem()
         button.setEnabled(item.data(QtCore.Qt.ItemIsEnabled))
 
-    def refresh(self):
-        """Load assets from disk and add them to a QListView
-
-        This method runs part-asynchronous, in that it blocks
-        when busy, but takes brief intermissions between each
-        asset found so as to lighten the load off of disk, and
-        to enable the artist to abort searching once the target
-        asset has been found.
-
-        """
-
-        assets_model = self.data["model"]["assets"]
-        assets_model.clear()
-
-        state = self.data["state"]
-
-        if not api.registered_root():
-            item = QtWidgets.QListWidgetItem("No root registered.")
-            item.setData(QtCore.Qt.ItemIsEnabled, False)
-            state["running"] = False
-
-            assets_model.setFocus()
-            # self.data["button"]["load"].show()
-            self.data["button"]["stop"].hide()
-
-            return assets_model.addItem(item)
-
-        has = {"assets": False}
-
-        module = sys.modules[__name__]
-        if module._optimal_network_performance and module._use_cache:
-            print("Using cache..")
-            iterator = iter(module._cache)
-
-        else:
-            print("Reading from disk..")
-            iterator = api.ls(silos=["assets", "film"])
-
-        def on_next():
-            if not state["running"]:
-                return on_finished()
-
-            try:
-                asset = next(iterator)
-
-                # Cache for re-use
-                if not module._use_cache:
-                    module._cache.append(asset)
-
-            except StopIteration:
-                return on_finished()
-
-            has["assets"] = True
-
-            item = QtWidgets.QListWidgetItem(asset["name"])
-            item.setData(QtCore.Qt.ItemIsEnabled, True)
-            item.setData(AssetRole, asset)
-            assets_model.addItem(item)
-
-            lib.defer(25, on_next)
-
-        def on_finished():
-            state["running"] = False
-            module._use_cache = True
-
-            if not has["assets"]:
-                item = QtWidgets.QListWidgetItem("No assets found")
-                item.setData(QtCore.Qt.ItemIsEnabled, False)
-                assets_model.addItem(item)
-
-            assets_model.setFocus()
-            self.data["button"]["load"].show()
-            self.data["button"]["stop"].hide()
-
-        state["running"] = True
-        lib.defer(25, on_next)
-
     def on_refresh_pressed(self):
-        # Clear cache
-        sys.modules[__name__]._cache[:] = []
-        sys.modules[__name__]._use_cache = False
-
         self.refresh()
 
     def on_stop_pressed(self):
@@ -261,41 +267,34 @@ class Window(QtWidgets.QDialog):
         self.data["state"]["running"] = False
 
     def on_load_pressed(self):
+        autoclose_checkbox = self.data["button"]["autoclose"]
         button = self.data["button"]["load"]
         if not button.isEnabled():
             return
 
-        assets_model = self.data["model"]["assets"]
-        subsets_model = self.data["model"]["subsets"]
-        autoclose_checkbox = self.data["button"]["autoclose"]
+        representations_model = self.data["model"]["representations"]
+        representation_item = representations_model.currentItem()
 
-        asset_item = assets_model.currentItem()
+        if representation_item is None:
+            return
 
-        for subset_item in subsets_model.selectedItems():
+        document = representation_item.data(DocumentRole)
 
-            if subset_item is None:
-                return
+        try:
+            api.registered_host().load(representation=document["_id"])
 
-            asset = asset_item.data(AssetRole)
-            subset = subset_item.data(SubsetRole)
-            assert asset
-            assert subset
+        except ValueError as e:
+            self.echo(e)
+            raise
 
-            try:
-                api.registered_host().load(asset, subset)
+        except NameError as e:
+            self.echo(e)
+            raise
 
-            except ValueError as e:
-                self.echo(e)
-                raise
-
-            except NameError as e:
-                self.echo(e)
-                raise
-
-            # Catch-all
-            except Exception as e:
-                self.echo("Program error: %s" % str(e))
-                raise
+        # Catch-all
+        except Exception as e:
+            self.echo("Program error: %s" % str(e))
+            raise
 
         if autoclose_checkbox.checkState():
             self.close()
@@ -321,9 +320,20 @@ def show(root=None, debug=False):
 
     """
 
-    if self._window:
-        self._window.close()
-        del(self._window)
+    uri = os.environ["MINDBENDER_MONGO"]
+    client = pymongo.MongoClient(uri)
+    database = client["mindbender"]
+    collection = database["assets"]
+
+    assert client.server_info()
+    print(client.server_info())
+
+    module.io = collection
+
+    try:
+        module.window.close()
+    except (RuntimeError, AttributeError):
+        pass
 
     try:
         widgets = QtWidgets.QApplication.topLevelWidgets()
@@ -332,16 +342,10 @@ def show(root=None, debug=False):
     except KeyError:
         parent = None
 
-    # Debug fixture
-    fixture = api.fixture(assets=["Ryan",
-                                  "Strange",
-                                  "Blonde_model"])
+    with lib.application():
+        window = Window(parent)
+        window.show()
 
-    with fixture if debug else lib.dummy():
-        with lib.application():
-            window = Window(parent)
-            window.show()
+        window.refresh()
 
-            window.refresh()
-
-            self._window = window
+        module.window = window

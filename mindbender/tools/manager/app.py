@@ -1,17 +1,17 @@
 import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import api, schema
+from ... import api, io
 from .. import lib
-
 
 self = sys.modules[__name__]
 self._window = None
 
 # Custom roles
 ContainerRole = QtCore.Qt.UserRole + 1
-VersionRole = QtCore.Qt.UserRole + 2
-ResultRole = QtCore.Qt.UserRole + 3
+SubsetRole = QtCore.Qt.UserRole + 2
+VersionRole = QtCore.Qt.UserRole + 3
+RepresentationRole = QtCore.Qt.UserRole + 4
 
 
 class Window(QtWidgets.QDialog):
@@ -190,41 +190,37 @@ class Window(QtWidgets.QDialog):
         if container is None:
             return
 
-        for asset in api.ls(silos=[container["silo"]]):
-            if asset["name"] != container["asset"]:
-                continue
+        current_representation = io.find_one({
+            "_id": io.ObjectId(container["representation"])
+        })
 
-            for subset in asset["subsets"]:
-                if subset["name"] != container["subset"]:
-                    continue
+        current_version = io.find_one({
+            "_id": current_representation["parent"]
+        })
 
-                for version in sorted(subset["versions"], reverse=True):
-                    name = api.format_version(version["version"])
-                    item = QtWidgets.QListWidgetItem(name)
+        current_subset = io.find_one({
+            "_id": current_version["parent"]
+        })
 
-                    item.setData(QtCore.Qt.ItemIsEnabled, True)
-                    item.setData(VersionRole, version)
+        all_versions = io.find({
+            "type": "version",
+            "parent": current_subset["_id"]
+        })
 
-                    versions_model.addItem(item)
+        for version in sorted(all_versions,
+                              key=lambda v: v["name"],
+                              reverse=True):
 
-                    # Indicate which model is currently loaded.
-                    if version["version"] == container["version"]:
-                        versions_model.setCurrentItem(item)
+            item = QtWidgets.QListWidgetItem("v%03d" % version["name"])
+            item.setData(QtCore.Qt.ItemIsEnabled, True)
+            item.setData(VersionRole, version)
+            item.setData(SubsetRole, current_subset)
 
-                    # Create data ready for `host.load()`
-                    result = {
-                        "schema": "mindbender-core:result-1.0",
-                        "asset": asset,
-                        "subset": subset,
-                        "version": version,
-                        "representation": None
-                    }
+            versions_model.addItem(item)
 
-                    # Make sure the data we make is coherent
-                    # with its corresponding schema.
-                    schema.validate(result, "result")
-
-                    item.setData(ResultRole, result)
+            # Indicate which model is currently loaded.
+            if current_version["name"] == version["name"]:
+                versions_model.setCurrentItem(item)
 
     def on_versionschanged(self, *args):
         load = self.data["button"]["load"]
@@ -240,22 +236,23 @@ class Window(QtWidgets.QDialog):
 
         container = container_item.data(ContainerRole)
         version = version_item.data(VersionRole)
-        transition = "'%s' from version %s -> %s" % (
-            container["name"],
-            container["version"],
-            version["version"]
+        message = "'{0[name]}' from version {0[version]} -> {1[name]}".format(
+            container, version
         )
 
-        if container["version"] == version["version"]:
+        if container["version"] == version["name"]:
             load.hide()
 
-        elif container["version"] > version["version"]:
-            load.setText("Downgrade %s" % transition)
+        elif container["version"] > version["name"]:
+            load.setText("Downgrade %s" % message)
             load.show()
 
         else:
-            load.setText("Upgrade %s" % transition)
+            load.setText("Upgrade %s" % message)
             load.show()
+
+        # Temporarily disable loading.
+        load.hide()
 
     def refresh(self):
         """Load containers from disk and add them to a QListView
@@ -330,23 +327,18 @@ class Window(QtWidgets.QDialog):
         version_item = versions_model.currentItem()
 
         container = container_item.data(ContainerRole)
-        result = version_item.data(ResultRole)
+        version = version_item.data(VersionRole)
 
         try:
             print(
-                "Loading version"
-                "{version[version]} of "
-                "'{asset[name]}/{subset[name]}'"
-                .format(**result)
+                "Updating {container} to '{version}'"
+                .format(container=container["name"],
+                        version=version["name"])
             )
 
             api.registered_host().update(
                 container=container,
-                # asset=result["asset"],
-                # subset=result["subset"],
-
-                # Version is not an object, but the integer number
-                version=result["version"]["version"]
+                version=version["name"]
             )
 
         except ValueError as e:
@@ -423,19 +415,13 @@ def show(root=None, debug=False):
         for container in containers:
             yield container
 
-    # Debug fixture
-    fixture = api.fixture(assets=["Bruce"],
-                          subsets=["modelDefault", "rigDefault"],
-                          versions=4)
+    with lib.application():
+        window = Window(
+            ls=debug_ls if debug else api.registered_host().ls,
+            parent=parent
+        )
 
-    with fixture if debug else lib.dummy():
-        with lib.application():
-            window = Window(
-                ls=debug_ls if debug else api.registered_host().ls,
-                parent=parent
-            )
+        window.show()
+        window.refresh()
 
-            window.show()
-            window.refresh()
-
-            self._window = window
+        self._window = window
