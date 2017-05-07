@@ -349,9 +349,6 @@ def _parse_bat(root):
                 try:
                     value = json.loads(value)
                     value = int(value)
-                except json.decoder.JSONDecodeError:
-                    # Value wasn't enclosed in ""
-                    pass
                 except ValueError:
                     # Value wasn't an integer
                     pass
@@ -426,16 +423,27 @@ def extract(root=None, prefix=""):
                     except IOError:
                         continue
 
-                    version_obj = {
-                        "schema": "mindbender-core:version-2.0",
-                        "name": int(os.path.basename(version)[1:]),
-                        "families": metadata["families"],
-                        "author": metadata["author"],
-                        "source": metadata["source"],
-                        "time": metadata["time"],
-                        "type": "version",
-                        "children": list(),
-                    }
+                    try:
+                        number = int(os.path.basename(version)[1:])
+                    except ValueError:
+                        # Directory not compatible with pipeline
+                        # E.g. 001_mySpecialVersion
+                        continue
+
+                    try:
+                        version_obj = {
+                            "schema": "mindbender-core:version-2.0",
+                            "name": number,
+                            "families": metadata["families"],
+                            "author": metadata["author"],
+                            "source": metadata["source"],
+                            "time": metadata["time"],
+                            "type": "version",
+                            "children": list(),
+                        }
+                    except KeyError:
+                        # Metadata not compatible with pipeline
+                        continue
 
                     subset_obj["children"].append(version_obj)
 
