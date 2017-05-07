@@ -11,14 +11,22 @@ class AnimationLoader(api.Loader):
 
     families = ["mindbender.animation"]
 
-    def process(self, asset, subset, version, representation):
+    def process(self, project, asset, subset, version, representation):
 
         cmds.loadPlugin("AbcImport.mll", quiet=True)
 
-        fname = representation["path"].format(
-            dirname=version["path"].format(root=api.registered_root()),
-            format=representation["format"]
-        )
+        template = project["template"]["publish"]
+        data = {
+            "root": api.registered_root(),
+            "project": project["name"],
+            "asset": asset["name"],
+            "silo": asset["silo"],
+            "subset": subset["name"],
+            "version": version["name"],
+            "representation": representation["name"].strip("."),
+        }
+
+        fname = template.format(**data)
 
         name = subset["name"]
         namespace = subset["name"] + "_"

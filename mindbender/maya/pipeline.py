@@ -6,7 +6,7 @@ import pyblish.api
 from maya import cmds, OpenMaya
 
 from . import lib
-from .. import api
+from .. import api, io
 from ..vendor.Qt import QtCore, QtWidgets
 
 self = sys.modules[__name__]
@@ -216,87 +216,39 @@ def ls():
             **lib.read(container)
         )
 
-        api.schema.validate(data, "container")
+        # api.schema.validate(data, "container")
 
         yield data
 
 
-def load(asset, subset, version=None, representation=None):
-    """Load data into Maya
+def load(representation):
+    """Load asset via database
 
     Arguments:
-        asset ("mindbender-core:asset-1.0"): Asset which to import
-        subset ("mindbender-core:subset-1.0"): Subset within Asset to import
-        version ("mindbender-core:version-1.0", optional): Defaults to
-            latest version.
-        representation ("mindbender-core:representation-1.0", optional):
-            File format, e.g. `.ma`, `.obj`, `.exr`. String may also
-            be provided.
-
-    Returns:
-        Newly created objects
-
-    Raises:
-        IndexError on no version found
-        ValueError on no supported representation
+        representation (bson.objectid.ObjectId): Address to representation
 
     """
 
-    assert asset["schema"] == "mindbender-core:asset-1.0"
-    assert subset["schema"] == "mindbender-core:subset-1.0"
-
-    try:
-        if isinstance(version, dict):
-            pass
-
-        elif version is None:
-            # Not passing a version retusn last
-            version = subset["versions"][-1]
-
-        else:
-            # Find the version matching the provided number
-            version = next(
-                v for v in subset["versions"]
-                if v["version"] == version
-            )
-
-    except (IndexError, StopIteration):
-        raise IndexError("\"%s\" of \"%s\" not found." % (version, subset))
-
-    try:
-        supported_formats = api.registered_formats()
-
-        representation = next(
-            rep for rep in version["representations"]
-            if rep["format"] == representation or
-            rep["format"] in supported_formats
-        )
-
-    except StopIteration:
-        formats = list(r["format"] for r in version["representations"])
-        raise ValueError(
-            "No supported representations.\n\n"
-            "Available representations:\n%s\n\n"
-            "Supported representations:\n%s"
-            % ("\n- ".join(formats),
-               "\n- ".join(supported_formats))
-        )
+    representation = io.find_one({"_id": representation})
+    version = io.find_one({"_id": representation["parent"]})
+    subset = io.find_one({"_id": version["parent"]})
+    asset = io.find_one({"_id": subset["parent"]})
+    project = io.find_one({"_id": asset["parent"]})
 
     for Loader in api.discover_loaders():
-        for family in version.get("families", list()):
-            if family in Loader.families:
-                print("Running '%s' on '%s'" % (
-                    Loader.__name__, asset["name"]))
+        if not any(family in Loader.families
+                   for family in version.get("families", list)):
+            continue
 
-                return Loader().process(
-                    asset=asset,
-                    subset=subset,
-                    version=version,
-                    representation=representation,
-                )
+        print("Running '%s' on '%s'" % (Loader.__name__, asset["name"]))
 
-    raise ValueError("No loader triggered, check your "
-                     "api.registered_loaders_path()")
+        return Loader().process(
+            project=project,
+            asset=asset,
+            subset=subset,
+            version=version,
+            representation=representation,
+        )
 
 
 def create(name, family, options=None):
@@ -387,55 +339,31 @@ def update(container, version=-1):
     assert reference_node, ("Imported container not supported; "
                             "container must be referenced.")
 
-    asset = None
-    subset = None
-    version_ = None
-    representation = None
+    representation = io.find_one({
+        "_id": io.ObjectId(container["representation"])
+    })
 
-    for asset in api.ls(silos=[container["silo"]]):
-        if asset["name"] != container["asset"]:
-            continue
+    assert representation is not None, "This is a bug"
 
-        for subset in asset["subsets"]:
-            if subset["name"] != container["subset"]:
-                continue
+    version, subset, asset, project = io.parenthood(representation)
 
-            try:
-                version_ = subset["versions"][version - 1]
-            except IndexError:
-                raise IndexError("Version '%s' does not exist." % version)
+    new_version = io.find({
+        "type": "version",
+        "parent": subset["_id"],
+        "name": version,
+    })
 
-            for representation in version_["representations"]:
-                if representation["format"] == container["representation"]:
-                    break
+    assert new_version is not None, "This is a bug"
 
-            if subset["name"] == container["subset"]:
-                break
-
-        if asset["name"] == container["asset"]:
-            break
-
-    assert all([asset, subset, version_, representation]), (
-        "Could not fully qualify container in available assets.\n"
-        "This is a bug.\n"
-        "\n"
-        "Data\n"
-        "asset: %s\n"
-        "subset: %s\n"
-        "version: %s\n"
-        "representation: %s\n" % (asset, subset, version_, representation)
-    )
-
-    fname = representation["path"].format(
-        dirname=version_["path"].format(root=api.registered_root()),
-        format=representation["format"]
-    )
+    template_publish = project["template"]["publish"]
 
     file_type = {
-        ".ma": "mayaAscii",
-        ".mb": "mayaBinary",
-        ".abc": "Alembic"
-    }.get(representation["format"])
+        "ma": "mayaAscii",
+        "mb": "mayaBinary",
+        "abc": "Alembic"
+    }.get(representation["name"])
+
+
 
     assert file_type, ("Unsupported representation: %s" % representation)
 
