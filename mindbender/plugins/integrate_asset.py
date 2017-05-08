@@ -229,6 +229,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
 
         import os
         import json
+        import errno
         from mindbender import api
 
         context = instance.context
@@ -247,6 +248,13 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
 
         root = os.getenv("MINDBENDER_ASSETPATH")
         instancedir = os.path.join(root, "publish", instance.data["subset"])
+
+        try:
+            os.makedirs(instancedir)
+        except OSError as e:
+            if e.errno != errno.EEXIST:  # Already exists
+                self.log.critical("An unexpected error occurred.")
+                raise
 
         latest_version = api.find_latest_version(os.listdir(instancedir)) + 1
         versiondir = os.path.join(
