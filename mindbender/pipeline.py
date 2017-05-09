@@ -404,7 +404,7 @@ def default_host():
     def ls():
         return list()
 
-    def load(asset, subset, version=-1, representation=None):
+    def load(representation=None):
         return None
 
     def create(name, family, nodes=None):
@@ -425,26 +425,25 @@ def default_host():
 
 def debug_host():
     """A debug host, useful to debugging features that depend on a host"""
+    from pprint import pformat
+
     host = types.ModuleType("debugHost")
 
     def ls():
         return list()
 
-    def load(asset, subset, version=-1, representation=None):
-        sys.stdout.write(json.dumps({
-            "asset": asset,
-            "subset": subset,
-            "version": version,
+    def load(representation=None):
+        sys.stdout.write(pformat({
             "representation": representation
-        }, indent=4) + "\n"),
+        }) + "\n"),
 
         return None
 
     def create(name, family, options=None):
-        sys.stdout.write(json.dumps({
+        sys.stdout.write(pformat({
             "name": name,
             "family": family,
-        }, indent=4))
+        }))
         return "instanceFromDebugHost"
 
     def update(container, version=-1):
