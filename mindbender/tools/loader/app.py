@@ -2,16 +2,11 @@ import os
 import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import api
+from ... import api, io
 from .. import lib
-
-# Third-party dependencies
-import pymongo
-from bson.objectid import ObjectId
 
 module = sys.modules[__name__]
 module.window = None
-module.io = None
 module.root = api.registered_root()
 module.project = os.getenv("MINDBENDER_PROJECT")
 
@@ -142,7 +137,7 @@ class Window(QtWidgets.QDialog):
 
         has = {"children": False}
 
-        project = ObjectId(os.environ["MINDBENDER__PROJECT"])
+        project = io.ObjectId(os.environ["MINDBENDER__PROJECT"])
         for asset in module.io.find({"type": "asset", "parent": project}):
             item = QtWidgets.QListWidgetItem(asset["name"])
             item.setData(QtCore.Qt.ItemIsEnabled, True)
@@ -320,18 +315,9 @@ def show(root=None, debug=False):
 
     """
 
-    uri = os.environ["MINDBENDER_MONGO"]
-    client = pymongo.MongoClient(uri)
-    database = client["mindbender"]
-    collection = database["assets"]
-
-    assert client.server_info()
-    print(client.server_info())
-
-    module.io = collection
-
     try:
         module.window.close()
+        del module.window
     except (RuntimeError, AttributeError):
         pass
 
@@ -341,6 +327,11 @@ def show(root=None, debug=False):
         parent = widgets["MayaWindow"]
     except KeyError:
         parent = None
+
+    if debug:
+        io.install()
+        project = io.find_one({"type": "project", "name": "hulk"})
+        os.environ["MINDBENDER__PROJECT"] = str(project["_id"])
 
     with lib.application():
         window = Window(parent)
