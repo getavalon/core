@@ -135,7 +135,6 @@ def _register_data():
     # Default Instance data
     # All newly created instances will be imbued with these members.
     api.register_data(key="id", value="pyblish.mindbender.instance")
-    api.register_data(key="name", value="{name}")
     api.register_data(key="subset", value="{name}")
     api.register_data(key="family", value="{family}")
 
