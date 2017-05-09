@@ -138,7 +138,8 @@ class Window(QtWidgets.QDialog):
         has = {"children": False}
 
         project = io.ObjectId(os.environ["MINDBENDER__PROJECT"])
-        for asset in module.io.find({"type": "asset", "parent": project}):
+        assets = module.io.find({"type": "asset", "parent": project})
+        for asset in sorted(assets, key=lambda i: i["name"]):
             item = QtWidgets.QListWidgetItem(asset["name"])
             item.setData(QtCore.Qt.ItemIsEnabled, True)
             item.setData(DocumentRole, asset)
