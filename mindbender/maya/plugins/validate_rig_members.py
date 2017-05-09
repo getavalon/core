@@ -36,7 +36,7 @@ class ValidateMindbenderRigFormat(pyblish.api.InstancePlugin):
         # or meshes without and ID
         missing = list()
 
-        for node in cmds.sets("out_SET", query=True):
+        for node in cmds.sets("out_SET", query=True) or list():
 
             # Only check transforms with shapes that are meshes
             shapes = cmds.listRelatives(node, shapes=True) or list()
