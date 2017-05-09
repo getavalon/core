@@ -4,8 +4,8 @@ from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io
 from .. import lib
 
-self = sys.modules[__name__]
-self._window = None
+module = sys.modules[__name__]
+module.window = None
 
 # Custom roles
 ContainerRole = QtCore.Qt.UserRole + 1
@@ -40,10 +40,11 @@ class Window(QtWidgets.QDialog):
 
     """
 
-    def __init__(self, ls, parent=None):
+    def __init__(self, parent=None):
         super(Window, self).__init__(parent)
         self.setWindowTitle("Container Manager")
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         body = QtWidgets.QWidget()
         footer = QtWidgets.QWidget()
@@ -63,7 +64,6 @@ class Window(QtWidgets.QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
 
         autoclose_checkbox = QtWidgets.QCheckBox("Auto-close")
-        autoclose_checkbox.setCheckState(QtCore.Qt.Checked)
         layout.addWidget(autoclose_checkbox, 1, 0)
 
         layout = QtWidgets.QVBoxLayout(body)
@@ -99,7 +99,6 @@ class Window(QtWidgets.QDialog):
         layout.addWidget(footer)
         layout.addWidget(statusbar)
 
-        self.ls = ls
         self.data = {
 
             # Is the user working with the container,
@@ -251,9 +250,6 @@ class Window(QtWidgets.QDialog):
             load.setText("Upgrade %s" % message)
             load.show()
 
-        # Temporarily disable loading.
-        load.hide()
-
     def refresh(self):
         """Load containers from disk and add them to a QListView
 
@@ -270,7 +266,7 @@ class Window(QtWidgets.QDialog):
 
         has = {"containers": False}
 
-        for container in self.ls():
+        for container in api.registered_host().ls():
             has["containers"] = True
 
             name = "{name}\t({subset})".format(**container)
@@ -381,9 +377,11 @@ def show(root=None, debug=False):
 
     """
 
-    if self._window:
-        self._window.close()
-        del(self._window)
+    try:
+        module.window.close()
+        del module.window
+    except (RuntimeError, AttributeError):
+        pass
 
     try:
         widgets = QtWidgets.QApplication.topLevelWidgets()
@@ -392,36 +390,12 @@ def show(root=None, debug=False):
     except KeyError:
         parent = None
 
-    def debug_ls():
-        containers = [
-            {
-                "schema": "mindbender-core:container-1.0",
-                "name": "Bruce01",
-                "asset": "Bruce",
-                "subset": "rigDefault",
-                "version": 3,
-                "silo": "assets",
-            },
-            {
-                "schema": "mindbender-core:container-1.0",
-                "name": "Bruce02",
-                "asset": "Bruce",
-                "subset": "modelDefault",
-                "version": 2,
-                "silo": "assets",
-            }
-        ]
-
-        for container in containers:
-            yield container
+    if debug is True:
+        io.install()
 
     with lib.application():
-        window = Window(
-            ls=debug_ls if debug else api.registered_host().ls,
-            parent=parent
-        )
-
+        window = Window(parent=parent)
         window.show()
         window.refresh()
 
-        self._window = window
+        module.window = window

@@ -430,7 +430,27 @@ def debug_host():
     host = types.ModuleType("debugHost")
 
     def ls():
-        return list()
+        containers = [
+            {
+                "schema": "mindbender-core:container-1.0",
+                "name": "Bruce01",
+                "asset": "Bruce",
+                "subset": "rigDefault",
+                "version": 3,
+                "silo": "assets",
+            },
+            {
+                "schema": "mindbender-core:container-1.0",
+                "name": "Bruce02",
+                "asset": "Bruce",
+                "subset": "modelDefault",
+                "version": 2,
+                "silo": "assets",
+            }
+        ]
+
+        for container in containers:
+            yield container
 
     def load(representation=None):
         sys.stdout.write(pformat({

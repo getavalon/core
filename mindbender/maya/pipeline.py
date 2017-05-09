@@ -344,17 +344,32 @@ def update(container, version=-1):
 
     assert representation is not None, "This is a bug"
 
-    version, subset, asset, project = io.parenthood(representation)
+    version_, subset, asset, project = io.parenthood(representation)
 
-    new_version = io.find({
-        "type": "version",
-        "parent": subset["_id"],
-        "name": version,
-    })
+    if version == -1:
+        new_version = io.find_one({
+            "type": "version",
+            "parent": subset["_id"]
+        }, sort=[("name", -1)])
+    else:
+        new_version = io.find_one({
+            "type": "version",
+            "parent": subset["_id"],
+            "name": version,
+        })
 
     assert new_version is not None, "This is a bug"
 
     template_publish = project["template"]["publish"]
+    fname = template_publish.format(**{
+        "root": api.registered_root(),
+        "project": project["name"],
+        "asset": asset["name"],
+        "silo": asset["silo"],
+        "subset": subset["name"],
+        "version": new_version["name"],
+        "representation": representation["name"].strip("."),
+    })
 
     file_type = {
         "ma": "mayaAscii",
@@ -362,26 +377,14 @@ def update(container, version=-1):
         "abc": "Alembic"
     }.get(representation["name"])
 
-
-
     assert file_type, ("Unsupported representation: %s" % representation)
-
-    print("Grading '{name}' from '{from_}' to '{to_}' with '{fname}'".format(
-        name=container["name"],
-        from_=container["version"],
-        to_=version,
-        fname=fname
-    ))
 
     cmds.file(fname, loadReference=reference_node, type=file_type)
 
     # Update metadata
-    cmds.setAttr(container["objectName"] + ".version", version_["version"])
-    cmds.setAttr(container["objectName"] + ".path",
-                 version_["path"],
-                 type="string")
+    cmds.setAttr(container["objectName"] + ".version", new_version["name"])
     cmds.setAttr(container["objectName"] + ".source",
-                 version_["source"],
+                 new_version["source"],
                  type="string")
 
 
