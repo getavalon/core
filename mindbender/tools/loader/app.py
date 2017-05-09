@@ -12,6 +12,7 @@ module.project = os.getenv("MINDBENDER_PROJECT")
 
 # Custom roles
 DocumentRole = QtCore.Qt.UserRole + 1
+RepresentationsRole = QtCore.Qt.UserRole + 2
 
 
 class Window(QtWidgets.QDialog):
@@ -38,9 +39,7 @@ class Window(QtWidgets.QDialog):
         representations = QtWidgets.QListWidget()
 
         # Enable loading many subsets at once
-        # subsets.setSelectionMode(subsets.ExtendedSelection)
-        # versions.setSelectionMode(subsets.ExtendedSelection)
-        # representations.setSelectionMode(subsets.ExtendedSelection)
+        subsets.setSelectionMode(subsets.ExtendedSelection)
 
         layout = QtWidgets.QHBoxLayout(container)
         layout.addWidget(assets)
@@ -109,7 +108,7 @@ class Window(QtWidgets.QDialog):
         stop_button.clicked.connect(self.on_stop_pressed)
         refresh_button.clicked.connect(self.on_refresh_pressed)
         assets.currentItemChanged.connect(self.on_assetschanged)
-        subsets.currentItemChanged.connect(self.on_subsetschanged)
+        subsets.itemSelectionChanged.connect(self.on_subsetschanged)
         versions.currentItemChanged.connect(self.on_versionschanged)
         representations.currentItemChanged.connect(
             self.on_representationschanged)
@@ -138,7 +137,7 @@ class Window(QtWidgets.QDialog):
         has = {"children": False}
 
         project = io.ObjectId(os.environ["MINDBENDER__PROJECT"])
-        assets = module.io.find({"type": "asset", "parent": project})
+        assets = io.find({"type": "asset", "parent": project})
         for asset in sorted(assets, key=lambda i: i["name"]):
             item = QtWidgets.QListWidgetItem(asset["name"])
             item.setData(QtCore.Qt.ItemIsEnabled, True)
@@ -175,8 +174,8 @@ class Window(QtWidgets.QDialog):
 
         has = {"children": False}
 
-        for child in module.io.find({"type": "subset",
-                                     "parent": document["_id"]}):
+        for child in io.find({"type": "subset",
+                              "parent": document["_id"]}):
             item = QtWidgets.QListWidgetItem(child["name"])
             item.setData(QtCore.Qt.ItemIsEnabled, True)
             item.setData(DocumentRole, child)
@@ -194,28 +193,30 @@ class Window(QtWidgets.QDialog):
 
         versions_model.clear()
 
-        subset_item = subsets_model.currentItem()
-
-        # The model is empty
-        if subset_item is None:
-            return
-
-        document = subset_item.data(DocumentRole)
-
-        has = {"children": False}
-
-        for child in module.io.find({"type": "version",
-                                     "parent": document["_id"]}):
-            item = QtWidgets.QListWidgetItem("v%03d" % child["name"])
-            item.setData(QtCore.Qt.ItemIsEnabled, True)
-            item.setData(DocumentRole, child)
-            versions_model.addItem(item)
-            has["children"] = True
-
-        if not has["children"]:
-            item = QtWidgets.QListWidgetItem("No versions found")
+        if len(subsets_model.selectedItems()) > 1:
+            item = QtWidgets.QListWidgetItem("Latest")
             item.setData(QtCore.Qt.ItemIsEnabled, False)
             versions_model.addItem(item)
+            versions_model.setCurrentItem(item)
+
+        else:
+            subset_item = subsets_model.currentItem()
+            document = subset_item.data(DocumentRole)
+
+            has = {"children": False}
+
+            for child in io.find({"type": "version",
+                                  "parent": document["_id"]}):
+                item = QtWidgets.QListWidgetItem("v%03d" % child["name"])
+                item.setData(QtCore.Qt.ItemIsEnabled, True)
+                item.setData(DocumentRole, child)
+                versions_model.addItem(item)
+                has["children"] = True
+
+            if not has["children"]:
+                item = QtWidgets.QListWidgetItem("No versions found")
+                item.setData(QtCore.Qt.ItemIsEnabled, False)
+                versions_model.addItem(item)
 
     def on_versionschanged(self, *args):
         versions_model = self.data["model"]["versions"]
@@ -229,16 +230,43 @@ class Window(QtWidgets.QDialog):
         if version_item is None:
             return
 
-        document = version_item.data(DocumentRole)
+        representations = {}
+
+        if version_item.data(QtCore.Qt.DisplayRole) == "Latest":
+            subsets = self.data["model"]["subsets"].selectedItems()
+            subsets = list(item.data(DocumentRole) for item in subsets)
+
+            for subset in subsets:
+                latest_version = io.find_one({
+                    "type": "version",
+                    "parent": subset["_id"]
+                }, sort=[("name", -1)])
+
+                for representation in io.find({
+                        "type": "representation",
+                        "parent": latest_version["_id"]}):
+
+                    name = representation["name"]
+
+                    if name not in representations:
+                        representations[name] = list()
+
+                    representations[name].append(representation)
+
+        else:
+            document = version_item.data(DocumentRole)
+            representations = {
+                document["name"]: [document]
+                for document in io.find({"type": "representation",
+                                         "parent": document["_id"]})
+            }
 
         has = {"children": False}
 
-        for child in module.io.find({"type": "representation",
-                                     "parent": document["_id"]}):
-            label = child.get("label") or child["name"]
-            item = QtWidgets.QListWidgetItem(label)
+        for name, documents in representations.items():
+            item = QtWidgets.QListWidgetItem(name)
             item.setData(QtCore.Qt.ItemIsEnabled, True)
-            item.setData(DocumentRole, child)
+            item.setData(RepresentationsRole, documents)
             representations_model.addItem(item)
             has["children"] = True
 
@@ -263,37 +291,32 @@ class Window(QtWidgets.QDialog):
         self.data["state"]["running"] = False
 
     def on_load_pressed(self):
-        autoclose_checkbox = self.data["button"]["autoclose"]
-        button = self.data["button"]["load"]
-        if not button.isEnabled():
-            return
-
-        representations_model = self.data["model"]["representations"]
+        models = self.data["model"]
+        representations_model = models["representations"]
         representation_item = representations_model.currentItem()
 
         if representation_item is None:
             return
 
-        document = representation_item.data(DocumentRole)
+        for document in representation_item.data(RepresentationsRole):
+            try:
+                api.registered_host().load(representation=document["_id"])
 
-        try:
-            api.registered_host().load(representation=document["_id"])
+            except ValueError as e:
+                self.echo(e)
+                raise
 
-        except ValueError as e:
-            self.echo(e)
-            raise
+            except NameError as e:
+                self.echo(e)
+                raise
 
-        except NameError as e:
-            self.echo(e)
-            raise
+            # Catch-all
+            except Exception as e:
+                self.echo("Program error: %s" % str(e))
+                raise
 
-        # Catch-all
-        except Exception as e:
-            self.echo("Program error: %s" % str(e))
-            raise
-
-        if autoclose_checkbox.checkState():
-            self.close()
+            if self.data["button"]["autoclose"].checkState():
+                self.close()
 
     def echo(self, message):
         widget = self.data["label"]["message"]
