@@ -53,7 +53,8 @@ DEFAULTS = {
             "publish":
                 "{root}/{project}/{silo}/{asset}/publish/"
                 "{subset}/v{version:0>3}/{subset}.{representation}"
-        }
+        },
+        "copy": {}
     },
     "inventory": {
         "schema": "mindbender-core:inventory-1.0",
@@ -305,6 +306,17 @@ def extract(root, silos):
 
     """
 
+    def _dirs(path):
+        try:
+            for base, dirs, files in os.walk(path):
+                return list(
+                    os.path.join(base, dirname) for dirname in dirs
+                )
+        except IOError:
+            return list()
+
+        return list()
+
     name = os.path.basename(root)
 
     print("Generating project.json..")
@@ -455,23 +467,6 @@ def upload(root, overwrite=False):
     print("Successfully uploaded %s" % fname)
 
 
-def status(root):
-    """Print configuration and inventory from `root`"""
-    print(__doc__)
-
-
-def _dirs(path):
-    try:
-        for base, dirs, files in os.walk(path):
-            return list(
-                os.path.join(base, dirname) for dirname in dirs
-            )
-    except IOError:
-        return list()
-
-    return list()
-
-
 def _report(added, updated):
     if added:
         print("+ added:")
@@ -503,7 +498,7 @@ def _write(root, name, data):
 
     try:
         with open(fname, "w") as f:
-            data = toml.dump(data, f)
+            toml.dump(data, f)
             schema.validate(data)
     except IOError:
         raise
@@ -567,8 +562,7 @@ def _cli():
         print("Success!")
 
     else:
-        status(root=root)
-        print("Success!")
+        print(__doc__)
 
 
 if __name__ == '__main__':

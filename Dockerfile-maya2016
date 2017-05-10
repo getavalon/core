@@ -17,5 +17,5 @@ ENV PYTHONDONTWRITEBYTECODE=1
 WORKDIR /workspace
 
 ENTRYPOINT \
-	mayapy -u run_maya_tests.py && \
+	PYTHONPATH=$(pwd):$PYTHONPATH mayapy -u run_maya_tests.py && \
 	mayapy -c "from coveralls import wear;wear()"

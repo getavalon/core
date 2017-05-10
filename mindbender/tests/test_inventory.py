@@ -1,8 +1,13 @@
+import os
 import sys
 import copy
+import shutil
+import tempfile
+import subprocess
 import contextlib
 
 from mindbender import io, inventory, schema
+from mindbender.vendor import toml
 
 from nose.tools import (
     assert_equals,
@@ -60,9 +65,11 @@ self._inventory = {
 def setup():
     assert_equals.__self__.maxDiff = None
     io.install("test")
+    self._tempdir = tempfile.mkdtemp()
 
 
 def teardown():
+    shutil.rmtree(self._tempdir)
     io.drop()
 
 
@@ -188,8 +195,49 @@ def test_save_idempotent():
                   len(self._inventory["film"]))
 
 
-def test_cli():
-    pass
+@with_setup(clean)
+def test_cli_load():
+    """Loading from command-line works well"""
+
+    assert 0 == subprocess.call([
+        sys.executable, "-u", "-m", "mindbender.inventory", "--load"
+    ], cwd=self._tempdir)
+
+    with open(os.path.join(self._tempdir, ".inventory.toml")) as f:
+        inventory_ = toml.load(f)
+
+    with open(os.path.join(self._tempdir, ".config.toml")) as f:
+        config_ = toml.load(f)
+
+    schema.validate(inventory_)
+    schema.validate(config_)
+
+
+@with_setup(clean)
+def test_cli_load_overwrite():
+    """Loading when an existing inventory exists quietly overwrites it"""
+
+    assert 0 == subprocess.call([
+        sys.executable, "-u", "-m", "mindbender.inventory", "--load"
+    ], cwd=self._tempdir)
+
+    assert 0 == subprocess.call([
+        sys.executable, "-u", "-m", "mindbender.inventory", "--load"
+    ], cwd=self._tempdir)
+
+
+@with_setup(clean)
+def test_cli_save():
+    """Saving uploads inventory to database"""
+    with open(os.path.join(self._tempdir, ".inventory.toml"), "w") as f:
+        toml.dump(self._inventory, f)
+
+    with open(os.path.join(self._tempdir, ".config.toml"), "w") as f:
+        toml.dump(self._config, f)
+
+    assert 0 == subprocess.call([
+        sys.executable, "-u", "-m", "mindbender.inventory", "--save"
+    ], cwd=self._tempdir)
 
 
 @with_setup(clean)
@@ -254,3 +302,12 @@ def test_save_asset_data():
     asset = io.find_one({"type": "asset", "name": asset["name"]})
     print(asset)
     assert_equals(asset["data"]["key"], "value")
+
+
+@with_setup(clean)
+def test_load_without_project():
+    """Loading without an active project yields defaults"""
+
+    config_, inventory_ = inventory.load(PROJECT_NAME)
+    assert_equals(config_, inventory.DEFAULTS["config"])
+    assert_equals(inventory_, inventory.DEFAULTS["inventory"])
