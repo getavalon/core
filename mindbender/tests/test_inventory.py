@@ -1,4 +1,5 @@
 import sys
+import copy
 import contextlib
 
 from mindbender import io, inventory, schema
@@ -214,3 +215,42 @@ def test_load():
     _config, _inventory = inventory.load(PROJECT_NAME)
     schema.validate(_config)
     schema.validate(_inventory)
+
+
+@with_setup(clean)
+def test_save_project_data():
+    """The inventory can take (plain) project data as well"""
+
+    inventory_ = copy.deepcopy(self._inventory)
+    inventory_["key"] = "value"
+
+    inventory.save(
+        name=self._project["name"],
+        config=self._config,
+        inventory=inventory_
+    )
+
+    project = io.find_one({"type": "project", "name": PROJECT_NAME})
+    assert_equals(project["data"]["key"], "value")
+
+
+@with_setup(clean)
+def test_save_asset_data():
+    """The inventory can take asset data as well"""
+
+    inventory_ = copy.deepcopy(self._inventory)
+
+    asset = inventory_["assets"][0]
+    asset.update({
+        "key": "value"
+    })
+
+    inventory.save(
+        name=self._project["name"],
+        config=self._config,
+        inventory=inventory_
+    )
+
+    asset = io.find_one({"type": "asset", "name": asset["name"]})
+    print(asset)
+    assert_equals(asset["data"]["key"], "value")
