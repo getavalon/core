@@ -16,8 +16,7 @@ import pyblish_maya
 import pyblish.api
 import pyblish.util
 
-from mindbender import api, maya, io, inventory
-from mindbender.vendor import toml
+from mindbender import api, maya, io, inventory, schema
 
 from nose.tools import (
     with_setup
@@ -27,66 +26,55 @@ PROJECT_NAME = "hulk"
 ASSET_NAME = "Bruce"
 
 self = sys.modules[__name__]
-self.tempdir = None
-
-self._inventory = """\
-schema = "mindbender-core:inventory-1.0"
-
-[assets.%s]
-label = "Bruce Wayne"
-""" % ASSET_NAME
-
-self._config = """\
-schema = "mindbender-core:config-1.0"
-
-[metadata]
-name = "%s"
-fps = 25
-resolution_width = 1920
-resolution_height = 1080
-label = "The Hulk"
-
-[template]
-work = "{root}/{project}/{silo}/{asset}/work/{task}/{user}/{app}"
-publish = "{root}/{project}/{silo}/{asset}/publish/{subset}/v{version:0>3}/{subset}.{representation}"
-
-[apps.maya2016]
-label = "Autodesk Maya 2016"
-
-[apps.nuke10]
-label = "The Foundry Nuke 10.0"
-
-[tasks.modeling]
-[tasks.animation]
-[tasks.rigging]
-[tasks.lighting]
-[tasks.lookdev]
-[tasks.layout]
-""" % PROJECT_NAME
+self._tempdir = None
+self._config = {
+    "schema": "mindbender-core:config-1.0",
+    "apps": [
+        {"name": "app1"},
+    ],
+    "tasks": [
+        {"name": "task1"},
+    ],
+    "template": {
+        "work":
+            "{root}/{project}/{silo}/{asset}/work/"
+            "{task}/{user}/{app}",
+        "publish":
+            "{root}/{project}/{silo}/{asset}/publish/"
+            "{subset}/v{version:0>3}/{subset}.{representation}"
+    },
+    "copy": {}
+}
+self._inventory = {
+    "schema": "mindbender-core:inventory-1.0",
+    "assets": [
+        {"name": ASSET_NAME},
+    ],
+    "film": []
+}
 
 
 def setup():
     pyblish_maya.setup()
     api.install(maya)
+    io.install("test")
 
-    io.install(collection="test")
+    self._tempdir = tempfile.mkdtemp()
+    api.register_root(self._tempdir)
 
-    self.tempdir = tempfile.mkdtemp()
+    schema.validate(self._config)
+    schema.validate(self._inventory)
 
-    with open(os.path.join(self.tempdir, ".inventory.toml"), "w") as f:
-        toml.dump(toml.loads(self._inventory), f)
-
-    with open(os.path.join(self.tempdir, ".config.toml"), "w") as f:
-        toml.dump(toml.loads(self._config), f)
-
-    inventory.save(self.tempdir)
-    api.register_root(self.tempdir)
+    inventory.save(
+        name=PROJECT_NAME,
+        config=self._config,
+        inventory=self._inventory
+    )
 
     project = io.find_one({
         "type": "project",
         "name": PROJECT_NAME
     })
-
     asset = io.find_one({
         "type": "asset",
         "parent": project["_id"],
@@ -96,32 +84,72 @@ def setup():
     # Setup environment
     os.environ["MINDBENDER__PROJECT"] = str(project["_id"])
     os.environ["MINDBENDER__ASSET"] = str(asset["_id"])
+    os.environ["MINDBENDER_PROJECT"] = PROJECT_NAME
     os.environ["MINDBENDER_ASSET"] = asset["name"]
-    os.environ["MINDBENDER_ASSETPATH"] = os.path.join(
-        self.tempdir,
-        "assets",
-        ASSET_NAME
-    )
+    os.environ["MINDBENDER_ASSETPATH"] = (
+        "{root}/{project}/{silo}/{asset}".format(
+            root=api.registered_root(),
+            project=PROJECT_NAME,
+            asset=ASSET_NAME,
+            silo="assets"
+        ))
     os.environ["MINDBENDER_SILO"] = "assets"
-
-    print(list(io.find({})))
 
 
 def teardown():
     pyblish_maya.teardown()
     api.uninstall()
-
-    shutil.rmtree(self.tempdir)
-
     io.drop()
+
+    shutil.rmtree(self._tempdir)
 
 
 def clear():
-    shutil.rmtree(self.tempdir)
-    self.tempdir = tempfile.mkdtemp()
+    shutil.rmtree(self._tempdir)
+    self._tempdir = tempfile.mkdtemp()
 
     cmds.file(new=True, force=True)
     cmds.file(rename="temp.ma")
+
+
+def publish(silent=True):
+    context = pyblish.util.publish()
+
+    header = "{:<10}{:<40} -> {}".format("Success", "Plug-in", "Instance")
+    result = "{success:<10}{plugin.__name__:<40} -> {instance}"
+    error = "{:<10}+-- EXCEPTION: {:<70} line {:<20}"
+    record = "{:<10}+-- {level}: {message:<70}"
+
+    results = list()
+    for r in context.data["results"]:
+        # Format summary
+        results.append(result.format(**r))
+
+        # Format log records
+        for lr in r["records"]:
+            results.append(
+                record.format(
+                    "",
+                    level=lr.levelname,
+                    message=lr.msg))
+
+        # Format exception (if any)
+        if r["error"]:
+            _, line, _, _ = r["error"].traceback
+            results.append(error.format("", r["error"], line))
+
+    report = """
+{header}
+{line}
+{results}
+    """
+
+    if not silent:
+        print(report.format(header=header,
+                            results="\n".join(results),
+                            line="-" * 70))
+
+    return context
 
 
 @with_setup(clear)
@@ -138,12 +166,14 @@ def test_modeling():
     # Comply with save validator
     cmds.file(save=True)
 
-    pyblish.util.publish()
+    publish()
 
     asset = io.find_one({
         "type": "asset",
         "name": ASSET_NAME
     })
+
+    assert asset
 
     subset = io.find_one({
         "parent": asset["_id"],
@@ -151,11 +181,14 @@ def test_modeling():
         "name": "modelDefault"
     })
 
+    assert subset
+
     version = io.find_one({
         "parent": subset["_id"],
         "type": "version",
-        "name": 1
     })
+
+    assert version
 
     assert io.find_one({
         "parent": version["_id"],
@@ -183,8 +216,6 @@ def test_alembic_export():
                          attribute="visibility",
                          value=value)
 
-    cmds.group(name="ROOT")
-
     maya.create(
         "animationDefault",
         family="mindbender.animation",
@@ -193,7 +224,7 @@ def test_alembic_export():
 
     cmds.file(save=True)
 
-    pyblish.util.publish()
+    publish()
 
     # Import and test result
     cmds.file(new=True, force=True)
@@ -215,6 +246,8 @@ def test_alembic_export():
         "name": 1
     })
 
+    assert version
+
     representation = io.find_one({
         "parent": version["_id"],
         "type": "representation",
@@ -223,12 +256,68 @@ def test_alembic_export():
 
     assert representation is not None
 
-    container = maya.load(representation)
-
-    cube = cmds.ls(container, type="mesh")
+    nodes = maya.load(representation["_id"])
+    print("Nodes: %s" % nodes)
+    cube = cmds.ls(nodes, type="mesh")
     transform = cmds.listRelatives(cube, parent=True)[0]
 
     for time, value in visibility_keys:
         cmds.currentTime(time, edit=True)
         assert cmds.getAttr(transform + ".visibility") == value, (
             "Cached visibility did not match original visibility")
+
+
+@with_setup(clear)
+def test_update():
+    """Updating works"""
+
+    transform, generator = cmds.polyCube(name="body_PLY")
+    group = cmds.group(transform, name="ROOT")
+
+    cmds.select(group, replace=True)
+    maya.create("modelDefault",
+                family="mindbender.model",
+                options={"useSelection": True})
+
+    # Comply with save validator
+    cmds.file(save=True)
+
+    publish()
+    publish()
+    publish()  # Version 3
+
+    cmds.file(new=True, force=True)
+
+    asset = io.find_one({
+        "type": "asset",
+        "name": ASSET_NAME
+    })
+
+    subset = io.find_one({
+        "parent": asset["_id"],
+        "type": "subset",
+        "name": "modelDefault"
+    })
+
+    version = io.find_one({
+        "parent": subset["_id"],
+        "type": "version",
+        "name": 2
+    })
+
+    assert version
+
+    representation = io.find_one({
+        "parent": version["_id"],
+        "type": "representation",
+        "name": "ma"
+    })
+
+    maya.load(representation["_id"])
+    container = next(maya.ls())
+    maya.update(container, 3)
+
+
+@with_setup(clear)
+def test_update_imported():
+    """You cannot update an imported container"""

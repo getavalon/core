@@ -48,14 +48,15 @@ DEFAULTS = {
         ],
         "template": {
             "work":
-                "{root}/{project}/{prefix}{silo}/{asset}/work/"
+                "{root}/{project}/{silo}/{asset}/work/"
                 "{task}/{user}/{app}",
             "publish":
-                "{root}/{project}/{prefix}{silo}/{asset}/publish/"
+                "{root}/{project}/{silo}/{asset}/publish/"
                 "{subset}/v{version:0>3}/{subset}.{representation}"
         }
     },
     "inventory": {
+        "schema": "mindbender-core:inventory-1.0",
         "assets": [
             {
                 "name": "Default asset 1"
@@ -81,10 +82,10 @@ DEFAULTS = {
 
 
 def _save_inventory_1_0(project_name, data):
-    data = {}
+    metadata = {}
     for key, value in data.items():
         if not isinstance(value, list):
-            data[key] = data.pop(key)
+            metadata[key] = data.pop(key)
 
     document = io.find_one({"type": "project", "name": project_name})
 
@@ -95,7 +96,12 @@ def _save_inventory_1_0(project_name, data):
             "type": "project",
             "name": project_name,
             "data": dict(),
-            "config": dict(),
+            "config": {
+                "template": {},
+                "tasks": [],
+                "apps": [],
+                "copy": {}
+            },
             "parent": None,
         }
 
@@ -105,7 +111,7 @@ def _save_inventory_1_0(project_name, data):
         document = io.find_one({"_id": _id})
 
     print("Updating project data..")
-    for key, value in data.items():
+    for key, value in metadata.items():
         document["data"][key] = value
 
     io.save(document)
@@ -142,16 +148,17 @@ def _save_inventory_1_0(project_name, data):
             io.save(asset_doc)
 
     for data in missing:
+        print("+ added %s" % data["name"])
+
         asset = {
-            "schema": "mindbender-core:asset-1.0",
-            "name": asset["name"],
+            "schema": "mindbender-core:asset-2.0",
+            "name": data["name"],
+            "silo": data["silo"],
             "parent": document["_id"],
             "type": "asset",
-            "schema": "mindbender-core:asset-2.0",
             "data": data
         }
 
-        print("+ added %s" % asset["name"])
         schema.validate(asset)
         io.insert_one(asset)
 
@@ -168,103 +175,54 @@ def _save_config_1_0(project_name, data):
     added = list()
     updated = list()
 
-    for key, value in data.get("metadata", {}).items():
-        if key not in document["config"]:
-            added.append("%s.%s: %s" % (project_name, key, value))
-            document["config"][key] = value
-        elif document["config"][key] != value:
-            updated.append("%s.%s: %s -> %s" % (project_name,
-                                                key,
-                                                document["config"][key],
-                                                value))
-            document["config"][key] = value
-
     config["apps"] = data.get("apps", [])
     config["tasks"] = data.get("tasks", [])
     config["template"].update(data.get("template", {}))
 
-    schema.validate(config)
+    schema.validate(document)
 
     io.save(document)
 
     _report(added, updated)
 
 
-def _report(added, updated):
-    if added:
-        print("+ added:")
-        print("\n".join(" - %s" % item for item in added))
-    else:
-        print("| nothing added")
-
-    if updated:
-        print("+ updated:")
-        print("\n".join("  %s" % item for item in updated))
-    else:
-        print("| already up to date")
-
-
-def _read(root, name):
-    fname = os.path.join(root, ".%s.toml" % name)
-
-    try:
-        with open(fname) as f:
-            data = toml.load(f)
-    except IOError:
-        raise
-
-    return data
-
-
-def save(root):
+def save(name, config, inventory):
     """Write config and inventory to database from `root`"""
-    print("--> Saving .inventory.toml and .config.toml..")
+    print("Saving .inventory.toml and .config.toml..")
 
-    project = os.path.basename(root)
-
-    print("Locating project '%s'" % project)
+    config = copy.deepcopy(config)
+    inventory = copy.deepcopy(inventory)
 
     handlers = {
         "mindbender-core:inventory-1.0": _save_inventory_1_0,
         "mindbender-core:config-1.0": _save_config_1_0
     }
 
-    for fname in ["inventory", "config"]:
+    for data in (inventory, config):
         try:
-            data = _read(root, fname)
-
-        except (schema.ValidationError,
-                schema.SchemaError,
-                IndexError,
-                toml.TomlDecodeError) as e:
-            print(e)
-            print("ERROR: Misformatted: '%s'" % root)
-            sys.exit(1)
-
-        except IOError:
-            print("ERROR: Missing %s" % fname)
-            sys.exit(1)
-
-        try:
-            schema_ = data["schema"]
+            schema_ = data.get("schema")
             handler = handlers[schema_]
 
         except KeyError:
-            print("ERROR: Missing handler for "
-                  "'%s' (schema: %s)" % (fname, schema_))
-            sys.exit(1)
+            raise schema.SchemaError(
+                "ERROR: Missing handler for %s)" % (schema))
 
         else:
-            handler(project, data)
+            schema.validate(data)
+            handler(name, data)
 
     print("Success!")
 
 
-def load(root):
-    """Write config and inventory to `root` from database"""
-    print("Loading .inventory.toml and .config.toml..")
+def load(name):
+    """Write config and inventory to `root` from database
 
-    name = os.path.basename(root)
+    Arguments:
+        name (str): Project name
+
+    """
+
+    print("Loading .inventory.toml and .config.toml..")
 
     project = io.find_one({"type": "project", "name": name})
 
@@ -275,7 +233,7 @@ def load(root):
 
     else:
         config = project["config"]
-        inventory = {}
+        inventory = {"schema": "mindbender-core:inventory-1.0"}
         for asset in io.find({"type": "asset", "parent": project["_id"]}):
             silo = asset["silo"]
             data = asset["data"]
@@ -288,15 +246,12 @@ def load(root):
             for key, value in project["data"].items():
                 inventory[key] = value
 
-    with open(os.path.join(root, ".inventory.toml"), "w") as f:
-        toml.dump(dict({
-            "schema": "mindbender-core:inventory-1.0",
-        }, **inventory), f)
+    config = dict(
+        DEFAULTS["config"],
+        **config
+    )
 
-    with open(os.path.join(root, ".config.toml"), "w") as f:
-        toml.dump(dict(DEFAULTS["config"], **config), f)
-
-    print("Success!")
+    return config, inventory
 
 
 def _parse_bat(root):
@@ -467,8 +422,7 @@ def upload(root, overwrite=False):
         with open(fname) as f:
             project = json.load(f)
     except IOError:
-        print("No project.json found.")
-        return 1
+        raise IOError("No project.json found.")
 
     def _upload_recursive(parent, children):
         for child in children:
@@ -518,6 +472,45 @@ def _dirs(path):
     return list()
 
 
+def _report(added, updated):
+    if added:
+        print("+ added:")
+        print("\n".join(" - %s" % item for item in added))
+    else:
+        print("| nothing added")
+
+    if updated:
+        print("+ updated:")
+        print("\n".join("  %s" % item for item in updated))
+    else:
+        print("| already up to date")
+
+
+def _read(root, name):
+    fname = os.path.join(root, ".%s.toml" % name)
+
+    try:
+        with open(fname) as f:
+            data = toml.load(f)
+    except IOError:
+        raise
+
+    return data
+
+
+def _write(root, name, data):
+    fname = os.path.join(root, ".%s.toml" % name)
+
+    try:
+        with open(fname, "w") as f:
+            data = toml.dump(data, f)
+            schema.validate(data)
+    except IOError:
+        raise
+
+    return data
+
+
 def _cli():
     import argparse
 
@@ -548,24 +541,34 @@ def _cli():
     kwargs = parser.parse_args()
 
     root = kwargs.root or os.getcwd()
+    name = os.path.basename(root)
 
     if kwargs.load:
         io.install()
-        return load(root=root)
+        config, inventory = load(name)
+        _write(root, "config", config)
+        _write(root, "inventory", inventory)
+        print("Success!")
 
     elif kwargs.save:
         io.install()
-        return save(root=root)
+        inventory = _read(root, "inventory")
+        config = _read(root, "config")
+        save(name, config, inventory)
+        print("Success!")
 
     elif kwargs.extract:
-        return extract(root=root, silos=kwargs.silo)
+        extract(root=root, silos=kwargs.silo)
+        print("Success!")
 
     elif kwargs.upload:
         io.install()
-        return upload(root=root, overwrite=kwargs.overwrite)
+        upload(root=root, overwrite=kwargs.overwrite)
+        print("Success!")
 
     else:
-        return status(root=root)
+        status(root=root)
+        print("Success!")
 
 
 if __name__ == '__main__':
