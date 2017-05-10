@@ -1,3 +1,4 @@
+import os
 import json
 
 from maya import cmds
@@ -22,6 +23,7 @@ class LookLoader(api.Loader):
         }
 
         fname = template.format(**data)
+        assert os.path.exists(fname), "%s does not exist" % fname
 
         namespace = asset["name"] + "_"
         name = maya.unique_name(subset["name"])

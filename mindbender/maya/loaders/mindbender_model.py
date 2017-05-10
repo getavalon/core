@@ -1,3 +1,4 @@
+import os
 from maya import cmds
 from mindbender import api, maya
 
@@ -24,6 +25,7 @@ class ModelLoader(api.Loader):
         }
 
         fname = template.format(**data)
+        assert os.path.exists(fname), "%s does not exist" % fname
 
         namespace = maya.unique_namespace(asset["name"], suffix="_")
         name = subset["name"]

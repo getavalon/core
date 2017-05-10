@@ -1,3 +1,4 @@
+import os
 from maya import cmds
 from mindbender import api, maya
 
@@ -20,6 +21,7 @@ class HistoryLookLoader(api.Loader):
         }
 
         fname = template.format(**data)
+        assert os.path.exists(fname), "%s does not exist" % fname
 
         namespace = asset["name"] + "_"
         name = maya.unique_name(subset["name"])

@@ -1,3 +1,4 @@
+import os
 from maya import cmds
 from mindbender import api, maya
 
@@ -27,6 +28,7 @@ class AnimationLoader(api.Loader):
         }
 
         fname = template.format(**data)
+        assert os.path.exists(fname), "%s does not exist" % fname
 
         name = subset["name"]
         namespace = subset["name"] + "_"

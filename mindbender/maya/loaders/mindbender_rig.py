@@ -1,3 +1,4 @@
+import os
 from maya import cmds
 from mindbender import api, maya
 
@@ -10,8 +11,13 @@ class RigLoader(api.Loader):
     """
 
     families = ["mindbender.rig"]
+    # name = "{subset}"
+    # namespace = maya.Unique("{asset}")
 
     def process(self, project, asset, subset, version, representation):
+        # def process(self, representation):
+        # project, asset, subset, version = io.parenthood(representation)
+
         template = project["config"]["template"]["publish"]
         data = {
             "root": api.registered_root(),
@@ -24,6 +30,7 @@ class RigLoader(api.Loader):
         }
 
         fname = template.format(**data)
+        assert os.path.exists(fname), "%s does not exist" % fname
 
         namespace = maya.unique_namespace(asset["name"], suffix="_")
         name = subset["name"]
