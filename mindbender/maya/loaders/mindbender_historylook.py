@@ -1,3 +1,4 @@
+import os
 from maya import cmds
 from mindbender import api, maya
 
@@ -8,7 +9,7 @@ class HistoryLookLoader(api.Loader):
     families = ["mindbender.historyLookdev"]
 
     def process(self, project, asset, subset, version, representation):
-        template = project["template"]["publish"]
+        template = project["config"]["template"]["publish"]
         data = {
             "root": api.registered_root(),
             "project": project["name"],
@@ -20,6 +21,7 @@ class HistoryLookLoader(api.Loader):
         }
 
         fname = template.format(**data)
+        assert os.path.exists(fname), "%s does not exist" % fname
 
         namespace = asset["name"] + "_"
         name = maya.unique_name(subset["name"])

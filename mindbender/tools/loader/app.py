@@ -13,6 +13,7 @@ module.project = os.getenv("MINDBENDER_PROJECT")
 # Custom roles
 DocumentRole = QtCore.Qt.UserRole + 1
 RepresentationsRole = QtCore.Qt.UserRole + 2
+LatestRole = QtCore.Qt.UserRole + 3
 
 
 class Window(QtWidgets.QDialog):
@@ -196,6 +197,7 @@ class Window(QtWidgets.QDialog):
         if len(subsets_model.selectedItems()) > 1:
             item = QtWidgets.QListWidgetItem("Latest")
             item.setData(QtCore.Qt.ItemIsEnabled, False)
+            item.setData(LatestRole, True)
             versions_model.addItem(item)
             versions_model.setCurrentItem(item)
 
@@ -232,7 +234,7 @@ class Window(QtWidgets.QDialog):
 
         representations = {}
 
-        if version_item.data(QtCore.Qt.DisplayRole) == "Latest":
+        if version_item.data(LatestRole):
             subsets = self.data["model"]["subsets"].selectedItems()
             subsets = list(item.data(DocumentRole) for item in subsets)
 

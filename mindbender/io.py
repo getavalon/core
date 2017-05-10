@@ -1,6 +1,8 @@
 import os
 import sys
 
+from . import schema
+
 # Third-party dependencies
 import pymongo
 from bson.objectid import ObjectId
@@ -23,13 +25,15 @@ def install(collection="assets"):
 
     # Shorthand
     self.find = self._collection.find
-    self.find_one = self._collection.find_one
-    self.insert_many = self._collection.insert_many
     self.save = self._collection.save
+    self.distinct = self._collection.distinct
+    self.find_one = self._collection.find_one
     self.drop = self._collection.drop
 
 
 def insert_one(item):
+    assert isinstance(item, dict), "item must be of type <dict>"
+    schema.validate(item)
     return self._collection.insert_one(item)
 
 

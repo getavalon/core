@@ -9,7 +9,6 @@ import sys
 import types
 import shutil
 import tempfile
-import contextlib
 
 from mindbender import pipeline
 

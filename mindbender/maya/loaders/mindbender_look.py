@@ -1,3 +1,4 @@
+import os
 import json
 
 from maya import cmds
@@ -10,7 +11,7 @@ class LookLoader(api.Loader):
     families = ["mindbender.lookdev"]
 
     def process(self, project, asset, subset, version, representation):
-        template = project["template"]["publish"]
+        template = project["config"]["template"]["publish"]
         data = {
             "root": api.registered_root(),
             "project": project["name"],
@@ -22,6 +23,7 @@ class LookLoader(api.Loader):
         }
 
         fname = template.format(**data)
+        assert os.path.exists(fname), "%s does not exist" % fname
 
         namespace = asset["name"] + "_"
         name = maya.unique_name(subset["name"])

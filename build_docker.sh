@@ -1,1 +1,1 @@
-docker build -t pyblish/mindbender -f Dockerfile-maya2016 .
+docker build -t mindbender/core -f Dockerfile-maya2016 .

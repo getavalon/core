@@ -1,3 +1,4 @@
+import os
 from maya import cmds
 from mindbender import api, maya
 
@@ -12,7 +13,7 @@ class ModelLoader(api.Loader):
     families = ["mindbender.model"]
 
     def process(self, project, asset, subset, version, representation):
-        template = project["template"]["publish"]
+        template = project["config"]["template"]["publish"]
         data = {
             "root": api.registered_root(),
             "project": project["name"],
@@ -24,6 +25,7 @@ class ModelLoader(api.Loader):
         }
 
         fname = template.format(**data)
+        assert os.path.exists(fname), "%s does not exist" % fname
 
         namespace = maya.unique_namespace(asset["name"], suffix="_")
         name = subset["name"]

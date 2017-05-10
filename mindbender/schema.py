@@ -37,7 +37,8 @@ def validate(data, schema=None):
 
     """
 
-    schema = data["schema"].rsplit(":", 1)[-1].split("-", 1)[0]
+    root, schema = data["schema"].rsplit(":", 1)
+    assert root == "mindbender-core"
 
     if isinstance(schema, basestring):
         schema = _cache[schema + ".json"]

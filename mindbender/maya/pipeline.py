@@ -47,7 +47,6 @@ def uninstall():
     api.deregister_format(".abc")
 
     api.deregister_data("id")
-    api.deregister_data("name")
     api.deregister_data("subset")
     api.deregister_data("family")
 
@@ -228,6 +227,9 @@ def load(representation):
 
     """
 
+    if not isinstance(representation, io.ObjectId):
+        representation = io.ObjectId(representation)
+
     representation = io.find_one({"_id": representation})
     version = io.find_one({"_id": representation["parent"]})
     subset = io.find_one({"_id": version["parent"]})
@@ -236,7 +238,7 @@ def load(representation):
 
     for Loader in api.discover_loaders():
         if not any(family in Loader.families
-                   for family in version.get("families", list)):
+                   for family in version["data"].get("families", list)):
             continue
 
         print("Running '%s' on '%s'" % (Loader.__name__, asset["name"]))
@@ -360,7 +362,7 @@ def update(container, version=-1):
 
     assert new_version is not None, "This is a bug"
 
-    template_publish = project["template"]["publish"]
+    template_publish = project["config"]["template"]["publish"]
     fname = template_publish.format(**{
         "root": api.registered_root(),
         "project": project["name"],
@@ -368,7 +370,7 @@ def update(container, version=-1):
         "silo": asset["silo"],
         "subset": subset["name"],
         "version": new_version["name"],
-        "representation": representation["name"].strip("."),
+        "representation": representation["name"],
     })
 
     file_type = {
@@ -379,12 +381,13 @@ def update(container, version=-1):
 
     assert file_type, ("Unsupported representation: %s" % representation)
 
+    assert os.path.exists(fname), "%s does not exist." % fname
     cmds.file(fname, loadReference=reference_node, type=file_type)
 
     # Update metadata
     cmds.setAttr(container["objectName"] + ".version", new_version["name"])
     cmds.setAttr(container["objectName"] + ".source",
-                 new_version["source"],
+                 new_version["data"]["source"],
                  type="string")
 
 

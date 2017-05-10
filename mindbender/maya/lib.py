@@ -41,12 +41,12 @@ def containerise(name,
         ("id", "pyblish.mindbender.container"),
         ("name", namespace),
         ("loader", str(loader)),
-        ("families", " ".join(version.get("families", list()))),
+        ("families", " ".join(version["data"].get("families", list()))),
         ("subset", subset["name"]),
         ("representation", str(representation["_id"])),
         ("version", version["name"]),
-        ("source", version["source"]),
-        ("comment", version.get("comment", ""))
+        ("source", version["data"]["source"]),
+        ("comment", version["data"].get("comment", ""))
     ]
 
     for key, value in data:

@@ -1,0 +1,38 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+
+    "title": "mindbender-core:asset-2.0",
+    "description": "A unit of data",
+
+    "type": "object",
+
+    "additionalProperties": true,
+
+    "required": [
+        "schema",
+        "type",
+        "name",
+        "silo",
+        "data"
+    ],
+
+    "properties": {
+        "schema": {
+            "description": "Schema identifier for payload",
+            "type": "string"
+        },
+        "name": {
+            "description": "Name of directory",
+            "type": "string"
+        },
+        "silo": {
+            "description": "Parent directory of asset",
+            "type": "string"
+        },
+        "data": {
+            "type": "object"
+        }
+    },
+
+    "definitions": {}
+}
