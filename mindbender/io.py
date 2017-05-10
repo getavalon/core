@@ -26,6 +26,7 @@ def install(collection="assets"):
     self.find_one = self._collection.find_one
     self.insert_many = self._collection.insert_many
     self.save = self._collection.save
+    self.distinct = self._collection.distinct
     self.drop = self._collection.drop
 
 

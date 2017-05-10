@@ -15,7 +15,7 @@ class AnimationLoader(api.Loader):
 
         cmds.loadPlugin("AbcImport.mll", quiet=True)
 
-        template = project["template"]["publish"]
+        template = project["config"]["template"]["publish"]
         data = {
             "root": api.registered_root(),
             "project": project["name"],

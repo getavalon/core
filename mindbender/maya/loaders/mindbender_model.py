@@ -12,7 +12,7 @@ class ModelLoader(api.Loader):
     families = ["mindbender.model"]
 
     def process(self, project, asset, subset, version, representation):
-        template = project["template"]["publish"]
+        template = project["config"]["template"]["publish"]
         data = {
             "root": api.registered_root(),
             "project": project["name"],

@@ -1,0 +1,34 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+
+    "title": "mindbender-core:representation-2.0",
+    "description": "The inverse of an instance",
+
+    "type": "object",
+
+    "additionalProperties": true,
+
+    "required": [
+        "schema",
+        "type",
+        "name",
+        "data"
+    ],
+
+    "properties": {
+        "schema": {
+            "description": "Schema identifier for payload",
+            "type": "string"
+        },
+        "type": {
+            "type": "string"
+        },
+        "name": {
+            "description": "Name of directory",
+            "type": "string"
+        },
+        "data": {
+            "type": "object"
+        }
+    }
+}

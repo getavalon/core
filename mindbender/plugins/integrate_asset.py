@@ -89,7 +89,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
             "_id": io.ObjectId(os.environ["MINDBENDER__ASSET"])
         })
 
-        assert all([project, asset])
+        assert all([project, asset]), "This is bug"
 
         subset = io.find_one({
             "type": "subset",
@@ -105,6 +105,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                 "schema": "mindbender-core:subset-2.0",
                 "type": "subset",
                 "name": instance.data["subset"],
+                "data": {},
                 "parent": asset["_id"]
             }).inserted_id
 
@@ -129,21 +130,23 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
             "parent": subset["_id"],
             "name": next_version,
 
-            # Used to identify family of assets already on disk
-            "families": instance.data.get("families", list()) + [
-                instance.data.get("family")
-            ],
+            "data": {
+                # Used to identify family of assets already on disk
+                "families": instance.data.get("families", list()) + [
+                    instance.data.get("family")
+                ],
 
-            "time": context.data["time"],
-            "author": context.data["user"],
+                "time": context.data["time"],
+                "author": context.data["user"],
 
-            "source": os.path.join(
-                "{root}",
-                os.path.relpath(
-                    context.data["currentFile"],
-                    api.registered_root()
-                )
-            ).replace("\\", "/"),
+                "source": os.path.join(
+                    "{root}",
+                    os.path.relpath(
+                        context.data["currentFile"],
+                        api.registered_root()
+                    )
+                ).replace("\\", "/"),
+            }
         }
 
         self.backwards_compatiblity(instance, version)
@@ -170,7 +173,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
             "version": version["name"],
         }
 
-        template_publish = project["template"]["publish"]
+        template_publish = project["config"]["template"]["publish"]
 
         for fname in os.listdir(stagingdir):
             name, ext = os.path.splitext(fname)
@@ -203,11 +206,13 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                 "type": "representation",
                 "parent": version_id,
                 "name": ext[1:],
-                "label": {
-                    ".ma": "Maya Ascii",
-                    ".source": "Original source file",
-                    ".abc": "Alembic"
-                }.get(ext)
+                "data": {
+                    "label": {
+                        ".ma": "Maya Ascii",
+                        ".source": "Original source file",
+                        ".abc": "Alembic"
+                    }.get(ext)
+                }
             }
 
             io.insert_one(representation)
@@ -267,14 +272,6 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                 version_1_0 = json.load(f)
 
         except IOError:
-            d = os.path.relpath(
-                context.data["currentFile"],
-                os.path.join(
-                    api.registered_root(),
-                    os.environ["MINDBENDER_PROJECT"]
-                )
-            )
-            self.log.info(d)
             version_1_0 = dict(version, **{
                 "schema": "mindbender-core:version-1.0",
                 "path": os.path.join(
@@ -291,7 +288,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                             os.environ["MINDBENDER_PROJECT"]
                         )
                     )
-                ).replace("\\", "/"),
+                ).replace("\\", "/").replace("f02_prod", ""),
                 "representations": list(),
 
                 "version": version["name"],

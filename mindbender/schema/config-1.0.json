@@ -17,19 +17,6 @@
             "description": "Schema identifier for payload",
             "type": "string"
         },
-        "metadata": {
-            "type": "object",
-            "additionalProperties": false,
-            "patternProperties": {
-                "^.*$": {
-                    "anyOf": [
-                        {"type": "string"},
-                        {"type": "number"},
-                        {"type": "null"}
-                    ]
-                }
-            }
-        },
         "template": {
             "type": "object",
             "additionalProperties": false,

@@ -236,7 +236,7 @@ def load(representation):
 
     for Loader in api.discover_loaders():
         if not any(family in Loader.families
-                   for family in version.get("families", list)):
+                   for family in version["data"].get("families", list)):
             continue
 
         print("Running '%s' on '%s'" % (Loader.__name__, asset["name"]))
@@ -360,7 +360,7 @@ def update(container, version=-1):
 
     assert new_version is not None, "This is a bug"
 
-    template_publish = project["template"]["publish"]
+    template_publish = project["config"]["template"]["publish"]
     fname = template_publish.format(**{
         "root": api.registered_root(),
         "project": project["name"],
@@ -384,7 +384,7 @@ def update(container, version=-1):
     # Update metadata
     cmds.setAttr(container["objectName"] + ".version", new_version["name"])
     cmds.setAttr(container["objectName"] + ".source",
-                 new_version["source"],
+                 new_version["data"]["source"],
                  type="string")
 
 
