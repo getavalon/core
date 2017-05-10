@@ -7,9 +7,11 @@
     "type": "object",
 
     "additionalProperties": false,
-
     "required": [
-        "schema"
+        "template",
+        "tasks",
+        "apps",
+        "copy"
     ],
 
     "properties": {
@@ -31,6 +33,7 @@
             "items": {
                 "type": "object",
                 "properties": {
+                    "name": {"type": "string"},
                     "icon": {"type": "string"},
                     "group": {"type": "string"},
                     "label": {"type": "string"}
