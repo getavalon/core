@@ -251,7 +251,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
         stagingdir = instance.data.get("stagingDir")
         fname = os.path.join(stagingdir, ".metadata.json")
 
-        root = os.getenv("MINDBENDER_ASSETPATH")
+        root = os.environ["MINDBENDER_ASSETPATH"]
         instancedir = os.path.join(root, "publish", instance.data["subset"])
 
         try:
