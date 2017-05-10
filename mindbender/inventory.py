@@ -152,8 +152,8 @@ def _save_inventory_1_0(project_name, data):
 
         asset = {
             "schema": "mindbender-core:asset-2.0",
-            "name": data["name"],
-            "silo": data["silo"],
+            "name": data.pop("name"),
+            "silo": data.pop("silo"),
             "parent": document["_id"],
             "type": "asset",
             "data": data
