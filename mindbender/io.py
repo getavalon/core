@@ -27,12 +27,8 @@ def install(collection="assets"):
     self.find = self._collection.find
     self.save = self._collection.save
     self.distinct = self._collection.distinct
+    self.find_one = self._collection.find_one
     self.drop = self._collection.drop
-
-
-def find_one(item):
-    assert isinstance(item, dict), "item must be of type <dict>"
-    return self._collection.find_one(item)
 
 
 def insert_one(item):
