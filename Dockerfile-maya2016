@@ -9,7 +9,7 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && \
 		pyblish-base==1.4.2 \
 		pyblish-maya \
 		pymongo \
-		coveralls
+		python-coveralls
 
 # Avoid creation of auxilliary files
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -18,4 +18,4 @@ WORKDIR /workspace
 
 ENTRYPOINT \
 	mayapy -u run_maya_tests.py && \
-	coveralls
+	mayapy -c "from coveralls import wear;wear()"
