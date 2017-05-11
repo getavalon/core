@@ -91,3 +91,19 @@ __all__ = [
     "uninstall",
     "ObjectId",
 ]
+
+
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--test", action="store_true")
+
+    kwargs = parser.parse_args()
+
+    if kwargs.test:
+        try:
+            install()
+        except IOError as e:
+            print(e)
+            sys.exit(1)
