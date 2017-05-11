@@ -49,7 +49,7 @@ DEFAULTS = {
         "template": {
             "work":
                 "{root}/{project}/{silo}/{asset}/work/"
-                "{task}/{user}/{app}",
+                "{task}/{app}",
             "publish":
                 "{root}/{project}/{silo}/{asset}/publish/"
                 "{subset}/v{version:0>3}/{subset}.{representation}"
@@ -411,7 +411,14 @@ def extract(root, silo_parent=None):
                             "type": "representation",
                             "name": representation["format"].strip("."),
                             "data": {
-                                "label": representation["format"].strip("."),
+                                "label": {
+                                    ".ma": "Maya Ascii",
+                                    ".source": "Original source file",
+                                    ".abc": "Alembic"
+                                }.get(
+                                    representation["format"],
+                                    representation["format"].strip(".")
+                                ),
                             },
                             "children": list(),
                         }
