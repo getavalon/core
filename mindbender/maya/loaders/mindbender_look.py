@@ -45,20 +45,14 @@ class LookLoader(api.Loader):
                           loader=type(self).__name__)
 
         # Assign shaders
-        representation = next(
-            (rep for rep in version["representations"]
-                if rep["format"] == ".json"), None)
+        data["representation"] = "json"
+        fname = template.format(**data)
 
-        if representation is None:
+        if not os.path.isfile(fname):
             cmds.warning("Look development asset has no relationship data.")
 
         else:
-            path = representation["path"].format(
-                dirname=version["path"].format(root=api.registered_root()),
-                format=representation["format"]
-            )
-
-            with open(path) as f:
+            with open(fname) as f:
                 relationships = json.load(f)
 
             # Append namespace to shader group identifier.

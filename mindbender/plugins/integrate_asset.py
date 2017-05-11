@@ -183,7 +183,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
             dst = template_publish.format(**template_data)
 
             # Backwards compatibility
-            if ext == ".json":
+            if fname == ".metadata.json":
                 dirname = os.path.dirname(dst)
                 dst = os.path.join(dirname, ".metadata.json")
 
@@ -319,9 +319,6 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                 # Discard database keys
                 "parent": None,
             })
-
-        self.log.debug("Finished generating metadata: %s"
-                       % json.dumps(version_1_0, indent=4))
 
         for filename in instance.data.get("files", list()):
             name, ext = os.path.splitext(filename)

@@ -4,7 +4,7 @@ Until assets are created entirely in the database, this script
 provides a bridge between the file-based project inventory and configuration.
 
 - Migrating an old project:
-    $ python -m mindbender.inventory --extract
+    $ python -m mindbender.inventory --extract --silo-parent=f02_prod
     $ python -m mindbender.inventory --upload
 
 - Managing an existing project:
@@ -173,9 +173,6 @@ def _save_config_1_0(project_name, data):
     document = io.find_one({"type": "project", "name": project_name})
     config = document["config"]
 
-    added = list()
-    updated = list()
-
     config["apps"] = data.get("apps", [])
     config["tasks"] = data.get("tasks", [])
     config["template"].update(data.get("template", {}))
@@ -184,13 +181,9 @@ def _save_config_1_0(project_name, data):
 
     io.save(document)
 
-    _report(added, updated)
-
 
 def save(name, config, inventory):
     """Write config and inventory to database from `root`"""
-    print("Saving .inventory.toml and .config.toml..")
-
     config = copy.deepcopy(config)
     inventory = copy.deepcopy(inventory)
 
@@ -210,9 +203,8 @@ def save(name, config, inventory):
 
         else:
             schema.validate(data)
+            print("Saving %s.." % schema_)
             handler(name, data)
-
-    print("Success!")
 
 
 def load(name):
@@ -298,7 +290,7 @@ def _parse_bat(root):
     return data
 
 
-def extract(root, silos):
+def extract(root, silo_parent=None):
     """Parse a given project and produce a JSON file of its contents
 
     Arguments:
@@ -336,11 +328,19 @@ def extract(root, silos):
         "children": list(),
     }
 
+    # Update template with silo_parent directory of silo
+    if silo_parent:
+        silo_parent = silo_parent.strip("\\/").rstrip("\\/")
+
+        template = project_obj["config"]["template"]
+        for key, value in template.items():
+            template[key] = value.replace("{silo}", silo_parent + "/{silo}")
+
     # Parse .bat file for environment variables
     project_obj.update(_parse_bat(root))
 
-    for silo in silos:
-        for asset in _dirs(os.path.join(root, *silo.split("/"))):
+    for silo in ("assets", "film"):
+        for asset in _dirs(os.path.join(root, silo_parent or "", silo)):
             asset_obj = {
                 "schema": "mindbender-core:asset-2.0",
                 "type": "asset",
@@ -515,6 +515,7 @@ def _cli():
                         help="Optional container of silos",
                         action="append",
                         default=["assets", "film"])
+    parser.add_argument("--silo-parent", help="Optional silo silo_parent")
     parser.add_argument("--save",
                         action="store_true",
                         help="Save inventory from disk to database")
@@ -553,7 +554,7 @@ def _cli():
         print("Success!")
 
     elif kwargs.extract:
-        extract(root=root, silos=kwargs.silo)
+        extract(root=root, silo_parent=kwargs.silo_parent)
         print("Success!")
 
     elif kwargs.upload:

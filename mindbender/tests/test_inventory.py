@@ -70,12 +70,12 @@ def setup():
 
 def teardown():
     shutil.rmtree(self._tempdir)
-    io.drop()
+    io.delete_many({})  # Faster than `drop()`
 
 
 @contextlib.contextmanager
 def clean():
-    io.drop()
+    io.delete_many({})
 
 
 @with_setup(clean)

@@ -19,9 +19,11 @@ import pyblish.util
 from mindbender import api, maya, io, inventory, schema
 
 from nose.tools import (
-    with_setup
+    with_setup,
+    assert_equals,
 )
 
+IS_SILENT = bool(os.getenv("MINDBENDER_SILENT"))
 PROJECT_NAME = "hulk"
 ASSET_NAME = "Bruce"
 
@@ -112,7 +114,7 @@ def clear():
     cmds.file(rename="temp.ma")
 
 
-def publish(silent=True):
+def publish():
     context = pyblish.util.publish()
 
     header = "{:<10}{:<40} -> {}".format("Success", "Plug-in", "Instance")
@@ -144,7 +146,7 @@ def publish(silent=True):
 {results}
     """
 
-    if not silent:
+    if not IS_SILENT:
         print(report.format(header=header,
                             results="\n".join(results),
                             line="-" * 70))
@@ -321,3 +323,65 @@ def test_update():
 @with_setup(clear)
 def test_update_imported():
     """You cannot update an imported container"""
+
+
+@with_setup(clear)
+def test_modeling_to_rigging():
+    transform, generator = cmds.polyCube(name="body_PLY")
+    group = cmds.group(transform, name="ROOT")
+
+    cmds.select(group, replace=True)
+    maya.create("modelDefault",
+                family="mindbender.model",
+                options={"useSelection": True})
+
+    # Comply with save validator
+    cmds.file(save=True)
+
+    publish()
+
+    cmds.file(new=True, force=True)
+
+    representation = io.locate([
+        PROJECT_NAME, ASSET_NAME, "modelDefault", 1, "ma"
+    ])
+
+    nodes = maya.load(representation)
+    assembly = cmds.ls(nodes, assemblies=True)[0]
+    assert_equals(assembly, "Bruce01_:modelDefault")
+
+    # Rig it
+    mesh = cmds.ls(nodes, type="mesh")
+    transform = cmds.listRelatives(mesh, parent=True)[0]
+    ctrl = cmds.circle(name="main_CTL")
+    cmds.parentConstraint(ctrl, transform)
+
+    cmds.select([assembly] + ctrl, replace=True)
+    group = cmds.group(name="ROOT")
+
+    cmds.select(mesh, replace=True)
+
+    out_set = cmds.sets(name="out_SET")
+
+    cmds.select(ctrl)
+    controls_set = cmds.sets(name="controls_SET")
+
+    cmds.select([group, out_set, controls_set], noExpand=True)
+    maya.create("rigDefault",
+                family="mindbender.rig",
+                options={"useSelection": True})
+
+    cmds.file(rename="temp.ma")
+    cmds.file(save=True)
+
+    publish()
+
+    cmds.file(new=True, force=True)
+
+    representation = io.locate([
+        PROJECT_NAME, ASSET_NAME, "rigDefault", 1, "ma"
+    ])
+
+    nodes = maya.load(representation)
+    assembly = cmds.ls(nodes, assemblies=True)[0]
+    assert_equals(assembly, "Bruce01_:rigDefault")
