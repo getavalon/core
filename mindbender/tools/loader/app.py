@@ -152,7 +152,8 @@ class Window(QtWidgets.QDialog):
             assets_model.addItem(item)
 
         assets_model.setFocus()
-        self.data["button"]["load"].show()
+        assets_model.setCurrentRow(0)
+        self.data["button"]["load"].hide()
         self.data["button"]["stop"].hide()
 
     def on_assetschanged(self, *args):
@@ -232,6 +233,10 @@ class Window(QtWidgets.QDialog):
         if version_item is None:
             return
 
+        # Item is disabled
+        if not version_item.data(QtCore.Qt.ItemIsEnabled):
+            return
+
         representations = {}
 
         if version_item.data(LatestRole):
@@ -244,11 +249,20 @@ class Window(QtWidgets.QDialog):
                     "parent": subset["_id"]
                 }, sort=[("name", -1)])
 
+                if not latest_version:
+                    # No version available
+                    continue
+
                 for representation in io.find({
                         "type": "representation",
                         "parent": latest_version["_id"]}):
 
                     name = representation["name"]
+
+                    # TODO(marcus): These are permanently excluded
+                    # for now, but look towards making this customisable.
+                    if name not in ("json", "source"):
+                        continue
 
                     if name not in representations:
                         representations[name] = list()
@@ -258,9 +272,10 @@ class Window(QtWidgets.QDialog):
         else:
             document = version_item.data(DocumentRole)
             representations = {
-                document["name"]: [document]
-                for document in io.find({"type": "representation",
-                                         "parent": document["_id"]})
+                representation["name"]: [representation]
+                for representation in io.find({"type": "representation",
+                                               "parent": document["_id"]})
+                if representation["name"] not in ("json", "source")
             }
 
         has = {"children": False}
@@ -279,8 +294,13 @@ class Window(QtWidgets.QDialog):
 
     def on_representationschanged(self, *args):
         button = self.data["button"]["load"]
-        item = self.data["model"]["assets"].currentItem()
-        button.setEnabled(item.data(QtCore.Qt.ItemIsEnabled))
+        button.hide()
+
+        item = self.data["model"]["representations"].currentItem()
+
+        if item and item.data(QtCore.Qt.ItemIsEnabled):
+            button.show()
+            button.setEnabled(True)
 
     def on_refresh_pressed(self):
         self.refresh()
