@@ -371,6 +371,7 @@ def test_modeling_to_rigging():
                 family="mindbender.rig",
                 options={"useSelection": True})
 
+    cmds.file(rename="temp.ma")
     cmds.file(save=True)
 
     publish()

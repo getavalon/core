@@ -29,6 +29,7 @@ def install(collection="assets"):
     self.distinct = self._collection.distinct
     self.find_one = self._collection.find_one
     self.drop = self._collection.drop
+    self.delete_many = self._collection.delete_many
 
 
 def locate(path):
