@@ -274,21 +274,9 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
         except IOError:
             version_1_0 = dict(version, **{
                 "schema": "mindbender-core:version-1.0",
-                "path": os.path.join(
-                    "{root}",
-                    os.path.relpath(
-                        versiondir,
-                        os.path.join(
-                            api.registered_root(),
 
-                            # The meaning of "root" was changed
-                            # in 2.0 to mean the root of all projects.
-                            # Before, it was the root of one project,
-                            # so we compensate by mimicking this behaviour.
-                            os.environ["MINDBENDER_PROJECT"]
-                        )
-                    )
-                ).replace("\\", "/").replace("f02_prod", ""),
+                # Hard-coded during transition
+                "path": versiondir.replace("\\", "/"),
                 "representations": list(),
 
                 "version": version["name"],
