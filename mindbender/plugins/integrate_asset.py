@@ -261,10 +261,9 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                 self.log.critical("An unexpected error occurred.")
                 raise
 
-        latest_version = api.find_latest_version(os.listdir(instancedir)) + 1
         versiondir = os.path.join(
             instancedir,
-            api.format_version(latest_version)
+            api.format_version(version["name"])
         )
 
         try:
