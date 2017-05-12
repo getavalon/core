@@ -84,9 +84,12 @@ DEFAULTS = {
 
 
 def _save_inventory_1_0(project_name, data):
+    data.pop("schema")
+
     metadata = {}
-    for key, value in data.items():
+    for key, value in data.copy().items():
         if not isinstance(value, list):
+            print("Separating project metadata: %s" % key)
             metadata[key] = data.pop(key)
 
     document = io.find_one({"type": "project", "name": project_name})
@@ -187,6 +190,12 @@ def save(name, config, inventory):
     """Write config and inventory to database from `root`"""
     config = copy.deepcopy(config)
     inventory = copy.deepcopy(inventory)
+
+    if "config" not in config.get("schema", ""):
+        raise schema.SchemaError("Missing schema for config")
+
+    if "inventory" not in inventory.get("schema", ""):
+        raise schema.SchemaError("Missing schema for inventory")
 
     handlers = {
         "mindbender-core:inventory-1.0": _save_inventory_1_0,

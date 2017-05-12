@@ -271,6 +271,7 @@ def test_save_project_data():
 
     inventory_ = copy.deepcopy(self._inventory)
     inventory_["key"] = "value"
+    inventory_["key2"] = "value2"
 
     inventory.save(
         name=self._project["name"],
@@ -280,6 +281,9 @@ def test_save_project_data():
 
     project = io.find_one({"type": "project", "name": PROJECT_NAME})
     assert_equals(project["data"]["key"], "value")
+    assert_equals(project["data"]["key2"], "value2")
+
+    assert False
 
 
 @with_setup(clean)
@@ -311,3 +315,60 @@ def test_load_without_project():
     config_, inventory_ = inventory.load(PROJECT_NAME)
     assert_equals(config_, inventory.DEFAULTS["config"])
     assert_equals(inventory_, inventory.DEFAULTS["inventory"])
+
+
+@with_setup(clean)
+def test_save_toml():
+    text = """\
+schema = "mindbender-core:config-1.0"
+[[apps]]
+name = "maya2016"
+label = "Autodesk Maya 2016"
+
+[[apps]]
+name = "nuke10"
+label = "The Foundry Nuke 10.0"
+
+[[tasks]]
+name = "model"
+
+[[tasks]]
+name = "render"
+
+[[tasks]]
+name = "animation"
+
+[[tasks]]
+name = "rig"
+
+[[tasks]]
+name = "lookdev"
+
+[[tasks]]
+name = "layout"
+
+[template]
+work = "{root}/{project}/f02_prod/{silo}"
+publish = "{root}/{project}/f02_prod/{silo}"
+
+[copy]"""
+
+    config_ = toml.loads(text)
+    schema.validate(config_)
+
+    inventory.save(
+        name=self._project["name"],
+        config=config_,
+        inventory=self._inventory
+    )
+
+
+@with_setup(clean)
+def test_save_new_project():
+
+    # No project exists
+    inventory.save(
+        name=self._project["name"],
+        config=self._config,
+        inventory=self._inventory
+    )
