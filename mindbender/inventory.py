@@ -40,9 +40,10 @@ DEFAULTS = {
             },
         ],
         "tasks": [
-            {"name": "modeling"},
-            {"name": "animation"},
-            {"name": "rigging"},
+            {"name": "model"},
+            {"name": "render"},
+            {"name": "animate"},
+            {"name": "rig"},
             {"name": "lookdev"},
             {"name": "layout"},
         ],
