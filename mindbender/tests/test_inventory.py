@@ -283,8 +283,6 @@ def test_save_project_data():
     assert_equals(project["data"]["key"], "value")
     assert_equals(project["data"]["key2"], "value2")
 
-    assert False
-
 
 @with_setup(clean)
 def test_save_asset_data():
