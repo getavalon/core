@@ -115,7 +115,7 @@ class Window(QtWidgets.QDialog):
             self.on_representationschanged)
 
         # Defaults
-        self.resize(620, 350)
+        self.resize(1100, 600)
 
         load_button.hide()
         stop_button.setFocus()
@@ -234,9 +234,6 @@ class Window(QtWidgets.QDialog):
             return
 
         # Item is disabled
-        if not version_item.data(QtCore.Qt.ItemIsEnabled):
-            return
-
         representations = {}
 
         if version_item.data(LatestRole):
@@ -261,7 +258,7 @@ class Window(QtWidgets.QDialog):
 
                     # TODO(marcus): These are permanently excluded
                     # for now, but look towards making this customisable.
-                    if name not in ("json", "source"):
+                    if name in ("json", "source"):
                         continue
 
                     if name not in representations:
@@ -269,7 +266,7 @@ class Window(QtWidgets.QDialog):
 
                     representations[name].append(representation)
 
-        else:
+        elif version_item.data(QtCore.Qt.ItemIsEnabled):
             document = version_item.data(DocumentRole)
             representations = {
                 representation["name"]: [representation]
@@ -277,6 +274,9 @@ class Window(QtWidgets.QDialog):
                                                "parent": document["_id"]})
                 if representation["name"] not in ("json", "source")
             }
+
+        else:
+            return
 
         has = {"children": False}
 
