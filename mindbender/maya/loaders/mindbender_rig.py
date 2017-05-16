@@ -32,7 +32,9 @@ class RigLoader(api.Loader):
         fname = template.format(**data)
         assert os.path.exists(fname), "%s does not exist" % fname
 
-        namespace = maya.unique_namespace(asset["name"], suffix="_")
+        namespace = maya.unique_namespace(asset["name"],
+                                          prefix="_",
+                                          suffix="_")
         name = subset["name"]
 
         nodes = cmds.file(fname,

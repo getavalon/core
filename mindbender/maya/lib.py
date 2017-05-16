@@ -68,7 +68,7 @@ def containerise(name,
     return container
 
 
-def unique_name(name, format="%02d", namespace="", suffix=""):
+def unique_name(name, format="%02d", namespace="", prefix="", suffix=""):
     """Return unique `name`
 
     The function takes into consideration an optional `namespace`
@@ -97,11 +97,11 @@ def unique_name(name, format="%02d", namespace="", suffix=""):
     """
 
     iteration = 1
-    unique = (name + format % iteration) + suffix
+    unique = prefix + (name + format % iteration) + suffix
 
     while cmds.objExists(namespace + ":" + unique):
         iteration += 1
-        unique = (name + format % iteration) + suffix
+        unique = prefix + (name + format % iteration) + suffix
 
     if suffix:
         return unique[:-len(suffix)]
@@ -109,7 +109,7 @@ def unique_name(name, format="%02d", namespace="", suffix=""):
     return unique
 
 
-def unique_namespace(namespace, format="%02d", suffix=""):
+def unique_namespace(namespace, format="%02d", prefix="", suffix=""):
     """Return unique namespace
 
     Similar to :func:`unique_name` but evaluating namespaces
@@ -123,11 +123,11 @@ def unique_namespace(namespace, format="%02d", suffix=""):
     """
 
     iteration = 1
-    unique = (namespace + format % iteration) + suffix
+    unique = prefix + (namespace + format % iteration) + suffix
 
     while unique in cmds.namespaceInfo(listNamespace=True):
         iteration += 1
-        unique = (namespace + format % iteration) + suffix
+        unique = prefix + (namespace + format % iteration) + suffix
 
     return unique
 
