@@ -29,8 +29,8 @@ class ModelLoader(api.Loader):
 
         namespace = maya.unique_namespace(
             asset["name"],
-            prefix="_",
-            suffix="_" if asset["name"][0].isdigit() else ""
+            prefix="_" if asset["name"][0].isdigit() else "",
+            suffix="_"
         )
 
         name = subset["name"]
