@@ -29,11 +29,11 @@ class MindbenderExtractHistoryLookdev(pyblish.api.InstancePlugin):
 
             try:
                 # Slice connection from A -/> B
-                for input_ in cmds.sets("in_SET", query=True):
+                for input_ in cmds.sets("in_SET", query=True) or list():
                     shape = cmds.listRelatives(input_, shapes=True)[0]
                     dst = shape + ".inMesh"
 
-                    for src in cmds.listConnections(dst, plugs=True):
+                    for src in cmds.listConnections(dst, plugs=True) or list():
                         pair = src, dst
                         cmds.disconnectAttr(*pair)
                         connections.append(pair)
