@@ -97,7 +97,7 @@ def _install_menu():
 
         cmds.menuItem("Auto Connect", command=interactive.auto_connect)
         cmds.menuItem("Clone (Local)", command=interactive.clone_localspace)
-        cmds.menuItem("Clone (World)", command=interactive.clone_localspace)
+        cmds.menuItem("Clone (World)", command=interactive.clone_worldspace)
         cmds.menuItem("Clone (Special)", command=interactive.clone_special)
         cmds.menuItem("Create Follicle", command=interactive.follicle)
 
