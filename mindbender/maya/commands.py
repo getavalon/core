@@ -7,11 +7,13 @@ For interactive use, see :mod:`interactive.py`
 
 """
 
+import os
 import sys
 
 from maya import cmds
 
 from . import util, lib
+from .. import io
 
 if sys.version_info[0] == 3:
     basestring = str
@@ -19,6 +21,27 @@ if sys.version_info[0] == 3:
 # Flags
 LocalSpace = 1 << 0
 WorldSpace = 1 << 1
+
+
+def reset_frame_range():
+    """Set frame range to current asset"""
+    shot = os.getenv("MINDBENDER__ASSET")
+    shot = io.find_one({"_id": io.ObjectId(shot)})
+
+    try:
+        edit_in = shot["data"]["edit_in"]
+        edit_out = shot["data"]["edit_out"]
+    except KeyError:
+        cmds.warning("No edit information found for %s" % shot["name"])
+        return
+
+    cmds.playbackOptions(minTime=edit_in)
+    cmds.playbackOptions(maxTime=edit_out)
+    cmds.playbackOptions(animationStartTime=edit_in)
+    cmds.playbackOptions(animationEndTime=edit_out)
+    cmds.playbackOptions(minTime=edit_in)
+    cmds.playbackOptions(maxTime=edit_out)
+    cmds.currentTime(edit_in)
 
 
 def auto_connect2(src, dst):
@@ -172,7 +195,7 @@ def match_transform(src, dst):
 
     try:
         parent = cmds.listRelatives(src, parent=True)[0]
-    except:
+    except Exception:
         parent = None
 
     node_decompose = cmds.createNode("decomposeMatrix")
@@ -385,7 +408,7 @@ def combine(nodes):
                                  unite + ".inputMat[%s]" % count, force=True)
                 count += 1
 
-            except:
+            except Exception:
                 cmds.warning("'%s' is not a polygonal mesh" % shape)
 
     if count:
@@ -436,7 +459,7 @@ def parent_group(source, transferTransform=True):
 
         try:
             cmds.parent(source, group)
-        except:
+        except Exception:
             cmds.warning("Failed to parent child under new parent")
             cmds.delete(group)
 
@@ -461,7 +484,7 @@ def _output_node(source, type, suffix):
         cmds.parent(node, source)
         match_transform(node, source)
 
-    except:
+    except Exception:
         cmds.warning("Could not create %s" % node)
         cmds.delete(node)
 

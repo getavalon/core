@@ -13,6 +13,11 @@ from maya import cmds, mel
 from . import commands, util
 
 
+def reset_frame_range(*args):
+    """Set frame range to current asset"""
+    return commands.reset_frame_range()
+
+
 def connect_shapes(*args):
     """Connect the first selection to the last selection(s)"""
     selection = cmds.ls(selection=True)
@@ -56,7 +61,7 @@ def set_defaults(*args):
                 default = cmds.attributeQuery(channel,
                                               node=node,
                                               listDefault=True)[0]
-            except:
+            except Exception:
                 continue
 
             else:
@@ -102,7 +107,7 @@ def clone_special(*args):
                                   userDefined=True) or list():
             try:
                 cmds.addAttr(new_transform, longName=attr, dataType="string")
-            except:
+            except Exception:
                 continue
 
             value = cmds.getAttr(transform + "." + attr)

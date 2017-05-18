@@ -115,6 +115,8 @@ def _install_menu():
         cmds.menuItem(divider=True)
 
         cmds.menuItem("Auto Connect", command=interactive.auto_connect_assets)
+        cmds.menuItem("Reset Frame Range",
+                      command=interactive.reset_frame_range)
 
     # Allow time for uninstallation to finish.
     QtCore.QTimer.singleShot(100, deferred)
