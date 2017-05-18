@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io
@@ -9,11 +10,26 @@ module = sys.modules[__name__]
 module.window = None
 module.root = api.registered_root()
 module.project = os.getenv("MINDBENDER_PROJECT")
+module._jobs = dict()
 
 # Custom roles
 DocumentRole = QtCore.Qt.UserRole + 1
 RepresentationsRole = QtCore.Qt.UserRole + 2
 LatestRole = QtCore.Qt.UserRole + 3
+
+
+def schedule(func, time, channel="default"):
+    try:
+        module._jobs[channel].stop()
+    except (AttributeError, KeyError):
+        pass
+
+    timer = QtCore.QTimer()
+    timer.setSingleShot(True)
+    timer.timeout.connect(func)
+    timer.start(time)
+
+    module._jobs[channel] = timer
 
 
 class Window(QtWidgets.QDialog):
@@ -129,7 +145,32 @@ class Window(QtWidgets.QDialog):
     def on_enter(self):
         self.on_load_pressed()
 
+    # -------------------------------
+    # Delay calling CPU-bound methods
+    # -------------------------------
+
     def refresh(self):
+        self.echo("Fetching results..")
+        schedule(self._refresh, 100, channel="mongo")
+
+    def on_assetschanged(self, *args):
+        self.echo("Fetching results..")
+        schedule(self._assetschanged, 100, channel="mongo")
+
+    def on_subsetschanged(self, *args):
+        self.echo("Fetching results..")
+        schedule(self._subsetschanged, 100, channel="mongo")
+
+    def on_versionschanged(self, *args):
+        self.echo("Fetching results..")
+        schedule(self._versionschanged, 100, channel="mongo")
+
+    def on_representationschanged(self, *args):
+        schedule(self._representationschanged, 100, channel="mongo")
+
+    # ------------------------------
+
+    def _refresh(self):
         """Load assets from disk and add them to a QListView"""
 
         assets_model = self.data["model"]["assets"]
@@ -156,11 +197,13 @@ class Window(QtWidgets.QDialog):
         self.data["button"]["load"].hide()
         self.data["button"]["stop"].hide()
 
-    def on_assetschanged(self, *args):
+    def _assetschanged(self):
         assets_model = self.data["model"]["assets"]
         subsets_model = self.data["model"]["subsets"]
 
         subsets_model.clear()
+
+        t1 = time.time()
 
         asset_item = assets_model.currentItem()
 
@@ -189,39 +232,52 @@ class Window(QtWidgets.QDialog):
             item.setData(QtCore.Qt.ItemIsEnabled, False)
             subsets_model.addItem(item)
 
-    def on_subsetschanged(self, *args):
+        self.echo("Duration: %.3fs" % (time.time() - t1))
+
+    def _subsetschanged(self):
         subsets_model = self.data["model"]["subsets"]
         versions_model = self.data["model"]["versions"]
 
         versions_model.clear()
 
-        if len(subsets_model.selectedItems()) > 1:
+        t1 = time.time()
+
+        has = {"children": False}
+
+        if len(subsets_model.selectedItems()) == 0:
+            has["children"] = False
+
+        elif len(subsets_model.selectedItems()) > 1:
             item = QtWidgets.QListWidgetItem("Latest")
             item.setData(QtCore.Qt.ItemIsEnabled, False)
             item.setData(LatestRole, True)
             versions_model.addItem(item)
             versions_model.setCurrentItem(item)
+            has["children"] = True
 
         else:
             subset_item = subsets_model.currentItem()
             document = subset_item.data(DocumentRole)
 
-            has = {"children": False}
-
             for child in io.find({"type": "version",
-                                  "parent": document["_id"]}):
+                                  "parent": document["_id"]},
+                                 sort=[("name", -1)]):
                 item = QtWidgets.QListWidgetItem("v%03d" % child["name"])
                 item.setData(QtCore.Qt.ItemIsEnabled, True)
                 item.setData(DocumentRole, child)
                 versions_model.addItem(item)
                 has["children"] = True
 
-            if not has["children"]:
-                item = QtWidgets.QListWidgetItem("No versions found")
-                item.setData(QtCore.Qt.ItemIsEnabled, False)
-                versions_model.addItem(item)
+            versions_model.setCurrentRow(0)
 
-    def on_versionschanged(self, *args):
+        if not has["children"]:
+            item = QtWidgets.QListWidgetItem("No versions found")
+            item.setData(QtCore.Qt.ItemIsEnabled, False)
+            versions_model.addItem(item)
+
+        self.echo("Duration: %.3fs" % (time.time() - t1))
+
+    def _versionschanged(self):
         versions_model = self.data["model"]["versions"]
         representations_model = self.data["model"]["representations"]
 
@@ -233,42 +289,57 @@ class Window(QtWidgets.QDialog):
         if version_item is None:
             return
 
-        # Item is disabled
-        representations = {}
+        representations_by_name = {}
+
+        t1 = time.time()
 
         if version_item.data(LatestRole):
+            # Determine the latest version for each currently selected subset.
+
             subsets = self.data["model"]["subsets"].selectedItems()
             subsets = list(item.data(DocumentRole) for item in subsets)
 
-            for subset in subsets:
-                latest_version = io.find_one({
-                    "type": "version",
-                    "parent": subset["_id"]
-                }, sort=[("name", -1)])
+            versions = io.find({
+                "type": "version",
+                "parent": {"$in": [subset["_id"] for subset in subsets]}
+            })
 
-                if not latest_version:
-                    # No version available
+            # What is the latest version per subset?
+            # (hint: Associated versions share parent)
+            latests = {version["parent"]: version for version in versions}
+            for version in versions:
+                parent = version["parent"]
+                highest = latests[parent]["name"]
+                if version["name"] > highest:
+                    latests[parent] = version
+
+            representations = io.find({
+                "type": "representation",
+                "parent": {"$in": [v["_id"] for v in latests.values()]}
+            })
+
+            for representation in representations:
+                name = representation["name"]
+
+                # TODO(marcus): These are permanently excluded
+                # for now, but look towards making this customisable.
+                if name in ("json", "source"):
                     continue
 
-                for representation in io.find({
-                        "type": "representation",
-                        "parent": latest_version["_id"]}):
+                if name not in representations_by_name:
+                    representations_by_name[name] = list()
 
-                    name = representation["name"]
+                representations_by_name[name].append(representation)
 
-                    # TODO(marcus): These are permanently excluded
-                    # for now, but look towards making this customisable.
-                    if name in ("json", "source"):
-                        continue
-
-                    if name not in representations:
-                        representations[name] = list()
-
-                    representations[name].append(representation)
+            # Prevent accidental load of subsets missing any one representation
+            for name in representations_by_name.copy():
+                if len(representations_by_name[name]) != len(subsets):
+                    representations_by_name.pop(name)
+                    self.echo("'%s' missing from some subsets." % name)
 
         elif version_item.data(QtCore.Qt.ItemIsEnabled):
             document = version_item.data(DocumentRole)
-            representations = {
+            representations_by_name = {
                 representation["name"]: [representation]
                 for representation in io.find({"type": "representation",
                                                "parent": document["_id"]})
@@ -280,23 +351,28 @@ class Window(QtWidgets.QDialog):
 
         has = {"children": False}
 
-        for name, documents in representations.items():
+        for name, documents in representations_by_name.items():
             item = QtWidgets.QListWidgetItem(name)
             item.setData(QtCore.Qt.ItemIsEnabled, True)
             item.setData(RepresentationsRole, documents)
             representations_model.addItem(item)
             has["children"] = True
 
+        representations_model.setCurrentRow(0)
+
         if not has["children"]:
             item = QtWidgets.QListWidgetItem("No representations found")
             item.setData(QtCore.Qt.ItemIsEnabled, False)
             representations_model.addItem(item)
 
-    def on_representationschanged(self, *args):
+        self.echo("Duration: %.3fs" % (time.time() - t1))
+
+    def _representationschanged(self):
         button = self.data["button"]["load"]
         button.hide()
 
-        item = self.data["model"]["representations"].currentItem()
+        model = self.data["model"]["representations"]
+        item = model.currentItem()
 
         if item and item.data(QtCore.Qt.ItemIsEnabled):
             button.show()
@@ -346,6 +422,8 @@ class Window(QtWidgets.QDialog):
         widget.show()
         print(message)
 
+        schedule(widget.hide, 2000, channel="message")
+
     def closeEvent(self, event):
         print("Good bye")
         self.data["state"]["running"] = False
@@ -376,7 +454,7 @@ def show(root=None, debug=False):
 
     if debug:
         io.install()
-        project = io.find_one({"type": "project", "name": "hulk"})
+        project = io.find_one({"type": "project"})
         os.environ["MINDBENDER__PROJECT"] = str(project["_id"])
 
     with lib.application():
