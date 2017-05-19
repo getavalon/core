@@ -130,6 +130,13 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
             "parent": subset["_id"],
             "name": next_version,
 
+            # Imprint currently registered location
+            "locations": list(
+                location for location in
+                [os.getenv("MINDBENDER_LOCATION")]
+                if location is not None
+            ),
+
             "data": {
                 # Used to identify family of assets already on disk
                 "families": instance.data.get("families", list()) + [

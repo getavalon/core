@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/schema#",
 
-    "title": "mindbender-core:version-1.0",
+    "title": "mindbender-core:version-2.0",
     "description": "An individual version",
 
     "type": "object",
@@ -23,6 +23,11 @@
         "name": {
             "description": "Number of version",
             "type": "number"
+        },
+        "locations": {
+            "description": "Where on the planet this version can be found.",
+            "type": "array",
+            "items": {"type": "string"}
         },
         "data": {
             "type": "object",

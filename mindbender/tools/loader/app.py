@@ -1,39 +1,82 @@
 import os
 import sys
 import time
+import errno
+import shutil
+import tempfile
+import threading
+import Queue as queue
 
+from ...vendor import requests
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io
 from .. import lib
+from ..awesome import tags as awesome
 
 module = sys.modules[__name__]
 module.window = None
 module.root = api.registered_root()
 module.project = os.getenv("MINDBENDER_PROJECT")
-module._jobs = dict()
+module.debug = bool(os.getenv("MINDBENDER_DEBUG"))
+
+# About to be downloaded
+module._downloads = queue.Queue()
+
+# Which downloads are in progress?
+module._downloading = dict()
 
 # Custom roles
 DocumentRole = QtCore.Qt.UserRole + 1
 RepresentationsRole = QtCore.Qt.UserRole + 2
 LatestRole = QtCore.Qt.UserRole + 3
+LocationRole = QtCore.Qt.UserRole + 4
 
 
-def schedule(func, time, channel="default"):
+def download(src, dst):
+    basename = os.path.basename(src)
+    tmp = os.path.join(tempfile.gettempdir(), basename)
+
+    with open(tmp, "wb") as f:
+        response = requests.get(
+            src,
+            stream=True,
+            auth=requests.auth.HTTPBasicAuth("location", "mypass")
+        )
+
+        total_length = response.headers.get("content-length")
+
+        if total_length is None:  # no content length header
+            f.write(response.content)
+        else:
+            downloaded = 0
+            total_length = int(total_length)
+            for data in response.iter_content(chunk_size=4096):
+                downloaded += len(data)
+                f.write(data)
+
+                if module.debug:
+                    time.sleep(0.007)
+
+                yield int(100.0 * downloaded / total_length)
+
     try:
-        module._jobs[channel].stop()
-    except (AttributeError, KeyError):
-        pass
+        os.makedirs(os.path.dirname(dst))
+    except OSError as e:
+        # An already existing working directory is fine.
+        if e.errno != errno.EEXIST:
+            raise
 
-    timer = QtCore.QTimer()
-    timer.setSingleShot(True)
-    timer.timeout.connect(func)
-    timer.start(time)
+    shutil.copy(tmp, dst)
 
-    module._jobs[channel] = timer
+    # Clean up
+    os.remove(tmp)
 
 
 class Window(QtWidgets.QDialog):
     """Asset loader interface"""
+
+    download_progressed = QtCore.Signal(str, int)
+    download_completed = QtCore.Signal()
 
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
@@ -46,7 +89,9 @@ class Window(QtWidgets.QDialog):
 
         body = QtWidgets.QWidget()
         sidepanel = QtWidgets.QWidget()
+        sidepanel.setFixedWidth(200)
         footer = QtWidgets.QWidget()
+        footer.setFixedHeight(20)
 
         container = QtWidgets.QWidget()
 
@@ -79,18 +124,99 @@ class Window(QtWidgets.QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
 
         load_button = QtWidgets.QPushButton("Load")
-        refresh_button = QtWidgets.QPushButton("Refresh")
-        stop_button = QtWidgets.QPushButton("Searching..")
-        stop_button.setToolTip("Click to stop searching")
+        refresh_button = QtWidgets.QPushButton(awesome["refresh"])
+        refresh_button.setStyleSheet("""
+QPushButton {
+    max-width: 30px;
+    font-family: "FontAwesome";
+}
+""")
+
+        offline_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
+        offline_slider.setRange(0, 1)
+        offline_slider.setFixedHeight(25)
+        offline_slider.setStyleSheet("""
+QSlider::groove:horizontal {
+    border: 1px solid #666;
+    height: 23px;
+    background: #777;
+    margin: 2px 0;
+    border-radius: 4px;
+}
+
+QSlider::groove:horizontal:enabled {
+    border: 1px solid #222;
+    height: 23px;
+    background: qlineargradient(x1:0, y1:0, \
+                                x2:0, y2:1, \
+                                stop:0 #555, \
+                                stop:1 #666);
+    margin: 2px 0;
+    border-radius: 4px;
+}
+
+QSlider::handle:horizontal {
+    background: #777;
+    border: 1px solid #555;
+    width: 45px;
+    margin: 1px;
+    border-radius: 2px;
+}
+
+QSlider::handle:horizontal:enabled {
+    border: 1px solid #333;
+    background: qlineargradient(x1:0, y1:0, \
+                                x2:1, y2:1, \
+                                stop:0 #aaa \
+                                stop:1 #888);
+}
+
+""")
+        offline_label = QtWidgets.QLabel("Available offline..")
+        offline_on = QtWidgets.QLabel("On", offline_slider)
+        offline_off = QtWidgets.QLabel("Off", offline_slider)
+        offline_on.move(72, 6)
+        offline_off.move(16, 6)
+
+        for toggle in (offline_on, offline_off):
+            toggle.show()
+            toggle.setStyleSheet("QLabel { color: black; }")
+
+        offline = QtWidgets.QWidget()
+
+        layout = QtWidgets.QHBoxLayout(offline)
+        layout.addWidget(offline_label)
+        layout.addWidget(offline_slider)
+        layout.setContentsMargins(0, 0, 0, 0)
+
         message = QtWidgets.QLabel()
         message.hide()
 
-        layout = QtWidgets.QVBoxLayout(sidepanel)
-        layout.addWidget(load_button)
-        layout.addWidget(stop_button)
+        # side_header = QtWidgets.QLabel("Asset A")
+        # side_header.setStyleSheet("QLabel { font: bold 15px; }")
+
+        # side_title = QtWidgets.QLabel("Some Title")
+        # side_body = QtWidgets.QLabel("A very long body here..")
+
+        # side_comment_header = QtWidgets.QLabel("Comment")
+        # side_comment = QtWidgets.QLabel("An optional comment here")
+
+        buttons = QtWidgets.QWidget()
+        layout = QtWidgets.QHBoxLayout(buttons)
         layout.addWidget(refresh_button)
-        layout.addWidget(options, 0, QtCore.Qt.AlignBottom)
+        layout.addWidget(load_button, 5)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        layout = QtWidgets.QVBoxLayout(sidepanel)
+        # layout.addWidget(side_header)
+        # layout.addWidget(side_title)
+        # layout.addWidget(side_body)
+        # layout.addWidget(side_comment_header)
+        # layout.addWidget(side_comment)
         layout.addWidget(QtWidgets.QWidget(), 1)
+        layout.addWidget(options, 0, QtCore.Qt.AlignBottom)
+        layout.addWidget(offline)
+        layout.addWidget(buttons)
         layout.setContentsMargins(0, 0, 0, 0)
 
         layout = QtWidgets.QVBoxLayout(footer)
@@ -102,27 +228,40 @@ class Window(QtWidgets.QDialog):
         layout.addWidget(footer)
 
         self.data = {
-            "state": {
-                "running": False,
-            },
             "button": {
                 "load": load_button,
-                "stop": stop_button,
                 "autoclose": autoclose_checkbox,
+                "offline": offline_slider,
             },
             "model": {
                 "assets": assets,
                 "subsets": subsets,
                 "versions": versions,
-                "representations": representations
+                "representations": representations,
             },
             "label": {
                 "message": message,
+            },
+            "state": {
+                "template": None,
+                "locations": list(),
+                "context": {
+                    "root": None,
+                    "project": None,
+                    "asset": None,
+                    "silo": None,
+                    "subset": None,
+                    "version": None,
+                    "representation": None,
+                },
             }
         }
 
+        self.download_progressed.connect(self.on_download_progressed)
+        self.download_completed.connect(self.on_download_completed)
+
+        offline_slider.valueChanged.connect(self.on_make_available_offline)
         load_button.clicked.connect(self.on_load_pressed)
-        stop_button.clicked.connect(self.on_stop_pressed)
         refresh_button.clicked.connect(self.on_refresh_pressed)
         assets.currentItemChanged.connect(self.on_assetschanged)
         subsets.itemSelectionChanged.connect(self.on_subsetschanged)
@@ -133,8 +272,72 @@ class Window(QtWidgets.QDialog):
         # Defaults
         self.resize(1100, 600)
 
-        load_button.hide()
-        stop_button.setFocus()
+        load_button.setEnabled(False)
+        offline_slider.setEnabled(False)
+
+        # assets.setFocus()
+
+        thread = threading.Thread(target=self._download_manager)
+        thread.daemon = True
+        thread.start()
+
+    def _download_manager(self):
+        while True:
+            src, dst = module._downloads.get()
+
+            # Killswitch
+            if not any([src, dst]):
+                break
+
+            for progress in download(src, dst):
+                self.download_progressed.emit(src, progress)
+
+            module._downloading.pop(dst)
+            self.download_completed.emit()
+
+    def on_download_progressed(self, fname, progress):
+        self.echo("Downloading %s.. %d%%" % (fname, progress))
+
+    def on_download_completed(self):
+        self._representationschanged()
+        self.echo("Done")
+
+    def on_make_available_offline(self, state):
+        assert len(self.data["state"]["locations"]), (
+            "Must have at least one location"
+        )
+
+        if state != 1:
+            return
+
+        if not self.data["button"]["offline"].isEnabled():
+            return
+
+        models = self.data["model"]
+        representations_model = models["representations"]
+        representation_item = representations_model.currentItem()
+        location = self.data["state"]["locations"][0]
+
+        for representation in representation_item.data(RepresentationsRole):
+            try:
+                template = self.data["state"]["template"]
+                context = self.data["state"]["context"].copy()
+                context["root"] = location
+                path = template.format(**context)
+
+            except Exception as e:
+                print(e)
+            else:
+                context = self.data["state"]["context"]
+
+                src = path
+                dst = template.format(**context)
+
+                module._downloads.put((src, dst))
+                module._downloading[dst] = True
+
+        offline = self.data["button"]["offline"]
+        offline.setEnabled(False)
 
     def keyPressEvent(self, event):
         """Delegate keyboard events"""
@@ -146,27 +349,27 @@ class Window(QtWidgets.QDialog):
         self.on_load_pressed()
 
     # -------------------------------
-    # Delay calling CPU-bound methods
+    # Delay calling blocking methods
     # -------------------------------
 
     def refresh(self):
         self.echo("Fetching results..")
-        schedule(self._refresh, 100, channel="mongo")
+        lib.schedule(self._refresh, 100, channel="mongo")
 
     def on_assetschanged(self, *args):
         self.echo("Fetching results..")
-        schedule(self._assetschanged, 100, channel="mongo")
+        lib.schedule(self._assetschanged, 100, channel="mongo")
 
     def on_subsetschanged(self, *args):
         self.echo("Fetching results..")
-        schedule(self._subsetschanged, 100, channel="mongo")
+        lib.schedule(self._subsetschanged, 100, channel="mongo")
 
     def on_versionschanged(self, *args):
         self.echo("Fetching results..")
-        schedule(self._versionschanged, 100, channel="mongo")
+        lib.schedule(self._versionschanged, 100, channel="mongo")
 
     def on_representationschanged(self, *args):
-        schedule(self._representationschanged, 100, channel="mongo")
+        lib.schedule(self._representationschanged, 100, channel="mongo")
 
     # ------------------------------
 
@@ -179,6 +382,7 @@ class Window(QtWidgets.QDialog):
         has = {"children": False}
 
         project = io.ObjectId(os.environ["MINDBENDER__PROJECT"])
+
         assets = io.find({"type": "asset", "parent": project})
         for asset in sorted(assets, key=lambda i: i["name"]):
             item = QtWidgets.QListWidgetItem(asset["name"])
@@ -194,8 +398,15 @@ class Window(QtWidgets.QDialog):
 
         assets_model.setFocus()
         assets_model.setCurrentRow(0)
-        self.data["button"]["load"].hide()
-        self.data["button"]["stop"].hide()
+
+        # Update state
+        document = io.find_one({"_id": project})
+        state = self.data["state"]
+        state["template"] = document["config"]["template"]["publish"]
+        state["context"]["root"] = api.registered_root()
+        state["context"]["project"] = document["name"]
+
+        self.data["button"]["load"].setEnabled(False)
 
     def _assetschanged(self):
         assets_model = self.data["model"]["assets"]
@@ -224,6 +435,7 @@ class Window(QtWidgets.QDialog):
             item = QtWidgets.QListWidgetItem(child["name"])
             item.setData(QtCore.Qt.ItemIsEnabled, True)
             item.setData(DocumentRole, child)
+            item.setData(LocationRole, document.get("locations", []))
             subsets_model.addItem(item)
             has["children"] = True
 
@@ -232,6 +444,8 @@ class Window(QtWidgets.QDialog):
             item.setData(QtCore.Qt.ItemIsEnabled, False)
             subsets_model.addItem(item)
 
+        self.data["state"]["context"]["asset"] = document["name"]
+        self.data["state"]["context"]["silo"] = document["silo"]
         self.echo("Duration: %.3fs" % (time.time() - t1))
 
     def _subsetschanged(self):
@@ -249,7 +463,7 @@ class Window(QtWidgets.QDialog):
 
         elif len(subsets_model.selectedItems()) > 1:
             item = QtWidgets.QListWidgetItem("Latest")
-            item.setData(QtCore.Qt.ItemIsEnabled, False)
+            item.setData(QtCore.Qt.ItemIsEnabled, True)
             item.setData(LatestRole, True)
             versions_model.addItem(item)
             versions_model.setCurrentItem(item)
@@ -257,7 +471,12 @@ class Window(QtWidgets.QDialog):
 
         else:
             subset_item = subsets_model.currentItem()
+
+            if not subset_item.data(QtCore.Qt.ItemIsEnabled):
+                return
+
             document = subset_item.data(DocumentRole)
+            self.data["state"]["context"]["subset"] = document["name"]
 
             for child in io.find({"type": "version",
                                   "parent": document["_id"]},
@@ -280,13 +499,15 @@ class Window(QtWidgets.QDialog):
     def _versionschanged(self):
         versions_model = self.data["model"]["versions"]
         representations_model = self.data["model"]["representations"]
-
         representations_model.clear()
 
         version_item = versions_model.currentItem()
 
-        # The model is empty
+        # Nothing is selected
         if version_item is None:
+            return
+
+        if not version_item.data(QtCore.Qt.ItemIsEnabled):
             return
 
         representations_by_name = {}
@@ -299,23 +520,27 @@ class Window(QtWidgets.QDialog):
             subsets = self.data["model"]["subsets"].selectedItems()
             subsets = list(item.data(DocumentRole) for item in subsets)
 
-            versions = io.find({
+            all_versions = io.find({
                 "type": "version",
                 "parent": {"$in": [subset["_id"] for subset in subsets]}
             })
 
             # What is the latest version per subset?
             # (hint: Associated versions share parent)
-            latests = {version["parent"]: version for version in versions}
-            for version in versions:
+            latest_versions = {
+                version["parent"]: version
+                for version in all_versions
+            }
+
+            for version in all_versions:
                 parent = version["parent"]
-                highest = latests[parent]["name"]
+                highest = latest_versions[parent]["name"]
                 if version["name"] > highest:
-                    latests[parent] = version
+                    latest_versions[parent] = version
 
             representations = io.find({
                 "type": "representation",
-                "parent": {"$in": [v["_id"] for v in latests.values()]}
+                "parent": {"$in": [v["_id"] for v in latest_versions.values()]}
             })
 
             for representation in representations:
@@ -337,8 +562,17 @@ class Window(QtWidgets.QDialog):
                     representations_by_name.pop(name)
                     self.echo("'%s' missing from some subsets." % name)
 
-        elif version_item.data(QtCore.Qt.ItemIsEnabled):
+        else:
             document = version_item.data(DocumentRole)
+            self.data["state"]["context"]["version"] = document["name"]
+
+            # NOTE(marcus): This is backwards compatible with assets published
+            # before locations were implemented. Newly published assets are
+            # embedded with this attribute, but current ones were not.
+            locations = document.get("locations", [])
+
+            self.data["state"]["locations"][:] = locations
+
             representations_by_name = {
                 representation["name"]: [representation]
                 for representation in io.find({"type": "representation",
@@ -346,13 +580,15 @@ class Window(QtWidgets.QDialog):
                 if representation["name"] not in ("json", "source")
             }
 
-        else:
-            return
-
         has = {"children": False}
 
         for name, documents in representations_by_name.items():
-            item = QtWidgets.QListWidgetItem(name)
+            item = QtWidgets.QListWidgetItem({
+                "ma": "Maya Ascii",
+                "source": "Original source file",
+                "abc": "Alembic"
+            }.get(name, name))  # Default to using name as-is
+
             item.setData(QtCore.Qt.ItemIsEnabled, True)
             item.setData(RepresentationsRole, documents)
             representations_model.addItem(item)
@@ -368,25 +604,47 @@ class Window(QtWidgets.QDialog):
         self.echo("Duration: %.3fs" % (time.time() - t1))
 
     def _representationschanged(self):
-        button = self.data["button"]["load"]
-        button.hide()
+        offline = self.data["button"]["offline"]
+        load_button = self.data["button"]["load"]
+        load_button.setEnabled(False)
 
         model = self.data["model"]["representations"]
         item = model.currentItem()
 
-        if item and item.data(QtCore.Qt.ItemIsEnabled):
-            button.show()
-            button.setEnabled(True)
+        if item is None:
+            return
+
+        if not item.data(QtCore.Qt.ItemIsEnabled):
+            return
+
+        # Update state
+        document = item.data(RepresentationsRole)[0]
+        self.data["state"]["context"]["representation"] = document["name"]
+
+        template = self.data["state"]["template"]
+        context = self.data["state"]["context"]
+        path = template.format(**context)
+
+        offline.setEnabled(False)
+
+        if path in module._downloading or os.path.exists(path):
+            offline.setValue(1)
+            load_button.setEnabled(True)
+            offline.setToolTip("Already available offline.")
+
+        else:
+            offline.setValue(0)
+
+            # Is the representation available at any location?
+            if len(self.data["state"]["locations"]) > 0:
+                offline.setEnabled(True)
+                offline.setToolTip("Toggle to make available offline.")
+            else:
+                offline.setToolTip("Couldn't find where to "
+                                   "download this from..")
 
     def on_refresh_pressed(self):
         self.refresh()
-
-    def on_stop_pressed(self):
-        button = self.data["button"]["stop"]
-        button.setText("Stopping..")
-        button.setEnabled(False)
-
-        self.data["state"]["running"] = False
 
     def on_load_pressed(self):
         models = self.data["model"]
@@ -422,11 +680,13 @@ class Window(QtWidgets.QDialog):
         widget.show()
         print(message)
 
-        schedule(widget.hide, 2000, channel="message")
+        lib.schedule(widget.hide, 5000, channel="message")
 
     def closeEvent(self, event):
+        # Kill download manager
+        module._downloads.put((None, None))
+
         print("Good bye")
-        self.data["state"]["running"] = False
         return super(Window, self).closeEvent(event)
 
 
@@ -453,6 +713,11 @@ def show(root=None, debug=False):
         parent = None
 
     if debug:
+        import traceback
+        sys.excepthook = lambda typ, val, tb: traceback.print_last()
+
+        module.debug = bool(os.getenv("MINDBENDER_DEBUG"))
+
         io.install()
         project = io.find_one({"type": "project"})
         os.environ["MINDBENDER__PROJECT"] = str(project["_id"])
