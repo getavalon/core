@@ -23,7 +23,8 @@
         },
         "name": {
             "description": "Name of directory",
-            "type": "string"
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_.]*$"
         },
         "silo": {
             "description": "Parent directory of asset",
