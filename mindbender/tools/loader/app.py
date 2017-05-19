@@ -36,12 +36,17 @@ def download(src, dst):
     basename = os.path.basename(src)
     tmp = os.path.join(tempfile.gettempdir(), basename)
 
-    with open(tmp, "wb") as f:
+    try:
         response = requests.get(
             src,
             stream=True,
             auth=requests.auth.HTTPBasicAuth("location", "mypass")
         )
+    except requests.ConnectionError as e:
+        yield None, e
+        return
+
+    with open(tmp, "wb") as f:
 
         total_length = response.headers.get("content-length")
 
@@ -57,7 +62,7 @@ def download(src, dst):
                 if module.debug:
                     time.sleep(0.007)
 
-                yield int(100.0 * downloaded / total_length)
+                yield int(100.0 * downloaded / total_length), None
 
     try:
         os.makedirs(os.path.dirname(dst))
@@ -77,6 +82,7 @@ class Window(QtWidgets.QDialog):
 
     download_progressed = QtCore.Signal(str, int)
     download_completed = QtCore.Signal()
+    download_errored = QtCore.Signal(str)
 
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
@@ -259,6 +265,7 @@ QSlider::handle:horizontal:enabled {
 
         self.download_progressed.connect(self.on_download_progressed)
         self.download_completed.connect(self.on_download_completed)
+        self.download_errored.connect(self.on_download_errored)
 
         offline_slider.valueChanged.connect(self.on_make_available_offline)
         load_button.clicked.connect(self.on_load_pressed)
@@ -275,8 +282,6 @@ QSlider::handle:horizontal:enabled {
         load_button.setEnabled(False)
         offline_slider.setEnabled(False)
 
-        # assets.setFocus()
-
         thread = threading.Thread(target=self._download_manager)
         thread.daemon = True
         thread.start()
@@ -289,11 +294,19 @@ QSlider::handle:horizontal:enabled {
             if not any([src, dst]):
                 break
 
-            for progress in download(src, dst):
+            for progress, error in download(src, dst):
+
+                if error:
+                    self.download_errored.emit(
+                        "ERROR: Could not download %s" % src)
+                    break
+
                 self.download_progressed.emit(src, progress)
 
             module._downloading.pop(dst)
-            self.download_completed.emit()
+
+            if not error:
+                self.download_completed.emit()
 
     def on_download_progressed(self, fname, progress):
         self.echo("Downloading %s.. %d%%" % (fname, progress))
@@ -301,6 +314,10 @@ QSlider::handle:horizontal:enabled {
     def on_download_completed(self):
         self._representationschanged()
         self.echo("Done")
+
+    def on_download_errored(self, message):
+        self._representationschanged()
+        self.echo(message)
 
     def on_make_available_offline(self, state):
         assert len(self.data["state"]["locations"]), (
@@ -641,6 +658,7 @@ QSlider::handle:horizontal:enabled {
             if len(self.data["state"]["locations"]) > 0:
                 offline.setEnabled(True)
                 offline.setToolTip("Toggle to make available offline.")
+
             else:
                 offline.setToolTip("Couldn't find where to "
                                    "download this from..")
@@ -707,13 +725,6 @@ def show(root=None, debug=False):
     except (RuntimeError, AttributeError):
         pass
 
-    try:
-        widgets = QtWidgets.QApplication.topLevelWidgets()
-        widgets = dict((w.objectName(), w) for w in widgets)
-        parent = widgets["MayaWindow"]
-    except KeyError:
-        parent = None
-
     if debug:
         import traceback
         sys.excepthook = lambda typ, val, tb: traceback.print_last()
@@ -722,9 +733,10 @@ def show(root=None, debug=False):
 
         any_project = next(io.projects())
         io.activate_project(any_project)
+        module.project = any_project["name"]
 
     with lib.application():
-        window = Window(parent)
+        window = Window()
         window.show()
 
         window.refresh()
