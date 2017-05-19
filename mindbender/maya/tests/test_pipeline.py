@@ -4,23 +4,22 @@
 
 """
 
+import os
 import sys
 
 from maya import cmds
 
 import pyblish_maya
-from mindbender.maya import pipeline
 from mindbender import api, maya
-
-from nose.tools import (
-    assert_equals,
-)
 
 self = sys.modules[__name__]
 
 
 def setup():
     pyblish_maya.setup()
+    os.environ["MINDBENDER_PROJECT"] = "testProject"
+    os.environ["MINDBENDER_ASSET"] = "testAsset"
+
     api.install(maya)
 
 
