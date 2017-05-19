@@ -327,6 +327,7 @@ QSlider::handle:horizontal:enabled {
 
             except Exception as e:
                 print(e)
+
             else:
                 context = self.data["state"]["context"]
 
@@ -381,9 +382,11 @@ QSlider::handle:horizontal:enabled {
 
         has = {"children": False}
 
-        project = io.ObjectId(os.environ["MINDBENDER__PROJECT"])
+        project = io.find_one({"type": "project"})
 
-        assets = io.find({"type": "asset", "parent": project})
+        assert project, "This is a bug"
+
+        assets = io.find({"type": "asset", "parent": project["_id"]})
         for asset in sorted(assets, key=lambda i: i["name"]):
             item = QtWidgets.QListWidgetItem(asset["name"])
             item.setData(QtCore.Qt.ItemIsEnabled, True)
@@ -400,11 +403,10 @@ QSlider::handle:horizontal:enabled {
         assets_model.setCurrentRow(0)
 
         # Update state
-        document = io.find_one({"_id": project})
         state = self.data["state"]
-        state["template"] = document["config"]["template"]["publish"]
+        state["template"] = project["config"]["template"]["publish"]
         state["context"]["root"] = api.registered_root()
-        state["context"]["project"] = document["name"]
+        state["context"]["project"] = project["name"]
 
         self.data["button"]["load"].setEnabled(False)
 
@@ -716,11 +718,10 @@ def show(root=None, debug=False):
         import traceback
         sys.excepthook = lambda typ, val, tb: traceback.print_last()
 
-        module.debug = bool(os.getenv("MINDBENDER_DEBUG"))
-
         io.install()
-        project = io.find_one({"type": "project"})
-        os.environ["MINDBENDER__PROJECT"] = str(project["_id"])
+
+        any_project = next(io.projects())
+        io.activate_project(any_project)
 
     with lib.application():
         window = Window(parent)
