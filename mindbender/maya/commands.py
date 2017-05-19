@@ -25,8 +25,8 @@ WorldSpace = 1 << 1
 
 def reset_frame_range():
     """Set frame range to current asset"""
-    shot = os.getenv("MINDBENDER__ASSET")
-    shot = io.find_one({"_id": io.ObjectId(shot)})
+    shot = os.getenv("MINDBENDER_ASSET")
+    shot = io.find_one({"name": shot, "type": "asset"})
 
     try:
         edit_in = shot["data"]["edit_in"]
