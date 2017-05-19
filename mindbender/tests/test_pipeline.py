@@ -29,7 +29,6 @@ def clear():
 def setup():
     self.tempdir = tempfile.mkdtemp()
     pipeline.register_root(self.tempdir)
-    os.environ["MINDBENDER_PROJECTPATH"] = self.tempdir
 
     # Mock host
     host = types.ModuleType("Test")
