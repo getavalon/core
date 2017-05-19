@@ -402,6 +402,11 @@ def extract(root, silo_parent=None):
                             "schema": "mindbender-core:version-2.0",
                             "type": "version",
                             "name": number,
+                            "locations": list(
+                                location for location in
+                                [os.getenv("MINDBENDER_LOCATION")]
+                                if location is not None
+                            ),
                             "data": {
                                 "families": metadata["families"],
                                 "author": metadata["author"],
