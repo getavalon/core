@@ -32,7 +32,7 @@ def install():
     self._is_installed = True
 
 
-def activate_project(project="assets"):
+def activate_project(project):
     try:
         # Support passing dictionary object
         project = project["name"]
