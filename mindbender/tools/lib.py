@@ -20,7 +20,6 @@ def install_fonts():
     for font in ("fontawesome/FontAwesome.otf",
                  "opensans/OpenSans-Regular.ttf"):
         path = resource("font", font)
-        print("Installing %s" % path)
 
         if database.addApplicationFont(path) < 0:
             sys.stderr.write("Could not install %s\n" % path)
