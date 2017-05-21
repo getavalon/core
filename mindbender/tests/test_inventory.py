@@ -64,7 +64,8 @@ self._inventory = {
 
 def setup():
     assert_equals.__self__.maxDiff = None
-    io.install("test")
+    io.install()
+    io.activate_project(PROJECT_NAME)
     self._tempdir = tempfile.mkdtemp()
 
 
@@ -370,3 +371,36 @@ def test_save_new_project():
         config=self._config,
         inventory=self._inventory
     )
+
+
+@with_setup(clean)
+def test_asset_name():
+    """Assets with spaces and other special characters are invalid"""
+
+    invalid = {}
+    inventory_ = copy.deepcopy(self._inventory)
+    inventory_["assets"].append(invalid)
+
+    for name in ("mixedCaseOk",
+                 "lowercaseok",
+                 "underscore_ok"):
+        invalid["name"] = name
+
+        inventory.save(
+            name=self._project["name"],
+            config=self._config,
+            inventory=inventory_
+        )
+
+    for name in ("spaces not ok",
+                 "special~characters$not^ok",
+                 "dash-not-ok"):
+        invalid["name"] = name
+
+        assert_raises(
+            schema.ValidationError,
+            inventory.save,
+            name=self._project["name"],
+            config=self._config,
+            inventory=inventory_
+        )

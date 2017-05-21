@@ -97,7 +97,7 @@ def _install_menu():
 
         cmds.menuItem("Auto Connect", command=interactive.auto_connect)
         cmds.menuItem("Clone (Local)", command=interactive.clone_localspace)
-        cmds.menuItem("Clone (World)", command=interactive.clone_localspace)
+        cmds.menuItem("Clone (World)", command=interactive.clone_worldspace)
         cmds.menuItem("Clone (Special)", command=interactive.clone_special)
         cmds.menuItem("Create Follicle", command=interactive.follicle)
 
@@ -115,6 +115,8 @@ def _install_menu():
         cmds.menuItem(divider=True)
 
         cmds.menuItem("Auto Connect", command=interactive.auto_connect_assets)
+        cmds.menuItem("Reset Frame Range",
+                      command=interactive.reset_frame_range)
 
     # Allow time for uninstallation to finish.
     QtCore.QTimer.singleShot(100, deferred)
@@ -340,13 +342,13 @@ def update(container, version=-1):
     assert reference_node, ("Imported container not supported; "
                             "container must be referenced.")
 
-    representation = io.find_one({
+    current_representation = io.find_one({
         "_id": io.ObjectId(container["representation"])
     })
 
-    assert representation is not None, "This is a bug"
+    assert current_representation is not None, "This is a bug"
 
-    version_, subset, asset, project = io.parenthood(representation)
+    version_, subset, asset, project = io.parenthood(current_representation)
 
     if version == -1:
         new_version = io.find_one({
@@ -360,6 +362,12 @@ def update(container, version=-1):
             "name": version,
         })
 
+    new_representation = io.find_one({
+        "type": "representation",
+        "parent": new_version["_id"],
+        "name": current_representation["name"]
+    })
+
     assert new_version is not None, "This is a bug"
 
     template_publish = project["config"]["template"]["publish"]
@@ -370,22 +378,26 @@ def update(container, version=-1):
         "silo": asset["silo"],
         "subset": subset["name"],
         "version": new_version["name"],
-        "representation": representation["name"],
+        "representation": current_representation["name"],
     })
 
     file_type = {
         "ma": "mayaAscii",
         "mb": "mayaBinary",
         "abc": "Alembic"
-    }.get(representation["name"])
+    }.get(new_representation["name"])
 
-    assert file_type, ("Unsupported representation: %s" % representation)
+    assert file_type, ("Unsupported representation: %s" % new_representation)
 
     assert os.path.exists(fname), "%s does not exist." % fname
     cmds.file(fname, loadReference=reference_node, type=file_type)
 
     # Update metadata
-    cmds.setAttr(container["objectName"] + ".version", new_version["name"])
+    cmds.setAttr(container["objectName"] + ".version",
+                 new_version["name"])
+    cmds.setAttr(container["objectName"] + ".representation",
+                 str(new_representation["_id"]),
+                 type="string")
     cmds.setAttr(container["objectName"] + ".source",
                  new_version["data"]["source"],
                  type="string")

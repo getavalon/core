@@ -206,7 +206,7 @@ def export_alembic(nodes,
     mel_cmd = "AbcExport -j \"{0}\"".format(mel_args_string)
 
     # For debuggability, put the string passed to MEL in the Script editor.
-    print("lib.export_alembic('%s')" % mel_cmd)
+    print("mel.eval('%s')" % mel_cmd)
 
     return mel.eval(mel_cmd)
 

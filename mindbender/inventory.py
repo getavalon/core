@@ -61,20 +61,21 @@ DEFAULTS = {
         "schema": "mindbender-core:inventory-1.0",
         "assets": [
             {
-                "name": "Default asset 1"
+                "name": "hero",
+                "label": "Hero"
             },
             {
-                "name": "Default asset 2"
+                "name": "villain"
             }
         ],
         "film": [
             {
-                "name": "Default shot 1",
+                "name": "shot1",
                 "edit_in": 1000,
                 "edit_out": 1143
             },
             {
-                "name": "Default shot 2",
+                "name": "shot2",
                 "edit_in": 1000,
                 "edit_out": 1081
             },
@@ -86,14 +87,14 @@ DEFAULTS = {
 def _save_inventory_1_0(project_name, data):
     data.pop("schema")
 
+    # Separate project metadata from assets
     metadata = {}
     for key, value in data.copy().items():
         if not isinstance(value, list):
             print("Separating project metadata: %s" % key)
             metadata[key] = data.pop(key)
 
-    document = io.find_one({"type": "project", "name": project_name})
-
+    document = io.find_one({"type": "project"})
     if document is None:
         print("'%s' not found, creating.." % project_name)
         _project = {
@@ -110,7 +111,6 @@ def _save_inventory_1_0(project_name, data):
             "parent": None,
         }
 
-        schema.validate(_project)
         _id = io.insert_one(_project).inserted_id
 
         document = io.find_one({"_id": _id})
@@ -129,12 +129,11 @@ def _save_inventory_1_0(project_name, data):
         for asset in assets:
             asset_doc = io.find_one({
                 "name": asset["name"],
-                "parent": document["_id"]
+                "type": "asset",
             })
 
             if asset_doc is None:
                 asset["silo"] = silo
-                asset["data"] = dict(asset)
                 missing.append(asset)
                 continue
 
@@ -164,7 +163,6 @@ def _save_inventory_1_0(project_name, data):
             "data": data
         }
 
-        schema.validate(asset)
         io.insert_one(asset)
 
     else:
@@ -174,7 +172,8 @@ def _save_inventory_1_0(project_name, data):
 
 
 def _save_config_1_0(project_name, data):
-    document = io.find_one({"type": "project", "name": project_name})
+    document = io.find_one({"type": "project"})
+
     config = document["config"]
 
     config["apps"] = data.get("apps", [])
@@ -188,6 +187,8 @@ def _save_config_1_0(project_name, data):
 
 def save(name, config, inventory):
     """Write config and inventory to database from `root`"""
+    io.activate_project(name)
+
     config = copy.deepcopy(config)
     inventory = copy.deepcopy(inventory)
 
@@ -214,6 +215,7 @@ def save(name, config, inventory):
         else:
             schema.validate(data)
             print("Saving %s.." % schema_)
+            print("Handling %s, %s" % (name, data))
             handler(name, data)
 
 
@@ -227,7 +229,8 @@ def load(name):
 
     print("Loading .inventory.toml and .config.toml..")
 
-    project = io.find_one({"type": "project", "name": name})
+    io.activate_project(name)
+    project = io.find_one({"type": "project"})
 
     if project is None:
         print("No project found, loading defaults..")
@@ -399,6 +402,11 @@ def extract(root, silo_parent=None):
                             "schema": "mindbender-core:version-2.0",
                             "type": "version",
                             "name": number,
+                            "locations": list(
+                                location for location in
+                                [os.getenv("MINDBENDER_LOCATION")]
+                                if location is not None
+                            ),
                             "data": {
                                 "families": metadata["families"],
                                 "author": metadata["author"],
@@ -556,15 +564,16 @@ def _cli():
     root = kwargs.root or os.getcwd()
     name = os.path.basename(root)
 
-    if kwargs.load:
+    if any([kwargs.load, kwargs.save, kwargs.upload]):
         io.install()
+
+    if kwargs.load:
         config, inventory = load(name)
         _write(root, "config", config)
         _write(root, "inventory", inventory)
         print("Success!")
 
     elif kwargs.save:
-        io.install()
         inventory = _read(root, "inventory")
         config = _read(root, "config")
         save(name, config, inventory)
@@ -575,7 +584,6 @@ def _cli():
         print("Success!")
 
     elif kwargs.upload:
-        io.install()
         upload(root=root, overwrite=kwargs.overwrite)
         print("Success!")
 

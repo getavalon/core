@@ -1,6 +1,5 @@
 import os
 import sys
-import json
 import types
 import logging
 import inspect
@@ -36,6 +35,15 @@ def install(host):
 
     """
 
+    missing = list()
+    for key in ("MINDBENDER_PROJECT", "MINDBENDER_ASSET"):
+        if key not in os.environ:
+            missing.append(key)
+
+    assert not missing, (
+        "%s missing from environment" % ", ".join(missing)
+    )
+
     # Optional host install function
     if hasattr(host, "install"):
         host.install()
@@ -44,6 +52,7 @@ def install(host):
     register_plugins()
 
     io.install()
+    io.activate_project(os.environ["MINDBENDER_PROJECT"])
 
     self._is_installed = True
     self.log.info("Successfully installed Pyblish Mindbender!")

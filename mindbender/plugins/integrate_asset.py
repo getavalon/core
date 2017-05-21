@@ -41,15 +41,13 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
 
         from mindbender import api, io
 
-        assert all(os.getenv(env) for env in (
-            "MINDBENDER__ASSET", "MINDBENDER__PROJECT")), (
-            "Missing environment variables\n"
-            "This can sometimes happen when an application was launched \n"
-            "manually, outside of the pipeline."
-        )
+        # Required environment variables
+        MINDBENDER_PROJECT = os.environ["MINDBENDER_PROJECT"]
+        MINDBENDER_ASSET = os.environ["MINDBENDER_ASSET"]
+        MINDBENDER_SILO = os.environ["MINDBENDER_SILO"]
+        MINDBENDER_LOCATION = os.getenv("MINDBENDER_LOCATION")
 
         context = instance.context
-
         # Atomicity
         #
         # Guarantee atomic publishes - each asset contains
@@ -81,13 +79,8 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
 
         self.log.debug("Establishing staging directory @ %s" % stagingdir)
 
-        project = io.find_one({
-            "_id": io.ObjectId(os.environ["MINDBENDER__PROJECT"])
-        })
-
-        asset = io.find_one({
-            "_id": io.ObjectId(os.environ["MINDBENDER__ASSET"])
-        })
+        project = io.find_one({"type": "project"})
+        asset = io.find_one({"name": MINDBENDER_ASSET})
 
         assert all([project, asset]), "This is bug"
 
@@ -130,6 +123,13 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
             "parent": subset["_id"],
             "name": next_version,
 
+            # Imprint currently registered location
+            "locations": list(
+                location for location in
+                [MINDBENDER_LOCATION]
+                if location is not None
+            ),
+
             "data": {
                 # Used to identify family of assets already on disk
                 "families": instance.data.get("families", list()) + [
@@ -166,9 +166,9 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
         #
         template_data = {
             "root": api.registered_root(),
-            "project": os.environ["MINDBENDER_PROJECT"],
-            "silo": os.environ["MINDBENDER_SILO"],
-            "asset": os.environ["MINDBENDER_ASSET"],
+            "project": MINDBENDER_PROJECT,
+            "silo": MINDBENDER_SILO,
+            "asset": MINDBENDER_ASSET,
             "subset": subset["name"],
             "version": version["name"],
         }

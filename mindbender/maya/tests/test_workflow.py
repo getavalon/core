@@ -57,12 +57,24 @@ self._inventory = {
 
 
 def setup():
-    pyblish_maya.setup()
-    api.install(maya)
-    io.install("test")
-
     self._tempdir = tempfile.mkdtemp()
     api.register_root(self._tempdir)
+
+    # Setup environment
+    os.environ["MINDBENDER_PROJECT"] = PROJECT_NAME
+    os.environ["MINDBENDER_ASSET"] = ASSET_NAME
+    os.environ["MINDBENDER_ASSETPATH"] = (
+        "{root}/{project}/{silo}/{asset}".format(
+            root=api.registered_root(),
+            project=PROJECT_NAME,
+            asset=ASSET_NAME,
+            silo="assets"
+        ))
+    os.environ["MINDBENDER_SILO"] = "assets"
+
+    pyblish_maya.setup()
+    api.install(maya)
+    io.activate_project(PROJECT_NAME)
 
     schema.validate(self._config)
     schema.validate(self._inventory)
@@ -73,35 +85,11 @@ def setup():
         inventory=self._inventory
     )
 
-    project = io.find_one({
-        "type": "project",
-        "name": PROJECT_NAME
-    })
-    asset = io.find_one({
-        "type": "asset",
-        "parent": project["_id"],
-        "name": ASSET_NAME
-    })
-
-    # Setup environment
-    os.environ["MINDBENDER__PROJECT"] = str(project["_id"])
-    os.environ["MINDBENDER__ASSET"] = str(asset["_id"])
-    os.environ["MINDBENDER_PROJECT"] = PROJECT_NAME
-    os.environ["MINDBENDER_ASSET"] = asset["name"]
-    os.environ["MINDBENDER_ASSETPATH"] = (
-        "{root}/{project}/{silo}/{asset}".format(
-            root=api.registered_root(),
-            project=PROJECT_NAME,
-            asset=ASSET_NAME,
-            silo="assets"
-        ))
-    os.environ["MINDBENDER_SILO"] = "assets"
-
 
 def teardown():
     pyblish_maya.teardown()
-    api.uninstall()
     io.drop()
+    api.uninstall()
 
     shutil.rmtree(self._tempdir)
 
