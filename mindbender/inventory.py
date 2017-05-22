@@ -453,6 +453,9 @@ def extract(root, silo_parent=None):
 
 def upload(root, overwrite=False):
     fname = os.path.join(root, "project.json")
+
+    name = os.path.basename(root)
+    io.activate_project(name)
     print("Uploading %s" % os.path.basename(root))
 
     try:
