@@ -1,5 +1,6 @@
 import os
 import sys
+import time
 import functools
 
 from . import schema
@@ -15,6 +16,7 @@ self._collection = None
 self._uri = os.getenv("MINDBENDER_MONGO", "mongodb://localhost:27017")
 self._is_installed = False
 self._is_activated = False
+self._timeout = int(os.getenv("MINDBENDER_TIMEOUT", 1000))
 
 
 def install():
@@ -22,14 +24,17 @@ def install():
         return
 
     self._client = pymongo.MongoClient(
-        self._uri, serverSelectionTimeoutMS=1000)
+        self._uri, serverSelectionTimeoutMS=self._timeout)
     self._database = self._client["mindbender"]
 
     try:
+        t1 = time.time()
         self._client.server_info()
     except Exception:
-        raise IOError("ERROR: Couldn't connect to %s" % self._uri)
+        raise IOError("ERROR: Couldn't connect to %s in "
+                      "less than %.3f ms" % (self._uri, self._timeout))
 
+    print("Connected to server, delay %.3f s" % (time.time() - t1))
     self._is_installed = True
 
 
