@@ -21,7 +21,8 @@ def install():
     if self._is_installed:
         return
 
-    self._client = pymongo.MongoClient(self._uri, serverSelectionTimeoutMS=500)
+    self._client = pymongo.MongoClient(
+        self._uri, serverSelectionTimeoutMS=1000)
     self._database = self._client["mindbender"]
 
     try:
