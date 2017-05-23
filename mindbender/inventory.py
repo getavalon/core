@@ -350,7 +350,7 @@ def extract(root, silo_parent=None):
             template[key] = value.replace("{silo}", silo_parent + "/{silo}")
 
     # Parse .bat file for environment variables
-    project_obj.update(_parse_bat(root))
+    project_obj["data"].update(_parse_bat(root))
 
     for silo in ("assets", "film"):
         for asset in _dirs(os.path.join(root, silo_parent or "", silo)):
