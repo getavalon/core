@@ -146,6 +146,8 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                         api.registered_root()
                     )
                 ).replace("\\", "/"),
+
+                "comment": context.data.get("comment"),
             }
         }
 
