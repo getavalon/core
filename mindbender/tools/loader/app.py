@@ -210,6 +210,7 @@ QSlider::handle:horizontal:enabled {
         # side_body = QtWidgets.QLabel("A very long body here..")
 
         side_comment_container = QtWidgets.QWidget()
+        side_comment_container.hide()
         side_comment_header = QtWidgets.QLabel("Comment")
         side_comment_header.setStyleSheet("QLabel { font-weight: bold }")
         side_comment = QtWidgets.QLabel()
