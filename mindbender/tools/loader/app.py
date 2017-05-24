@@ -751,7 +751,7 @@ QSlider::handle:horizontal:enabled {
         return super(Window, self).closeEvent(event)
 
 
-def show(root=None, debug=False):
+def show(root=None, debug=False, parent=None):
     """Display Loader GUI
 
     Arguments:
@@ -781,7 +781,7 @@ def show(root=None, debug=False):
         module.project = any_project["name"]
 
     with lib.application():
-        window = Window()
+        window = Window(parent)
         window.show()
 
         window.refresh()

@@ -181,7 +181,7 @@ class Window(QtWidgets.QDialog):
             self.close()
 
 
-def show(debug=False):
+def show(debug=False, parent=None):
     """Display asset creator GUI
 
     Arguments:
@@ -203,13 +203,6 @@ def show(debug=False):
         pipeline.register_family("debug.model")
         pipeline.register_family("debug.rig")
         pipeline.register_family("debug.animation")
-
-    try:
-        widgets = QtWidgets.QApplication.topLevelWidgets()
-        widgets = dict((w.objectName(), w) for w in widgets)
-        parent = widgets["MayaWindow"]
-    except KeyError:
-        parent = None
 
     with lib.application():
         window = Window(parent)
