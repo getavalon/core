@@ -288,6 +288,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                 ],
 
                 "time": context.data["time"],
+                "timeFormat": "%Y%m%dT%H%M%SZ",
                 "author": context.data["user"],
 
                 # Record within which silo this asset was made.

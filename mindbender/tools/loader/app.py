@@ -4,6 +4,7 @@ import time
 import errno
 import shutil
 import tempfile
+import datetime
 import threading
 
 try:
@@ -203,11 +204,17 @@ QSlider::handle:horizontal:enabled {
         message = QtWidgets.QLabel()
         message.hide()
 
-        # side_header = QtWidgets.QLabel("Asset A")
-        # side_header.setStyleSheet("QLabel { font: bold 15px; }")
+        side_created_container = QtWidgets.QWidget()
+        side_created_container.hide()
+        side_created_header = QtWidgets.QLabel("Created")
+        side_created_header.setStyleSheet("QLabel { font-weight: bold }")
+        side_created = QtWidgets.QLabel()
+        side_created.setWordWrap(True)
 
-        # side_title = QtWidgets.QLabel("Some Title")
-        # side_body = QtWidgets.QLabel("A very long body here..")
+        layout = QtWidgets.QVBoxLayout(side_created_container)
+        layout.addWidget(side_created_header)
+        layout.addWidget(side_created)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         side_comment_container = QtWidgets.QWidget()
         side_comment_container.hide()
@@ -228,14 +235,13 @@ QSlider::handle:horizontal:enabled {
         layout.setContentsMargins(0, 0, 0, 0)
 
         layout = QtWidgets.QVBoxLayout(sidepanel)
-        # layout.addWidget(side_header)
-        # layout.addWidget(side_title)
-        # layout.addWidget(side_body)
         layout.addWidget(side_comment_container)
+        layout.addWidget(side_created_container)
         layout.addWidget(QtWidgets.QWidget(), 1)
         layout.addWidget(options, 0, QtCore.Qt.AlignBottom)
         layout.addWidget(offline)
         layout.addWidget(buttons)
+        layout.setSpacing(10)
         layout.setContentsMargins(0, 0, 0, 0)
 
         layout = QtWidgets.QVBoxLayout(footer)
@@ -262,6 +268,8 @@ QSlider::handle:horizontal:enabled {
                 "message": message,
                 "comment": side_comment,
                 "commentContainer": side_comment_container,
+                "created": side_created,
+                "createdContainer": side_created_container,
             },
             "state": {
                 "template": None,
@@ -537,6 +545,7 @@ QSlider::handle:horizontal:enabled {
 
     def _versionschanged(self):
         self.data["label"]["commentContainer"].hide()
+        self.data["label"]["createdContainer"].hide()
         versions_model = self.data["model"]["versions"]
         representations_model = self.data["model"]["representations"]
         representations_model.clear()
@@ -623,6 +632,13 @@ QSlider::handle:horizontal:enabled {
             self.data["label"]["commentContainer"].show()
             comment = self.data["label"]["comment"]
             comment.setText(document["data"].get("comment", "No comment"))
+
+            self.data["label"]["createdContainer"].show()
+            t = document["data"]["time"]
+            t = datetime.datetime.strptime(t, "%Y%m%dT%H%M%SZ")
+            t = datetime.datetime.strftime(t, "%b %d %Y %I:%M%p")
+            created = self.data["label"]["created"]
+            created.setText(t + " GMT")
 
         has = {"children": False}
 
