@@ -27,10 +27,20 @@ def install():
         self._uri, serverSelectionTimeoutMS=self._timeout)
     self._database = self._client["mindbender"]
 
-    try:
-        t1 = time.time()
-        self._client.server_info()
-    except Exception:
+    for retry in range(3):
+        try:
+            t1 = time.time()
+            self._client.server_info()
+
+        except Exception:
+            print("Retrying..")
+            time.sleep(1)
+            self._timeout *= 1.5
+
+        else:
+            break
+
+    else:
         raise IOError("ERROR: Couldn't connect to %s in "
                       "less than %.3f ms" % (self._uri, self._timeout))
 
