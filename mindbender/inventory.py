@@ -215,7 +215,6 @@ def save(name, config, inventory):
         else:
             schema.validate(data)
             print("Saving %s.." % schema_)
-            print("Handling %s, %s" % (name, data))
             handler(name, data)
 
 
