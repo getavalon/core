@@ -368,7 +368,7 @@ class Window(QtWidgets.QDialog):
         return super(Window, self).closeEvent(event)
 
 
-def show(root=None, debug=False):
+def show(root=None, debug=False, parent=None):
     """Display Loader GUI
 
     Arguments:
@@ -383,18 +383,11 @@ def show(root=None, debug=False):
     except (RuntimeError, AttributeError):
         pass
 
-    try:
-        widgets = QtWidgets.QApplication.topLevelWidgets()
-        widgets = dict((w.objectName(), w) for w in widgets)
-        parent = widgets["MayaWindow"]
-    except KeyError:
-        parent = None
-
     if debug is True:
         io.install()
 
     with lib.application():
-        window = Window(parent=parent)
+        window = Window(parent)
         window.show()
         window.refresh()
 

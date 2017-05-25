@@ -38,6 +38,10 @@
                     "description": "ISO formatted, file-system compatible time",
                     "type": "string"
                 },
+                "timeFormat": {
+                    "description": "ISO format of time",
+                    "type": "string"
+                },
                 "author": {
                     "description": "User logged on to the machine at time of publish",
                     "type": "string"

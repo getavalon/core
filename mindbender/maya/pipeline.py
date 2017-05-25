@@ -12,6 +12,10 @@ from ..vendor.Qt import QtCore, QtWidgets
 self = sys.modules[__name__]
 self._menu = "mindbenderCore"
 self._id_callback = None
+self._parent = {
+    o.objectName(): o
+    for o in QtWidgets.QApplication.topLevelWidgets()
+}.get("MayaWindow")
 
 
 def install():
@@ -73,9 +77,12 @@ def _install_menu():
                   tearOff=True,
                   parent="MayaWindow")
 
-        cmds.menuItem("Show Creator", command=creator.show)
-        cmds.menuItem("Show Loader", command=loader.show)
-        cmds.menuItem("Show Manager", command=manager.show)
+        cmds.menuItem("Show Creator",
+                      command=lambda *args: creator.show(parent=self._parent))
+        cmds.menuItem("Show Loader",
+                      command=lambda *args: loader.show(parent=self._parent))
+        cmds.menuItem("Show Manager",
+                      command=lambda *args: manager.show(parent=self._parent))
 
         cmds.menuItem(divider=True)
 
