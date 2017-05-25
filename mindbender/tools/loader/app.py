@@ -14,7 +14,7 @@ except ImportError:
     import queue
 
 from ...vendor import requests
-from ...vendor.Qt import QtWidgets, QtCore
+from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ... import api, io
 from .. import lib
 from ..awesome import tags as awesome
@@ -228,6 +228,22 @@ QSlider::handle:horizontal:enabled {
         layout.addWidget(side_comment)
         layout.setContentsMargins(0, 0, 0, 0)
 
+        side_source_container = QtWidgets.QWidget()
+        side_source_container.hide()
+        side_source_container.hide()
+        side_source_header = QtWidgets.QLabel("Source")
+        side_source_header.setStyleSheet("QLabel { font-weight: bold }")
+        side_source = QtWidgets.QLabel()
+        side_source.setWordWrap(True)
+        side_source.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        side_source.customContextMenuRequested.connect(
+            self.on_copy_source_menu)
+
+        layout = QtWidgets.QVBoxLayout(side_source_container)
+        layout.addWidget(side_source_header)
+        layout.addWidget(side_source)
+        layout.setContentsMargins(0, 0, 0, 0)
+
         buttons = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(buttons)
         layout.addWidget(refresh_button)
@@ -237,6 +253,7 @@ QSlider::handle:horizontal:enabled {
         layout = QtWidgets.QVBoxLayout(sidepanel)
         layout.addWidget(side_comment_container)
         layout.addWidget(side_created_container)
+        layout.addWidget(side_source_container)
         layout.addWidget(QtWidgets.QWidget(), 1)
         layout.addWidget(options, 0, QtCore.Qt.AlignBottom)
         layout.addWidget(offline)
@@ -270,6 +287,8 @@ QSlider::handle:horizontal:enabled {
                 "commentContainer": side_comment_container,
                 "created": side_created,
                 "createdContainer": side_created_container,
+                "source": side_source,
+                "sourceContainer": side_source_container,
             },
             "state": {
                 "template": None,
@@ -335,6 +354,20 @@ QSlider::handle:horizontal:enabled {
 
             if not error:
                 self.download_completed.emit()
+
+    def on_copy_source_to_clipboard(self):
+        source = self.data["label"]["source"].text()
+        source = source.format(root=api.registered_root())
+        clipboard = QtWidgets.QApplication.clipboard()
+        clipboard.setText(source)
+
+    def on_copy_source_menu(self, pos):
+        pos = QtGui.QCursor.pos()
+        menu = QtWidgets.QMenu()
+        action = menu.addAction("Copy to clipboard")
+        action.triggered.connect(self.on_copy_source_to_clipboard)
+        menu.move(pos)
+        menu.exec_()
 
     def on_download_progressed(self, fname, progress):
         self.echo("Downloading %s.. %d%%" % (fname, progress))
@@ -546,6 +579,7 @@ QSlider::handle:horizontal:enabled {
     def _versionschanged(self):
         self.data["label"]["commentContainer"].hide()
         self.data["label"]["createdContainer"].hide()
+        self.data["label"]["sourceContainer"].hide()
         versions_model = self.data["model"]["versions"]
         representations_model = self.data["model"]["representations"]
         representations_model.clear()
@@ -612,29 +646,35 @@ QSlider::handle:horizontal:enabled {
                     self.echo("'%s' missing from some subsets." % name)
 
         else:
-            document = version_item.data(DocumentRole)
-            self.data["state"]["context"]["version"] = document["name"]
+            version_document = version_item.data(DocumentRole)
+            self.data["state"]["context"]["version"] = version_document["name"]
 
             # NOTE(marcus): This is backwards compatible with assets published
             # before locations were implemented. Newly published assets are
             # embedded with this attribute, but current ones were not.
-            locations = document.get("locations", [])
+            locations = version_document.get("locations", [])
 
             self.data["state"]["locations"][:] = locations
 
             representations_by_name = {
                 representation["name"]: [representation]
-                for representation in io.find({"type": "representation",
-                                               "parent": document["_id"]})
+                for representation in io.find(
+                    {"type": "representation",
+                     "parent": version_document["_id"]})
                 if representation["name"] not in ("json", "source")
             }
 
             self.data["label"]["commentContainer"].show()
             comment = self.data["label"]["comment"]
-            comment.setText(document["data"].get("comment", "No comment"))
+            comment.setText(version_document["data"].get(
+                "comment", "No comment"))
+
+            self.data["label"]["sourceContainer"].show()
+            source = self.data["label"]["source"]
+            source.setText(version_document["data"].get("source", "No source"))
 
             self.data["label"]["createdContainer"].show()
-            t = document["data"]["time"]
+            t = version_document["data"]["time"]
             t = datetime.datetime.strptime(t, "%Y%m%dT%H%M%SZ")
             t = datetime.datetime.strftime(t, "%b %d %Y %I:%M%p")
             created = self.data["label"]["created"]
@@ -643,10 +683,14 @@ QSlider::handle:horizontal:enabled {
         has = {"children": False}
 
         for name, documents in representations_by_name.items():
+            # TODO(marcus): Separate this into something the
+            # supervisor can configure.
             item = QtWidgets.QListWidgetItem({
                 "ma": "Maya Ascii",
                 "source": "Original source file",
-                "abc": "Alembic"
+                "abc": "Alembic",
+                "history": "History",
+                "curves": "Animation curves",
             }.get(name, name))  # Default to using name as-is
 
             item.setData(QtCore.Qt.ItemIsEnabled, True)
