@@ -159,6 +159,11 @@ def save(*args, **kwargs):
 
 
 @requires_activation
+def update_many(filter, update):
+    return self._collection.update_many(filter, update)
+
+
+@requires_activation
 def distinct(*args, **kwargs):
     return self._collection.distinct(*args, **kwargs)
 
