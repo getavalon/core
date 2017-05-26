@@ -38,8 +38,20 @@ class ExtractMindbenderAnimation(pyblish.api.InstancePlugin):
 
         filename = "{name}.abc".format(**instance.data)
 
+        out_set = next((
+            node for node in instance
+            if node.endswith("out_SET")
+        ), None)
+
+        if out_set:
+            nodes = cmds.sets(out_set, query=True)
+        else:
+            # Backwards compatibility
+            nodes = list(instance)
+
+        self.log.info("nodes: %s" % str(nodes))
         maya.export_alembic(
-            nodes=instance,
+            nodes=nodes,
             file=os.path.join(dirname, filename).replace("\\", "/"),
 
             frame_range=(instance.data["startFrame"],
