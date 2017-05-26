@@ -18,8 +18,7 @@ class ExtractMindbenderModel(pyblish.api.InstancePlugin):
     def process(self, instance):
         import os
         from maya import cmds
-        from mindbender import api
-        from pyblish_maya import maintained_selection
+        from mindbender import api, maya
 
         dirname = api.format_staging_dir(
             root=instance.context.data["workspaceDir"],
@@ -37,7 +36,7 @@ class ExtractMindbenderModel(pyblish.api.InstancePlugin):
 
         # Perform extraction
         self.log.info("Performing extraction..")
-        with maintained_selection():
+        with maya.maintained_selection(), maya.without_extension():
             self.log.info("Extracting %s" % str(list(instance)))
             cmds.select(instance, noExpand=True)
             cmds.file(path,

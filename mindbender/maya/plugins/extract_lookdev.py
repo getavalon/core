@@ -19,11 +19,10 @@ class ExtractMindbenderLookdev(pyblish.api.InstancePlugin):
         import os
         import json
 
-        from mindbender import api
-        from mindbender.maya import lib
-        from pyblish_maya import maintained_selection
-
         from maya import cmds
+
+        from mindbender import api, maya
+        from mindbender.maya import lib
 
         dirname = api.format_staging_dir(
             root=instance.context.data["workspaceDir"],
@@ -67,7 +66,7 @@ class ExtractMindbenderLookdev(pyblish.api.InstancePlugin):
         filename = "{name}.ma".format(**instance.data)
         path = os.path.join(dirname, filename)
 
-        with maintained_selection():
+        with maya.maintained_selection(), maya.without_extension():
             cmds.select(relationships.keys(), replace=True, noExpand=True)
             cmds.file(path,
                       force=True,
