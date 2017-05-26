@@ -31,11 +31,10 @@ class Window(QtWidgets.QDialog):
                 module.root, module.project))
 
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
-        self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         body = QtWidgets.QWidget()
         sidepanel = QtWidgets.QWidget()
-        sidepanel.setFixedWidth(200)
+        sidepanel.setFixedWidth(270)
         footer = QtWidgets.QWidget()
         footer.setFixedHeight(20)
 
@@ -455,8 +454,9 @@ QPushButton {
 
             self.data["label"]["commentContainer"].show()
             comment = self.data["label"]["comment"]
-            comment.setText(version_document["data"].get(
-                "comment", "No comment"))
+            comment.setText(
+                version_document["data"].get("comment") or "No comment"
+            )
 
             self.data["label"]["sourceContainer"].show()
             source = self.data["label"]["source"]
@@ -570,6 +570,14 @@ QPushButton {
             print("Force quitted..")
             self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
+        # Kill on holding SHIFT
+        modifiers = QtWidgets.QApplication.queryKeyboardModifiers()
+        shift_pressed = QtCore.Qt.ShiftModifier & modifiers
+
+        if shift_pressed:
+            print("Force quitted..")
+            self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+
         print("Good bye")
         return super(Window, self).closeEvent(event)
 
@@ -583,11 +591,16 @@ def show(root=None, debug=False, parent=None):
 
     """
 
-    try:
-        module.window.close()
-        del module.window
-    except (RuntimeError, AttributeError):
-        pass
+    # Remember window
+    if module.window is not None:
+        try:
+            return module.window.show()
+        except RuntimeError as e:
+            if not e.message.rstrip().endswith("already deleted."):
+                raise
+
+            # Garbage collected
+            module.window = None
 
     if debug:
         import traceback
