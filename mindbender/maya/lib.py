@@ -425,6 +425,56 @@ def apply_shaders(relationships):
             cmds.sets(meshes, forceElement=shader)
 
 
+def displacement_shader_dir(nodes):
+
+    valid_nodes = cmds.ls(nodes,
+                          long=True,
+                          recursive=True,
+                          showType=True,
+                          objectsOnly=True,
+                          type="transform")
+
+    meshes = {}
+    for mesh in valid_nodes:
+        shapes = cmds.listRelatives(valid_nodes[0],
+                                    shapes=True,
+                                    fullPath=True) or list()
+
+        if shapes:
+            shape = shapes[0]
+            if not cmds.nodeType(shape):
+                continue
+
+            try:
+                selmeshes = cmds.getAttr(mesh + ".outmesh")
+
+                if selmeshes not in meshes:
+                    meshes[selmeshes] = list()
+
+                meshes[selmeshes].append(mesh)
+
+            except ValueError:
+                continue
+
+    meshes_by_shader = dict()
+    for selmeshes, mesh in meshes.items():
+        shape = cmds.listRelatives(mesh,
+                                   shapes=True,
+                                   fullPath=True) or list()
+
+        for shader in cmds.listConnections(shape,
+                                           type="shadingEngine") or list():
+
+            if shader == "initialShadingGroup":
+                continue
+
+            if shader not in meshes_by_shader:
+                meshes_by_shader[shader] = list()
+
+            shaded = cmds.sets(shader, query=True) or list()
+            meshes_by_shader[shader].extend(shaded)
+
+
 def lsattr(attr, value=None):
     """Return nodes matching `key` and `value`
 
