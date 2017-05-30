@@ -72,7 +72,8 @@ class RigLoader(api.Loader):
             # TODO(marcus): Hardcoding the exact family here.
             #   Better separate the relationship between loading
             #   rigs and automatically assigning an instance to it.
-            maya.create(name=maya.unique_name(asset["name"], suffix="_SET"),
+            maya.create(asset=os.environ["MINDBENDER_ASSET"],
+                        subset=maya.unique_name(asset["name"], suffix="_SET"),
                         family="mindbender.animation",
                         options={"useSelection": True})
 
