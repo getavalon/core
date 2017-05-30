@@ -1,3 +1,4 @@
+import os
 import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
@@ -24,12 +25,15 @@ class Window(QtWidgets.QDialog):
         container = QtWidgets.QWidget()
 
         listing = QtWidgets.QListWidget()
+        asset = QtWidgets.QLineEdit()
         name = QtWidgets.QLineEdit()
 
         layout = QtWidgets.QVBoxLayout(container)
         layout.addWidget(QtWidgets.QLabel("Family"))
         layout.addWidget(listing)
-        layout.addWidget(QtWidgets.QLabel("Name"))
+        layout.addWidget(QtWidgets.QLabel("Asset"))
+        layout.addWidget(asset)
+        layout.addWidget(QtWidgets.QLabel("Subset"))
         layout.addWidget(name)
         layout.setContentsMargins(0, 0, 0, 0)
 
@@ -73,6 +77,7 @@ class Window(QtWidgets.QDialog):
             useselection_chk: "Use Selection Checkbox",
             autoclose_chk: "Autoclose Checkbox",
             name: "Name",
+            asset: "Asset",
             error_msg: "Error Message",
         }
 
@@ -82,6 +87,7 @@ class Window(QtWidgets.QDialog):
         create_btn.clicked.connect(self.on_create)
         name.returnPressed.connect(self.on_create)
         name.textChanged.connect(self.on_name_changed)
+        asset.textChanged.connect(self.on_asset_changed)
         listing.currentItemChanged.connect(self.on_selection_changed)
 
         # Defaults
@@ -89,13 +95,27 @@ class Window(QtWidgets.QDialog):
         name.setFocus()
         create_btn.setEnabled(False)
 
-    def on_name_changed(self, *args):
+    def on_asset_changed(self, *args):
         button = self.findChild(QtWidgets.QPushButton, "Create Button")
+        asset = self.findChild(QtWidgets.QWidget, "Asset")
         name = self.findChild(QtWidgets.QWidget, "Name")
         item = self.findChild(QtWidgets.QWidget, "Listing").currentItem()
 
         button.setEnabled(
             name.text().strip() != "" and
+            asset.text().strip() != "" and
+            item.data(QtCore.Qt.ItemIsEnabled)
+        )
+
+    def on_name_changed(self, *args):
+        button = self.findChild(QtWidgets.QPushButton, "Create Button")
+        asset = self.findChild(QtWidgets.QWidget, "Asset")
+        name = self.findChild(QtWidgets.QWidget, "Name")
+        item = self.findChild(QtWidgets.QWidget, "Listing").currentItem()
+
+        button.setEnabled(
+            name.text().strip() != "" and
+            asset.text().strip() != "" and
             item.data(QtCore.Qt.ItemIsEnabled)
         )
 
@@ -128,6 +148,8 @@ class Window(QtWidgets.QDialog):
 
     def refresh(self, families):
         listing = self.findChild(QtWidgets.QWidget, "Listing")
+        asset = self.findChild(QtWidgets.QWidget, "Asset")
+        asset.setText(os.environ["MINDBENDER_ASSET"])
 
         has_families = False
 
@@ -148,6 +170,7 @@ class Window(QtWidgets.QDialog):
         listing.setCurrentItem(listing.item(0))
 
     def on_create(self):
+        asset = self.findChild(QtWidgets.QWidget, "Asset")
         listing = self.findChild(QtWidgets.QWidget, "Listing")
         autoclose_chk = self.findChild(QtWidgets.QWidget,
                                        "Autoclose Checkbox")
@@ -155,6 +178,7 @@ class Window(QtWidgets.QDialog):
                                           "Use Selection Checkbox")
         error_msg = self.findChild(QtWidgets.QWidget, "Error Message")
 
+        asset = asset.text()
         item = listing.currentItem()
 
         if item is not None:
@@ -163,7 +187,7 @@ class Window(QtWidgets.QDialog):
 
             try:
                 host = pipeline.registered_host()
-                host.create(name, family, options={
+                host.create(asset, name, family, options={
                     "useSelection": bool(useselection_chk.checkState())
                 })
 

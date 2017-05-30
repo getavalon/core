@@ -43,7 +43,9 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
 
         # Required environment variables
         MINDBENDER_PROJECT = os.environ["MINDBENDER_PROJECT"]
-        MINDBENDER_ASSET = os.environ["MINDBENDER_ASSET"]
+        MINDBENDER_ASSET = (
+            instance.data.get("asset") or os.environ["MINDBENDER_ASSET"]
+        )
         MINDBENDER_SILO = os.environ["MINDBENDER_SILO"]
         MINDBENDER_LOCATION = os.getenv("MINDBENDER_LOCATION")
 

@@ -261,7 +261,7 @@ def load(representation):
         )
 
 
-def create(name, family, options=None):
+def create(asset, name, family, options=None):
     """Create new instance
 
     Associate nodes with a name and family. These nodes are later
@@ -293,6 +293,7 @@ def create(name, family, options=None):
         family)
 
     data = dict(api.registered_data(), **family_.get("data", {}))
+    data["asset"] = asset
 
     instance = "%s_SET" % name
 
