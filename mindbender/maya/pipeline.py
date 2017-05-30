@@ -143,7 +143,8 @@ def _register_data():
     # Default Instance data
     # All newly created instances will be imbued with these members.
     api.register_data(key="id", value="pyblish.mindbender.instance")
-    api.register_data(key="subset", value="{name}")
+    api.register_data(key="asset", value="{asset}")
+    api.register_data(key="subset", value="{subset}")
     api.register_data(key="family", value="{family}")
 
 
@@ -261,24 +262,24 @@ def load(representation):
         )
 
 
-def create(asset, name, family, options=None):
+def create(asset, subset, family, options=None):
     """Create new instance
 
-    Associate nodes with a name and family. These nodes are later
+    Associate nodes with a subset and family. These nodes are later
     validated, according to their `family`, and integrated into the
-    shared environment, relative their `name`.
+    shared environment, relative their `subset`.
 
     Data relative each family, along with default data, are imprinted
     into the resulting objectSet. This data is later used by extractors
     and finally asset browsers to help identify the origin of the asset.
 
     Arguments:
-        name (str): Name of instance
+        subset (str): Name of instance
         family (str): Name of family
         options (dict, optional): Additional options
 
     Raises:
-        NameError on `name` already exists
+        NameError on `subset` already exists
         KeyError on invalid dynamic property
         RuntimeError on host error
 
@@ -293,9 +294,8 @@ def create(asset, name, family, options=None):
         family)
 
     data = dict(api.registered_data(), **family_.get("data", {}))
-    data["asset"] = asset
 
-    instance = "%s_SET" % name
+    instance = "%s_SET" % subset
 
     if cmds.objExists(instance):
         raise NameError("\"%s\" already exists." % instance)
@@ -313,7 +313,8 @@ def create(asset, name, family, options=None):
         if isinstance(value, basestring):
             try:
                 data[key] = str(value).format(
-                    name=name,
+                    subset=subset,
+                    asset=asset,
                     family=family_["name"]
                 )
             except KeyError as e:

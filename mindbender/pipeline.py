@@ -235,7 +235,8 @@ def register_host(host):
             "representation"
         ],
         "create": [
-            "name",
+            "asset",
+            "subset",
             "family",
             "options"
         ],

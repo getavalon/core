@@ -2,7 +2,7 @@ import os
 import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import pipeline
+from ... import pipeline, io
 from .. import lib
 
 self = sys.modules[__name__]
@@ -10,6 +10,7 @@ self._window = None
 
 HelpRole = QtCore.Qt.UserRole + 2
 FamilyRole = QtCore.Qt.UserRole + 3
+ExistsRole = QtCore.Qt.UserRole + 4
 
 
 class Window(QtWidgets.QDialog):
@@ -60,7 +61,7 @@ class Window(QtWidgets.QDialog):
 
         create_btn = QtWidgets.QPushButton("Create")
         error_msg = QtWidgets.QLabel()
-        error_msg.hide()
+        error_msg.setFixedHeight(20)
 
         layout = QtWidgets.QVBoxLayout(footer)
         layout.addWidget(create_btn)
@@ -86,8 +87,8 @@ class Window(QtWidgets.QDialog):
 
         create_btn.clicked.connect(self.on_create)
         name.returnPressed.connect(self.on_create)
-        name.textChanged.connect(self.on_name_changed)
-        asset.textChanged.connect(self.on_asset_changed)
+        asset.textChanged.connect(self.on_data_changed)
+        name.textChanged.connect(self.on_data_changed)
         listing.currentItemChanged.connect(self.on_selection_changed)
 
         # Defaults
@@ -95,39 +96,14 @@ class Window(QtWidgets.QDialog):
         name.setFocus()
         create_btn.setEnabled(False)
 
-    def on_asset_changed(self, *args):
+    def on_data_changed(self, *args):
         button = self.findChild(QtWidgets.QPushButton, "Create Button")
-        asset = self.findChild(QtWidgets.QWidget, "Asset")
-        name = self.findChild(QtWidgets.QWidget, "Name")
-        item = self.findChild(QtWidgets.QWidget, "Listing").currentItem()
-
-        button.setEnabled(
-            name.text().strip() != "" and
-            asset.text().strip() != "" and
-            item.data(QtCore.Qt.ItemIsEnabled)
-        )
-
-    def on_name_changed(self, *args):
-        button = self.findChild(QtWidgets.QPushButton, "Create Button")
-        asset = self.findChild(QtWidgets.QWidget, "Asset")
-        name = self.findChild(QtWidgets.QWidget, "Name")
-        item = self.findChild(QtWidgets.QWidget, "Listing").currentItem()
-
-        button.setEnabled(
-            name.text().strip() != "" and
-            asset.text().strip() != "" and
-            item.data(QtCore.Qt.ItemIsEnabled)
-        )
+        button.setEnabled(False)
+        lib.schedule(self._on_data_changed, 500, channel="gui")
 
     def on_selection_changed(self, *args):
-        button = self.findChild(QtWidgets.QPushButton, "Create Button")
         name = self.findChild(QtWidgets.QWidget, "Name")
         item = self.findChild(QtWidgets.QWidget, "Listing").currentItem()
-
-        button.setEnabled(
-            name.text().strip() != "" and
-            item.data(QtCore.Qt.ItemIsEnabled)
-        )
 
         # Set default name, e.g. modelDefault, lookdevDefault
         label = item.data(FamilyRole) or "null"
@@ -135,6 +111,32 @@ class Window(QtWidgets.QDialog):
         label = label.lower() + "Default"
 
         name.setText(label)
+
+        self.on_data_changed()
+
+    def _on_data_changed(self):
+        button = self.findChild(QtWidgets.QPushButton, "Create Button")
+        asset = self.findChild(QtWidgets.QWidget, "Asset")
+        name = self.findChild(QtWidgets.QWidget, "Name")
+        item = self.findChild(QtWidgets.QWidget, "Listing").currentItem()
+
+        if asset.text() in (asset["name"]
+                            for asset in io.find(
+                                filter={"type": "asset"},
+                                projection={"name": 1})):
+            item.setData(ExistsRole, True)
+            self.echo("Ready..")
+
+        else:
+            item.setData(ExistsRole, False)
+            self.echo("'%s' not found.." % asset.text())
+
+        button.setEnabled(
+            name.text().strip() != "" and
+            asset.text().strip() != "" and
+            item.data(QtCore.Qt.ItemIsEnabled) and
+            item.data(ExistsRole)
+        )
 
     def keyPressEvent(self, event):
         """Custom keyPressEvent.
@@ -158,6 +160,7 @@ class Window(QtWidgets.QDialog):
             item.setData(QtCore.Qt.ItemIsEnabled, True)
             item.setData(HelpRole, family["help"])
             item.setData(FamilyRole, family["name"])
+            item.setData(ExistsRole, False)
             listing.addItem(item)
 
             has_families = True
@@ -170,13 +173,17 @@ class Window(QtWidgets.QDialog):
         listing.setCurrentItem(listing.item(0))
 
     def on_create(self):
+        button = self.findChild(QtWidgets.QPushButton, "Create Button")
+
+        if not button.isEnabled():
+            return
+
         asset = self.findChild(QtWidgets.QWidget, "Asset")
         listing = self.findChild(QtWidgets.QWidget, "Listing")
         autoclose_chk = self.findChild(QtWidgets.QWidget,
                                        "Autoclose Checkbox")
         useselection_chk = self.findChild(QtWidgets.QWidget,
                                           "Use Selection Checkbox")
-        error_msg = self.findChild(QtWidgets.QWidget, "Error Message")
 
         asset = asset.text()
         item = listing.currentItem()
@@ -192,17 +199,23 @@ class Window(QtWidgets.QDialog):
                 })
 
             except NameError as e:
-                error_msg.setText(str(e))
-                error_msg.show()
+                self.echo(e)
                 raise
 
             except (TypeError, RuntimeError, KeyError, AssertionError) as e:
-                error_msg.setText("Program error: %s" % str(e))
-                error_msg.show()
+                self.echo("Program error: %s" % str(e))
                 raise
 
         if autoclose_chk.checkState():
             self.close()
+
+    def echo(self, message):
+        widget = self.findChild(QtWidgets.QWidget, "Error Message")
+        widget.setText(str(message))
+        widget.show()
+        print(message)
+
+        lib.schedule(lambda: widget.setText(""), 5000, channel="message")
 
 
 def show(debug=False, parent=None):

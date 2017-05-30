@@ -34,7 +34,7 @@ def setup():
     host = types.ModuleType("Test")
     host.__dict__.update({
         "ls": lambda: [],
-        "create": lambda name, family, options: None,
+        "create": lambda asset, subset, family, options: None,
         "load": lambda asset, subset, version, representation: None,
         "update": lambda container, version: None,
         "remove": lambda container: None,
