@@ -61,13 +61,18 @@ class RigLoader(api.Loader):
         #   Better register this keyword, so that it can be used
         #   elsewhere, such as in the Integrator plug-in,
         #   without duplication.
-        output = next((node for node in nodes
-                      if node.endswith("out_SET")), None)
-        assert output, "No output in rig, this is a bug."
+        output = next(
+            (node for node in nodes
+                if node.endswith("out_SET")), None)
+        controls = next(
+            (node for node in nodes
+                if node.endswith("controls_SET")), None)
+
+        assert output, "No out_SET in rig, this is a bug."
+        assert controls, "No controls_SET in rig, this is a bug."
 
         with maya.maintained_selection():
-            # Select contents of output
-            cmds.select(output, noExpand=False)
+            cmds.select([output, controls], noExpand=True)
 
             # TODO(marcus): Hardcoding the exact family here.
             #   Better separate the relationship between loading
