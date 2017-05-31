@@ -1,8 +1,8 @@
 from maya import cmds
-from mindbender import api, maya
+from mindbender import maya
 
 
-class ModelLoader(api.Loader):
+class ModelLoader(maya.Loader):
     """Load models
 
     Stores the imported asset in a container named after the asset.
@@ -10,16 +10,17 @@ class ModelLoader(api.Loader):
     """
 
     families = ["mindbender.model"]
+    representations = ["ma"]
 
-    def process(self, fname, name, namespace):
+    def process(self, context):
         with maya.maintained_selection():
             nodes = cmds.file(
-                fname,
-                namespace=namespace,
+                self.fname,
+                namespace=self.namespace,
                 reference=True,
                 returnNewNodes=True,
                 groupReference=True,
-                groupName=namespace + ":" + name
+                groupName=self.namespace + ":" + self.name
             )
 
         # Assign default shader to meshes

@@ -2,19 +2,18 @@ import os
 import json
 
 from maya import cmds
-from mindbender import api, maya
+from mindbender import maya
 
 
-class LookLoader(api.Loader):
+class LookLoader(maya.Loader):
     """Specific loader for lookdev"""
 
     families = ["mindbender.lookdev"]
+    representations = ["ma"]
 
-    def process(self, fname, name, namespace):
-        print("fname: %s" % fname)
-
+    def process(self, context):
         try:
-            existing_reference = cmds.file(fname,
+            existing_reference = cmds.file(self.fname,
                                            query=True,
                                            referenceNode=True)
         except RuntimeError as e:
@@ -24,27 +23,27 @@ class LookLoader(api.Loader):
             self.log.info("Loading lookdev for the first time..")
             with maya.maintained_selection():
                 nodes = cmds.file(
-                    fname,
-                    namespace=namespace,
+                    self.fname,
+                    namespace=self.namespace,
                     reference=True,
                     returnNewNodes=True
                 )
         else:
             self.log.info("Reusing existing lookdev..")
             nodes = cmds.referenceQuery(existing_reference, nodes=True)
-            namespace = nodes[0].split(":", 1)[0]
+            self.namespace = nodes[0].split(":", 1)[0]
 
         # Assign shaders
-        fname = fname.rsplit(".", 1)[0] + ".json"
+        self.fname = self.fname.rsplit(".", 1)[0] + ".json"
 
-        if not os.path.isfile(fname):
+        if not os.path.isfile(self.fname):
             self.log.warning("Look development asset "
                              "has no relationship data.")
             return nodes
 
-        with open(fname) as f:
+        with open(self.fname) as f:
             relationships = json.load(f)
 
-        maya.apply_shaders(relationships, namespace)
+        maya.apply_shaders(relationships, self.namespace)
 
         return nodes

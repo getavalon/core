@@ -218,6 +218,10 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                     }.get(ext)
                 },
 
+                "dependencies": instance.data.get(
+                    "dependencies", list()
+                ).split(),
+
                 # Imprint shortcut to context
                 # for performance reasons.
                 "context": {

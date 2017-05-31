@@ -1,6 +1,7 @@
 import os
 import re
 import errno
+import logging
 import datetime
 
 
@@ -137,3 +138,31 @@ def find_latest_version(versions):
             highest_version = version
 
     return highest_version
+
+
+def log(cls):
+    """Decorator for attaching a logger to the class `cls`
+
+    Loggers inherit the syntax {module}.{submodule}
+
+    Example
+        >>> @log
+        ... class MyClass(object):
+        ...     pass
+        >>>
+        >>> myclass = MyClass()
+        >>> myclass.log.info('Hello World')
+
+    """
+
+    module = cls.__module__
+    name = cls.__name__
+
+    # Package name appended, for filtering of LogRecord instances
+    logname = "%s.%s" % (module, name)
+    cls.log = logging.getLogger(logname)
+
+    # All messages are handled by root-logger
+    cls.log.propagate = True
+
+    return cls

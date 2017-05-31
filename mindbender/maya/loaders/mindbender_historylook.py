@@ -1,21 +1,22 @@
 from maya import cmds
-from mindbender import api, maya
+from mindbender import maya
 
 
-class HistoryLookLoader(api.Loader):
+class HistoryLookLoader(maya.Loader):
     """Specific loader for lookdev"""
 
     families = ["mindbender.historyLookdev"]
+    representations = ["ma"]
 
-    def process(self, fname, name, namespace):
+    def process(self, context):
         with maya.maintained_selection():
             nodes = cmds.file(
-                fname,
-                namespace=namespace,
+                self.fname,
+                namespace=self.namespace,
                 reference=True,
                 returnNewNodes=True,
                 groupReference=True,
-                groupName=namespace + ":" + name
+                groupName=self.namespace + ":" + self.name
             )
 
         return nodes

@@ -8,6 +8,7 @@ from pyblish import api
 
 from . import (
     io,
+    lib,
 
     _registered_families,
     _registered_data,
@@ -83,10 +84,44 @@ def is_installed():
     return self._is_installed
 
 
+@lib.log
 class Loader(object):
-    families = list()
+    """Load representation into host application
 
-    def process(self, asset, subset, version, representation):
+    Arguments:
+        context (dict): mindbender-core:context-1.0
+        name (str, optional): Use pre-defined name
+        namespace (str, optional): Use pre-defined namespace
+
+    """
+
+    families = list()
+    representations = list()
+
+    def __init__(self, context, name=None, namespace=None):
+        template = context["project"]["config"]["template"]["publish"]
+
+        data = {
+            key: value["name"]
+            for key, value in context.items()
+        }
+
+        data["root"] = registered_root()
+        data["silo"] = context["asset"]["silo"]
+
+        fname = template.format(**data)
+
+        name = name or context["subset"]["name"]
+        namespace = namespace or context["asset"]["name"] + "_"
+
+        self.fname = fname
+        self.name = name
+        self.namespace = namespace
+
+    def process(self, context):
+        pass
+
+    def post_process(self, context):
         pass
 
 
@@ -162,8 +197,8 @@ def loaders_from_module(module):
         if not inspect.isclass(obj):
             continue
 
-        if not issubclass(obj, Loader):
-            continue
+        # if not issubclass(obj, Loader):
+        #     continue
 
         loaders.append(obj)
 

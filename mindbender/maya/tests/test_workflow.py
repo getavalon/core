@@ -248,7 +248,8 @@ def test_alembic_export():
 
     assert representation is not None
 
-    nodes = maya.load(representation["_id"])
+    container = maya.load(representation)
+    nodes = cmds.sets(container, query=True)
     print("Nodes: %s" % nodes)
     cube = cmds.ls(nodes, type="mesh")
     transform = cmds.listRelatives(cube, parent=True)[0]
@@ -338,9 +339,10 @@ def test_modeling_to_rigging():
         PROJECT_NAME, ASSET_NAME, "modelDefault", 1, "ma"
     ])
 
-    nodes = maya.load(representation)
+    container = maya.load(representation)
+    nodes = cmds.sets(container, query=True)
     assembly = cmds.ls(nodes, assemblies=True)[0]
-    assert_equals(assembly, "Bruce01_:modelDefault")
+    assert_equals(assembly, "Bruce_01_:modelDefault")
 
     # Rig it
     mesh = cmds.ls(nodes, type="mesh")
@@ -375,6 +377,7 @@ def test_modeling_to_rigging():
         PROJECT_NAME, ASSET_NAME, "rigDefault", 1, "ma"
     ])
 
-    nodes = maya.load(representation)
+    container = maya.load(representation)
+    nodes = cmds.sets(container, query=True)
     assembly = cmds.ls(nodes, assemblies=True)[0]
-    assert_equals(assembly, "Bruce01_:rigDefault")
+    assert_equals(assembly, "Bruce_01_:rigDefault")

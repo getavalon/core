@@ -1,8 +1,8 @@
 from maya import cmds
-from mindbender import api, maya
+from mindbender import maya
 
 
-class RigLoader(api.Loader):
+class RigLoader(maya.Loader):
     """Specific loader for rigs
 
     This automatically creates an instance for animators upon load.
@@ -10,14 +10,23 @@ class RigLoader(api.Loader):
     """
 
     families = ["mindbender.rig"]
+    representations = ["ma"]
 
-    def process(self, fname, name, namespace):
-        nodes = cmds.file(fname,
-                          namespace=namespace,
+    def process(self, context):
+        nodes = cmds.file(self.fname,
+                          namespace=self.namespace,
                           reference=True,
                           returnNewNodes=True,
                           groupReference=True,
-                          groupName=namespace + ":" + name)
+                          groupName=self.namespace + ":" + self.name)
+
+        # Store for post-process
+        self.new_nodes[:] = nodes
+
+        return nodes
+
+    def post_process(self, context):
+        nodes = self.new_nodes
 
         # TODO(marcus): We are hardcoding the name "out_SET" here.
         #   Better register this keyword, so that it can be used
@@ -34,17 +43,12 @@ class RigLoader(api.Loader):
         with maya.maintained_selection():
             cmds.select([output, controls], noExpand=True)
 
-            # Assuming "myAsset_01_"
-            # TODO(marcus): We'll need a better way of managing this..
-            assert namespace.count("_") == 2, (
-                "%s.count('_') != 2, This is a bug" % namespace)
-
-            # TODO(marcus): Hardcoding the exact family here.
-            #   Better separate the relationship between loading
-            #   rigs and automatically assigning an instance to it.
-            maya.create(asset=os.environ["MINDBENDER_ASSET"],
-                        subset=maya.unique_name(asset["name"], suffix="_SET"),
-                        family="mindbender.animation",
-                        options={"useSelection": True})
-
-        return nodes
+            dependencies = [context["representation"]["_id"]]
+            asset = context["asset"]["name"] + "_"
+            maya.create(
+                name=maya.unique_name(asset, suffix="_SET"),
+                family="mindbender.animation",
+                options={"useSelection": True},
+                data={
+                    "dependencies": " ".join(str(d) for d in dependencies)
+                })

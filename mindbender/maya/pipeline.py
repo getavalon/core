@@ -208,6 +208,18 @@ def _register_loaders():
     api.register_loader_path(loaders_path)
 
 
+class Loader(api.Loader):
+    def __init__(self, context, name=None, namespace=None):
+        super(Loader, self).__init__(context, name, namespace)
+
+        self.new_nodes = list()
+        self.namespace = namespace or lib.unique_namespace(
+            self.namespace,
+            prefix="_" if self.namespace[0].isdigit() else "",
+            suffix="_",
+        )
+
+
 def ls():
     """List containers from active Maya scene
 
@@ -229,7 +241,7 @@ def ls():
         yield data
 
 
-def load(representation):
+def load(representation, name=None, namespace=None, post_process=True):
     """Load asset via database
 
     Arguments:
@@ -247,45 +259,34 @@ def load(representation):
     version, subset, asset, project = io.parenthood(representation)
 
     context = {
-        "project": project["name"],
-        "asset": asset["name"],
-        "silo": asset["silo"],
-        "subset": subset["name"],
-        "version": version["name"],
-        "representation": representation["name"].strip("."),
+        "project": project,
+        "asset": asset,
+        "subset": subset,
+        "version": version,
+        "representation": representation,
     }
 
-    template = project["config"]["template"]["publish"]
-    fname = template.format(root=api.registered_root(), **context)
-
-    assert os.path.exists(fname), "%s does not exist" % fname
-
-    families = version["data"]["families"]
-
-    name = "{subset}".format(**context)
-    namespace = "!{asset}_".format(**context)
-
-    if name.startswith("!"):
-        name = lib.unique_name(
-            name[1:],
-            prefix="_" if name[1:][0].isdigit() else ""
-        )
-
-    if namespace.startswith("!"):
-        namespace = lib.unique_namespace(
-            namespace[1:],
-            prefix="_" if namespace[1:][0].isdigit() else "",
-            suffix="_",
-        )
+    families = context["version"]["data"]["families"]
 
     nodes = list()
     loaders = list()
     for Loader in api.discover_loaders():
-        is_compatible = any(family in Loader.families for family in families)
+        has_family = any(family in Loader.families for family in families)
+        has_representation = representation["name"] in Loader.representations
 
-        if is_compatible:
+        if has_family and has_representation:
             print("Running '%s' on '%s'" % (Loader.__name__, asset["name"]))
-            nodes_ = Loader().process(fname, name, namespace)
+
+            try:
+                loader = Loader(context, name, namespace)
+                nodes_ = loader.process(context)
+            except OSError as e:
+                print("WARNING: %s" % e)
+                continue
+
+            if post_process:
+                loader.post_process(context)
+
             loaders.append(Loader)
             nodes.extend(nodes_)
 
@@ -293,14 +294,10 @@ def load(representation):
     assert nodes, "No nodes were loaded, this is a bug"
 
     return lib.containerise(
-        name=name,
-        namespace=namespace,
+        name="_%s" % representation["_id"],
         nodes=nodes,
-        asset=asset,
-        subset=subset,
-        version=version,
-        representation=representation,
-        loader=" ".join(type(Loader).__name__ for Loader in loaders)
+        representation=str(representation["_id"]),
+        loader=" ".join(Loader.__name__ for Loader in loaders)
     )
 
 
@@ -335,7 +332,10 @@ def create(asset, subset, family, options=None):
     assert family_ is not None, "{0} is not a valid family".format(
         family)
 
-    data = dict(api.registered_data(), **family_.get("data", {}))
+    data_ = dict(api.registered_data(), **family_.get("data", {}))
+
+    if data is not None:
+        data_.update(data)
 
     instance = "%s_SET" % subset
 
@@ -351,18 +351,17 @@ def create(asset, subset, family, options=None):
         instance = cmds.sets(nodes, name=instance)
 
     # Resolve template
-    for key, value in data.items():
+    for key, value in data_.items():
         if isinstance(value, basestring):
             try:
-                data[key] = str(value).format(
-                    subset=subset,
-                    asset=asset,
+                data_[key] = str(value).format(
+                    name=name,
                     family=family_["name"]
                 )
             except KeyError as e:
                 raise KeyError("Invalid dynamic property: %s" % e)
 
-    lib.imprint(instance, data)
+    lib.imprint(instance, data_)
 
     return instance
 
