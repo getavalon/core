@@ -5,16 +5,16 @@ import uuid
 import pyblish.api
 from maya import cmds, OpenMaya
 
-from . import lib
+from . import lib, commands
 from .. import api, io
 from ..vendor.Qt import QtCore, QtWidgets
 
 self = sys.modules[__name__]
-self._menu = "mindbenderCore"
-self._id_callback = None
+self._menu = "mindbendercore"
+self._events = dict()
 self._parent = {
-    o.objectName(): o
-    for o in QtWidgets.QApplication.topLevelWidgets()
+    widget.objectName(): widget
+    for widget in QtWidgets.QApplication.topLevelWidgets()
 }.get("MayaWindow")
 
 
@@ -40,7 +40,7 @@ def install():
     _register_loaders()
     _register_families()
 
-    _register_id_callback()
+    _register_callbacks()
 
 
 def uninstall():
@@ -233,33 +233,75 @@ def load(representation):
     """Load asset via database
 
     Arguments:
-        representation (bson.objectid.ObjectId): Address to representation
+        representation (dict, io.ObjectId or str): Address to representation
 
     """
 
-    if not isinstance(representation, io.ObjectId):
+    if isinstance(representation, dict):
+        representation = representation["_id"]
+
+    elif not isinstance(representation, io.ObjectId):
         representation = io.ObjectId(representation)
 
     representation = io.find_one({"_id": representation})
-    version = io.find_one({"_id": representation["parent"]})
-    subset = io.find_one({"_id": version["parent"]})
-    asset = io.find_one({"_id": subset["parent"]})
-    project = io.find_one({"_id": asset["parent"]})
+    version, subset, asset, project = io.parenthood(representation)
 
-    for Loader in api.discover_loaders():
-        if not any(family in Loader.families
-                   for family in version["data"].get("families", list)):
-            continue
+    context = {
+        "project": project["name"],
+        "asset": asset["name"],
+        "silo": asset["silo"],
+        "subset": subset["name"],
+        "version": version["name"],
+        "representation": representation["name"].strip("."),
+    }
 
-        print("Running '%s' on '%s'" % (Loader.__name__, asset["name"]))
+    template = project["config"]["template"]["publish"]
+    fname = template.format(root=api.registered_root(), **context)
 
-        return Loader().process(
-            project=project,
-            asset=asset,
-            subset=subset,
-            version=version,
-            representation=representation,
+    assert os.path.exists(fname), "%s does not exist" % fname
+
+    families = version["data"]["families"]
+
+    name = "{subset}".format(**context)
+    namespace = "!{asset}_".format(**context)
+
+    if name.startswith("!"):
+        name = lib.unique_name(
+            name[1:],
+            prefix="_" if name[1:][0].isdigit() else ""
         )
+
+    if namespace.startswith("!"):
+        namespace = lib.unique_namespace(
+            namespace[1:],
+            prefix="_" if namespace[1:][0].isdigit() else "",
+            suffix="_",
+        )
+
+    nodes = list()
+    loaders = list()
+    for Loader in api.discover_loaders():
+        is_compatible = any(family in Loader.families for family in families)
+
+        if is_compatible:
+            print("Running '%s' on '%s'" % (Loader.__name__, asset["name"]))
+            nodes_ = Loader().process(fname, name, namespace)
+            loaders.append(Loader)
+            nodes.extend(nodes_)
+
+    assert loaders, "No loaders were run, this is a bug"
+    assert nodes, "No nodes were loaded, this is a bug"
+
+    return lib.containerise(
+        name=name,
+        namespace=namespace,
+        nodes=nodes,
+        asset=asset,
+        subset=subset,
+        version=version,
+        representation=representation,
+        loader=" ".join(type(Loader).__name__ for Loader in loaders)
+    )
 
 
 def create(asset, subset, family, options=None):
@@ -320,7 +362,6 @@ def create(asset, subset, family, options=None):
             except KeyError as e:
                 raise KeyError("Invalid dynamic property: %s" % e)
 
-    print("About to imprint")
     lib.imprint(instance, data)
 
     return instance
@@ -443,26 +484,27 @@ def remove(container):
         pass
 
 
-def _register_id_callback():
-    """Automatically add IDs to new nodes
+def _register_callbacks():
+    for handler, event in self._events.copy().items():
+        if event is None:
+            continue
 
-    Any transform of a mesh, without an exising ID,
-    is given one automatically on file save.
-
-    """
-
-    if self._id_callback is not None:
         try:
-            OpenMaya.MMessage.removeCallback(self._id_callback)
-            self._id_callback = None
+            OpenMaya.MMessage.removeCallback(event)
+            self._events[handler] = None
         except RuntimeError, e:
             print(e)
 
-    self._id_callback = OpenMaya.MSceneMessage.addCallback(
-        OpenMaya.MSceneMessage.kBeforeSave, _callback
+    self._events[_on_scene_save] = OpenMaya.MSceneMessage.addCallback(
+        OpenMaya.MSceneMessage.kBeforeSave, _on_scene_save
     )
 
-    print("Registered _callback")
+    self._events[_on_scene_new] = OpenMaya.MSceneMessage.addCallback(
+        OpenMaya.MSceneMessage.kAfterNew, _on_scene_new
+    )
+
+    print("Installed event handler __on_scene_save..")
+    print("Installed event handler _on_scene_new..")
 
 
 def _set_uuid(node):
@@ -480,7 +522,19 @@ def _set_uuid(node):
         cmds.setAttr(attr, uid, type="string")
 
 
-def _callback(_):
+def _on_scene_new(_):
+    print("Running scene new..")
+    commands.reset_frame_range()
+
+
+def _on_scene_save(_):
+    """Automatically add IDs to new nodes
+
+    Any transform of a mesh, without an exising ID,
+    is given one automatically on file save.
+
+    """
+
     nodes = (set(cmds.ls(type="mesh", long=True)) -
              set(cmds.ls(long=True, readOnly=True)) -
              set(cmds.ls(long=True, lockedNodes=True)))

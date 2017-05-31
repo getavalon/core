@@ -1,6 +1,6 @@
 import os
 from maya import cmds
-from mindbender import api, maya
+from mindbender import api
 
 
 class AnimationLoader(api.Loader):
@@ -12,50 +12,28 @@ class AnimationLoader(api.Loader):
 
     families = ["mindbender.animation"]
 
-    def process(self, project, asset, subset, version, representation):
+    def process(self, fname, name, namespace):
+        _, representation = os.path.splitext(fname)
+        if representation == ".abc":
+            cmds.loadPlugin("AbcImport.mll", quiet=True)
 
-        cmds.loadPlugin("AbcImport.mll", quiet=True)
+            nodes = cmds.file(
+                fname,
+                namespace=namespace,
 
-        template = project["config"]["template"]["publish"]
-        data = {
-            "root": api.registered_root(),
-            "project": project["name"],
-            "asset": asset["name"],
-            "silo": asset["silo"],
-            "subset": subset["name"],
-            "version": version["name"],
-            "representation": representation["name"].strip("."),
-        }
+                # Prevent identical alembic nodes
+                # from being shared.
+                sharedReferenceFile=False,
 
-        fname = template.format(**data)
-        assert os.path.exists(fname), "%s does not exist" % fname
+                groupReference=True,
+                groupName=namespace + ":" + name,
+                reference=True,
+                returnNewNodes=True
+            )
 
-        name = subset["name"]
-        namespace = subset["name"] + "_"
+            return nodes
 
-        if cmds.objExists(namespace + ":" + name):
-            cmds.warning("Asset already imported.")
+        self.log.warning("AnimationLoader: %s not supported yet."
+                         % representation)
 
-        nodes = cmds.file(fname,
-                          namespace=namespace,
-
-                          # Prevent identical alembic nodes
-                          # from being shared.
-                          sharedReferenceFile=False,
-
-                          groupReference=True,
-                          groupName=namespace + ":" + name,
-                          reference=True,
-                          returnNewNodes=True)
-
-        # Containerising
-        maya.containerise(name=name,
-                          namespace=namespace,
-                          nodes=nodes,
-                          asset=asset,
-                          subset=subset,
-                          version=version,
-                          representation=representation,
-                          loader=type(self).__name__)
-
-        return nodes
+        return list()

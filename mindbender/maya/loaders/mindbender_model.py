@@ -1,4 +1,3 @@
-import os
 from maya import cmds
 from mindbender import api, maya
 
@@ -12,46 +11,16 @@ class ModelLoader(api.Loader):
 
     families = ["mindbender.model"]
 
-    def process(self, project, asset, subset, version, representation):
-        template = project["config"]["template"]["publish"]
-        data = {
-            "root": api.registered_root(),
-            "project": project["name"],
-            "asset": asset["name"],
-            "silo": asset["silo"],
-            "subset": subset["name"],
-            "version": version["name"],
-            "representation": representation["name"].strip("."),
-        }
-
-        fname = template.format(**data)
-        assert os.path.exists(fname), "%s does not exist" % fname
-
-        namespace = maya.unique_namespace(
-            asset["name"],
-            prefix="_" if asset["name"][0].isdigit() else "",
-            suffix="_"
-        )
-
-        name = subset["name"]
-
+    def process(self, fname, name, namespace):
         with maya.maintained_selection():
-            nodes = cmds.file(fname,
-                              namespace=namespace,
-                              reference=True,
-                              returnNewNodes=True,
-                              groupReference=True,
-                              groupName=namespace + ":" + name)
-
-        # Containerising
-        maya.containerise(name=name,
-                          namespace=namespace,
-                          nodes=nodes,
-                          asset=asset,
-                          subset=subset,
-                          version=version,
-                          representation=representation,
-                          loader=type(self).__name__)
+            nodes = cmds.file(
+                fname,
+                namespace=namespace,
+                reference=True,
+                returnNewNodes=True,
+                groupReference=True,
+                groupName=namespace + ":" + name
+            )
 
         # Assign default shader to meshes
         meshes = cmds.ls(nodes, type="mesh")

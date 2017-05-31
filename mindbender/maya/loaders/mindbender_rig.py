@@ -1,4 +1,3 @@
-import os
 from maya import cmds
 from mindbender import api, maya
 
@@ -11,35 +10,8 @@ class RigLoader(api.Loader):
     """
 
     families = ["mindbender.rig"]
-    # name = "{subset}"
-    # namespace = maya.Unique("{asset}")
 
-    def process(self, project, asset, subset, version, representation):
-        # def process(self, representation):
-        # project, asset, subset, version = io.parenthood(representation)
-
-        template = project["config"]["template"]["publish"]
-        data = {
-            "root": api.registered_root(),
-            "project": project["name"],
-            "asset": asset["name"],
-            "silo": asset["silo"],
-            "subset": subset["name"],
-            "version": version["name"],
-            "representation": representation["name"].strip("."),
-        }
-
-        fname = template.format(**data)
-        assert os.path.exists(fname), "%s does not exist" % fname
-
-        namespace = maya.unique_namespace(
-            asset["name"],
-            prefix="_" if asset["name"][0].isdigit() else "",
-            suffix="_"
-        )
-
-        name = subset["name"]
-
+    def process(self, fname, name, namespace):
         nodes = cmds.file(fname,
                           namespace=namespace,
                           reference=True,
@@ -47,32 +19,25 @@ class RigLoader(api.Loader):
                           groupReference=True,
                           groupName=namespace + ":" + name)
 
-        # Containerising
-        maya.containerise(name=name,
-                          namespace=namespace,
-                          nodes=nodes,
-                          asset=asset,
-                          subset=subset,
-                          version=version,
-                          representation=representation,
-                          loader=type(self).__name__)
-
         # TODO(marcus): We are hardcoding the name "out_SET" here.
         #   Better register this keyword, so that it can be used
         #   elsewhere, such as in the Integrator plug-in,
         #   without duplication.
         output = next(
-            (node for node in nodes
-                if node.endswith("out_SET")), None)
+            (node for node in nodes if node.endswith("out_SET")), None)
         controls = next(
-            (node for node in nodes
-                if node.endswith("controls_SET")), None)
+            (node for node in nodes if node.endswith("controls_SET")), None)
 
         assert output, "No out_SET in rig, this is a bug."
         assert controls, "No controls_SET in rig, this is a bug."
 
         with maya.maintained_selection():
             cmds.select([output, controls], noExpand=True)
+
+            # Assuming "myAsset_01_"
+            # TODO(marcus): We'll need a better way of managing this..
+            assert namespace.count("_") == 2, (
+                "%s.count('_') != 2, This is a bug" % namespace)
 
             # TODO(marcus): Hardcoding the exact family here.
             #   Better separate the relationship between loading
