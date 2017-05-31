@@ -11,7 +11,7 @@ class LookLoader(maya.Loader):
     families = ["mindbender.lookdev"]
     representations = ["ma"]
 
-    def process(self, context):
+    def process(self, name, namespace, context):
         try:
             existing_reference = cmds.file(self.fname,
                                            query=True,
@@ -24,14 +24,14 @@ class LookLoader(maya.Loader):
             with maya.maintained_selection():
                 nodes = cmds.file(
                     self.fname,
-                    namespace=self.namespace,
+                    namespace=namespace,
                     reference=True,
                     returnNewNodes=True
                 )
         else:
             self.log.info("Reusing existing lookdev..")
             nodes = cmds.referenceQuery(existing_reference, nodes=True)
-            self.namespace = nodes[0].split(":", 1)[0]
+            namespace = nodes[0].split(":", 1)[0]
 
         # Assign shaders
         self.fname = self.fname.rsplit(".", 1)[0] + ".json"
@@ -44,6 +44,6 @@ class LookLoader(maya.Loader):
         with open(self.fname) as f:
             relationships = json.load(f)
 
-        maya.apply_shaders(relationships, self.namespace)
+        maya.apply_shaders(relationships, namespace)
 
-        return nodes
+        self[:] = nodes

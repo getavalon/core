@@ -7,26 +7,26 @@ class AbcLoader(maya.Loader):
     families = ["mindbender.animation"]
     representations = ["abc"]
 
-    def process(self, context):
+    def process(self, name, namespace, context):
         from maya import cmds
 
         cmds.loadPlugin("AbcImport.mll", quiet=True)
 
         nodes = cmds.file(
             self.fname,
-            namespace=self.namespace,
+            namespace=namespace,
 
             # Prevent identical alembic nodes
             # from being shared.
             sharedReferenceFile=False,
 
             groupReference=True,
-            groupName=self.namespace + ":" + self.name,
+            groupName=namespace + ":" + name,
             reference=True,
             returnNewNodes=True
         )
 
-        return nodes
+        self[:] = nodes
 
 
 class CurvesLoader(maya.Loader):
@@ -35,7 +35,7 @@ class CurvesLoader(maya.Loader):
     families = ["mindbender.animation"]
     representations = ["curves"]
 
-    def process(self, context):
+    def process(self, name, namespace, context):
         from maya import cmds
         from mindbender import maya
 
@@ -43,8 +43,8 @@ class CurvesLoader(maya.Loader):
 
         rig = context["representation"]["dependencies"][0]
         container = maya.load(rig,
-                              name=self.name,
-                              namespace=self.namespace,
+                              name=name,
+                              namespace=namespace,
 
                               # Skip creation of Animation instance
                               post_process=False)
@@ -87,12 +87,61 @@ class CurvesLoader(maya.Loader):
                 i=True,
                 type="atomImport",
                 renameAll=True,
-                namespace=self.namespace,
+                namespace=namespace,
                 options=options,
                 returnNewNodes=True,
             )
 
-        return nodes + [container]
+        self[:] = nodes + cmds.sets(container, query=True) + [container]
+
+    def post_process(self, name, namespace, context):
+        import os
+        from maya import cmds
+        from mindbender import maya, io
+
+        # Task-dependent post-process
+        if os.getenv("MINDBENDER_TASK") != "animate":
+            return self.log.info(
+                "No animation instance created due to task != animate"
+            )
+
+        # Find associated rig to these curves
+        try:
+            dependency = context["representation"]["dependencies"][0]
+        except (KeyError, IndexError):
+            return self.log.warning("No dependencies found for %s" % name)
+
+        dependency = io.find_one({"_id": io.ObjectId(dependency)})
+        _, _, dependency, _ = io.parenthood(dependency)
+
+        # TODO(marcus): We are hardcoding the name "out_SET" here.
+        #   Better register this keyword, so that it can be used
+        #   elsewhere, such as in the Integrator plug-in,
+        #   without duplication.
+        output = next(
+            (node for node in self
+                if node.endswith("out_SET")), None)
+        controls = next(
+            (node for node in self
+                if node.endswith("controls_SET")), None)
+
+        assert output, "No out_SET in rig, this is a bug."
+        assert controls, "No controls_SET in rig, this is a bug."
+
+        with maya.maintained_selection():
+            cmds.select([output, controls], noExpand=True)
+
+            dependencies = [context["representation"]["_id"]]
+            name = "anim" + dependency["name"].title() + "_"
+
+            # TODO(marcus): Hardcoding the family here, better separate this.
+            maya.create(
+                name=maya.unique_name(name, suffix="_SET"),
+                family="mindbender.animation",
+                options={"useSelection": True},
+                data={
+                    "dependencies": " ".join(str(d) for d in dependencies)
+                })
 
 
 class HistoryLoader(maya.Loader):
@@ -101,5 +150,5 @@ class HistoryLoader(maya.Loader):
     families = ["mindbender.animation"]
     representations = ["history"]
 
-    def process(self, context):
+    def process(self, name, namespace, context):
         raise NotImplementedError("Can't load history yet.")

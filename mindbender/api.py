@@ -63,6 +63,8 @@ from .lib import (
 )
 
 logging.basicConfig()
+logger = logging.getLogger("mindbender")
+
 
 __all__ = [
     "install",

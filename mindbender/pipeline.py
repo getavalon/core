@@ -85,7 +85,7 @@ def is_installed():
 
 
 @lib.log
-class Loader(object):
+class Loader(list):
     """Load representation into host application
 
     Arguments:
@@ -98,7 +98,7 @@ class Loader(object):
     families = list()
     representations = list()
 
-    def __init__(self, context, name=None, namespace=None):
+    def __init__(self, context):
         template = context["project"]["config"]["template"]["publish"]
 
         data = {
@@ -111,17 +111,12 @@ class Loader(object):
 
         fname = template.format(**data)
 
-        name = name or context["subset"]["name"]
-        namespace = namespace or context["asset"]["name"] + "_"
-
         self.fname = fname
-        self.name = name
-        self.namespace = namespace
 
-    def process(self, context):
+    def process(self, name, namespace, context):
         pass
 
-    def post_process(self, context):
+    def post_process(self, name, namespace, context):
         pass
 
 

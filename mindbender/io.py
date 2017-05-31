@@ -7,7 +7,7 @@ from . import schema
 
 # Third-party dependencies
 import pymongo
-from bson.objectid import ObjectId
+from bson.objectid import ObjectId, InvalidId
 
 self = sys.modules[__name__]
 self._client = None
@@ -129,12 +129,28 @@ def locate(path):
 
     parent = None
     for type_, name in components:
+        latest = (type_ == "version") and name in (None, -1)
+
         try:
-            parent = find_one({
-                "type": type_,
-                "name": name,
-                "parent": parent
-            }, {"_id": 1})["_id"]
+            if latest:
+                parent = find_one(
+                    filter={
+                        "type": type_,
+                        "parent": parent
+                    },
+                    projection={"_id": 1},
+                    sort=[("name", -1)]
+                )["_id"]
+            else:
+                parent = find_one(
+                    filter={
+                        "type": type_,
+                        "name": name,
+                        "parent": parent
+                    },
+                    projection={"_id": 1},
+                )["_id"]
+
         except TypeError:
             return None
 
@@ -149,8 +165,23 @@ def insert_one(item):
 
 
 @requires_activation
-def find(*args, **kwargs):
-    return self._collection.find(*args, **kwargs)
+def find(filter, projection=None, sort=None):
+    return self._collection.find(
+        filter=filter,
+        projection=projection,
+        sort=sort
+    )
+
+
+@requires_activation
+def find_one(filter, projection=None, sort=None):
+    assert isinstance(filter, dict), "filter must be <dict>"
+
+    return self._collection.find_one(
+        filter=filter,
+        projection=projection,
+        sort=sort
+    )
 
 
 @requires_activation
@@ -169,11 +200,6 @@ def distinct(*args, **kwargs):
 
 
 @requires_activation
-def find_one(*args, **kwargs):
-    return self._collection.find_one(*args, **kwargs)
-
-
-@requires_activation
 def drop(*args, **kwargs):
     return self._collection.drop(*args, **kwargs)
 
@@ -185,6 +211,8 @@ def delete_many(*args, **kwargs):
 
 @requires_activation
 def parenthood(document):
+    assert document is not None, "This is a bug"
+
     parents = list()
 
     while document.get("parent") is not None:
@@ -202,4 +230,5 @@ __all__ = [
     "install",
     "uninstall",
     "ObjectId",
+    "InvalidId",
 ]

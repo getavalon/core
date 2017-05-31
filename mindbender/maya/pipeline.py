@@ -7,6 +7,7 @@ from maya import cmds, OpenMaya
 
 from . import lib, commands
 from .. import api, io
+from ..vendor import six
 from ..vendor.Qt import QtCore, QtWidgets
 
 self = sys.modules[__name__]
@@ -117,6 +118,14 @@ def _install_menu():
 
         cmds.menuItem("Set Defaults", command=interactive.set_defaults)
 
+        cmds.menuItem("System",
+                      label="System",
+                      tearOff=True,
+                      subMenu=True,
+                      parent=self._menu)
+
+        cmds.menuItem("Reload Pipeline", command=_reload)
+
         cmds.setParent("..", menu=True)
 
         cmds.menuItem(divider=True)
@@ -127,6 +136,41 @@ def _install_menu():
 
     # Allow time for uninstallation to finish.
     QtCore.QTimer.singleShot(100, deferred)
+
+
+def _reload(*args):
+    """Attempt to reload pipeline at run-time.
+
+    CAUTION: This is primarily for development and debugging purposes.
+
+    """
+
+    from mindbender import api, pipeline, io, lib
+    import mindbender.maya
+    import mindbender.maya.pipeline
+    import mindbender.maya.interactive
+    import mindbender.maya.commands
+    import mindbender.tools.creator.app
+    import mindbender.tools.manager.app
+    import mindbender.tools.loader.app
+
+    api.uninstall()
+
+    for module in (io,
+                   lib,
+                   pipeline,
+                   mindbender.maya.commands,
+                   mindbender.maya.interactive,
+                   mindbender.maya.pipeline,
+                   mindbender.maya.lib,
+                   mindbender.tools.loader.app,
+                   mindbender.tools.creator.app,
+                   mindbender.tools.manager.app,
+                   api,
+                   mindbender.maya):
+        reload(module)
+
+    api.install(mindbender.maya)
 
 
 def _uninstall_menu():
@@ -208,16 +252,67 @@ def _register_loaders():
     api.register_loader_path(loaders_path)
 
 
-class Loader(api.Loader):
-    def __init__(self, context, name=None, namespace=None):
-        super(Loader, self).__init__(context, name, namespace)
+def containerise(name,
+                 namespace,
+                 nodes,
+                 context,
+                 loader=None,
+                 suffix="_CON"):
+    """Bundle `nodes` into an assembly and imprint it with metadata
 
-        self.new_nodes = list()
-        self.namespace = namespace or lib.unique_namespace(
-            self.namespace,
-            prefix="_" if self.namespace[0].isdigit() else "",
-            suffix="_",
-        )
+    Containerisation enables a tracking of version, author and origin
+    for loaded assets.
+
+    Arguments:
+        name (str): Name of resulting assembly
+        nodes (list): Long names of nodes to containerise
+        namespace (str): Namespace under which to host container
+        asset (mindbender-core:asset-1.0): Current asset
+        subset (mindbender-core:subset-1.0): Current subset
+        version (mindbender-core:version-1.0): Current version
+        representation (mindbender-core:representation-1.0): ...
+        loader (str, optional): Name of loader used to produce this container.
+        suffix (str, optional): Suffix of container, defaults to `_CON`.
+
+    Returns:
+        container (str): Name of container assembly
+
+    """
+
+    container = cmds.sets(nodes, name="%s_%s_%s" % (namespace, name, suffix))
+
+    data = [
+        ("id", "pyblish.mindbender.container"),
+        ("name", name),
+        ("namespace", namespace),
+        ("loader", str(loader)),
+        ("project", context["project"]["name"]),
+        ("asset", context["asset"]["name"]),
+        ("subset", context["subset"]["name"]),
+        ("version", context["version"]["name"]),
+        ("representation", context["representation"]["_id"]),
+    ]
+
+    for key, value in data:
+        if not value:
+            continue
+
+        if isinstance(value, (int, float)):
+            cmds.addAttr(container, longName=key, attributeType="short")
+            cmds.setAttr(container + "." + key, value)
+
+        else:
+            cmds.addAttr(container, longName=key, dataType="string")
+            cmds.setAttr(container + "." + key, value, type="string")
+
+    # Hide in outliner
+    cmds.setAttr(container + ".verticesOnlySet", True)
+
+    return container
+
+
+class Loader(api.Loader):
+    pass
 
 
 def ls():
@@ -230,10 +325,23 @@ def ls():
     """
 
     for container in sorted(lib.lsattr("id", "pyblish.mindbender.container")):
+        data = lib.read(container)
+
+        try:
+            document = io.find_one(
+                {"_id": io.ObjectId(data["representation"])}
+            )
+        except io.InvalidId:
+            api.logger.warning("Skipping %s, invalid id." % container)
+            continue
+
         data = dict(
             schema="mindbender-core:container-1.0",
             objectName=container,
-            **lib.read(container)
+            name=data["name"],
+            namespace=data["namespace"],
+            representation=data["representation"],
+            **document["data"]
         )
 
         # api.schema.validate(data, "container")
@@ -241,7 +349,11 @@ def ls():
         yield data
 
 
-def load(representation, name=None, namespace=None, post_process=True):
+def load(representation,
+         name=None,
+         namespace=None,
+         post_process=True,
+         preset=None):
     """Load asset via database
 
     Arguments:
@@ -249,14 +361,18 @@ def load(representation, name=None, namespace=None, post_process=True):
 
     """
 
-    if isinstance(representation, dict):
-        representation = representation["_id"]
+    assert representation is not None, "This is a bug"
 
-    elif not isinstance(representation, io.ObjectId):
-        representation = io.ObjectId(representation)
+    preset = preset or os.environ["MINDBENDER_TASK"]
 
-    representation = io.find_one({"_id": representation})
+    if isinstance(representation, (six.string_types, io.ObjectId)):
+        representation = io.find_one({"_id": io.ObjectId(str(representation))})
+
     version, subset, asset, project = io.parenthood(representation)
+
+    assert all([representation, version, subset, asset, project]), (
+        "This is a bug"
+    )
 
     context = {
         "project": project,
@@ -264,39 +380,49 @@ def load(representation, name=None, namespace=None, post_process=True):
         "subset": subset,
         "version": version,
         "representation": representation,
+        "preset": preset
     }
 
-    families = context["version"]["data"]["families"]
+    name = name or subset["name"]
+    namespace = namespace or lib.unique_namespace(
+        asset["name"] + "_",
+        prefix="_" if asset["name"][0].isdigit() else "",
+        suffix="_",
+    )
 
     nodes = list()
     loaders = list()
+    families = context["version"]["data"]["families"]
     for Loader in api.discover_loaders():
         has_family = any(family in Loader.families for family in families)
         has_representation = representation["name"] in Loader.representations
 
         if has_family and has_representation:
-            print("Running '%s' on '%s'" % (Loader.__name__, asset["name"]))
+            Loader.log.info(
+                "Running '%s' on '%s'" % (Loader.__name__, asset["name"])
+            )
 
             try:
-                loader = Loader(context, name, namespace)
-                nodes_ = loader.process(context)
+                loader = Loader(context)
+                loader.process(name, namespace, context)
             except OSError as e:
                 print("WARNING: %s" % e)
                 continue
 
             if post_process:
-                loader.post_process(context)
+                loader.post_process(name, namespace, context)
 
             loaders.append(Loader)
-            nodes.extend(nodes_)
+            nodes.extend(loader)
 
     assert loaders, "No loaders were run, this is a bug"
     assert nodes, "No nodes were loaded, this is a bug"
 
-    return lib.containerise(
-        name="_%s" % representation["_id"],
+    return containerise(
+        name=name,
+        namespace=namespace,
         nodes=nodes,
-        representation=str(representation["_id"]),
+        context=context,
         loader=" ".join(Loader.__name__ for Loader in loaders)
     )
 
@@ -446,9 +572,6 @@ def update(container, version=-1):
                  new_version["name"])
     cmds.setAttr(container["objectName"] + ".representation",
                  str(new_representation["_id"]),
-                 type="string")
-    cmds.setAttr(container["objectName"] + ".source",
-                 new_version["data"]["source"],
                  type="string")
 
 

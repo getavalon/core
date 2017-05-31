@@ -8,15 +8,15 @@ class HistoryLookLoader(maya.Loader):
     families = ["mindbender.historyLookdev"]
     representations = ["ma"]
 
-    def process(self, context):
+    def process(self, name, namespace, context):
         with maya.maintained_selection():
             nodes = cmds.file(
                 self.fname,
-                namespace=self.namespace,
+                namespace=namespace,
                 reference=True,
                 returnNewNodes=True,
                 groupReference=True,
-                groupName=self.namespace + ":" + self.name
+                groupName=namespace + ":" + name
             )
 
-        return nodes
+        self[:] = nodes

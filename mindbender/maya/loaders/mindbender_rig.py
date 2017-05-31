@@ -12,30 +12,28 @@ class RigLoader(maya.Loader):
     families = ["mindbender.rig"]
     representations = ["ma"]
 
-    def process(self, context):
+    def process(self, name, namespace, context):
         nodes = cmds.file(self.fname,
-                          namespace=self.namespace,
+                          namespace=namespace,
                           reference=True,
                           returnNewNodes=True,
                           groupReference=True,
-                          groupName=self.namespace + ":" + self.name)
+                          groupName=namespace + ":" + name)
 
         # Store for post-process
-        self.new_nodes[:] = nodes
+        self[:] = nodes
 
-        return nodes
-
-    def post_process(self, context):
-        nodes = self.new_nodes
-
+    def post_process(self, name, namespace, context):
         # TODO(marcus): We are hardcoding the name "out_SET" here.
         #   Better register this keyword, so that it can be used
         #   elsewhere, such as in the Integrator plug-in,
         #   without duplication.
         output = next(
-            (node for node in nodes if node.endswith("out_SET")), None)
+            (node for node in self
+                if node.endswith("out_SET")), None)
         controls = next(
-            (node for node in nodes if node.endswith("controls_SET")), None)
+            (node for node in self
+                if node.endswith("controls_SET")), None)
 
         assert output, "No out_SET in rig, this is a bug."
         assert controls, "No controls_SET in rig, this is a bug."
@@ -45,6 +43,8 @@ class RigLoader(maya.Loader):
 
             dependencies = [context["representation"]["_id"]]
             asset = context["asset"]["name"] + "_"
+
+            # TODO(marcus): Hardcoding the family here, better separate this.
             maya.create(
                 name=maya.unique_name(asset, suffix="_SET"),
                 family="mindbender.animation",

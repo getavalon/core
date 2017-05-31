@@ -120,6 +120,16 @@ QPushButton {
         layout.addWidget(side_source)
         layout.setContentsMargins(0, 0, 0, 0)
 
+        side_preset_container = QtWidgets.QWidget()
+        side_preset_header = QtWidgets.QLabel("Preset")
+        side_preset_header.setStyleSheet("QLabel { font-weight: bold }")
+        side_preset = QtWidgets.QComboBox()
+
+        layout = QtWidgets.QVBoxLayout(side_preset_container)
+        layout.addWidget(side_preset_header)
+        layout.addWidget(side_preset)
+        layout.setContentsMargins(0, 0, 0, 0)
+
         buttons = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(buttons)
         layout.addWidget(refresh_button)
@@ -130,6 +140,7 @@ QPushButton {
         layout.addWidget(side_comment_container)
         layout.addWidget(side_created_container)
         layout.addWidget(side_source_container)
+        layout.addWidget(side_preset_container)
         layout.addWidget(QtWidgets.QWidget(), 1)
         layout.addWidget(options, 0, QtCore.Qt.AlignBottom)
         layout.addWidget(buttons)
@@ -163,6 +174,8 @@ QPushButton {
                 "createdContainer": side_created_container,
                 "source": side_source,
                 "sourceContainer": side_source_container,
+                "preset": side_preset,
+                "presetContainer": side_preset_container,
             },
             "state": {
                 "template": None,
@@ -249,6 +262,19 @@ QPushButton {
         has = {"children": False}
 
         project = io.find_one({"type": "project"})
+
+        preset = self.data["label"]["preset"]
+        preset.clear()
+
+        tasks = sorted(project["config"]["tasks"], key=lambda i: i["name"])
+        current_index = 0
+        for index, task in enumerate(tasks):
+            item = preset.addItem(task["name"])
+
+            if task["name"] == os.getenv("MINDBENDER_TASK"):
+                current_index = index
+
+        preset.setCurrentIndex(current_index)
 
         assert project, "This is a bug"
 
@@ -480,6 +506,7 @@ QPushButton {
                 "abc": "Pointcache",
                 "history": "History",
                 "curves": "Animation Curves",
+                "group": "Asset Group",
             }.get(name, name))  # Default to using name as-is
 
             item.setData(QtCore.Qt.ItemIsEnabled, True)
@@ -529,13 +556,18 @@ QPushButton {
         models = self.data["model"]
         representations_model = models["representations"]
         representation_item = representations_model.currentItem()
+        preset = self.data["labels"]["preset"]
+        preset = preset.currentText()
 
         if representation_item is None:
             return
 
         for document in representation_item.data(RepresentationsRole):
             try:
-                api.registered_host().load(representation=document["_id"])
+                _id = document["_id"]
+                self.echo("api.registered_host()."
+                          "load(representation=\"%s\")" % _id)
+                api.registered_host().load(representation=_id, preset=preset)
 
             except ValueError as e:
                 self.echo(e)
