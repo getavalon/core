@@ -153,7 +153,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
             }
         }
 
-        self.backwards_compatiblity(instance, version)
+        self.backwards_compatiblity(instance, subset, version)
 
         self.log.debug("Creating version: %s" % pformat(version))
         version_id = io.insert_one(version).inserted_id
@@ -216,6 +216,17 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                         ".source": "Original source file",
                         ".abc": "Alembic"
                     }.get(ext)
+                },
+
+                # Imprint shortcut to context
+                # for performance reasons.
+                "context": {
+                    "project": MINDBENDER_PROJECT,
+                    "asset": MINDBENDER_ASSET,
+                    "silo": MINDBENDER_SILO,
+                    "subset": subset["name"],
+                    "version": version["name"],
+                    "representation": ext[1:]
                 }
             }
 
@@ -224,7 +235,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
         self.log.info("Successfully integrated \"%s\" to \"%s\"" % (
             instance, dst))
 
-    def backwards_compatiblity(self, instance, version):
+    def backwards_compatiblity(self, instance, subset, version):
         """Maintain backwards compatibility with newly published assets
 
         With the introduction of the database in 2.0, the artist would be
@@ -240,6 +251,10 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
         import json
         import errno
         from mindbender import api
+
+        MINDBENDER_PROJECT = os.environ["MINDBENDER_PROJECT"]
+        MINDBENDER_ASSET = os.environ["MINDBENDER_ASSET"]
+        MINDBENDER_SILO = os.environ["MINDBENDER_SILO"]
 
         context = instance.context
 
@@ -321,7 +336,18 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                     "path": os.path.join(
                         "{dirname}",
                         "%s{format}" % name,
-                    ).replace("\\", "/")
+                    ).replace("\\", "/"),
+
+                    # Imprint shortcut to context
+                    # for performance reasons.
+                    "context": {
+                        "project": MINDBENDER_PROJECT,
+                        "asset": MINDBENDER_ASSET,
+                        "silo": MINDBENDER_SILO,
+                        "subset": subset["name"],
+                        "version": version["name"],
+                        "representation": ext[1:]
+                    }
                 }
             )
 

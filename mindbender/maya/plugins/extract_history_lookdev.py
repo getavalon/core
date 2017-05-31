@@ -18,10 +18,8 @@ class MindbenderExtractHistoryLookdev(pyblish.api.InstancePlugin):
     def process(self, instance):
         import os
         import contextlib
-        from mindbender import api
-        from pyblish_maya import maintained_selection
-
         from maya import cmds
+        from mindbender import api, maya
 
         @contextlib.contextmanager
         def sliced_connections():
@@ -59,8 +57,9 @@ class MindbenderExtractHistoryLookdev(pyblish.api.InstancePlugin):
         filename = "{name}.ma".format(**instance.data)
         path = os.path.join(dirname, filename)
 
-        with contextlib.nested(sliced_connections(),
-                               maintained_selection()):
+        with (sliced_connections(),
+              maya.maintained_selection(),
+              maya.without_extension()):
 
             # Export
             cmds.select(instance, noExpand=True)

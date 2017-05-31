@@ -25,7 +25,9 @@ class ValidateMindbenderID(pyblish.api.InstancePlugin):
             if not cmds.nodeType(node) == "transform":
                 continue
 
-            shapes = cmds.listRelatives(node, shapes=True, type="mesh") or list()
+            shapes = cmds.listRelatives(node,
+                                        shapes=True,
+                                        type="mesh") or list()
             meshes = cmds.ls(shapes, type="mesh")
 
             if not meshes:

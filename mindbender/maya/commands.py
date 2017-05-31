@@ -25,7 +25,7 @@ WorldSpace = 1 << 1
 
 def reset_frame_range():
     """Set frame range to current asset"""
-    shot = os.getenv("MINDBENDER_ASSET")
+    shot = os.environ["MINDBENDER_ASSET"]
     shot = io.find_one({"name": shot, "type": "asset"})
 
     try:

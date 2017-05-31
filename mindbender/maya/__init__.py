@@ -21,6 +21,7 @@ from .lib import (
     lsattrs,
 
     apply_shaders,
+    without_extension,
     maintained_selection,
 
     unique_name,
@@ -48,6 +49,7 @@ __all__ = [
     "unique_namespace",
 
     "apply_shaders",
+    "without_extension",
     "maintained_selection",
 
     "containerise",

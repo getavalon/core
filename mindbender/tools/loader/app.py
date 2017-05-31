@@ -1,19 +1,8 @@
 import os
 import sys
 import time
-import errno
-import shutil
-import tempfile
 import datetime
-import threading
 
-try:
-    import Queue as queue
-except ImportError:
-    # Python 3+
-    import queue
-
-from ...vendor import requests
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ... import api, io
 from .. import lib
@@ -25,12 +14,6 @@ module.root = api.registered_root()
 module.project = os.getenv("MINDBENDER_PROJECT")
 module.debug = bool(os.getenv("MINDBENDER_DEBUG"))
 
-# About to be downloaded
-module._downloads = queue.Queue()
-
-# Which downloads are in progress?
-module._downloading = dict()
-
 # Custom roles
 DocumentRole = QtCore.Qt.UserRole + 1
 RepresentationsRole = QtCore.Qt.UserRole + 2
@@ -38,57 +21,8 @@ LatestRole = QtCore.Qt.UserRole + 3
 LocationRole = QtCore.Qt.UserRole + 4
 
 
-def download(src, dst):
-    basename = os.path.basename(src)
-    tmp = os.path.join(tempfile.gettempdir(), basename)
-
-    try:
-        response = requests.get(
-            src,
-            stream=True,
-            auth=requests.auth.HTTPBasicAuth("location", "mypass")
-        )
-    except requests.ConnectionError as e:
-        yield None, e
-        return
-
-    with open(tmp, "wb") as f:
-
-        total_length = response.headers.get("content-length")
-
-        if total_length is None:  # no content length header
-            f.write(response.content)
-        else:
-            downloaded = 0
-            total_length = int(total_length)
-            for data in response.iter_content(chunk_size=4096):
-                downloaded += len(data)
-                f.write(data)
-
-                if module.debug:
-                    time.sleep(0.007)
-
-                yield int(100.0 * downloaded / total_length), None
-
-    try:
-        os.makedirs(os.path.dirname(dst))
-    except OSError as e:
-        # An already existing working directory is fine.
-        if e.errno != errno.EEXIST:
-            raise
-
-    shutil.copy(tmp, dst)
-
-    # Clean up
-    os.remove(tmp)
-
-
 class Window(QtWidgets.QDialog):
     """Asset loader interface"""
-
-    download_progressed = QtCore.Signal(str, int)
-    download_completed = QtCore.Signal()
-    download_errored = QtCore.Signal(str)
 
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
@@ -143,63 +77,6 @@ QPushButton {
     font-family: "FontAwesome";
 }
 """)
-
-        offline_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-        offline_slider.setRange(0, 1)
-        offline_slider.setFixedHeight(25)
-        offline_slider.setStyleSheet("""
-QSlider::groove:horizontal {
-    border: 1px solid #666;
-    height: 23px;
-    background: #777;
-    margin: 2px 0;
-    border-radius: 4px;
-}
-
-QSlider::groove:horizontal:enabled {
-    border: 1px solid #222;
-    height: 23px;
-    background: qlineargradient(x1:0, y1:0, \
-                                x2:0, y2:1, \
-                                stop:0 #555, \
-                                stop:1 #666);
-    margin: 2px 0;
-    border-radius: 4px;
-}
-
-QSlider::handle:horizontal {
-    background: #777;
-    border: 1px solid #555;
-    width: 45px;
-    margin: 1px;
-    border-radius: 2px;
-}
-
-QSlider::handle:horizontal:enabled {
-    border: 1px solid #333;
-    background: qlineargradient(x1:0, y1:0, \
-                                x2:1, y2:1, \
-                                stop:0 #aaa \
-                                stop:1 #888);
-}
-
-""")
-        offline_label = QtWidgets.QLabel("Available offline..")
-        offline_on = QtWidgets.QLabel("On", offline_slider)
-        offline_off = QtWidgets.QLabel("Off", offline_slider)
-        offline_on.move(72, 6)
-        offline_off.move(16, 6)
-
-        for toggle in (offline_on, offline_off):
-            toggle.show()
-            toggle.setStyleSheet("QLabel { color: black; }")
-
-        offline = QtWidgets.QWidget()
-
-        layout = QtWidgets.QHBoxLayout(offline)
-        layout.addWidget(offline_label)
-        layout.addWidget(offline_slider)
-        layout.setContentsMargins(0, 0, 0, 0)
 
         message = QtWidgets.QLabel()
         message.hide()
@@ -256,7 +133,6 @@ QSlider::handle:horizontal:enabled {
         layout.addWidget(side_source_container)
         layout.addWidget(QtWidgets.QWidget(), 1)
         layout.addWidget(options, 0, QtCore.Qt.AlignBottom)
-        layout.addWidget(offline)
         layout.addWidget(buttons)
         layout.setSpacing(10)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -273,7 +149,6 @@ QSlider::handle:horizontal:enabled {
             "button": {
                 "load": load_button,
                 "autoclose": autoclose_checkbox,
-                "offline": offline_slider,
             },
             "model": {
                 "assets": assets,
@@ -305,11 +180,6 @@ QSlider::handle:horizontal:enabled {
             }
         }
 
-        self.download_progressed.connect(self.on_download_progressed)
-        self.download_completed.connect(self.on_download_completed)
-        self.download_errored.connect(self.on_download_errored)
-
-        offline_slider.valueChanged.connect(self.on_make_available_offline)
         load_button.clicked.connect(self.on_load_pressed)
         refresh_button.clicked.connect(self.on_refresh_pressed)
         assets.currentItemChanged.connect(self.on_assetschanged)
@@ -322,38 +192,6 @@ QSlider::handle:horizontal:enabled {
         self.resize(1100, 600)
 
         load_button.setEnabled(False)
-        offline_slider.setEnabled(False)
-
-        thread = threading.Thread(target=self._download_manager)
-        thread.daemon = True
-        thread.start()
-
-    def _download_manager(self):
-        while True:
-            src, dst = module._downloads.get()
-
-            # Killswitch
-            if not any([src, dst]):
-                break
-
-            previous = 0
-            for progress, error in download(src, dst):
-
-                if error:
-                    self.download_errored.emit(
-                        "ERROR: Could not download %s" % src)
-                    break
-
-                # Avoid emitting signals needlessly.
-                # Progress is sometimes less than one whole percent.
-                if progress != previous:
-                    previous = progress
-                    self.download_progressed.emit(src, progress)
-
-            module._downloading.pop(dst)
-
-            if not error:
-                self.download_completed.emit()
 
     def on_copy_source_to_clipboard(self):
         source = self.data["label"]["source"].text()
@@ -368,55 +206,6 @@ QSlider::handle:horizontal:enabled {
         action.triggered.connect(self.on_copy_source_to_clipboard)
         menu.move(pos)
         menu.exec_()
-
-    def on_download_progressed(self, fname, progress):
-        self.echo("Downloading %s.. %d%%" % (fname, progress))
-
-    def on_download_completed(self):
-        self._representationschanged()
-        self.echo("Done")
-
-    def on_download_errored(self, message):
-        self._representationschanged()
-        self.echo(message)
-
-    def on_make_available_offline(self, state):
-        assert len(self.data["state"]["locations"]), (
-            "Must have at least one location"
-        )
-
-        if state != 1:
-            return
-
-        if not self.data["button"]["offline"].isEnabled():
-            return
-
-        models = self.data["model"]
-        representations_model = models["representations"]
-        representation_item = representations_model.currentItem()
-        location = self.data["state"]["locations"][0]
-
-        for representation in representation_item.data(RepresentationsRole):
-            try:
-                template = self.data["state"]["template"]
-                context = self.data["state"]["context"].copy()
-                context["root"] = location
-                path = template.format(**context)
-
-            except Exception as e:
-                print(e)
-
-            else:
-                context = self.data["state"]["context"]
-
-                src = path
-                dst = template.format(**context)
-
-                module._downloads.put((src, dst))
-                module._downloading[dst] = True
-
-        offline = self.data["button"]["offline"]
-        offline.setEnabled(False)
 
     def keyPressEvent(self, event):
         """Delegate keyboard events"""
@@ -687,10 +476,10 @@ QSlider::handle:horizontal:enabled {
             # supervisor can configure.
             item = QtWidgets.QListWidgetItem({
                 "ma": "Maya Ascii",
-                "source": "Original source file",
-                "abc": "Alembic",
+                "source": "Original Source File",
+                "abc": "Pointcache",
                 "history": "History",
-                "curves": "Animation curves",
+                "curves": "Animation Curves",
             }.get(name, name))  # Default to using name as-is
 
             item.setData(QtCore.Qt.ItemIsEnabled, True)
@@ -708,7 +497,6 @@ QSlider::handle:horizontal:enabled {
         self.echo("Duration: %.3fs" % (time.time() - t1))
 
     def _representationschanged(self):
-        offline = self.data["button"]["offline"]
         load_button = self.data["button"]["load"]
         load_button.setEnabled(False)
 
@@ -729,24 +517,10 @@ QSlider::handle:horizontal:enabled {
         context = self.data["state"]["context"]
         path = template.format(**context)
 
-        offline.setEnabled(False)
-
-        if path in module._downloading or os.path.exists(path):
-            offline.setValue(1)
+        if os.path.exists(path):
             load_button.setEnabled(True)
-            offline.setToolTip("Already available offline.")
-
         else:
-            offline.setValue(0)
-
-            # Is the representation available at any location?
-            if len(self.data["state"]["locations"]) > 0:
-                offline.setEnabled(True)
-                offline.setToolTip("Toggle to make available offline.")
-
-            else:
-                offline.setToolTip("Couldn't find where to "
-                                   "download this from..")
+            load_button.setToolTip("%s not found." % path)
 
     def on_refresh_pressed(self):
         self.refresh()
@@ -788,8 +562,13 @@ QSlider::handle:horizontal:enabled {
         lib.schedule(widget.hide, 5000, channel="message")
 
     def closeEvent(self, event):
-        # Kill download manager
-        module._downloads.put((None, None))
+        # Kill on holding SHIFT
+        modifiers = QtWidgets.QApplication.queryKeyboardModifiers()
+        shift_pressed = QtCore.Qt.ShiftModifier & modifiers
+
+        if shift_pressed:
+            print("Force quitted..")
+            self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         print("Good bye")
         return super(Window, self).closeEvent(event)
