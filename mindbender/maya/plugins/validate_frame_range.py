@@ -18,8 +18,11 @@ class ValidateMindbenderFrameRange(pyblish.api.InstancePlugin):
         instance_in = str(int(instance.data["startFrame"]))
         instance_out = str(int(instance.data["endFrame"]))
 
-        global_in = os.environ["MINDBENDER_EDIT_IN"]
-        global_out = os.environ["MINDBENDER_EDIT_OUT"]
+        try:
+            global_in = os.environ["MINDBENDER_EDIT_IN"]
+            global_out = os.environ["MINDBENDER_EDIT_OUT"]
+        except KeyError:
+            return self.log.info("No edit information available.")
 
         instance_range = "-".join([instance_in, instance_out])
         global_range = "-".join([global_in, global_out])
