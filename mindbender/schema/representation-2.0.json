@@ -18,10 +18,13 @@
     "properties": {
         "schema": {
             "description": "Schema identifier for payload",
-            "type": "string"
+            "type": "string",
+            "const": "mindbender-core:representation-2.0"
         },
         "type": {
-            "type": "string"
+            "description": "The type of document",
+            "type": "string",
+            "const": "representation"
         },
         "name": {
             "description": "Name of directory",
@@ -29,13 +32,16 @@
             "pattern": "^[a-zA-Z0-9_.]*$"
         },
         "data": {
+            "description": "Document metadata",
             "type": "object"
         },
         "dependencies": {
+            "description": "Other representation that this representation depends on",
             "type": "array",
             "items": {"type": "string"}
         },
         "context": {
+            "description": "Summary of the context to which this representation belong.",
             "type": "object",
             "properties": {
                 "project": {"type": "string"},

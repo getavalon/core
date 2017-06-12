@@ -11,6 +11,7 @@
     "required": [
         "schema",
         "type",
+        "type",
         "name",
         "silo",
         "data"
@@ -20,6 +21,11 @@
         "schema": {
             "description": "Schema identifier for payload",
             "type": "string"
+        },
+        "type": {
+            "description": "The type of document",
+            "type": "string",
+            "const": "asset"
         },
         "name": {
             "description": "Name of directory",
@@ -31,6 +37,7 @@
             "type": "string"
         },
         "data": {
+            "description": "Document metadata",
             "type": "object"
         }
     },

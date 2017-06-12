@@ -16,9 +16,15 @@
     ],
 
     "properties": {
-        "schema": {"type": "string"},
+        "schema": {
+            "description": "The schema associated with this document",
+            "type": "string",
+            "const": "mindbender-core:version-2.0"
+        },
         "type": {
-            "type": "string"
+            "description": "The type of document",
+            "type": "string",
+            "const": "version"
         },
         "name": {
             "description": "Number of version",
@@ -30,6 +36,7 @@
             "items": {"type": "string"}
         },
         "data": {
+            "description": "Document metadata",
             "type": "object",
             "required": ["families", "author", "source", "time"],
             "properties": {
@@ -59,7 +66,8 @@
                 },
                 "families": {
                     "type": "array",
-                    "items": {"type": "string"}
+                    "items": {"type": "string"},
+                    "description": "One or more families associated with this version"
                 }
             }
         }
