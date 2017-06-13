@@ -14,8 +14,6 @@ from mindbender import pipeline
 
 from nose.tools import (
     with_setup,
-    assert_equals,
-    assert_raises
 )
 
 self = sys.modules[__name__]
@@ -34,7 +32,7 @@ def setup():
     host = types.ModuleType("Test")
     host.__dict__.update({
         "ls": lambda: [],
-        "create": lambda asset, subset, family, options: None,
+        "create": lambda name, asset, family, options: None,
         "load": lambda asset, subset, version, representation: None,
         "update": lambda container, version: None,
         "remove": lambda container: None,

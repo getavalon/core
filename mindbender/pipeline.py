@@ -266,8 +266,8 @@ def register_host(host):
         ],
         "create": [
             "name",
-            "asset",
             "family",
+            "asset",
             "options"
         ],
         "ls": [
