@@ -380,7 +380,7 @@ def load(representation,
         "subset": subset,
         "version": version,
         "representation": representation,
-        "preset": preset
+        "preset": {"name": preset}
     }
 
     name = name or subset["name"]
@@ -427,7 +427,7 @@ def load(representation,
     )
 
 
-def create(asset, subset, family, options=None):
+def create(name, family, asset=None, options=None, data=None):
     """Create new instance
 
     Associate nodes with a subset and family. These nodes are later
@@ -458,12 +458,15 @@ def create(asset, subset, family, options=None):
     assert family_ is not None, "{0} is not a valid family".format(
         family)
 
-    data_ = dict(api.registered_data(), **family_.get("data", {}))
+    # Merge incoming with existing data
+    # TODO(marcus): This is being delegated to Creator plug-ins.
+    data = dict(
+        dict(api.registered_data(), **family_.get("data", {})),
+        **(data or {})
+    )
 
-    if data is not None:
-        data_.update(data)
-
-    instance = "%s_SET" % subset
+    instance = "%s_SET" % name
+    asset = asset or os.environ["MINDBENDER_ASSET"]
 
     if cmds.objExists(instance):
         raise NameError("\"%s\" already exists." % instance)
@@ -477,17 +480,18 @@ def create(asset, subset, family, options=None):
         instance = cmds.sets(nodes, name=instance)
 
     # Resolve template
-    for key, value in data_.items():
+    for key, value in data.items():
         if isinstance(value, basestring):
             try:
-                data_[key] = str(value).format(
-                    name=name,
+                data[key] = str(value).format(
+                    subset=name,
+                    asset=asset,
                     family=family_["name"]
                 )
             except KeyError as e:
                 raise KeyError("Invalid dynamic property: %s" % e)
 
-    lib.imprint(instance, data_)
+    lib.imprint(instance, data)
 
     return instance
 
