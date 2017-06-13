@@ -1,8 +1,8 @@
 from maya import cmds
-from mindbender import maya
+from mindbender import api
 
 
-class ModelLoader(maya.Loader):
+class ModelLoader(api.Loader):
     """Load models
 
     Stores the imported asset in a container named after the asset.
@@ -13,6 +13,7 @@ class ModelLoader(maya.Loader):
     representations = ["ma"]
 
     def process(self, name, namespace, context):
+        from mindbender import maya
         with maya.maintained_selection():
             nodes = cmds.file(
                 self.fname,

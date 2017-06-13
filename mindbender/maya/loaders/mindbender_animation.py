@@ -1,7 +1,7 @@
-from mindbender import maya
+from mindbender import api
 
 
-class AbcLoader(maya.Loader):
+class AbcLoader(api.Loader):
     """Specific loader of Alembic for the mindbender.animation family"""
 
     families = ["mindbender.animation"]
@@ -29,7 +29,7 @@ class AbcLoader(maya.Loader):
         self[:] = nodes
 
 
-class CurvesLoader(maya.Loader):
+class CurvesLoader(api.Loader):
     """Specific loader of Curves for the mindbender.animation family"""
 
     families = ["mindbender.animation"]
@@ -97,7 +97,7 @@ class CurvesLoader(maya.Loader):
     def post_process(self, name, namespace, context):
         import os
         from maya import cmds
-        from mindbender import maya, io
+        from mindbender import api, maya, io
 
         # Task-dependent post-process
         if os.getenv("MINDBENDER_TASK") != "animate":
@@ -144,7 +144,7 @@ class CurvesLoader(maya.Loader):
                 })
 
 
-class HistoryLoader(maya.Loader):
+class HistoryLoader(api.Loader):
     """Specific loader of Curves for the mindbender.animation family"""
 
     families = ["mindbender.animation"]

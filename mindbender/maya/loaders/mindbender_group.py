@@ -1,7 +1,7 @@
-from mindbender import maya
+from mindbender import api
 
 
-class GroupLoader(maya.Loader):
+class GroupLoader(api.Loader):
     """Specific loader of Alembic for the mindbender.animation family"""
 
     families = ["mindbender.group"]

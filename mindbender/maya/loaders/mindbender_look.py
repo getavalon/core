@@ -2,16 +2,17 @@ import os
 import json
 
 from maya import cmds
-from mindbender import maya
+from mindbender import api
 
 
-class LookLoader(maya.Loader):
+class LookLoader(api.Loader):
     """Specific loader for lookdev"""
 
     families = ["mindbender.lookdev"]
     representations = ["ma"]
 
     def process(self, name, namespace, context):
+        from mindbender import maya
         try:
             existing_reference = cmds.file(self.fname,
                                            query=True,

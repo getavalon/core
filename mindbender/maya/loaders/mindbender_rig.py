@@ -1,8 +1,8 @@
 from maya import cmds
-from mindbender import maya
+from mindbender import api
 
 
-class RigLoader(maya.Loader):
+class RigLoader(api.Loader):
     """Specific loader for rigs
 
     This automatically creates an instance for animators upon load.
@@ -24,6 +24,8 @@ class RigLoader(maya.Loader):
         self[:] = nodes
 
     def post_process(self, name, namespace, context):
+        from mindbender import maya
+
         # TODO(marcus): We are hardcoding the name "out_SET" here.
         #   Better register this keyword, so that it can be used
         #   elsewhere, such as in the Integrator plug-in,

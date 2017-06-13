@@ -14,8 +14,6 @@ from .pipeline import (
     remove,
     update,
     containerise,
-
-    Loader,
 )
 
 from .lib import (

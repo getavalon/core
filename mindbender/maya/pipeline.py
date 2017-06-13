@@ -311,10 +311,6 @@ def containerise(name,
     return container
 
 
-class Loader(api.Loader):
-    pass
-
-
 def ls():
     """List containers from active Maya scene
 
