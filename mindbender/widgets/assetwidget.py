@@ -152,11 +152,12 @@ def _list_project_silos():
 
 
 class AssetModel(TreeModel):
-    """The Items in the pipeline
-
-    This will list "Folders" and "Items" up to a maximum depth as a tree-based
-    data model.
-
+    """A model listing assets in the silo in the activec project.
+    
+    The assets are displayed in a treeview, they are visually parented by
+    a `visualParent` field in the database containing an `_id` to a parent
+    asset.
+    
     """
 
     COLUMNS = ["label", "tags", "deprecated"]
@@ -221,7 +222,7 @@ class AssetModel(TreeModel):
             self._add_hierarchy(node)
 
     def refresh(self):
-        """Retrieves the data for the model so it can show it"""
+        """Refresh the data for the model."""
 
         self.clear()
         self.beginResetModel()
@@ -440,14 +441,12 @@ class AssetWidget(QtWidgets.QWidget):
         return self.silo.currentText()
 
     def get_active_asset(self):
-        """Get the object id in the database for the active asset"""
+        """Return the asset id the current asset."""
         current = self.view.currentIndex()
         return current.data(self.model.ObjectIdRole)
 
     def get_selected_assets(self):
-        """Return the assets that are selected.
-        
-        """
+        """Return the assets' ids that are selected."""
         selection = self.view.selectionModel()
         rows = selection.selectedRows()
         return [row.data(self.model.ObjectIdRole) for row in rows]
