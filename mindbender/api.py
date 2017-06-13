@@ -29,26 +29,20 @@ from .pipeline import (
     discover,
 
     register_root,
-    register_data,
     register_host,
     register_format,
     register_silo,
-    register_family,
     register_plugin_path,
     register_plugin,
 
     registered_host,
-    registered_families,
     registered_plugin_paths,
     registered_formats,
-    registered_data,
     registered_root,
     registered_silos,
 
     deregister_plugins,
     deregister_format,
-    deregister_family,
-    deregister_data,
 )
 
 from .lib import (
@@ -77,10 +71,8 @@ __all__ = [
     "discover",
 
     "register_host",
-    "register_data",
     "register_format",
     "register_silo",
-    "register_family",
     "register_plugin_path",
     "register_plugin",
     "register_root",
@@ -89,14 +81,10 @@ __all__ = [
     "registered_silos",
     "registered_plugin_paths",
     "registered_host",
-    "registered_families",
     "registered_formats",
-    "registered_data",
 
     "deregister_plugins",
     "deregister_format",
-    "deregister_family",
-    "deregister_data",
 
     "format_staging_dir",
     "format_shared_dir",

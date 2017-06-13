@@ -10,14 +10,12 @@ from . import (
     io,
     lib,
 
-    _registered_families,
-    _registered_data,
+    _registered_host,
+    _registered_root,
     _registered_silos,
     _registered_formats,
     _registered_plugins,
     _registered_plugin_paths,
-    _registered_host,
-    _registered_root,
 )
 
 from .vendor import six
@@ -130,7 +128,14 @@ class Creator(object):
     def __init__(self, name, asset, options=None, data=None):
         self.name = name or self.name
         self.options = options
-        self.data = data
+
+        # Default data
+        self.data = dict({
+            "id": "pyblish.mindbender.instance",
+            "family": self.family,
+            "asset": asset,
+            "subset": name
+        }, **(data or {}))
 
     def process(self):
         pass
@@ -307,7 +312,8 @@ def register_host(host):
             "name",
             "family",
             "asset",
-            "options"
+            "options",
+            "data"
         ],
         "ls": [
         ],
@@ -402,62 +408,8 @@ def registered_silos():
     )
 
 
-def register_data(key, value, help=None):
-    """Register new default attribute
-
-    Arguments:
-        key (str): Name of data
-        value (object): Arbitrary value of data
-        help (str, optional): Briefly describe
-
-    """
-
-    _registered_data[key] = value
-
-
-def deregister_data(key):
-    _registered_data.pop(key)
-
-
-def register_family(name,
-                    label=None,
-                    data=None,
-                    help=None,
-                    loader=None):
-    """Register family and attributes for family
-
-    Arguments:
-        name (str): Name of family, e.g. mindbender.model
-        label (str): Nice name for family, e.g. Model
-        data (dict, optional): Additional data, see
-            :func:`register_data` for docstring on members
-        help (str, optional): Briefly describe this family
-
-    """
-
-    _registered_families[name] = {
-        "name": name,
-        "label": label,
-        "data": data or {},
-        "help": help or "",
-        "loader": loader
-    }
-
-
-def deregister_family(name):
-    _registered_families.pop(name)
-
-
 def registered_formats():
     return _registered_formats[:]
-
-
-def registered_families():
-    return _registered_families.copy()
-
-
-def registered_data():
-    return _registered_data.copy()
 
 
 def registered_host():

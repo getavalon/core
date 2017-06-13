@@ -409,19 +409,6 @@ def create(name, asset, family, options=None, data=None):
 
     """
 
-    # Default data
-    _data = {
-        "id": "pyblish.mindbender.instance",
-        "family": family,
-        "asset": asset,
-        "subset": name
-    }
-
-    if data is not None:
-        data.update(_data)
-    else:
-        data = _data
-
     for Plugin in api.discover(api.Creator):
         has_family = family == Plugin.family
 
