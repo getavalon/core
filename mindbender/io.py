@@ -48,6 +48,11 @@ def install():
     self._is_installed = True
 
 
+def active_project():
+    """Return the name of the active project collection."""
+    return self._collection.name
+
+
 def activate_project(project):
     try:
         # Support passing dictionary object
