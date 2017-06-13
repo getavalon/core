@@ -14,7 +14,8 @@ from . import (
     _registered_data,
     _registered_silos,
     _registered_formats,
-    _registered_loader_paths,
+    _registered_plugins,
+    _registered_plugin_paths,
     _registered_host,
     _registered_root,
 )
@@ -120,15 +121,29 @@ class Loader(list):
         pass
 
 
-def discover_loaders():
-    """Find and return available loaders
+@lib.log
+class Creator(object):
+    name = None
+    label = None
+    family = None
 
-    """
+    def __init__(self, name, asset, options=None, data=None):
+        self.name = name or self.name
+        self.options = options
+        self.data = data
 
-    loaders = dict()
+    def process(self):
+        pass
+
+
+def discover(superclass):
+    """Find and return subclasses of `superclass`"""
+
+    registered = _registered_plugins.get(superclass, list())
+    plugins = dict()
 
     # Include plug-ins from registered paths
-    for path in _registered_loader_paths:
+    for path in _registered_plugin_paths.get(superclass, list()):
         path = os.path.normpath(path)
 
         assert os.path.isdir(path), "%s is not a directory" % path
@@ -160,20 +175,26 @@ def discover_loaders():
                 print("Skipped: \"%s\" (%s)", mod_name, err)
                 continue
 
-            for plugin in loaders_from_module(module):
-                if plugin.__name__ in loaders:
+            for plugin in plugin_from_module(superclass, module):
+                if plugin.__name__ in plugins:
                     print("Duplicate plug-in found: %s", plugin)
                     continue
 
-                loaders[plugin.__name__] = plugin
+                plugins[plugin.__name__] = plugin
 
-    return list(loaders.values())
+    for plugin in registered:
+        if plugin.__name__ in plugins:
+            print("Warning: Overwriting %s" % plugin.__name__)
+        plugins[plugin.__name__] = plugin
+
+    return sorted(plugins.values(), key=lambda Plugin: Plugin.__name__)
 
 
-def loaders_from_module(module):
+def plugin_from_module(superclass, module):
     """Return plug-ins from module
 
     Arguments:
+        superclass (superclass): Superclass of subclasses to look for
         module (types.ModuleType): Imported module from which to
             parse valid Pyblish plug-ins.
 
@@ -182,7 +203,7 @@ def loaders_from_module(module):
 
     """
 
-    loaders = list()
+    types = list()
 
     for name in dir(module):
 
@@ -192,25 +213,43 @@ def loaders_from_module(module):
         if not inspect.isclass(obj):
             continue
 
-        # if not issubclass(obj, Loader):
-        #     continue
+        if not issubclass(obj, superclass):
+            continue
 
-        loaders.append(obj)
+        types.append(obj)
 
-    return loaders
+    return types
 
 
-def register_loader_path(path):
+def register_plugin(superclass, obj):
+    if superclass not in _registered_plugins:
+        _registered_plugins[superclass] = list()
+
+    if obj not in _registered_plugins[superclass]:
+        _registered_plugins[superclass].append(obj)
+
+
+def register_plugin_path(superclass, path):
+    if superclass not in _registered_plugin_paths:
+        _registered_plugin_paths[superclass] = list()
+
     path = os.path.normpath(path)
-    _registered_loader_paths.add(path)
+    if path not in _registered_plugin_paths[superclass]:
+        _registered_plugin_paths[superclass].append(path)
 
 
-def registered_loader_paths():
-    return list(_registered_loader_paths)
+def registered_plugin_paths():
+    # Prohibit editing in-place
+    duplicate = {
+        superclass: paths[:]
+        for superclass, paths in _registered_plugin_paths.items()
+    }
+
+    return duplicate
 
 
-def deregister_loader_path(path):
-    _registered_loader_paths.remove(path)
+def deregister_plugin_path(superclass, path):
+    _registered_plugin_paths[superclass].remove(path)
 
 
 def register_root(path):
@@ -444,10 +483,14 @@ def default_host():
     def ls():
         return list()
 
-    def load(representation=None):
+    def load(representation=None,
+             name=None,
+             namespace=None,
+             post_process=None,
+             preset=None):
         return None
 
-    def create(name, family, nodes=None):
+    def create(family):
         return "instanceFromDefaultHost"
 
     def remove(container):
@@ -492,16 +535,19 @@ def debug_host():
         for container in containers:
             yield container
 
-    def load(representation=None):
+    def load(representation=None,
+             name=None,
+             namespace=None,
+             post_process=None,
+             preset=None):
         sys.stdout.write(pformat({
             "representation": representation
         }) + "\n"),
 
         return None
 
-    def create(name, family, asset=None, options=None, data=None):
+    def create(name, asset, family, options=None, data=None):
         sys.stdout.write(pformat({
-            "name": name,
             "family": family,
         }))
         return "instanceFromDebugHost"

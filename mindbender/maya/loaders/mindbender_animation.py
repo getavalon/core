@@ -97,7 +97,7 @@ class CurvesLoader(api.Loader):
     def post_process(self, name, namespace, context):
         import os
         from maya import cmds
-        from mindbender import api, maya, io
+        from mindbender import maya, io
 
         # Task-dependent post-process
         if os.getenv("MINDBENDER_TASK") != "animate":

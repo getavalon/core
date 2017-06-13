@@ -35,11 +35,10 @@ def install():
 
     _install_menu()
 
-    _register_data()
     _register_formats()
     _register_plugins()
     _register_loaders()
-    _register_families()
+    _register_creators()
 
     _register_callbacks()
 
@@ -50,15 +49,6 @@ def uninstall():
     api.deregister_format(".ma")
     api.deregister_format(".mb")
     api.deregister_format(".abc")
-
-    api.deregister_data("id")
-    api.deregister_data("subset")
-    api.deregister_data("family")
-
-    api.deregister_family("mindbender.model")
-    api.deregister_family("mindbender.rig")
-    api.deregister_family("mindbender.animation")
-    api.deregister_family("mindbender.lookdev")
 
 
 def _install_menu():
@@ -183,59 +173,11 @@ def _uninstall_menu():
         del(menu)
 
 
-def _register_data():
-    # Default Instance data
-    # All newly created instances will be imbued with these members.
-    api.register_data(key="id", value="pyblish.mindbender.instance")
-    api.register_data(key="asset", value="{asset}")
-    api.register_data(key="subset", value="{subset}")
-    api.register_data(key="family", value="{family}")
-
-
 def _register_formats():
     # These file-types will appear in the Loader GUI
     api.register_format(".ma")
     api.register_format(".mb")
     api.register_format(".abc")
-
-
-def _register_families():
-    # These families will appear in the Creator GUI
-    api.register_family(
-        name="mindbender.model",
-        label="Model",
-        help="Polygonal geometry for animation",
-    )
-
-    api.register_family(
-        name="mindbender.rig",
-        label="Rig",
-        help="Character rig",
-    )
-
-    api.register_family(
-        name="mindbender.lookdev",
-        label="Look",
-        help="Shaders, textures and look",
-    )
-
-    api.register_family(
-        name="mindbender.historyLookdev",
-        label="History Look",
-        help="Shaders, textures and look with History",
-    )
-
-    api.register_family(
-        name="mindbender.animation",
-        label="Animation",
-        help="Any character or prop animation",
-        data={
-            "startFrame": lambda: cmds.playbackOptions(
-                query=True, animationStartTime=True),
-            "endFrame": lambda: cmds.playbackOptions(
-                query=True, animationEndTime=True),
-        }
-    )
 
 
 def _register_plugins():
@@ -248,8 +190,15 @@ def _register_plugins():
 def _register_loaders():
     lib_py_path = sys.modules[__name__].__file__
     package_path = os.path.dirname(lib_py_path)
-    loaders_path = os.path.join(package_path, "loaders")
-    api.register_loader_path(loaders_path)
+    plugin_path = os.path.join(package_path, "loaders")
+    api.register_plugin_path(api.Loader, plugin_path)
+
+
+def _register_creators():
+    lib_py_path = sys.modules[__name__].__file__
+    package_path = os.path.dirname(lib_py_path)
+    plugin_path = os.path.join(package_path, "creators")
+    api.register_plugin_path(api.Creator, plugin_path)
 
 
 def containerise(name,
@@ -340,8 +289,6 @@ def ls():
             **document["data"]
         )
 
-        # api.schema.validate(data, "container")
-
         yield data
 
 
@@ -389,7 +336,7 @@ def load(representation,
     nodes = list()
     loaders = list()
     families = context["version"]["data"]["families"]
-    for Loader in api.discover_loaders():
+    for Loader in api.discover(api.Loader):
         has_family = any(family in Loader.families for family in families)
         has_representation = representation["name"] in Loader.representations
 
@@ -423,8 +370,19 @@ def load(representation,
     )
 
 
-def create(name, family, asset=None, options=None, data=None):
-    """Create new instance
+class Creator(api.Creator):
+    def process(self):
+        nodes = list()
+
+        if (self.options or {}).get("useSelection"):
+            nodes = cmds.ls(selection=True)
+
+        instance = cmds.sets(nodes, name=self.name)
+        lib.imprint(instance, self.data)
+
+
+def create(name, asset, family, options=None, data=None):
+    """Create a new instance
 
     Associate nodes with a subset and family. These nodes are later
     validated, according to their `family`, and integrated into the
@@ -435,9 +393,11 @@ def create(name, family, asset=None, options=None, data=None):
     and finally asset browsers to help identify the origin of the asset.
 
     Arguments:
-        subset (str): Name of instance
+        name (str): Name of subset
+        asset (str): Name of asset
         family (str): Name of family
-        options (dict, optional): Additional options
+        options (dict, optional): Additional options from GUI
+        data (dict, optional): Additional data from GUI
 
     Raises:
         NameError on `subset` already exists
@@ -448,6 +408,37 @@ def create(name, family, asset=None, options=None, data=None):
         Instance as str
 
     """
+
+    # Default data
+    _data = {
+        "id": "pyblish.mindbender.instance",
+        "family": family,
+        "asset": asset,
+        "subset": name
+    }
+
+    if data is not None:
+        data.update(_data)
+    else:
+        data = _data
+
+    for Plugin in api.discover(api.Creator):
+        has_family = family == Plugin.family
+
+        if not has_family:
+            continue
+
+        Plugin.log.info(
+            "Creating '%s' with '%s'" % (name, Plugin.__name__)
+        )
+
+        plugin = Plugin(name, asset, options, data)
+
+        with lib.maintained_selection():
+            plugin.process()
+
+
+def _create(name, family, asset=None, options=None, data=None):
 
     family_ = api.registered_families().get(family)
 
