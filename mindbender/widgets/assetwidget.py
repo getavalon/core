@@ -1,4 +1,3 @@
-import os
 import contextlib
 
 from . import style
@@ -332,7 +331,7 @@ class AssetWidget(QtWidgets.QWidget):
         # Header
         header = QtWidgets.QHBoxLayout()
 
-        silo = QtWidgets.QComboBox()
+        silo = QtWidgets.QTabWidget()
         silo.setFixedHeight(28)
         silo.setStyleSheet("QComboBox {padding-left: 10px;}")
         font = QtGui.QFont()
@@ -368,8 +367,7 @@ class AssetWidget(QtWidgets.QWidget):
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.selection_changed)
         selection.currentChanged.connect(self.current_changed)
-        silo.currentIndexChanged.connect(self._on_silo_changed)
-        silo.currentIndexChanged.connect(self._refresh_model)
+        silo.currentChanged.connect(self._on_silo_changed)
         refresh.clicked.connect(self.refresh)
 
         self.refreshButton = refresh
@@ -379,15 +377,16 @@ class AssetWidget(QtWidgets.QWidget):
         self.view = view
 
     def _on_silo_changed(self, index):
-        """Callback for silo combobox change"""
+        """Callback for silo change"""
 
         self._refresh_model()
-        silo = self.silo.itemText(index)
+        silo = self.get_current_silo()
         self.silo_changed.emit(silo)
         self.selection_changed.emit()
 
     def _refresh_model(self):
-        silo = self.silo.currentText()
+
+        silo = self.get_current_silo()
         with preserve_expanded_rows(self.view,
                                     column=0,
                                     role=self.model.ObjectIdRole):
@@ -400,20 +399,27 @@ class AssetWidget(QtWidgets.QWidget):
 
     def refresh(self):
 
-        current_silo = self.silo.currentText()
+        current_silo = self.get_current_silo()
 
         # Populate the silo combobox without emitting signals
         self.silo.blockSignals(True)
+
         self.silo.clear()
-        self.silo.addItems(_list_project_silos())
+        for silo in _list_project_silos():
+            self.silo.addTab(QtWidgets.QWidget(), silo)
+
+        # TODO: Add the option to add a new silo
+        index = self.silo.addTab(QtWidgets.QWidget(), "+")
+        self.silo.setTabEnabled(index, False)
+
         self.set_silo(current_silo)
         self.silo.blockSignals(False)
 
         # Only emit a silo changed signal if the new signal
         # after refresh is not the same as prior to it (e.g.
         # when the silo was removed, or alike.)
-        if current_silo != self.silo.currentText():
-            self.silo.currentIndexChanged.emit(self.silo.currentIndex())
+        if current_silo != self.get_current_silo():
+            self.silo.currentChanged.emit(self.silo.currentIndex())
 
         self._refresh_model()
 
@@ -427,18 +433,20 @@ class AssetWidget(QtWidgets.QWidget):
         """
 
         # Already set
-        if silo == self.silo.currentText():
+        if silo == self.get_current_silo():
             return
 
         # Otherwise change the silo box to the name
         for i in range(self.silo.count()):
-            text = self.silo.itemText(i)
+            text = self.silo.tabText(i)
             if text == silo:
                 self.silo.setCurrentIndex(i)
                 break
 
     def get_current_silo(self):
-        return self.silo.currentText()
+        """Returns the currently active silo."""
+        index = self.silo.currentIndex()
+        return self.silo.tabText(index)
 
     def get_active_asset(self):
         """Return the asset id the current asset."""
