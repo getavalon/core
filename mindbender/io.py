@@ -164,6 +164,11 @@ def save(*args, **kwargs):
 
 
 @requires_activation
+def replace_one(filter, replacement):
+    return self._collection.replace_one(filter, replacement)
+
+
+@requires_activation
 def update_many(filter, update):
     return self._collection.update_many(filter, update)
 
