@@ -16,7 +16,7 @@ class GroupLoader(maya.Loader):
         with open(self.fname) as f:
             group = json.load(f)
 
-        preset = group["presets"][context["preset"]]
+        preset = group["presets"][context["preset"]["name"]]
         all_assemblies = list()
         all_nodes = list()
 

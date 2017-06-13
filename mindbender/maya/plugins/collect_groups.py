@@ -1,9 +1,10 @@
+import os
 import pyblish.api
 
 
 class CollectMindbenderGroups(pyblish.api.ContextPlugin):
     order = pyblish.api.CollectorOrder
-    active = False
+    active = os.getenv("MINDBENDER_EARLY_ADOPTER")
 
     def process(self, context):
         instance = context.create_instance("heroGroup")

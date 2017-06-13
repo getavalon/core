@@ -27,7 +27,7 @@ class Window(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
         self.setWindowTitle(
-            "Asset Loader 2.0 - %s/%s" % (
+            "Asset Loader 2.1 - %s/%s" % (
                 module.root, module.project))
 
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
@@ -60,7 +60,6 @@ class Window(QtWidgets.QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
 
         autoclose_checkbox = QtWidgets.QCheckBox("Auto-close")
-        autoclose_checkbox.setCheckState(QtCore.Qt.Checked)
         layout.addWidget(autoclose_checkbox, 1, 0)
 
         layout = QtWidgets.QHBoxLayout(body)
@@ -124,6 +123,9 @@ QPushButton {
         side_preset_header = QtWidgets.QLabel("Preset")
         side_preset_header.setStyleSheet("QLabel { font-weight: bold }")
         side_preset = QtWidgets.QComboBox()
+
+        if not os.getenv("MINDBENDER_EARLY_ADOPTER"):
+            side_preset_container.hide()
 
         layout = QtWidgets.QVBoxLayout(side_preset_container)
         layout.addWidget(side_preset_header)
@@ -556,7 +558,7 @@ QPushButton {
         models = self.data["model"]
         representations_model = models["representations"]
         representation_item = representations_model.currentItem()
-        preset = self.data["labels"]["preset"]
+        preset = self.data["label"]["preset"]
         preset = preset.currentText()
 
         if representation_item is None:
