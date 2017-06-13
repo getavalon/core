@@ -1,34 +1,18 @@
-import os
 from maya import cmds
-from mindbender import api, maya
+from mindbender import api
 
 
 class HistoryLookLoader(api.Loader):
     """Specific loader for lookdev"""
 
     families = ["mindbender.historyLookdev"]
+    representations = ["ma"]
 
-    def process(self, project, asset, subset, version, representation):
-        template = project["config"]["template"]["publish"]
-        data = {
-            "root": api.registered_root(),
-            "project": project["name"],
-            "asset": asset["name"],
-            "silo": asset["silo"],
-            "subset": subset["name"],
-            "version": version["name"],
-            "representation": representation["name"].strip("."),
-        }
-
-        fname = template.format(**data)
-        assert os.path.exists(fname), "%s does not exist" % fname
-
-        namespace = asset["name"] + "_"
-        name = maya.unique_name(subset["name"])
-
+    def process(self, name, namespace, context):
+        from mindbender import maya
         with maya.maintained_selection():
             nodes = cmds.file(
-                fname,
+                self.fname,
                 namespace=namespace,
                 reference=True,
                 returnNewNodes=True,
@@ -36,16 +20,4 @@ class HistoryLookLoader(api.Loader):
                 groupName=namespace + ":" + name
             )
 
-        # Containerising
-        maya.containerise(
-            name=name,
-            namespace=namespace,
-            nodes=nodes,
-            asset=asset,
-            subset=subset,
-            version=version,
-            representation=representation,
-            loader=type(self).__name__
-        )
-
-        return nodes
+        self[:] = nodes

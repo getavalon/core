@@ -1,6 +1,5 @@
-import os
 from maya import cmds
-from mindbender import api, maya
+from mindbender import api
 
 
 class RigLoader(api.Loader):
@@ -11,61 +10,31 @@ class RigLoader(api.Loader):
     """
 
     families = ["mindbender.rig"]
-    # name = "{subset}"
-    # namespace = maya.Unique("{asset}")
+    representations = ["ma"]
 
-    def process(self, project, asset, subset, version, representation):
-        # def process(self, representation):
-        # project, asset, subset, version = io.parenthood(representation)
-
-        template = project["config"]["template"]["publish"]
-        data = {
-            "root": api.registered_root(),
-            "project": project["name"],
-            "asset": asset["name"],
-            "silo": asset["silo"],
-            "subset": subset["name"],
-            "version": version["name"],
-            "representation": representation["name"].strip("."),
-        }
-
-        fname = template.format(**data)
-        assert os.path.exists(fname), "%s does not exist" % fname
-
-        namespace = maya.unique_namespace(
-            asset["name"],
-            prefix="_" if asset["name"][0].isdigit() else "",
-            suffix="_"
-        )
-
-        name = subset["name"]
-
-        nodes = cmds.file(fname,
+    def process(self, name, namespace, context):
+        nodes = cmds.file(self.fname,
                           namespace=namespace,
                           reference=True,
                           returnNewNodes=True,
                           groupReference=True,
                           groupName=namespace + ":" + name)
 
-        # Containerising
-        maya.containerise(name=name,
-                          namespace=namespace,
-                          nodes=nodes,
-                          asset=asset,
-                          subset=subset,
-                          version=version,
-                          representation=representation,
-                          loader=type(self).__name__)
+        # Store for post-process
+        self[:] = nodes
+
+    def post_process(self, name, namespace, context):
+        from mindbender import maya
 
         # TODO(marcus): We are hardcoding the name "out_SET" here.
         #   Better register this keyword, so that it can be used
         #   elsewhere, such as in the Integrator plug-in,
         #   without duplication.
         output = next(
-            (node for node in nodes
+            (node for node in self
                 if node.endswith("out_SET")), None)
         controls = next(
-            (node for node in nodes
+            (node for node in self
                 if node.endswith("controls_SET")), None)
 
         assert output, "No out_SET in rig, this is a bug."
@@ -74,12 +43,14 @@ class RigLoader(api.Loader):
         with maya.maintained_selection():
             cmds.select([output, controls], noExpand=True)
 
-            # TODO(marcus): Hardcoding the exact family here.
-            #   Better separate the relationship between loading
-            #   rigs and automatically assigning an instance to it.
-            maya.create(asset=os.environ["MINDBENDER_ASSET"],
-                        subset=maya.unique_name(asset["name"], suffix="_SET"),
-                        family="mindbender.animation",
-                        options={"useSelection": True})
+            dependencies = [context["representation"]["_id"]]
+            asset = context["asset"]["name"] + "_"
 
-        return nodes
+            # TODO(marcus): Hardcoding the family here, better separate this.
+            maya.create(
+                name=maya.unique_name(asset, suffix="_SET"),
+                family="mindbender.animation",
+                options={"useSelection": True},
+                data={
+                    "dependencies": " ".join(str(d) for d in dependencies)
+                })

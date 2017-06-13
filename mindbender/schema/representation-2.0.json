@@ -30,6 +30,21 @@
         },
         "data": {
             "type": "object"
+        },
+        "dependencies": {
+            "type": "array",
+            "items": {"type": "string"}
+        },
+        "context": {
+            "type": "object",
+            "properties": {
+                "project": {"type": "string"},
+                "asset": {"type": "string"},
+                "silo": {"type": "string"},
+                "subset": {"type": "string"},
+                "version": {"type": "number"},
+                "representation": {"type": "string"}
+            }
         }
     }
 }

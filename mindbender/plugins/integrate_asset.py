@@ -31,6 +31,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
         "mindbender.animation",
         "mindbender.lookdev",
         "mindbender.historyLookdev",
+        "mindbender.group",
     ]
 
     def process(self, instance):
@@ -132,7 +133,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                 if location is not None
             ),
 
-            "data": {
+            "data": dict(instance.data, **{
                 # Used to identify family of assets already on disk
                 "families": instance.data.get("families", list()) + [
                     instance.data.get("family")
@@ -150,7 +151,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                 ).replace("\\", "/"),
 
                 "comment": context.data.get("comment"),
-            }
+            })
         }
 
         self.backwards_compatiblity(instance, subset, version)
@@ -217,6 +218,10 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                         ".abc": "Alembic"
                     }.get(ext)
                 },
+
+                "dependencies": instance.data.get(
+                    "dependencies", ""
+                ).split(),
 
                 # Imprint shortcut to context
                 # for performance reasons.

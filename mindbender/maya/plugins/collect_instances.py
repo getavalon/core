@@ -84,7 +84,7 @@ class CollectMindbenderInstances(pyblish.api.ContextPlugin):
             for attr in cmds.listAttr(objset, userDefined=True) or list():
                 try:
                     value = cmds.getAttr(objset + "." + attr)
-                except:
+                except Exception:
                     # Some attributes cannot be read directly,
                     # such as mesh and color attributes. These
                     # are considered non-essential to this

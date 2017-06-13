@@ -26,6 +26,7 @@ from nose.tools import (
 IS_SILENT = bool(os.getenv("MINDBENDER_SILENT"))
 PROJECT_NAME = "hulk"
 ASSET_NAME = "Bruce"
+TASK_NAME = "modeling"
 
 self = sys.modules[__name__]
 self._tempdir = None
@@ -63,6 +64,7 @@ def setup():
     # Setup environment
     os.environ["MINDBENDER_PROJECT"] = PROJECT_NAME
     os.environ["MINDBENDER_ASSET"] = ASSET_NAME
+    os.environ["MINDBENDER_TASK"] = TASK_NAME
     os.environ["MINDBENDER_ASSETPATH"] = (
         "{root}/{project}/{silo}/{asset}".format(
             root=api.registered_root(),
@@ -149,8 +151,8 @@ def test_modeling():
     group = cmds.group(transform, name="ROOT")
 
     cmds.select(group, replace=True)
-    maya.create(os.environ["MINDBENDER_ASSET"],
-                "modelDefault",
+    maya.create(name="modelDefault",
+                asset=os.environ["MINDBENDER_ASSET"],
                 family="mindbender.model",
                 options={"useSelection": True})
 
@@ -208,8 +210,8 @@ def test_alembic_export():
                          value=value)
 
     maya.create(
-        os.environ["MINDBENDER_ASSET"],
-        "animationDefault",
+        name="animationDefault",
+        asset=os.environ["MINDBENDER_ASSET"],
         family="mindbender.animation",
         options={"useSelection": True}
     )
@@ -248,7 +250,8 @@ def test_alembic_export():
 
     assert representation is not None
 
-    nodes = maya.load(representation["_id"])
+    container = maya.load(representation)
+    nodes = cmds.sets(container, query=True)
     print("Nodes: %s" % nodes)
     cube = cmds.ls(nodes, type="mesh")
     transform = cmds.listRelatives(cube, parent=True)[0]
@@ -267,10 +270,12 @@ def test_update():
     group = cmds.group(transform, name="ROOT")
 
     cmds.select(group, replace=True)
-    maya.create(os.environ["MINDBENDER_ASSET"],
-                "modelDefault",
-                family="mindbender.model",
-                options={"useSelection": True})
+    maya.create(
+        name="modelDefault",
+        asset=os.environ["MINDBENDER_ASSET"],
+        family="mindbender.model",
+        options={"useSelection": True}
+    )
 
     # Comply with save validator
     cmds.file(save=True)
@@ -322,10 +327,11 @@ def test_modeling_to_rigging():
     group = cmds.group(transform, name="ROOT")
 
     cmds.select(group, replace=True)
-    maya.create(os.environ["MINDBENDER_ASSET"],
-                "modelDefault",
-                family="mindbender.model",
-                options={"useSelection": True})
+    maya.create(
+        name="modelDefault",
+        asset=os.environ["MINDBENDER_ASSET"],
+        family="mindbender.model",
+        options={"useSelection": True})
 
     # Comply with save validator
     cmds.file(save=True)
@@ -338,9 +344,10 @@ def test_modeling_to_rigging():
         PROJECT_NAME, ASSET_NAME, "modelDefault", 1, "ma"
     ])
 
-    nodes = maya.load(representation)
+    container = maya.load(representation)
+    nodes = cmds.sets(container, query=True)
     assembly = cmds.ls(nodes, assemblies=True)[0]
-    assert_equals(assembly, "Bruce01_:modelDefault")
+    assert_equals(assembly, "Bruce_01_:modelDefault")
 
     # Rig it
     mesh = cmds.ls(nodes, type="mesh")
@@ -359,10 +366,11 @@ def test_modeling_to_rigging():
     controls_set = cmds.sets(name="controls_SET")
 
     cmds.select([group, out_set, controls_set], noExpand=True)
-    maya.create(os.environ["MINDBENDER_ASSET"],
-                "rigDefault",
-                family="mindbender.rig",
-                options={"useSelection": True})
+    maya.create(
+        name="rigDefault",
+        family="mindbender.rig",
+        options={"useSelection": True},
+        data={"asset": os.environ["MINDBENDER_ASSET"]})
 
     cmds.file(rename="temp.ma")
     cmds.file(save=True)
@@ -375,6 +383,7 @@ def test_modeling_to_rigging():
         PROJECT_NAME, ASSET_NAME, "rigDefault", 1, "ma"
     ])
 
-    nodes = maya.load(representation)
+    container = maya.load(representation)
+    nodes = cmds.sets(container, query=True)
     assembly = cmds.ls(nodes, assemblies=True)[0]
-    assert_equals(assembly, "Bruce01_:rigDefault")
+    assert_equals(assembly, "Bruce_01_:rigDefault")

@@ -8,6 +8,7 @@ from pyblish import api
 
 from . import (
     io,
+    lib,
 
     _registered_families,
     _registered_data,
@@ -83,10 +84,39 @@ def is_installed():
     return self._is_installed
 
 
-class Loader(object):
-    families = list()
+@lib.log
+class Loader(list):
+    """Load representation into host application
 
-    def process(self, asset, subset, version, representation):
+    Arguments:
+        context (dict): mindbender-core:context-1.0
+        name (str, optional): Use pre-defined name
+        namespace (str, optional): Use pre-defined namespace
+
+    """
+
+    families = list()
+    representations = list()
+
+    def __init__(self, context):
+        template = context["project"]["config"]["template"]["publish"]
+
+        data = {
+            key: value["name"]
+            for key, value in context.items()
+        }
+
+        data["root"] = registered_root()
+        data["silo"] = context["asset"]["silo"]
+
+        fname = template.format(**data)
+
+        self.fname = fname
+
+    def process(self, name, namespace, context):
+        pass
+
+    def post_process(self, name, namespace, context):
         pass
 
 
@@ -162,8 +192,8 @@ def loaders_from_module(module):
         if not inspect.isclass(obj):
             continue
 
-        if not issubclass(obj, Loader):
-            continue
+        # if not issubclass(obj, Loader):
+        #     continue
 
         loaders.append(obj)
 
@@ -235,9 +265,9 @@ def register_host(host):
             "representation"
         ],
         "create": [
-            "asset",
-            "subset",
+            "name",
             "family",
+            "asset",
             "options"
         ],
         "ls": [
@@ -469,7 +499,7 @@ def debug_host():
 
         return None
 
-    def create(name, family, options=None):
+    def create(name, family, asset=None, options=None, data=None):
         sys.stdout.write(pformat({
             "name": name,
             "family": family,

@@ -5,16 +5,17 @@ import uuid
 import pyblish.api
 from maya import cmds, OpenMaya
 
-from . import lib
+from . import lib, commands
 from .. import api, io
+from ..vendor import six
 from ..vendor.Qt import QtCore, QtWidgets
 
 self = sys.modules[__name__]
-self._menu = "mindbenderCore"
-self._id_callback = None
+self._menu = "mindbendercore"
+self._events = dict()
 self._parent = {
-    o.objectName(): o
-    for o in QtWidgets.QApplication.topLevelWidgets()
+    widget.objectName(): widget
+    for widget in QtWidgets.QApplication.topLevelWidgets()
 }.get("MayaWindow")
 
 
@@ -40,7 +41,7 @@ def install():
     _register_loaders()
     _register_families()
 
-    _register_id_callback()
+    _register_callbacks()
 
 
 def uninstall():
@@ -117,6 +118,14 @@ def _install_menu():
 
         cmds.menuItem("Set Defaults", command=interactive.set_defaults)
 
+        cmds.menuItem("System",
+                      label="System",
+                      tearOff=True,
+                      subMenu=True,
+                      parent=self._menu)
+
+        cmds.menuItem("Reload Pipeline", command=_reload)
+
         cmds.setParent("..", menu=True)
 
         cmds.menuItem(divider=True)
@@ -127,6 +136,41 @@ def _install_menu():
 
     # Allow time for uninstallation to finish.
     QtCore.QTimer.singleShot(100, deferred)
+
+
+def _reload(*args):
+    """Attempt to reload pipeline at run-time.
+
+    CAUTION: This is primarily for development and debugging purposes.
+
+    """
+
+    from mindbender import api, pipeline, io, lib
+    import mindbender.maya
+    import mindbender.maya.pipeline
+    import mindbender.maya.interactive
+    import mindbender.maya.commands
+    import mindbender.tools.creator.app
+    import mindbender.tools.manager.app
+    import mindbender.tools.loader.app
+
+    api.uninstall()
+
+    for module in (io,
+                   lib,
+                   pipeline,
+                   mindbender.maya.commands,
+                   mindbender.maya.interactive,
+                   mindbender.maya.pipeline,
+                   mindbender.maya.lib,
+                   mindbender.tools.loader.app,
+                   mindbender.tools.creator.app,
+                   mindbender.tools.manager.app,
+                   api,
+                   mindbender.maya):
+        reload(module)
+
+    api.install(mindbender.maya)
 
 
 def _uninstall_menu():
@@ -208,6 +252,65 @@ def _register_loaders():
     api.register_loader_path(loaders_path)
 
 
+def containerise(name,
+                 namespace,
+                 nodes,
+                 context,
+                 loader=None,
+                 suffix="_CON"):
+    """Bundle `nodes` into an assembly and imprint it with metadata
+
+    Containerisation enables a tracking of version, author and origin
+    for loaded assets.
+
+    Arguments:
+        name (str): Name of resulting assembly
+        nodes (list): Long names of nodes to containerise
+        namespace (str): Namespace under which to host container
+        asset (mindbender-core:asset-1.0): Current asset
+        subset (mindbender-core:subset-1.0): Current subset
+        version (mindbender-core:version-1.0): Current version
+        representation (mindbender-core:representation-1.0): ...
+        loader (str, optional): Name of loader used to produce this container.
+        suffix (str, optional): Suffix of container, defaults to `_CON`.
+
+    Returns:
+        container (str): Name of container assembly
+
+    """
+
+    container = cmds.sets(nodes, name="%s_%s_%s" % (namespace, name, suffix))
+
+    data = [
+        ("id", "pyblish.mindbender.container"),
+        ("name", name),
+        ("namespace", namespace),
+        ("loader", str(loader)),
+        ("project", context["project"]["name"]),
+        ("asset", context["asset"]["name"]),
+        ("subset", context["subset"]["name"]),
+        ("version", context["version"]["name"]),
+        ("representation", context["representation"]["_id"]),
+    ]
+
+    for key, value in data:
+        if not value:
+            continue
+
+        if isinstance(value, (int, float)):
+            cmds.addAttr(container, longName=key, attributeType="short")
+            cmds.setAttr(container + "." + key, value)
+
+        else:
+            cmds.addAttr(container, longName=key, dataType="string")
+            cmds.setAttr(container + "." + key, value, type="string")
+
+    # Hide in outliner
+    cmds.setAttr(container + ".verticesOnlySet", True)
+
+    return container
+
+
 def ls():
     """List containers from active Maya scene
 
@@ -218,10 +321,23 @@ def ls():
     """
 
     for container in sorted(lib.lsattr("id", "pyblish.mindbender.container")):
+        data = lib.read(container)
+
+        try:
+            document = io.find_one(
+                {"_id": io.ObjectId(data["representation"])}
+            )
+        except io.InvalidId:
+            api.logger.warning("Skipping %s, invalid id." % container)
+            continue
+
         data = dict(
             schema="mindbender-core:container-1.0",
             objectName=container,
-            **lib.read(container)
+            name=data["name"],
+            namespace=data["namespace"],
+            representation=data["representation"],
+            **document["data"]
         )
 
         # api.schema.validate(data, "container")
@@ -229,40 +345,85 @@ def ls():
         yield data
 
 
-def load(representation):
+def load(representation,
+         name=None,
+         namespace=None,
+         post_process=True,
+         preset=None):
     """Load asset via database
 
     Arguments:
-        representation (bson.objectid.ObjectId): Address to representation
+        representation (dict, io.ObjectId or str): Address to representation
 
     """
 
-    if not isinstance(representation, io.ObjectId):
-        representation = io.ObjectId(representation)
+    assert representation is not None, "This is a bug"
 
-    representation = io.find_one({"_id": representation})
-    version = io.find_one({"_id": representation["parent"]})
-    subset = io.find_one({"_id": version["parent"]})
-    asset = io.find_one({"_id": subset["parent"]})
-    project = io.find_one({"_id": asset["parent"]})
+    preset = preset or os.environ["MINDBENDER_TASK"]
 
+    if isinstance(representation, (six.string_types, io.ObjectId)):
+        representation = io.find_one({"_id": io.ObjectId(str(representation))})
+
+    version, subset, asset, project = io.parenthood(representation)
+
+    assert all([representation, version, subset, asset, project]), (
+        "This is a bug"
+    )
+
+    context = {
+        "project": project,
+        "asset": asset,
+        "subset": subset,
+        "version": version,
+        "representation": representation,
+        "preset": {"name": preset}
+    }
+
+    name = name or subset["name"]
+    namespace = namespace or lib.unique_namespace(
+        asset["name"] + "_",
+        prefix="_" if asset["name"][0].isdigit() else "",
+        suffix="_",
+    )
+
+    nodes = list()
+    loaders = list()
+    families = context["version"]["data"]["families"]
     for Loader in api.discover_loaders():
-        if not any(family in Loader.families
-                   for family in version["data"].get("families", list)):
-            continue
+        has_family = any(family in Loader.families for family in families)
+        has_representation = representation["name"] in Loader.representations
 
-        print("Running '%s' on '%s'" % (Loader.__name__, asset["name"]))
+        if has_family and has_representation:
+            Loader.log.info(
+                "Running '%s' on '%s'" % (Loader.__name__, asset["name"])
+            )
 
-        return Loader().process(
-            project=project,
-            asset=asset,
-            subset=subset,
-            version=version,
-            representation=representation,
-        )
+            try:
+                loader = Loader(context)
+                loader.process(name, namespace, context)
+            except OSError as e:
+                print("WARNING: %s" % e)
+                continue
+
+            if post_process:
+                loader.post_process(name, namespace, context)
+
+            loaders.append(Loader)
+            nodes.extend(loader)
+
+    assert loaders, "No loaders were run, this is a bug"
+    assert nodes, "No nodes were loaded, this is a bug"
+
+    return containerise(
+        name=name,
+        namespace=namespace,
+        nodes=nodes,
+        context=context,
+        loader=" ".join(Loader.__name__ for Loader in loaders)
+    )
 
 
-def create(asset, subset, family, options=None):
+def create(name, family, asset=None, options=None, data=None):
     """Create new instance
 
     Associate nodes with a subset and family. These nodes are later
@@ -293,9 +454,15 @@ def create(asset, subset, family, options=None):
     assert family_ is not None, "{0} is not a valid family".format(
         family)
 
-    data = dict(api.registered_data(), **family_.get("data", {}))
+    # Merge incoming with existing data
+    # TODO(marcus): This is being delegated to Creator plug-ins.
+    data = dict(
+        dict(api.registered_data(), **family_.get("data", {})),
+        **(data or {})
+    )
 
-    instance = "%s_SET" % subset
+    instance = "%s_SET" % name
+    asset = asset or os.environ["MINDBENDER_ASSET"]
 
     if cmds.objExists(instance):
         raise NameError("\"%s\" already exists." % instance)
@@ -313,14 +480,13 @@ def create(asset, subset, family, options=None):
         if isinstance(value, basestring):
             try:
                 data[key] = str(value).format(
-                    subset=subset,
+                    subset=name,
                     asset=asset,
                     family=family_["name"]
                 )
             except KeyError as e:
                 raise KeyError("Invalid dynamic property: %s" % e)
 
-    print("About to imprint")
     lib.imprint(instance, data)
 
     return instance
@@ -407,9 +573,6 @@ def update(container, version=-1):
     cmds.setAttr(container["objectName"] + ".representation",
                  str(new_representation["_id"]),
                  type="string")
-    cmds.setAttr(container["objectName"] + ".source",
-                 new_version["data"]["source"],
-                 type="string")
 
 
 def remove(container):
@@ -443,26 +606,27 @@ def remove(container):
         pass
 
 
-def _register_id_callback():
-    """Automatically add IDs to new nodes
+def _register_callbacks():
+    for handler, event in self._events.copy().items():
+        if event is None:
+            continue
 
-    Any transform of a mesh, without an exising ID,
-    is given one automatically on file save.
-
-    """
-
-    if self._id_callback is not None:
         try:
-            OpenMaya.MMessage.removeCallback(self._id_callback)
-            self._id_callback = None
+            OpenMaya.MMessage.removeCallback(event)
+            self._events[handler] = None
         except RuntimeError, e:
             print(e)
 
-    self._id_callback = OpenMaya.MSceneMessage.addCallback(
-        OpenMaya.MSceneMessage.kBeforeSave, _callback
+    self._events[_on_scene_save] = OpenMaya.MSceneMessage.addCallback(
+        OpenMaya.MSceneMessage.kBeforeSave, _on_scene_save
     )
 
-    print("Registered _callback")
+    self._events[_on_scene_new] = OpenMaya.MSceneMessage.addCallback(
+        OpenMaya.MSceneMessage.kAfterNew, _on_scene_new
+    )
+
+    print("Installed event handler __on_scene_save..")
+    print("Installed event handler _on_scene_new..")
 
 
 def _set_uuid(node):
@@ -480,7 +644,19 @@ def _set_uuid(node):
         cmds.setAttr(attr, uid, type="string")
 
 
-def _callback(_):
+def _on_scene_new(_):
+    print("Running scene new..")
+    commands.reset_frame_range()
+
+
+def _on_scene_save(_):
+    """Automatically add IDs to new nodes
+
+    Any transform of a mesh, without an exising ID,
+    is given one automatically on file save.
+
+    """
+
     nodes = (set(cmds.ls(type="mesh", long=True)) -
              set(cmds.ls(long=True, readOnly=True)) -
              set(cmds.ls(long=True, lockedNodes=True)))

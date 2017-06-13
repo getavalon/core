@@ -2,66 +2,49 @@ import os
 import json
 
 from maya import cmds
-from mindbender import api, maya
+from mindbender import api
 
 
 class LookLoader(api.Loader):
     """Specific loader for lookdev"""
 
     families = ["mindbender.lookdev"]
+    representations = ["ma"]
 
-    def process(self, project, asset, subset, version, representation):
-        template = project["config"]["template"]["publish"]
-        data = {
-            "root": api.registered_root(),
-            "project": project["name"],
-            "asset": asset["name"],
-            "silo": asset["silo"],
-            "subset": subset["name"],
-            "version": version["name"],
-            "representation": representation["name"].strip("."),
-        }
+    def process(self, name, namespace, context):
+        from mindbender import maya
+        try:
+            existing_reference = cmds.file(self.fname,
+                                           query=True,
+                                           referenceNode=True)
+        except RuntimeError as e:
+            if e.message.rstrip() != "Cannot find the scene file.":
+                raise
 
-        fname = template.format(**data)
-        assert os.path.exists(fname), "%s does not exist" % fname
-
-        namespace = asset["name"] + "_"
-        name = maya.unique_name(subset["name"])
-
-        with maya.maintained_selection():
-            nodes = cmds.file(fname,
-                              namespace=namespace,
-                              reference=True,
-                              returnNewNodes=True)
-
-        # Containerising
-        maya.containerise(name=name,
-                          namespace=namespace,
-                          nodes=nodes,
-                          asset=asset,
-                          subset=subset,
-                          version=version,
-                          representation=representation,
-                          loader=type(self).__name__)
+            self.log.info("Loading lookdev for the first time..")
+            with maya.maintained_selection():
+                nodes = cmds.file(
+                    self.fname,
+                    namespace=namespace,
+                    reference=True,
+                    returnNewNodes=True
+                )
+        else:
+            self.log.info("Reusing existing lookdev..")
+            nodes = cmds.referenceQuery(existing_reference, nodes=True)
+            namespace = nodes[0].split(":", 1)[0]
 
         # Assign shaders
-        data["representation"] = "json"
-        fname = template.format(**data)
+        self.fname = self.fname.rsplit(".", 1)[0] + ".json"
 
-        if not os.path.isfile(fname):
-            cmds.warning("Look development asset has no relationship data.")
+        if not os.path.isfile(self.fname):
+            self.log.warning("Look development asset "
+                             "has no relationship data.")
+            return nodes
 
-        else:
-            with open(fname) as f:
-                relationships = json.load(f)
+        with open(self.fname) as f:
+            relationships = json.load(f)
 
-            # Append namespace to shader group identifier.
-            # E.g. `blinn1SG` -> `Bruce_:blinn1SG`
-            relationships = {
-                "%s:%s" % (namespace, shader): relationships[shader]
-                for shader in relationships
-            }
+        maya.apply_shaders(relationships, namespace)
 
-            maya.apply_shaders(relationships)
-
-        return nodes
+        self[:] = nodes

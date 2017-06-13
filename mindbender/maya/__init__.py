@@ -13,6 +13,7 @@ from .pipeline import (
     create,
     remove,
     update,
+    containerise,
 )
 
 from .lib import (
@@ -27,7 +28,6 @@ from .lib import (
     unique_name,
     unique_namespace,
 
-    containerise,
 )
 
 
