@@ -142,11 +142,11 @@ def preserve_selection(tree_view,
 
 def _list_project_silos():
     """List the silos from the project's configuration"""
-    project = io.find_one({"type": "project"})
-    silos = project['config'].get("silos", [])
+    silos = io.distinct("silo")
+
     if not silos:
-        log.warning("Project '%s' has no silos in configuration",
-                    project['name'])
+        project = io.find_one({"type": "project"})
+        log.warning("Project '%s' has no active silos", project['name'])
 
     return list(sorted(silos))
 
