@@ -499,7 +499,7 @@ def debug_host():
 
         return None
 
-    def create(name, family, options=None):
+    def create(name, family, asset=None, options=None, data=None):
         sys.stdout.write(pformat({
             "name": name,
             "family": family,
