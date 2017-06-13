@@ -151,11 +151,6 @@ def _list_project_silos():
     return list(sorted(silos))
 
 
-def _list_assets(silo):
-    """Get all assets for the active project in a specific silo."""
-    return io.find({"type": "asset", "silo": silo})
-
-
 class AssetModel(TreeModel):
     """The Items in the pipeline
 
@@ -187,18 +182,22 @@ class AssetModel(TreeModel):
 
     def _add_hierarchy(self, parent=None):
 
+        # Find the assets under the parent
+        find_data = {
+            "type": "asset",
+            "silo": self._silo,
+        }
         if parent is None:
-            parent_id = io.find_one({"type": "project"})["_id"]
+            # if not a parent find all that are parented to the project
+            # or do *not* have a visualParent field at all
+            find_data['$or'] = [
+                {'visualParent': {'$exists': False}},
+                {'visualParent': None}
+            ]
         else:
-            # Assume the parent is a Node that houses the assets'
-            # id in the database in the `_id` key.
-            parent_id = parent['_id']
+            find_data["visualParent"] = parent['_id']
 
-        # Parent to root silo those that have the project itself
-        # as parent
-        assets = io.find({"type": "asset",
-                          "silo": self._silo,
-                          "parent": parent_id})
+        assets = io.find(find_data)
 
         for asset in assets:
 
@@ -395,7 +394,6 @@ class AssetWidget(QtWidgets.QWidget):
                                     column=0,
                                     role=self.model.ObjectIdRole):
                 self.model.set_silo(silo)
-                self.view.expandAll()
 
         self.assets_refreshed.emit()
 

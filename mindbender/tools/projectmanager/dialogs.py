@@ -164,7 +164,7 @@ class AssetCreateDialog(QtWidgets.QDialog):
             "name": name,
             "label": label,
             "silo": silo,
-            "parent": parent_id
+            "visualParent": parent_id
         }
 
         lib.create_asset(data)

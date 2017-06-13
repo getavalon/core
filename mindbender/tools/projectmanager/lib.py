@@ -37,13 +37,14 @@ def create_asset(data):
         raise RuntimeError("Project must exist prior to creating assets")
 
     # Link to parent by id if provided, otherwise parent to the project
-    parent = data.pop("parent") or project['_id']
+    visual_parent = data.pop("visualParent", None)
 
     asset = {
         "schema": "mindbender-core:asset-2.0",
+        "parent": project['_id'],
         "name": data.pop("name"),
         "silo": data.pop("silo"),
-        "parent": parent,
+        "visualParent": visual_parent,
         "type": "asset",
         "data": data
     }
