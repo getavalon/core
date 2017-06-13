@@ -47,6 +47,10 @@ DEFAULTS = {
             {"name": "lookdev"},
             {"name": "layout"},
         ],
+        "silos": [
+            "assets",
+            "film"
+        ],
         "template": {
             "work":
                 "{root}/{project}/{silo}/{asset}/work/"
