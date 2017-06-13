@@ -6,3 +6,4 @@ stage
 shared
 _site
 *.pyc
+.idea/
