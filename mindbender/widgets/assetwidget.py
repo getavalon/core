@@ -506,7 +506,7 @@ class AssetWidget(QtWidgets.QWidget):
         self.proxy = proxy
         self.view = view
 
-    def _on_silo_changed(self, index):
+    def _on_silo_changed(self):
         """Callback for silo change"""
 
         self._refresh_model()
