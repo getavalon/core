@@ -332,8 +332,6 @@ class SiloTabWidget(QtWidgets.QTabWidget):
         font.setBold(True)
         self.setFont(font)
 
-        #self.setSizePolicy(QtGui)
-
         self.currentChanged.connect(self.on_tab_changed)
 
     def on_tab_changed(self, index):
