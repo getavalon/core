@@ -20,8 +20,9 @@ self = sys.modules[__name__]
 
 
 def clear():
-    for path in pipeline.registered_loader_paths():
-        pipeline.deregister_loader_path(path)
+    for superclass, paths in pipeline.registered_plugin_paths().items():
+        for path in paths:
+            pipeline.deregister_plugin_path(superclass, path)
 
 
 def setup():
@@ -32,7 +33,7 @@ def setup():
     host = types.ModuleType("Test")
     host.__dict__.update({
         "ls": lambda: [],
-        "create": lambda name, asset, family, options: None,
+        "create": lambda name, asset, family, options, data: None,
         "load": lambda asset, subset, version, representation: None,
         "update": lambda container, version: None,
         "remove": lambda container: None,
@@ -64,8 +65,8 @@ class DemoLoader(api.Loader):
         f.write(loader)
 
     try:
-        pipeline.register_loader_path(tempdir)
-        loaders = pipeline.discover_loaders()
+        pipeline.register_plugin_path(pipeline.Loader, tempdir)
+        loaders = pipeline.discover(pipeline.Loader)
 
         assert "DemoLoader" in list(
             L.__name__ for L in loaders

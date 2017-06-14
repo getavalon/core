@@ -8,6 +8,8 @@ from .pipeline import (
     install,
     uninstall,
 
+    Creator,
+
     ls,
     load,
     create,
@@ -34,6 +36,8 @@ from .lib import (
 __all__ = [
     "install",
     "uninstall",
+
+    "Creator",
 
     "ls",
     "load",

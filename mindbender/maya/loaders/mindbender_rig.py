@@ -49,6 +49,7 @@ class RigLoader(api.Loader):
             # TODO(marcus): Hardcoding the family here, better separate this.
             maya.create(
                 name=maya.unique_name(asset, suffix="_SET"),
+                asset=context["asset"]["name"],
                 family="mindbender.animation",
                 options={"useSelection": True},
                 data={

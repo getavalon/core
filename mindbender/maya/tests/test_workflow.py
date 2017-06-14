@@ -151,10 +151,12 @@ def test_modeling():
     group = cmds.group(transform, name="ROOT")
 
     cmds.select(group, replace=True)
-    maya.create(name="modelDefault",
-                asset=os.environ["MINDBENDER_ASSET"],
-                family="mindbender.model",
-                options={"useSelection": True})
+    maya.create(
+        name="modelDefault",
+        asset=ASSET_NAME,
+        family="mindbender.model",
+        options={"useSelection": True}
+    )
 
     # Comply with save validator
     cmds.file(save=True)
@@ -211,7 +213,7 @@ def test_alembic_export():
 
     maya.create(
         name="animationDefault",
-        asset=os.environ["MINDBENDER_ASSET"],
+        asset=ASSET_NAME,
         family="mindbender.animation",
         options={"useSelection": True}
     )
@@ -272,7 +274,7 @@ def test_update():
     cmds.select(group, replace=True)
     maya.create(
         name="modelDefault",
-        asset=os.environ["MINDBENDER_ASSET"],
+        asset=ASSET_NAME,
         family="mindbender.model",
         options={"useSelection": True}
     )
@@ -329,7 +331,7 @@ def test_modeling_to_rigging():
     cmds.select(group, replace=True)
     maya.create(
         name="modelDefault",
-        asset=os.environ["MINDBENDER_ASSET"],
+        asset=ASSET_NAME,
         family="mindbender.model",
         options={"useSelection": True})
 
@@ -368,9 +370,10 @@ def test_modeling_to_rigging():
     cmds.select([group, out_set, controls_set], noExpand=True)
     maya.create(
         name="rigDefault",
+        asset=os.environ["MINDBENDER_ASSET"],
         family="mindbender.rig",
         options={"useSelection": True},
-        data={"asset": os.environ["MINDBENDER_ASSET"]})
+    )
 
     cmds.file(rename="temp.ma")
     cmds.file(save=True)
