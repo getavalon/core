@@ -225,7 +225,8 @@ class AssetModel(TreeModel):
 
         self.clear()
         self.beginResetModel()
-        self._add_hierarchy(parent=None)
+        if self._silo:
+            self._add_hierarchy(parent=None)
         self.endResetModel()
 
     def flags(self, index):
@@ -306,6 +307,141 @@ class AssetView(DeselectableTreeView):
     #     menu.exec_(globalPoint)
 
 
+class SiloTabWidget(QtWidgets.QTabWidget):
+    """Silo widget
+    
+    Allows to add a silo, with "+" tab.
+    
+    Note:
+        When no silos are present an empty stub silo is added to
+        use as the "blank" tab to start on, so the + tab becomes
+        clickable.
+    
+    """
+    silo_changed = QtCore.Signal(str)
+    silo_added = QtCore.Signal(str)
+
+    def __init__(self, parent=None):
+        super(SiloTabWidget, self).__init__(parent=parent)
+        self._previous_tab_index = -1
+        self.set_silos([])
+
+        self.setContentsMargins(0, 0, 0, 0)
+        self.setFixedHeight(28)
+        font = QtGui.QFont()
+        font.setBold(True)
+        self.setFont(font)
+
+        #self.setSizePolicy(QtGui)
+
+        self.currentChanged.connect(self.on_tab_changed)
+
+    def on_tab_changed(self, index):
+
+        if index == self._previous_tab_index:
+            return
+
+        # If it's the last tab
+        num = self.count()
+        if index == num - 1:
+            self.on_add_silo()
+            self.setCurrentIndex(self._previous_tab_index)
+            return
+
+        silo = self.tabText(index)
+        self.silo_changed.emit(silo)
+
+        # Store for the next calls
+        self._previous_tab_index = index
+
+    def set_silos(self, silos):
+
+        current_silo = self.get_current_silo()
+
+        if not silos:
+            # Add an emtpy stub tab to start on.
+            silos = [""]
+
+        # Populate the silos without emitting signals
+        self.blockSignals(True)
+        self.clear()
+        for silo in sorted(silos):
+            self.addTab(QtWidgets.QWidget(), silo)
+
+        # Add the "+" tab
+        self.addTab(QtWidgets.QWidget(), "+")
+
+        self.set_current_silo(current_silo)
+        self.blockSignals(False)
+
+        # Assume the current index is "fine"
+        self._previous_tab_index = self.currentIndex()
+
+        # Only emit a silo changed signal if the new signal
+        # after refresh is not the same as prior to it (e.g.
+        # when the silo was removed, or alike.)
+        if current_silo != self.get_current_silo():
+            self.currentChanged.emit(self.currentIndex())
+
+    def set_current_silo(self, silo):
+        """Set the active silo by name or index.
+
+        Args:
+            silo (str or int): The silo name or index.
+            emit (bool): Whether to emit the change signals
+
+        """
+
+        # Already set
+        if silo == self.get_current_silo():
+            return
+
+        # Otherwise change the silo box to the name
+        for i in range(self.count()):
+            text = self.tabText(i)
+            if text == silo:
+                self.setCurrentIndex(i)
+                break
+
+    def get_current_silo(self):
+        index = self.currentIndex()
+        return self.tabText(index)
+
+    def on_add_silo(self):
+        silo, state = QtWidgets.QInputDialog.getText(self,
+                                                     "Silo name",
+                                                     "Create new silo:")
+        if not state or not silo:
+            return
+
+        self.add_silo(silo)
+
+    def get_silos(self):
+        """Return the currently available silos"""
+
+        # Ignore first tab if empty
+        # Ignore the last tab because it is the "+" tab
+        silos = []
+        for i in range(self.count() - 1):
+            label = self.tabText(i)
+            if i == 0 and not label:
+                continue
+            silos.append(label)
+        return silos
+
+    def add_silo(self, silo):
+
+        # Add the silo
+        silos = self.get_silos()
+        silos.append(silo)
+        silos = list(set(silos))  # ensure unique
+        self.set_silos(silos)
+        self.set_current_silo(silo)
+
+        self.silo_added.emit(silo)
+        self.silo_changed.emit(silo)
+
+
 class AssetWidget(QtWidgets.QWidget):
     """A Widget to display a tree of assets with filter
 
@@ -331,12 +467,7 @@ class AssetWidget(QtWidgets.QWidget):
         # Header
         header = QtWidgets.QHBoxLayout()
 
-        silo = QtWidgets.QTabWidget()
-        silo.setFixedHeight(28)
-        silo.setStyleSheet("QComboBox {padding-left: 10px;}")
-        font = QtGui.QFont()
-        font.setBold(True)
-        silo.setFont(font)
+        silo = SiloTabWidget()
 
         icon = qta.icon("fa.refresh", color=style.light)
         refresh = QtWidgets.QPushButton(icon, "")
@@ -367,7 +498,7 @@ class AssetWidget(QtWidgets.QWidget):
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.selection_changed)
         selection.currentChanged.connect(self.current_changed)
-        silo.currentChanged.connect(self._on_silo_changed)
+        silo.silo_changed.connect(self._on_silo_changed)
         refresh.clicked.connect(self.refresh)
 
         self.refreshButton = refresh
@@ -399,54 +530,14 @@ class AssetWidget(QtWidgets.QWidget):
 
     def refresh(self):
 
-        current_silo = self.get_current_silo()
-
-        # Populate the silo combobox without emitting signals
-        self.silo.blockSignals(True)
-
-        self.silo.clear()
-        for silo in _list_project_silos():
-            self.silo.addTab(QtWidgets.QWidget(), silo)
-
-        # TODO: Add the option to add a new silo
-        index = self.silo.addTab(QtWidgets.QWidget(), "+")
-        self.silo.setTabEnabled(index, False)
-
-        self.set_silo(current_silo)
-        self.silo.blockSignals(False)
-
-        # Only emit a silo changed signal if the new signal
-        # after refresh is not the same as prior to it (e.g.
-        # when the silo was removed, or alike.)
-        if current_silo != self.get_current_silo():
-            self.silo.currentChanged.emit(self.silo.currentIndex())
+        silos =_list_project_silos()
+        self.silo.set_silos(silos)
 
         self._refresh_model()
 
-    def set_silo(self, silo):
-        """Set the active silo by name or index.
-
-        Args:
-            silo (str or int): The silo name or index.
-            emit (bool): Whether to emit the change signals
-
-        """
-
-        # Already set
-        if silo == self.get_current_silo():
-            return
-
-        # Otherwise change the silo box to the name
-        for i in range(self.silo.count()):
-            text = self.silo.tabText(i)
-            if text == silo:
-                self.silo.setCurrentIndex(i)
-                break
-
     def get_current_silo(self):
         """Returns the currently active silo."""
-        index = self.silo.currentIndex()
-        return self.silo.tabText(index)
+        return self.silo.get_current_silo()
 
     def get_active_asset(self):
         """Return the asset id the current asset."""
