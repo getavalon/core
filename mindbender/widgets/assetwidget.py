@@ -436,10 +436,9 @@ class SiloTabWidget(QtWidgets.QTabWidget):
         silos.append(silo)
         silos = list(set(silos))  # ensure unique
         self.set_silos(silos)
-        self.set_current_silo(silo)
-
         self.silo_added.emit(silo)
-        self.silo_changed.emit(silo)
+
+        self.set_current_silo(silo)
 
 
 class AssetWidget(QtWidgets.QWidget):
