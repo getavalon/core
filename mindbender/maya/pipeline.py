@@ -26,21 +26,12 @@ def install():
 
     """
 
-    try:
-        import pyblish_maya
-        assert pyblish_maya.is_setup()
-
-    except (ImportError, AssertionError):
-        raise ImportError("mindbender-core depends on pyblish-maya.")
-
-    _install_menu()
-
     _register_formats()
     _register_plugins()
     _register_loaders()
     _register_creators()
-
     _register_callbacks()
+    _install_menu()
 
 
 def uninstall():
@@ -603,8 +594,13 @@ def _register_callbacks():
         OpenMaya.MSceneMessage.kAfterNew, _on_scene_new
     )
 
-    print("Installed event handler __on_scene_save..")
+    self._events[_on_maya_initialized] = OpenMaya.MSceneMessage.addCallback(
+        OpenMaya.MSceneMessage.kMayaInitialized, _on_maya_initialized
+    )
+
+    print("Installed event handler _on_scene_save..")
     print("Installed event handler _on_scene_new..")
+    print("Installed event handler _on_maya_initialized..")
 
 
 def _set_uuid(node):
@@ -622,9 +618,22 @@ def _set_uuid(node):
         cmds.setAttr(attr, uid, type="string")
 
 
-def _on_scene_new(_):
-    print("Running scene new..")
+def _on_maya_initialized():
+    print("Running callback: maya initialized..")
     commands.reset_frame_range()
+    commands.reset_resolution()
+
+
+def _on_scene_new(_):
+    print("Running callback: scene new..")
+
+    # Load dependencies
+    # TODO(marcus): Externalise this
+    cmds.loadPlugin("AbcExport.mll", quiet=True)
+    cmds.loadPlugin("AbcImport.mll", quiet=True)
+
+    commands.reset_frame_range()
+    commands.reset_resolution()
 
 
 def _on_scene_save(_):
@@ -634,6 +643,8 @@ def _on_scene_save(_):
     is given one automatically on file save.
 
     """
+
+    print("Running callback: scene save..")
 
     nodes = (set(cmds.ls(type="mesh", long=True)) -
              set(cmds.ls(long=True, readOnly=True)) -
