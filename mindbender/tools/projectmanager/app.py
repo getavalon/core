@@ -51,8 +51,8 @@ class Window(QtWidgets.QDialog):
 
         body = QtWidgets.QSplitter()
         body.setContentsMargins(0, 0, 0, 0)
-        body.setSizePolicy(QtGui.QSizePolicy.Expanding,
-                           QtGui.QSizePolicy.Expanding)
+        body.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
+                           QtWidgets.QSizePolicy.Expanding)
         body.setOrientation(QtCore.Qt.Horizontal)
         body.addWidget(assets_widgets)
         body.addWidget(tasks_widgets)
