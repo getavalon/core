@@ -19,7 +19,7 @@ log = logging.getLogger(__name__)
 def _iter_model_rows(model,
                      column,
                      include_root=False):
-    """Iterate over all row indices in a model."""
+    """Iterate over all row indices in a model"""
     indices = [QtCore.QModelIndex()]  # start iteration at root
 
     for index in indices:
@@ -46,17 +46,17 @@ def preserve_expanded_rows(tree_view,
     the model items. When refresh is triggered the items which are expanded
     will stay expanded and vise versa.
 
-    :param tree_view: the tree view which is nested in the application
-    :type tree_view: QWidgets.QTreeView
+    Arguments:
+        tree_view (QWidgets.QTreeView): the tree view which is
+            nested in the application
+        column (int): the column to retrieve the data from
+        role (int): the role which dictates what will be returned
 
-    :param column: the column to retrieve the data from
-    :type column: int
+    Returns:
+        None
 
-    :param role: the role which dictates what will be returned
-    :type role: int
-
-    :return: None
     """
+
     model = tree_view.model()
 
     expanded = set()
@@ -96,16 +96,13 @@ def preserve_selection(tree_view,
     the model items. When refresh is triggered the items which are expanded
     will stay expanded and vise versa.
 
-    :param tree_view: the tree view which is nested in the application
-    :type tree_view: QWidgets.QTreeView
+        tree_view (QWidgets.QTreeView): the tree view nested in the application
+        column (int): the column to retrieve the data from
+        role (int): the role which dictates what will be returned
 
-    :param column: the column to retrieve the data from
-    :type column: int
+    Returns:
+        None
 
-    :param role: the role which dictates what will be returned
-    :type role: int
-
-    :return: None
     """
 
     model = tree_view.model()
