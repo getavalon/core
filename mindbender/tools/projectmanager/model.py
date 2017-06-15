@@ -16,7 +16,7 @@ class Node(dict):
     The node can store data just like a dictionary.
 
     >>> data = {"name": "John", "score": 10}
-    >>> node = DictTreeNode(data)
+    >>> node = Node(data)
     >>> assert node["name"] == "John"
 
     """

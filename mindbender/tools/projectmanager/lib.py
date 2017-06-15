@@ -23,7 +23,6 @@ def create_asset(data):
 
     Requires:
         {"name": "uniquecode",
-         "label": "Nice readable name",
          "silo": "assets"}
 
      Optional:
