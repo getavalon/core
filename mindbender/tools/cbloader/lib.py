@@ -53,14 +53,12 @@ def iter_loaders(representation):
 
 
 def run_loader(Loader,
-               representation,
-               post_process=True):
+               representation):
     """Run the loader on representation.
     
     Args:
         Loader (api.Loader): The loader class to run.
         representation (str): The representation database id.
-        post_process (bool): Whether to trigger Loader's `post_process` 
     
     """
 
