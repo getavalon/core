@@ -60,6 +60,8 @@ def _install_menu():
         publish,
     )
 
+    from . import interactive
+
     _uninstall_menu()
 
     def deferred():
@@ -89,6 +91,11 @@ def _install_menu():
         cmds.menuItem("Reload Pipeline", command=_reload)
 
         cmds.setParent("..", menu=True)
+
+        cmds.menuItem("Reset Frame Range",
+                      command=interactive.reset_frame_range)
+        cmds.menuItem("Reset Resolution",
+                      command=interactive.reset_resolution)
 
     # Allow time for uninstallation to finish.
     QtCore.QTimer.singleShot(100, deferred)
