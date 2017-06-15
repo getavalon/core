@@ -5,66 +5,8 @@ Does NOT depend on any other module.
 """
 
 import re
-import contextlib
 
 from maya import cmds
-
-
-@contextlib.contextmanager
-def maintained_selection():
-    """Maintain selection during context
-
-    Example:
-        >>> node1 = cmds.createNode("transform", name="node1")
-        >>> node2 = cmds.createNode("transform", name="node2")
-        >>> cmds.select(node2, replace=True)
-        >>> with maintained_selection():
-        ...     # Modify selection
-        ...     cmds.select(node1, replace=True)
-        >>> assert cmds.ls(selection=True) == [node2]
-
-    """
-
-    previous_selection = cmds.ls(selection=True)
-    try:
-        yield
-    finally:
-        if previous_selection:
-            cmds.select(previous_selection,
-                        replace=True,
-                        noExpand=True)
-        else:
-            cmds.select(deselect=True,
-                        noExpand=True)
-
-
-def _maintained_selection(func):
-    """Function decorator to maintain the selection once called
-
-    Example:
-        >>> @_maintained_selection
-        ... def my_function():
-        ...    # Modify selection
-        ...    cmds.select(clear=True)
-        ...
-        >>> # Selection restored
-
-    """
-
-    def wrapper(*args, **kwargs):
-        previous_selection = cmds.ls(selection=True)
-        try:
-            return func(*args, **kwargs)
-        finally:
-            if previous_selection:
-                cmds.select(previous_selection,
-                            replace=True,
-                            noExpand=True)
-            else:
-                cmds.select(deselect=True,
-                            noExpand=True)
-
-    return wrapper
 
 
 def unique(name):

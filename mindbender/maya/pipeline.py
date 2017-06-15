@@ -63,8 +63,6 @@ def _install_menu():
         publish,
     )
 
-    from . import interactive
-
     _uninstall_menu()
 
     def deferred():
@@ -85,37 +83,6 @@ def _install_menu():
 
         cmds.menuItem(divider=True)
 
-        # Modeling sub-menu
-        cmds.menuItem("Modeling",
-                      label="Modeling",
-                      tearOff=True,
-                      subMenu=True,
-                      parent=self._menu)
-
-        cmds.menuItem("Combine", command=interactive.combine)
-
-        # Rigging sub-menu
-        cmds.menuItem("Rigging",
-                      label="Rigging",
-                      tearOff=True,
-                      subMenu=True,
-                      parent=self._menu)
-
-        cmds.menuItem("Auto Connect", command=interactive.auto_connect)
-        cmds.menuItem("Clone (Local)", command=interactive.clone_localspace)
-        cmds.menuItem("Clone (World)", command=interactive.clone_worldspace)
-        cmds.menuItem("Clone (Special)", command=interactive.clone_special)
-        cmds.menuItem("Create Follicle", command=interactive.follicle)
-
-        # Animation sub-menu
-        cmds.menuItem("Animation",
-                      label="Animation",
-                      tearOff=True,
-                      subMenu=True,
-                      parent=self._menu)
-
-        cmds.menuItem("Set Defaults", command=interactive.set_defaults)
-
         cmds.menuItem("System",
                       label="System",
                       tearOff=True,
@@ -125,12 +92,6 @@ def _install_menu():
         cmds.menuItem("Reload Pipeline", command=_reload)
 
         cmds.setParent("..", menu=True)
-
-        cmds.menuItem(divider=True)
-
-        cmds.menuItem("Auto Connect", command=interactive.auto_connect_assets)
-        cmds.menuItem("Reset Frame Range",
-                      command=interactive.reset_frame_range)
 
     # Allow time for uninstallation to finish.
     QtCore.QTimer.singleShot(100, deferred)
