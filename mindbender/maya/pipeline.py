@@ -1,9 +1,10 @@
 import os
 import sys
 import uuid
+import importlib
 
-import pyblish.api
 from maya import cmds, OpenMaya
+from pyblish import api as pyblish
 
 from . import lib, commands
 from .. import api, io
@@ -19,7 +20,7 @@ self._parent = {
 }.get("MayaWindow")
 
 
-def install():
+def install(config):
     """Install Maya-specific functionality of mindbender-core.
 
     This function is called automatically on calling `api.install(maya)`.
@@ -27,15 +28,27 @@ def install():
     """
 
     _register_formats()
-    _register_plugins()
-    _register_loaders()
-    _register_creators()
     _register_callbacks()
     _install_menu()
+
+    pyblish.register_host("mayabatch")
+    pyblish.register_host("mayapy")
+    pyblish.register_host("maya")
+
+    try:
+        config = importlib.import_module(config.__name__ + ".maya")
+    except ImportError:
+        pass
+    else:
+        config.install()
 
 
 def uninstall():
     _uninstall_menu()
+
+    pyblish.deregister_host("mayabatch")
+    pyblish.deregister_host("mayapy")
+    pyblish.deregister_host("maya")
 
     api.deregister_format(".ma")
     api.deregister_format(".mb")
@@ -46,7 +59,8 @@ def _install_menu():
     from ..tools import (
         creator,
         loader,
-        manager
+        manager,
+        publish,
     )
 
     from . import interactive
@@ -59,11 +73,14 @@ def _install_menu():
                   tearOff=True,
                   parent="MayaWindow")
 
-        cmds.menuItem("Show Creator",
+        cmds.menuItem("Create...",
                       command=lambda *args: creator.show(parent=self._parent))
-        cmds.menuItem("Show Loader",
+        cmds.menuItem("Load...",
                       command=lambda *args: loader.show(parent=self._parent))
-        cmds.menuItem("Show Manager",
+        cmds.menuItem("Publish...",
+                      command=lambda *args: publish.show(parent=self._parent),
+                      image=publish.ICON)
+        cmds.menuItem("Manage...",
                       command=lambda *args: manager.show(parent=self._parent))
 
         cmds.menuItem(divider=True)
@@ -169,27 +186,6 @@ def _register_formats():
     api.register_format(".ma")
     api.register_format(".mb")
     api.register_format(".abc")
-
-
-def _register_plugins():
-    lib_py_path = sys.modules[__name__].__file__
-    package_path = os.path.dirname(lib_py_path)
-    plugin_path = os.path.join(package_path, "plugins")
-    pyblish.api.register_plugin_path(plugin_path)
-
-
-def _register_loaders():
-    lib_py_path = sys.modules[__name__].__file__
-    package_path = os.path.dirname(lib_py_path)
-    plugin_path = os.path.join(package_path, "loaders")
-    api.register_plugin_path(api.Loader, plugin_path)
-
-
-def _register_creators():
-    lib_py_path = sys.modules[__name__].__file__
-    package_path = os.path.dirname(lib_py_path)
-    plugin_path = os.path.join(package_path, "creators")
-    api.register_plugin_path(api.Creator, plugin_path)
 
 
 def containerise(name,
@@ -618,7 +614,7 @@ def _set_uuid(node):
         cmds.setAttr(attr, uid, type="string")
 
 
-def _on_maya_initialized():
+def _on_maya_initialized(_):
     print("Running callback: maya initialized..")
     commands.reset_frame_range()
     commands.reset_resolution()
