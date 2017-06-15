@@ -119,6 +119,28 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
         # versiondir = template_versions.format(**template_data)
         self.log.debug("Next version: %i" % next_version)
 
+        version_data = {
+            # Used to identify family of assets already on disk
+            "families": instance.data.get("families", list()) + [
+                instance.data.get("family")
+            ],
+
+            "time": context.data["time"],
+            "author": context.data["user"],
+
+            "source": os.path.join(
+                "{root}",
+                os.path.relpath(
+                    context.data["currentFile"],
+                    api.registered_root()
+                )
+            ).replace("\\", "/"),
+
+            "comment": context.data.get("comment"),
+        }
+        # Transfer instance data
+        version_data.update(instance.data)
+
         version = {
             "schema": "mindbender-core:version-2.0",
             "type": "version",
@@ -131,26 +153,7 @@ class IntegrateMindbenderAsset(pyblish.api.InstancePlugin):
                 [MINDBENDER_LOCATION]
                 if location is not None
             ),
-
-            "data": {
-                # Used to identify family of assets already on disk
-                "families": instance.data.get("families", list()) + [
-                    instance.data.get("family")
-                ],
-
-                "time": context.data["time"],
-                "author": context.data["user"],
-
-                "source": os.path.join(
-                    "{root}",
-                    os.path.relpath(
-                        context.data["currentFile"],
-                        api.registered_root()
-                    )
-                ).replace("\\", "/"),
-
-                "comment": context.data.get("comment"),
-            }
+            "data": version_data
         }
 
         self.backwards_compatiblity(instance, subset, version)
