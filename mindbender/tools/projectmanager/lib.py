@@ -23,7 +23,6 @@ def create_asset(data):
 
     Requires:
         {"name": "uniquecode",
-         "label": "Nice readable name",
          "silo": "assets"}
 
      Optional:
@@ -70,34 +69,3 @@ def list_project_tasks():
     """List the projec task types available in the current project"""
     project = io.find_one({"type": "project"})
     return [task['name'] for task in project['config']['tasks']]
-
-
-# def create_project(project_name, metadata):
-#     # Activate afterwards
-#     io.activate_project(project_name)
-#
-#     document = io.find_one({"type": "project"})
-#     if document is None:
-#         print("'%s' not found, creating.." % project_name)
-#         _project = {
-#             "schema": "mindbender-core:project-2.0",
-#             "type": "project",
-#             "name": project_name,
-#             "data": dict(),
-#             "config": {
-#                 "template": {},
-#                 "tasks": [],
-#                 "apps": [],
-#                 "copy": {}
-#             },
-#             "parent": None,
-#         }
-#
-#         _id = io.insert_one(_project).inserted_id
-#
-#         schema.validate(_project)
-#         document = io.find_one({"_id": _id})
-#
-#     print("Updating project data..")
-#     for key, value in metadata.items():
-#         document["data"][key] = value

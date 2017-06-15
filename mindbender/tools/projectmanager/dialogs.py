@@ -134,10 +134,10 @@ class AssetCreateDialog(QtWidgets.QDialog):
 
     def update_name(self):
         """Force an update on the long name.
-        
+
         The long name is based on the asset's label joined with
         the parent's full name.
-        
+
         """
 
         label = self.data['label']['label'].text()
@@ -170,59 +170,3 @@ class AssetCreateDialog(QtWidgets.QDialog):
         lib.create_asset(data)
 
         self.asset_created.emit(data)
-
-
-# class CreateProjectDialog(QtWidgets.QDialog):
-#     """A dialog to create a new project"""
-#
-#     def __init__(self, *args, **kwargs):
-#         super(CreateProjectDialog, self).__init__(*args, **kwargs)
-#         self.setWindowTitle("Create Project")
-#         self.setModal(True)
-#
-#         layout = QtWidgets.QVBoxLayout(self)
-#
-#         self.label = QtWidgets.QLabel("Project name")
-#         self.name = QtWidgets.QLineEdit()
-#
-#         self.projects_root_label = QtWidgets.QLabel("Projects directory")
-#         self.projects_root = QtWidgets.QLineEdit()
-#
-#         footer = QtWidgets.QHBoxLayout()
-#         create = QtWidgets.QPushButton("Create")
-#         cancel = QtWidgets.QPushButton("Cancel")
-#
-#         footer.addWidget(create)
-#         footer.addWidget(cancel)
-#
-#         layout.addWidget(self.label)
-#         layout.addWidget(self.name)
-#         layout.addWidget(self.projects_root_label)
-#         layout.addWidget(self.projects_root)
-#         layout.addLayout(footer)
-#
-#         cancel.clicked.connect(self.reject)
-#         create.clicked.connect(self.accept)
-#         self.accepted.connect(self.on_accept)
-#
-#     def on_accept(self):
-#         """Perform creation of a new-style project"""
-#
-#         project_dir = self.projects_root.text()
-#         project_name = self.name.text()
-#
-#         try:
-#             self._create(project_dir, project_name)
-#         except RuntimeError, e:
-#             QtWidgets.QMessageBox.warning(self,
-#                                           "Error creating Project",
-#                                           str(e))
-#
-#     def _create(self, project_dir, project_name):
-#
-#
-#         # Create the project
-#         root = lib.create_project(project_name)
-#
-#         # Set the project bar
-#         self.parent().projectBar.set_project(root)

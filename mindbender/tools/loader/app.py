@@ -6,7 +6,7 @@ import datetime
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ... import api, io
 from .. import lib
-from ..awesome import tags as awesome
+from ...vendor import qtawesome as awesome
 
 module = sys.modules[__name__]
 module.window = None
@@ -27,7 +27,7 @@ class Window(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
         self.setWindowTitle(
-            "Asset Loader 2.0 - %s/%s" % (
+            "Asset Loader 2.1 - %s/%s" % (
                 module.root, module.project))
 
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
@@ -60,7 +60,6 @@ class Window(QtWidgets.QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
 
         autoclose_checkbox = QtWidgets.QCheckBox("Auto-close")
-        autoclose_checkbox.setCheckState(QtCore.Qt.Checked)
         layout.addWidget(autoclose_checkbox, 1, 0)
 
         layout = QtWidgets.QHBoxLayout(body)
@@ -69,7 +68,7 @@ class Window(QtWidgets.QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
 
         load_button = QtWidgets.QPushButton("Load")
-        refresh_button = QtWidgets.QPushButton(awesome["refresh"])
+        refresh_button = QtWidgets.QPushButton(awesome.icon("fa.refresh"), "")
         refresh_button.setStyleSheet("""
 QPushButton {
     max-width: 30px;
@@ -120,6 +119,19 @@ QPushButton {
         layout.addWidget(side_source)
         layout.setContentsMargins(0, 0, 0, 0)
 
+        side_preset_container = QtWidgets.QWidget()
+        side_preset_header = QtWidgets.QLabel("Preset")
+        side_preset_header.setStyleSheet("QLabel { font-weight: bold }")
+        side_preset = QtWidgets.QComboBox()
+
+        if not os.getenv("MINDBENDER_EARLY_ADOPTER"):
+            side_preset_container.hide()
+
+        layout = QtWidgets.QVBoxLayout(side_preset_container)
+        layout.addWidget(side_preset_header)
+        layout.addWidget(side_preset)
+        layout.setContentsMargins(0, 0, 0, 0)
+
         buttons = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(buttons)
         layout.addWidget(refresh_button)
@@ -130,6 +142,7 @@ QPushButton {
         layout.addWidget(side_comment_container)
         layout.addWidget(side_created_container)
         layout.addWidget(side_source_container)
+        layout.addWidget(side_preset_container)
         layout.addWidget(QtWidgets.QWidget(), 1)
         layout.addWidget(options, 0, QtCore.Qt.AlignBottom)
         layout.addWidget(buttons)
@@ -163,6 +176,8 @@ QPushButton {
                 "createdContainer": side_created_container,
                 "source": side_source,
                 "sourceContainer": side_source_container,
+                "preset": side_preset,
+                "presetContainer": side_preset_container,
             },
             "state": {
                 "template": None,
@@ -249,6 +264,19 @@ QPushButton {
         has = {"children": False}
 
         project = io.find_one({"type": "project"})
+
+        preset = self.data["label"]["preset"]
+        preset.clear()
+
+        tasks = sorted(project["config"]["tasks"], key=lambda i: i["name"])
+        current_index = 0
+        for index, task in enumerate(tasks):
+            item = preset.addItem(task["name"])
+
+            if task["name"] == os.getenv("MINDBENDER_TASK"):
+                current_index = index
+
+        preset.setCurrentIndex(current_index)
 
         assert project, "This is a bug"
 
@@ -480,6 +508,7 @@ QPushButton {
                 "abc": "Pointcache",
                 "history": "History",
                 "curves": "Animation Curves",
+                "group": "Asset Group",
             }.get(name, name))  # Default to using name as-is
 
             item.setData(QtCore.Qt.ItemIsEnabled, True)
@@ -529,13 +558,18 @@ QPushButton {
         models = self.data["model"]
         representations_model = models["representations"]
         representation_item = representations_model.currentItem()
+        preset = self.data["label"]["preset"]
+        preset = preset.currentText()
 
         if representation_item is None:
             return
 
         for document in representation_item.data(RepresentationsRole):
             try:
-                api.registered_host().load(representation=document["_id"])
+                _id = document["_id"]
+                self.echo("api.registered_host()."
+                          "load(representation=\"%s\")" % _id)
+                api.registered_host().load(representation=_id, preset=preset)
 
             except ValueError as e:
                 self.echo(e)

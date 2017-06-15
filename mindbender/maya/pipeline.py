@@ -1,70 +1,63 @@
 import os
 import sys
 import uuid
+import importlib
 
-import pyblish.api
 from maya import cmds, OpenMaya
+from pyblish import api as pyblish
 
-from . import lib
+from . import lib, commands
 from .. import api, io
+from ..vendor import six
 from ..vendor.Qt import QtCore, QtWidgets
 
 self = sys.modules[__name__]
-self._menu = "mindbenderCore"
-self._id_callback = None
-self._parent = {
-    o.objectName(): o
-    for o in QtWidgets.QApplication.topLevelWidgets()
-}.get("MayaWindow")
+self._menu = "mindbendercore"
+self._events = dict()
+self._parent = None
 
 
-def install():
+def install(config):
     """Install Maya-specific functionality of mindbender-core.
 
     This function is called automatically on calling `api.install(maya)`.
 
     """
 
-    try:
-        import pyblish_maya
-        assert pyblish_maya.is_setup()
-
-    except (ImportError, AssertionError):
-        raise ImportError("mindbender-core depends on pyblish-maya.")
-
+    _register_formats()
+    _register_callbacks()
     _install_menu()
 
-    _register_data()
-    _register_formats()
-    _register_plugins()
-    _register_loaders()
-    _register_families()
+    pyblish.register_host("mayabatch")
+    pyblish.register_host("mayapy")
+    pyblish.register_host("maya")
 
-    _register_id_callback()
+    try:
+        config = importlib.import_module(config.__name__ + ".maya")
+    except ImportError:
+        pass
+    else:
+        config.install()
 
 
 def uninstall():
     _uninstall_menu()
 
+    pyblish.deregister_host("mayabatch")
+    pyblish.deregister_host("mayapy")
+    pyblish.deregister_host("maya")
+
     api.deregister_format(".ma")
     api.deregister_format(".mb")
     api.deregister_format(".abc")
-
-    api.deregister_data("id")
-    api.deregister_data("subset")
-    api.deregister_data("family")
-
-    api.deregister_family("mindbender.model")
-    api.deregister_family("mindbender.rig")
-    api.deregister_family("mindbender.animation")
-    api.deregister_family("mindbender.lookdev")
 
 
 def _install_menu():
     from ..tools import (
         creator,
         loader,
-        manager
+        manager,
+        publish,
     )
 
     from . import interactive
@@ -77,56 +70,78 @@ def _install_menu():
                   tearOff=True,
                   parent="MayaWindow")
 
-        cmds.menuItem("Show Creator",
+        cmds.menuItem("Create...",
                       command=lambda *args: creator.show(parent=self._parent))
-        cmds.menuItem("Show Loader",
+        cmds.menuItem("Load...",
                       command=lambda *args: loader.show(parent=self._parent))
-        cmds.menuItem("Show Manager",
+        cmds.menuItem("Publish...",
+                      command=lambda *args: publish.show(parent=self._parent),
+                      image=publish.ICON)
+        cmds.menuItem("Manage...",
                       command=lambda *args: manager.show(parent=self._parent))
 
         cmds.menuItem(divider=True)
 
-        # Modeling sub-menu
-        cmds.menuItem("Modeling",
-                      label="Modeling",
+        cmds.menuItem("System",
+                      label="System",
                       tearOff=True,
                       subMenu=True,
                       parent=self._menu)
 
-        cmds.menuItem("Combine", command=interactive.combine)
-
-        # Rigging sub-menu
-        cmds.menuItem("Rigging",
-                      label="Rigging",
-                      tearOff=True,
-                      subMenu=True,
-                      parent=self._menu)
-
-        cmds.menuItem("Auto Connect", command=interactive.auto_connect)
-        cmds.menuItem("Clone (Local)", command=interactive.clone_localspace)
-        cmds.menuItem("Clone (World)", command=interactive.clone_worldspace)
-        cmds.menuItem("Clone (Special)", command=interactive.clone_special)
-        cmds.menuItem("Create Follicle", command=interactive.follicle)
-
-        # Animation sub-menu
-        cmds.menuItem("Animation",
-                      label="Animation",
-                      tearOff=True,
-                      subMenu=True,
-                      parent=self._menu)
-
-        cmds.menuItem("Set Defaults", command=interactive.set_defaults)
+        cmds.menuItem("Reload Pipeline", command=_reload)
 
         cmds.setParent("..", menu=True)
 
-        cmds.menuItem(divider=True)
-
-        cmds.menuItem("Auto Connect", command=interactive.auto_connect_assets)
         cmds.menuItem("Reset Frame Range",
                       command=interactive.reset_frame_range)
+        cmds.menuItem("Reset Resolution",
+                      command=interactive.reset_resolution)
 
     # Allow time for uninstallation to finish.
     QtCore.QTimer.singleShot(100, deferred)
+
+    if self._parent is None:
+        # If the menu is created *before* QApplication has had a
+        # chance to settle, the parent won't be found.
+        self._parent = {
+            widget.objectName(): widget
+            for widget in QtWidgets.QApplication.topLevelWidgets()
+        }.get("MayaWindow")
+
+
+def _reload(*args):
+    """Attempt to reload pipeline at run-time.
+
+    CAUTION: This is primarily for development and debugging purposes.
+
+    """
+
+    from mindbender import api, pipeline, io, lib
+    import mindbender.maya
+    import mindbender.maya.pipeline
+    import mindbender.maya.interactive
+    import mindbender.maya.commands
+    import mindbender.tools.creator.app
+    import mindbender.tools.manager.app
+    import mindbender.tools.loader.app
+
+    api.uninstall()
+
+    for module in (io,
+                   lib,
+                   pipeline,
+                   mindbender.maya.commands,
+                   mindbender.maya.interactive,
+                   mindbender.maya.pipeline,
+                   mindbender.maya.lib,
+                   mindbender.tools.loader.app,
+                   mindbender.tools.creator.app,
+                   mindbender.tools.manager.app,
+                   api,
+                   mindbender.maya):
+        reload(module)
+
+    api.install(mindbender.maya)
 
 
 def _uninstall_menu():
@@ -139,15 +154,6 @@ def _uninstall_menu():
         del(menu)
 
 
-def _register_data():
-    # Default Instance data
-    # All newly created instances will be imbued with these members.
-    api.register_data(key="id", value="pyblish.mindbender.instance")
-    api.register_data(key="asset", value="{asset}")
-    api.register_data(key="subset", value="{subset}")
-    api.register_data(key="family", value="{family}")
-
-
 def _register_formats():
     # These file-types will appear in the Loader GUI
     api.register_format(".ma")
@@ -155,57 +161,63 @@ def _register_formats():
     api.register_format(".abc")
 
 
-def _register_families():
-    # These families will appear in the Creator GUI
-    api.register_family(
-        name="mindbender.model",
-        label="Model",
-        help="Polygonal geometry for animation",
-    )
+def containerise(name,
+                 namespace,
+                 nodes,
+                 context,
+                 loader=None,
+                 suffix="_CON"):
+    """Bundle `nodes` into an assembly and imprint it with metadata
 
-    api.register_family(
-        name="mindbender.rig",
-        label="Rig",
-        help="Character rig",
-    )
+    Containerisation enables a tracking of version, author and origin
+    for loaded assets.
 
-    api.register_family(
-        name="mindbender.lookdev",
-        label="Look",
-        help="Shaders, textures and look",
-    )
+    Arguments:
+        name (str): Name of resulting assembly
+        nodes (list): Long names of nodes to containerise
+        namespace (str): Namespace under which to host container
+        asset (mindbender-core:asset-1.0): Current asset
+        subset (mindbender-core:subset-1.0): Current subset
+        version (mindbender-core:version-1.0): Current version
+        representation (mindbender-core:representation-1.0): ...
+        loader (str, optional): Name of loader used to produce this container.
+        suffix (str, optional): Suffix of container, defaults to `_CON`.
 
-    api.register_family(
-        name="mindbender.historyLookdev",
-        label="History Look",
-        help="Shaders, textures and look with History",
-    )
+    Returns:
+        container (str): Name of container assembly
 
-    api.register_family(
-        name="mindbender.animation",
-        label="Animation",
-        help="Any character or prop animation",
-        data={
-            "startFrame": lambda: cmds.playbackOptions(
-                query=True, animationStartTime=True),
-            "endFrame": lambda: cmds.playbackOptions(
-                query=True, animationEndTime=True),
-        }
-    )
+    """
 
+    container = cmds.sets(nodes, name="%s_%s_%s" % (namespace, name, suffix))
 
-def _register_plugins():
-    lib_py_path = sys.modules[__name__].__file__
-    package_path = os.path.dirname(lib_py_path)
-    plugin_path = os.path.join(package_path, "plugins")
-    pyblish.api.register_plugin_path(plugin_path)
+    data = [
+        ("id", "pyblish.mindbender.container"),
+        ("name", name),
+        ("namespace", namespace),
+        ("loader", str(loader)),
+        ("project", context["project"]["name"]),
+        ("asset", context["asset"]["name"]),
+        ("subset", context["subset"]["name"]),
+        ("version", context["version"]["name"]),
+        ("representation", context["representation"]["_id"]),
+    ]
 
+    for key, value in data:
+        if not value:
+            continue
 
-def _register_loaders():
-    lib_py_path = sys.modules[__name__].__file__
-    package_path = os.path.dirname(lib_py_path)
-    loaders_path = os.path.join(package_path, "loaders")
-    api.register_loader_path(loaders_path)
+        if isinstance(value, (int, float)):
+            cmds.addAttr(container, longName=key, attributeType="short")
+            cmds.setAttr(container + "." + key, value)
+
+        else:
+            cmds.addAttr(container, longName=key, dataType="string")
+            cmds.setAttr(container + "." + key, value, type="string")
+
+    # Hide in outliner
+    cmds.setAttr(container + ".verticesOnlySet", True)
+
+    return container
 
 
 def ls():
@@ -218,52 +230,119 @@ def ls():
     """
 
     for container in sorted(lib.lsattr("id", "pyblish.mindbender.container")):
+        data = lib.read(container)
+
+        try:
+            document = io.find_one(
+                {"_id": io.ObjectId(data["representation"])}
+            )
+        except io.InvalidId:
+            api.logger.warning("Skipping %s, invalid id." % container)
+            continue
+
         data = dict(
             schema="mindbender-core:container-1.0",
             objectName=container,
-            **lib.read(container)
+            name=data["name"],
+            namespace=data["namespace"],
+            representation=data["representation"],
+            **document["data"]
         )
-
-        # api.schema.validate(data, "container")
 
         yield data
 
 
-def load(representation):
+def load(representation,
+         name=None,
+         namespace=None,
+         post_process=True,
+         preset=None):
     """Load asset via database
 
     Arguments:
-        representation (bson.objectid.ObjectId): Address to representation
+        representation (dict, io.ObjectId or str): Address to representation
 
     """
 
-    if not isinstance(representation, io.ObjectId):
-        representation = io.ObjectId(representation)
+    assert representation is not None, "This is a bug"
 
-    representation = io.find_one({"_id": representation})
-    version = io.find_one({"_id": representation["parent"]})
-    subset = io.find_one({"_id": version["parent"]})
-    asset = io.find_one({"_id": subset["parent"]})
-    project = io.find_one({"_id": asset["parent"]})
+    preset = preset or os.environ["MINDBENDER_TASK"]
 
-    for Loader in api.discover_loaders():
-        if not any(family in Loader.families
-                   for family in version["data"].get("families", list)):
-            continue
+    if isinstance(representation, (six.string_types, io.ObjectId)):
+        representation = io.find_one({"_id": io.ObjectId(str(representation))})
 
-        print("Running '%s' on '%s'" % (Loader.__name__, asset["name"]))
+    version, subset, asset, project = io.parenthood(representation)
 
-        return Loader().process(
-            project=project,
-            asset=asset,
-            subset=subset,
-            version=version,
-            representation=representation,
-        )
+    assert all([representation, version, subset, asset, project]), (
+        "This is a bug"
+    )
+
+    context = {
+        "project": project,
+        "asset": asset,
+        "subset": subset,
+        "version": version,
+        "representation": representation,
+        "preset": {"name": preset}
+    }
+
+    name = name or subset["name"]
+    namespace = namespace or lib.unique_namespace(
+        asset["name"] + "_",
+        prefix="_" if asset["name"][0].isdigit() else "",
+        suffix="_",
+    )
+
+    nodes = list()
+    loaders = list()
+    families = context["version"]["data"]["families"]
+    for Loader in api.discover(api.Loader):
+        has_family = any(family in Loader.families for family in families)
+        has_representation = representation["name"] in Loader.representations
+
+        if has_family and has_representation:
+            Loader.log.info(
+                "Running '%s' on '%s'" % (Loader.__name__, asset["name"])
+            )
+
+            try:
+                loader = Loader(context)
+                loader.process(name, namespace, context)
+            except OSError as e:
+                print("WARNING: %s" % e)
+                continue
+
+            if post_process:
+                loader.post_process(name, namespace, context)
+
+            loaders.append(Loader)
+            nodes.extend(loader)
+
+    assert loaders, "No loaders were run, this is a bug"
+    assert nodes, "No nodes were loaded, this is a bug"
+
+    return containerise(
+        name=name,
+        namespace=namespace,
+        nodes=nodes,
+        context=context,
+        loader=" ".join(Loader.__name__ for Loader in loaders)
+    )
 
 
-def create(asset, subset, family, options=None):
-    """Create new instance
+class Creator(api.Creator):
+    def process(self):
+        nodes = list()
+
+        if (self.options or {}).get("useSelection"):
+            nodes = cmds.ls(selection=True)
+
+        instance = cmds.sets(nodes, name=self.name)
+        lib.imprint(instance, self.data)
+
+
+def create(name, asset, family, options=None, data=None):
+    """Create a new instance
 
     Associate nodes with a subset and family. These nodes are later
     validated, according to their `family`, and integrated into the
@@ -274,9 +353,11 @@ def create(asset, subset, family, options=None):
     and finally asset browsers to help identify the origin of the asset.
 
     Arguments:
-        subset (str): Name of instance
+        name (str): Name of subset
+        asset (str): Name of asset
         family (str): Name of family
-        options (dict, optional): Additional options
+        options (dict, optional): Additional options from GUI
+        data (dict, optional): Additional data from GUI
 
     Raises:
         NameError on `subset` already exists
@@ -288,14 +369,38 @@ def create(asset, subset, family, options=None):
 
     """
 
+    for Plugin in api.discover(api.Creator):
+        has_family = family == Plugin.family
+
+        if not has_family:
+            continue
+
+        Plugin.log.info(
+            "Creating '%s' with '%s'" % (name, Plugin.__name__)
+        )
+
+        plugin = Plugin(name, asset, options, data)
+
+        with lib.maintained_selection():
+            plugin.process()
+
+
+def _create(name, family, asset=None, options=None, data=None):
+
     family_ = api.registered_families().get(family)
 
     assert family_ is not None, "{0} is not a valid family".format(
         family)
 
-    data = dict(api.registered_data(), **family_.get("data", {}))
+    # Merge incoming with existing data
+    # TODO(marcus): This is being delegated to Creator plug-ins.
+    data = dict(
+        dict(api.registered_data(), **family_.get("data", {})),
+        **(data or {})
+    )
 
-    instance = "%s_SET" % subset
+    instance = "%s_SET" % name
+    asset = asset or os.environ["MINDBENDER_ASSET"]
 
     if cmds.objExists(instance):
         raise NameError("\"%s\" already exists." % instance)
@@ -313,14 +418,13 @@ def create(asset, subset, family, options=None):
         if isinstance(value, basestring):
             try:
                 data[key] = str(value).format(
-                    subset=subset,
+                    subset=name,
                     asset=asset,
                     family=family_["name"]
                 )
             except KeyError as e:
                 raise KeyError("Invalid dynamic property: %s" % e)
 
-    print("About to imprint")
     lib.imprint(instance, data)
 
     return instance
@@ -407,9 +511,6 @@ def update(container, version=-1):
     cmds.setAttr(container["objectName"] + ".representation",
                  str(new_representation["_id"]),
                  type="string")
-    cmds.setAttr(container["objectName"] + ".source",
-                 new_version["data"]["source"],
-                 type="string")
 
 
 def remove(container):
@@ -443,26 +544,32 @@ def remove(container):
         pass
 
 
-def _register_id_callback():
-    """Automatically add IDs to new nodes
+def _register_callbacks():
+    for handler, event in self._events.copy().items():
+        if event is None:
+            continue
 
-    Any transform of a mesh, without an exising ID,
-    is given one automatically on file save.
-
-    """
-
-    if self._id_callback is not None:
         try:
-            OpenMaya.MMessage.removeCallback(self._id_callback)
-            self._id_callback = None
+            OpenMaya.MMessage.removeCallback(event)
+            self._events[handler] = None
         except RuntimeError, e:
             print(e)
 
-    self._id_callback = OpenMaya.MSceneMessage.addCallback(
-        OpenMaya.MSceneMessage.kBeforeSave, _callback
+    self._events[_on_scene_save] = OpenMaya.MSceneMessage.addCallback(
+        OpenMaya.MSceneMessage.kBeforeSave, _on_scene_save
     )
 
-    print("Registered _callback")
+    self._events[_on_scene_new] = OpenMaya.MSceneMessage.addCallback(
+        OpenMaya.MSceneMessage.kAfterNew, _on_scene_new
+    )
+
+    self._events[_on_maya_initialized] = OpenMaya.MSceneMessage.addCallback(
+        OpenMaya.MSceneMessage.kMayaInitialized, _on_maya_initialized
+    )
+
+    print("Installed event handler _on_scene_save..")
+    print("Installed event handler _on_scene_new..")
+    print("Installed event handler _on_maya_initialized..")
 
 
 def _set_uuid(node):
@@ -480,7 +587,34 @@ def _set_uuid(node):
         cmds.setAttr(attr, uid, type="string")
 
 
-def _callback(_):
+def _on_maya_initialized(_):
+    print("Running callback: maya initialized..")
+    commands.reset_frame_range()
+    commands.reset_resolution()
+
+
+def _on_scene_new(_):
+    print("Running callback: scene new..")
+
+    # Load dependencies
+    # TODO(marcus): Externalise this
+    cmds.loadPlugin("AbcExport.mll", quiet=True)
+    cmds.loadPlugin("AbcImport.mll", quiet=True)
+
+    commands.reset_frame_range()
+    commands.reset_resolution()
+
+
+def _on_scene_save(_):
+    """Automatically add IDs to new nodes
+
+    Any transform of a mesh, without an exising ID,
+    is given one automatically on file save.
+
+    """
+
+    print("Running callback: scene save..")
+
     nodes = (set(cmds.ls(type="mesh", long=True)) -
              set(cmds.ls(long=True, readOnly=True)) -
              set(cmds.ls(long=True, lockedNodes=True)))

@@ -1,21 +1,25 @@
+import logging
 import contextlib
 
-from . import style
-from .. import io
-from .tree import TreeModel, Node
-from .proxy import RecursiveSortFilterProxyModel
-from .deselectabletreeview import DeselectableTreeView
-from ..vendor import qtawesome as qta
-from ..vendor.Qt import QtWidgets, QtCore, QtGui
+from ...vendor import qtawesome as awesome
+from ...vendor.Qt import QtWidgets, QtCore, QtGui
+from ... import io
 
-import logging
+from . import style
+from .model import (
+    TreeModel,
+    Node,
+    RecursiveSortFilterProxyModel,
+    DeselectableTreeView
+)
+
 log = logging.getLogger(__name__)
 
 
 def _iter_model_rows(model,
                      column,
                      include_root=False):
-    """Iterate over all row indices in a model."""
+    """Iterate over all row indices in a model"""
     indices = [QtCore.QModelIndex()]  # start iteration at root
 
     for index in indices:
@@ -42,17 +46,17 @@ def preserve_expanded_rows(tree_view,
     the model items. When refresh is triggered the items which are expanded
     will stay expanded and vise versa.
 
-    :param tree_view: the tree view which is nested in the application
-    :type tree_view: QWidgets.QTreeView
+    Arguments:
+        tree_view (QWidgets.QTreeView): the tree view which is
+            nested in the application
+        column (int): the column to retrieve the data from
+        role (int): the role which dictates what will be returned
 
-    :param column: the column to retrieve the data from
-    :type column: int
+    Returns:
+        None
 
-    :param role: the role which dictates what will be returned
-    :type role: int
-
-    :return: None
     """
+
     model = tree_view.model()
 
     expanded = set()
@@ -92,16 +96,13 @@ def preserve_selection(tree_view,
     the model items. When refresh is triggered the items which are expanded
     will stay expanded and vise versa.
 
-    :param tree_view: the tree view which is nested in the application
-    :type tree_view: QWidgets.QTreeView
+        tree_view (QWidgets.QTreeView): the tree view nested in the application
+        column (int): the column to retrieve the data from
+        role (int): the role which dictates what will be returned
 
-    :param column: the column to retrieve the data from
-    :type column: int
+    Returns:
+        None
 
-    :param role: the role which dictates what will be returned
-    :type role: int
-
-    :return: None
     """
 
     model = tree_view.model()
@@ -152,11 +153,11 @@ def _list_project_silos():
 
 class AssetModel(TreeModel):
     """A model listing assets in the silo in the activec project.
-    
+
     The assets are displayed in a treeview, they are visually parented by
     a `visualParent` field in the database containing an `_id` to a parent
     asset.
-    
+
     """
 
     COLUMNS = ["label"]
@@ -250,9 +251,9 @@ class AssetModel(TreeModel):
 
                 # If it has children show a full folder
                 if self.rowCount(index) > 0:
-                    return qta.icon("fa.folder", color=color)
+                    return awesome.icon("fa.folder", color=color)
                 else:
-                    return qta.icon("fa.folder-o", color=color)
+                    return awesome.icon("fa.folder-o", color=color)
 
         if role == QtCore.Qt.ForegroundRole:        # font color
 
@@ -277,53 +278,25 @@ class AssetView(DeselectableTreeView):
     This implements a context menu.
 
     """
+
     def __init__(self):
         super(AssetView, self).__init__()
         self.setIndentation(15)
-        #self.setHeaderHidden(True)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-    #     self.customContextMenuRequested.connect(self.on_contextMenu)
-    #
-    # def on_contextMenu(self, point):
-    #     """Context menu for the item hierarchy view"""
-    #
-    #     index = self.currentIndex()
-    #     if not index or not index.isValid():
-    #         return
-    #
-    #     path = get_data(index, AssetModel.FilePathRole)
-    #     if not path or not os.path.exists(path):
-    #         logger.error("Item path does not exist. This is a bug.")
-    #         return
-    #
-    #     menu = QtWidgets.QMenu(self)
-    #
-    #     metadata = {"path": path}
-    #     from cbra.actions.generic import ShowPathInExplorerAction
-    #     from cbra.action import _to_action
-    #
-    #     action = _to_action(ShowPathInExplorerAction(),
-    #                         metadata,
-    #                         parent=menu)
-    #
-    #     menu.addAction(action)
-    #
-    #     # Start context menu
-    #     globalPoint = self.mapToGlobal(point)
-    #     menu.exec_(globalPoint)
 
 
 class SiloTabWidget(QtWidgets.QTabBar):
     """Silo widget
-    
+
     Allows to add a silo, with "+" tab.
-    
+
     Note:
         When no silos are present an empty stub silo is added to
         use as the "blank" tab to start on, so the + tab becomes
         clickable.
-    
+
     """
+
     silo_changed = QtCore.Signal(str)
     silo_added = QtCore.Signal(str)
 
@@ -481,7 +454,7 @@ class AssetWidget(QtWidgets.QWidget):
 
         silo = SiloTabWidget()
 
-        icon = qta.icon("fa.refresh", color=style.light)
+        icon = awesome.icon("fa.refresh", color=style.light)
         refresh = QtWidgets.QPushButton(icon, "")
         refresh.setToolTip("Refresh items")
 
@@ -542,7 +515,7 @@ class AssetWidget(QtWidgets.QWidget):
 
     def refresh(self):
 
-        silos =_list_project_silos()
+        silos = _list_project_silos()
         self.silo.set_silos(silos)
 
         self._refresh_model()
@@ -564,36 +537,3 @@ class AssetWidget(QtWidgets.QWidget):
         selection = self.view.selectionModel()
         rows = selection.selectedRows()
         return [row.data(self.model.ObjectIdRole) for row in rows]
-
-    # def set_asset_selection(self, assets, expand=False):
-    #     """Select the relative items.
-    #
-    #     Also expands the tree view when `expand=True`.
-    #
-    #     Args:
-    #         assets (list): A list of asset names.
-    #
-    #     """
-    #
-    #     # TODO: Implement to select by unique asset "name"
-    #     if not isinstance(assets, (list, tuple)):
-    #         raise TypeError("Set items takes a list of items to set")
-    #
-    #     selection_model = self.view.selectionModel()
-    #     selection_model.clearSelection()
-    #     mode = selection_model.Select | selection_model.Rows
-    #
-    #     for asset in assets:
-    #
-    #         index = self.model.find_index(asset)
-    #         if not index or not index.isValid():
-    #             continue
-    #
-    #         index = self.proxy.mapFromSource(index)
-    #         selection_model.select(index, mode)
-    #
-    #         if expand:
-    #             # TODO: Implement expanding to the item
-    #             pass
-    #
-    #     self.selection_changed.emit()

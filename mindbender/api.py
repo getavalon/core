@@ -16,8 +16,6 @@ Motivation for api.py:
 
 """
 
-import logging
-
 from . import schema
 
 from .pipeline import (
@@ -25,30 +23,23 @@ from .pipeline import (
     uninstall,
 
     Loader,
-    discover_loaders,
+    Creator,
+    discover,
 
     register_root,
-    register_data,
     register_host,
     register_format,
-    register_silo,
-    register_family,
-    register_loader_path,
-    register_plugins,
+    register_plugin_path,
+    register_plugin,
 
     registered_host,
-    registered_families,
-    registered_loader_paths,
+    registered_plugin_paths,
     registered_formats,
-    registered_data,
     registered_root,
-    registered_silos,
 
-    deregister_plugins,
+    deregister_plugin,
+    deregister_plugin_path,
     deregister_format,
-    deregister_family,
-    deregister_data,
-    deregister_loader_path,
 )
 
 from .lib import (
@@ -60,9 +51,9 @@ from .lib import (
 
     find_latest_version,
     parse_version,
+    logger,
 )
 
-logging.basicConfig()
 
 __all__ = [
     "install",
@@ -71,30 +62,23 @@ __all__ = [
     "schema",
 
     "Loader",
-    "discover_loaders",
+    "Creator",
+    "discover",
 
     "register_host",
-    "register_data",
     "register_format",
-    "register_silo",
-    "register_family",
-    "register_loader_path",
-    "register_plugins",
+    "register_plugin_path",
+    "register_plugin",
     "register_root",
 
     "registered_root",
-    "registered_silos",
-    "registered_loader_paths",
+    "registered_plugin_paths",
     "registered_host",
-    "registered_families",
     "registered_formats",
-    "registered_data",
 
-    "deregister_plugins",
+    "deregister_plugin",
+    "deregister_plugin_path",
     "deregister_format",
-    "deregister_family",
-    "deregister_data",
-    "deregister_loader_path",
 
     "format_staging_dir",
     "format_shared_dir",
@@ -102,6 +86,7 @@ __all__ = [
 
     "find_latest_version",
     "parse_version",
+    "logger",
 
     "time",
 ]

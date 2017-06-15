@@ -1,9 +1,9 @@
 import sys
 
+from ...vendor.Qt import QtWidgets, QtCore
 from ... import io, schema
 from .. import lib as parentlib
-from ...vendor.Qt import QtWidgets, QtCore, QtGui
-from ...widgets import assetwidget
+from . import widget
 
 from .dialogs import TasksCreateDialog, AssetCreateDialog
 from .model import TasksModel
@@ -28,7 +28,7 @@ class Window(QtWidgets.QDialog):
         assets_widgets = QtWidgets.QWidget()
         assets_widgets.setContentsMargins(0, 0, 0, 0)
         assets_layout = QtWidgets.QVBoxLayout(assets_widgets)
-        assets = assetwidget.AssetWidget()
+        assets = widget.AssetWidget()
         assets.view.setSelectionMode(assets.view.ExtendedSelection)
         add_asset = QtWidgets.QPushButton("Add asset")
         assets_layout.addWidget(assets)
@@ -133,11 +133,12 @@ class Window(QtWidgets.QDialog):
 
         def _on_current_asset_changed():
             """Callback on current asset changed in item widget.
-            
-            Whenever the current index changes in the item widget we want to 
+
+            Whenever the current index changes in the item widget we want to
             update under which asset we're creating *to be created* asset.
-            
+
             """
+
             parent = model.get_active_asset()
             dialog.set_parent(parent)
             dialog.set_silo(model.get_current_silo())
@@ -189,10 +190,11 @@ class Window(QtWidgets.QDialog):
 
     def on_asset_changed(self):
         """Callback on asset selection changed
-        
+
         This updates the task view.
-        
+
         """
+
         model = self.data["model"]["assets"]
         selected = model.get_selected_assets()
         self.data['model']['tasks'].set_assets(selected)
@@ -219,7 +221,6 @@ def show(root=None, debug=False, parent=None):
         pass
 
     if debug is True:
-        from ... import io
         io.install()
 
     with parentlib.application():
@@ -228,3 +229,16 @@ def show(root=None, debug=False, parent=None):
         window.refresh()
 
         module.window = window
+
+
+def cli(args):
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("project")
+
+    args = parser.parse_args(args)
+    project = args.project
+
+    io.install()
+    io.activate_project(project)
+    show()

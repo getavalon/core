@@ -7,3 +7,4 @@ shared
 _site
 *.pyc
 .idea/
+*.bat

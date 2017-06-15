@@ -11,7 +11,8 @@ module.window = None
 ContainerRole = QtCore.Qt.UserRole + 1
 SubsetRole = QtCore.Qt.UserRole + 2
 VersionRole = QtCore.Qt.UserRole + 3
-RepresentationRole = QtCore.Qt.UserRole + 4
+CurrentVersionRole = QtCore.Qt.UserRole + 4
+RepresentationRole = QtCore.Qt.UserRole + 5
 
 
 class Window(QtWidgets.QDialog):
@@ -153,6 +154,42 @@ class Window(QtWidgets.QDialog):
         if versions_model.hasFocus():
             remove.hide()
 
+    def refresh(self):
+        """Load containers from disk and add them to a QListView
+
+        This method runs part-asynchronous, in that it blocks
+        when busy, but takes brief intermissions between each
+        container found so as to lighten the load off of disk, and
+        to enable the artist to abort searching once the target
+        container has been found.
+
+        """
+
+        containers_model = self.data["model"]["containers"]
+        containers_model.clear()
+
+        has = {"containers": False}
+
+        for container in api.registered_host().ls():
+            has["containers"] = True
+
+            name = "{namespace}{name}".format(**container)
+            item = QtWidgets.QListWidgetItem(name)
+            item.setData(QtCore.Qt.ItemIsEnabled, True)
+            item.setData(ContainerRole, container)
+            containers_model.addItem(item)
+
+        if not has["containers"]:
+            item = QtWidgets.QListWidgetItem("No containers found")
+            item.setData(QtCore.Qt.ItemIsEnabled, False)
+            containers_model.addItem(item)
+
+            containers_model.setFocus()
+            self.data["button"]["load"].show()
+
+        self.data["button"]["load"].hide()
+        self.data["button"]["remove"].hide()
+
     def keyPressEvent(self, event):
         """Delegate keyboard events"""
 
@@ -213,6 +250,7 @@ class Window(QtWidgets.QDialog):
             item = QtWidgets.QListWidgetItem("v%03d" % version["name"])
             item.setData(QtCore.Qt.ItemIsEnabled, True)
             item.setData(VersionRole, version)
+            item.setData(CurrentVersionRole, current_version["name"])
             item.setData(SubsetRole, current_subset)
 
             versions_model.addItem(item)
@@ -235,56 +273,21 @@ class Window(QtWidgets.QDialog):
 
         container = container_item.data(ContainerRole)
         version = version_item.data(VersionRole)
-        message = "'{0[name]}' from version {0[version]} -> {1[name]}".format(
-            container, version
+        current_version = version_item.data(CurrentVersionRole)
+        message = "'{0}' from version {1} -> {2}".format(
+            container["name"], current_version, version["name"]
         )
 
-        if container["version"] == version["name"]:
+        if current_version == version["name"]:
             load.hide()
 
-        elif container["version"] > version["name"]:
+        elif current_version > version["name"]:
             load.setText("Downgrade %s" % message)
             load.show()
 
         else:
             load.setText("Upgrade %s" % message)
             load.show()
-
-    def refresh(self):
-        """Load containers from disk and add them to a QListView
-
-        This method runs part-asynchronous, in that it blocks
-        when busy, but takes brief intermissions between each
-        container found so as to lighten the load off of disk, and
-        to enable the artist to abort searching once the target
-        container has been found.
-
-        """
-
-        containers_model = self.data["model"]["containers"]
-        containers_model.clear()
-
-        has = {"containers": False}
-
-        for container in api.registered_host().ls():
-            has["containers"] = True
-
-            name = "{name}\t({subset})".format(**container)
-            item = QtWidgets.QListWidgetItem(name)
-            item.setData(QtCore.Qt.ItemIsEnabled, True)
-            item.setData(ContainerRole, container)
-            containers_model.addItem(item)
-
-        if not has["containers"]:
-            item = QtWidgets.QListWidgetItem("No containers found")
-            item.setData(QtCore.Qt.ItemIsEnabled, False)
-            containers_model.addItem(item)
-
-            containers_model.setFocus()
-            self.data["button"]["load"].show()
-
-        self.data["button"]["load"].hide()
-        self.data["button"]["remove"].hide()
 
     def on_remove_pressed(self):
         containers_model = self.data["model"]["containers"]
@@ -385,6 +388,13 @@ def show(root=None, debug=False, parent=None):
 
     if debug is True:
         io.install()
+
+        any_project = next(
+            project for project in io.projects()
+            if project.get("active", True) is not False
+        )
+
+        io.activate_project(any_project)
 
     with lib.application():
         window = Window(parent)

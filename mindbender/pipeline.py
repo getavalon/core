@@ -3,19 +3,17 @@ import sys
 import types
 import logging
 import inspect
-
-from pyblish import api
+import importlib
 
 from . import (
     io,
+    lib,
 
-    _registered_families,
-    _registered_data,
-    _registered_silos,
-    _registered_formats,
-    _registered_loader_paths,
     _registered_host,
     _registered_root,
+    _registered_formats,
+    _registered_plugins,
+    _registered_plugin_paths,
 )
 
 from .vendor import six
@@ -44,18 +42,41 @@ def install(host):
         "%s missing from environment" % ", ".join(missing)
     )
 
-    # Optional host install function
-    if hasattr(host, "install"):
-        host.install()
-
-    register_host(host)
-    register_plugins()
+    project = os.environ["MINDBENDER_PROJECT"]
+    lib.logger.info("Activating %s.." % project)
 
     io.install()
-    io.activate_project(os.environ["MINDBENDER_PROJECT"])
+    io.activate_project(project)
+
+    config = find_config()
+
+    # Optional host install function
+    if hasattr(host, "install"):
+        host.install(config)
+
+    register_host(host)
+
+    config.install()
 
     self._is_installed = True
     self.log.info("Successfully installed Pyblish Mindbender!")
+
+
+def find_config():
+    lib.logger.info("Finding configuration for project..")
+
+    project = io.find_one({"type": "project"})
+    config = project["config"].get("name")
+
+    if not config:
+        config = os.getenv("MINDBENDER_CONFIG")
+
+    if not config:
+        raise EnvironmentError("No configuration found in "
+                               "the project nor environment")
+
+    lib.logger.info("Found %s, loading.." % config)
+    return importlib.import_module(config)
 
 
 def uninstall():
@@ -65,7 +86,6 @@ def uninstall():
         pass
 
     deregister_host()
-    deregister_plugins()
 
     io.uninstall()
 
@@ -83,22 +103,72 @@ def is_installed():
     return self._is_installed
 
 
-class Loader(object):
-    families = list()
+@lib.log
+class Loader(list):
+    """Load representation into host application
 
-    def process(self, asset, subset, version, representation):
-        pass
-
-
-def discover_loaders():
-    """Find and return available loaders
+    Arguments:
+        context (dict): mindbender-core:context-1.0
+        name (str, optional): Use pre-defined name
+        namespace (str, optional): Use pre-defined namespace
 
     """
 
-    loaders = dict()
+    families = list()
+    representations = list()
+
+    def __init__(self, context):
+        template = context["project"]["config"]["template"]["publish"]
+
+        data = {
+            key: value["name"]
+            for key, value in context.items()
+        }
+
+        data["root"] = registered_root()
+        data["silo"] = context["asset"]["silo"]
+
+        fname = template.format(**data)
+
+        self.fname = fname
+
+    def process(self, name, namespace, context):
+        pass
+
+    def post_process(self, name, namespace, context):
+        pass
+
+
+@lib.log
+class Creator(object):
+    name = None
+    label = None
+    family = None
+
+    def __init__(self, name, asset, options=None, data=None):
+        self.name = name or self.name
+        self.options = options
+
+        # Default data
+        self.data = dict({
+            "id": "pyblish.mindbender.instance",
+            "family": self.family,
+            "asset": asset,
+            "subset": name
+        }, **(data or {}))
+
+    def process(self):
+        pass
+
+
+def discover(superclass):
+    """Find and return subclasses of `superclass`"""
+
+    registered = _registered_plugins.get(superclass, list())
+    plugins = dict()
 
     # Include plug-ins from registered paths
-    for path in _registered_loader_paths:
+    for path in _registered_plugin_paths.get(superclass, list()):
         path = os.path.normpath(path)
 
         assert os.path.isdir(path), "%s is not a directory" % path
@@ -130,20 +200,26 @@ def discover_loaders():
                 print("Skipped: \"%s\" (%s)", mod_name, err)
                 continue
 
-            for plugin in loaders_from_module(module):
-                if plugin.__name__ in loaders:
+            for plugin in plugin_from_module(superclass, module):
+                if plugin.__name__ in plugins:
                     print("Duplicate plug-in found: %s", plugin)
                     continue
 
-                loaders[plugin.__name__] = plugin
+                plugins[plugin.__name__] = plugin
 
-    return list(loaders.values())
+    for plugin in registered:
+        if plugin.__name__ in plugins:
+            print("Warning: Overwriting %s" % plugin.__name__)
+        plugins[plugin.__name__] = plugin
+
+    return sorted(plugins.values(), key=lambda Plugin: Plugin.__name__)
 
 
-def loaders_from_module(module):
+def plugin_from_module(superclass, module):
     """Return plug-ins from module
 
     Arguments:
+        superclass (superclass): Superclass of subclasses to look for
         module (types.ModuleType): Imported module from which to
             parse valid Pyblish plug-ins.
 
@@ -152,7 +228,7 @@ def loaders_from_module(module):
 
     """
 
-    loaders = list()
+    types = list()
 
     for name in dir(module):
 
@@ -162,25 +238,47 @@ def loaders_from_module(module):
         if not inspect.isclass(obj):
             continue
 
-        if not issubclass(obj, Loader):
+        if not issubclass(obj, superclass):
             continue
 
-        loaders.append(obj)
+        types.append(obj)
 
-    return loaders
+    return types
 
 
-def register_loader_path(path):
+def register_plugin(superclass, obj):
+    if superclass not in _registered_plugins:
+        _registered_plugins[superclass] = list()
+
+    if obj not in _registered_plugins[superclass]:
+        _registered_plugins[superclass].append(obj)
+
+
+def register_plugin_path(superclass, path):
+    if superclass not in _registered_plugin_paths:
+        _registered_plugin_paths[superclass] = list()
+
     path = os.path.normpath(path)
-    _registered_loader_paths.add(path)
+    if path not in _registered_plugin_paths[superclass]:
+        _registered_plugin_paths[superclass].append(path)
 
 
-def registered_loader_paths():
-    return list(_registered_loader_paths)
+def registered_plugin_paths():
+    # Prohibit editing in-place
+    duplicate = {
+        superclass: paths[:]
+        for superclass, paths in _registered_plugin_paths.items()
+    }
+
+    return duplicate
 
 
-def deregister_loader_path(path):
-    _registered_loader_paths.remove(path)
+def deregister_plugin(superclass, plugin):
+    _registered_plugins[superclass].remove(plugin)
+
+
+def deregister_plugin_path(superclass, path):
+    _registered_plugin_paths[superclass].remove(path)
 
 
 def register_root(path):
@@ -235,10 +333,11 @@ def register_host(host):
             "representation"
         ],
         "create": [
-            "asset",
-            "subset",
+            "name",
             "family",
-            "options"
+            "asset",
+            "options",
+            "data"
         ],
         "ls": [
         ],
@@ -307,88 +406,8 @@ def register_host(host):
         _registered_host["_"] = host
 
 
-def register_plugins():
-    """Register accompanying plugins"""
-    module_path = sys.modules[__name__].__file__
-    package_path = os.path.dirname(module_path)
-    plugins_path = os.path.join(package_path, "plugins")
-    api.register_plugin_path(plugins_path)
-
-
-def deregister_plugins():
-    module_path = sys.modules[__name__].__file__
-    package_path = os.path.dirname(module_path)
-    plugins_path = os.path.join(package_path, "plugins")
-    api.deregister_plugin_path(plugins_path)
-
-
-def register_silo(name):
-    _registered_silos.add(name)
-
-
-def registered_silos():
-    return (
-        list(_registered_silos) or
-        os.getenv("MINDBENDER_SILO", "").split()
-    )
-
-
-def register_data(key, value, help=None):
-    """Register new default attribute
-
-    Arguments:
-        key (str): Name of data
-        value (object): Arbitrary value of data
-        help (str, optional): Briefly describe
-
-    """
-
-    _registered_data[key] = value
-
-
-def deregister_data(key):
-    _registered_data.pop(key)
-
-
-def register_family(name,
-                    label=None,
-                    data=None,
-                    help=None,
-                    loader=None):
-    """Register family and attributes for family
-
-    Arguments:
-        name (str): Name of family, e.g. mindbender.model
-        label (str): Nice name for family, e.g. Model
-        data (dict, optional): Additional data, see
-            :func:`register_data` for docstring on members
-        help (str, optional): Briefly describe this family
-
-    """
-
-    _registered_families[name] = {
-        "name": name,
-        "label": label,
-        "data": data or {},
-        "help": help or "",
-        "loader": loader
-    }
-
-
-def deregister_family(name):
-    _registered_families.pop(name)
-
-
 def registered_formats():
     return _registered_formats[:]
-
-
-def registered_families():
-    return _registered_families.copy()
-
-
-def registered_data():
-    return _registered_data.copy()
 
 
 def registered_host():
@@ -414,10 +433,14 @@ def default_host():
     def ls():
         return list()
 
-    def load(representation=None):
+    def load(representation=None,
+             name=None,
+             namespace=None,
+             post_process=None,
+             preset=None):
         return None
 
-    def create(name, family, nodes=None):
+    def create(family):
         return "instanceFromDefaultHost"
 
     def remove(container):
@@ -462,17 +485,19 @@ def debug_host():
         for container in containers:
             yield container
 
-    def load(representation=None):
+    def load(representation=None,
+             name=None,
+             namespace=None,
+             post_process=None,
+             preset=None):
         sys.stdout.write(pformat({
             "representation": representation
         }) + "\n"),
 
         return None
 
-    def create(asset, subset, family, options=None):
+    def create(name, asset, family, options=None, data=None):
         sys.stdout.write(pformat({
-            "asset": asset,
-            "subset": subset,
             "family": family,
         }))
         return "instanceFromDebugHost"
