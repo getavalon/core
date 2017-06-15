@@ -255,27 +255,27 @@ def register_host(host):
     invalid = list()
     success = True
 
-    for member in signatures:
-        if not hasattr(host, member):
-            missing.append(member)
-            success = False
+    # for member in signatures:
+    #     if not hasattr(host, member):
+    #         missing.append(member)
+    #         success = False
 
-        else:
-            attr = getattr(host, member)
-            signature = inspect.getargspec(attr)[0]
-            required_signature = signatures[member]
+    #     else:
+    #         attr = getattr(host, member)
+    #         signature = inspect.getargspec(attr)[0]
+    #         required_signature = signatures[member]
 
-            assert isinstance(signature, list)
-            assert isinstance(required_signature, list)
+    #         assert isinstance(signature, list)
+    #         assert isinstance(required_signature, list)
 
-            if not all(member in signature
-                       for member in required_signature):
-                invalid.append({
-                    "member": member,
-                    "signature": ", ".join(signature),
-                    "required": ", ".join(required_signature)
-                })
-                success = False
+    #         if not all(member in signature
+    #                    for member in required_signature):
+    #             invalid.append({
+    #                 "member": member,
+    #                 "signature": ", ".join(signature),
+    #                 "required": ", ".join(required_signature)
+    #             })
+    #             success = False
 
     if not success:
         report = list()

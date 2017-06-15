@@ -1,14 +1,18 @@
+import logging
 import contextlib
 
-from . import style
-from .. import io
-from .tree import TreeModel, Node
-from .proxy import RecursiveSortFilterProxyModel
-from .deselectabletreeview import DeselectableTreeView
-from ..vendor import qtawesome as awesome
-from ..vendor.Qt import QtWidgets, QtCore, QtGui
+from ...vendor import qtawesome as awesome
+from ...vendor.Qt import QtWidgets, QtCore, QtGui
+from ... import io
 
-import logging
+from . import style
+from .model import (
+    TreeModel,
+    Node,
+    RecursiveSortFilterProxyModel,
+    DeselectableTreeView
+)
+
 log = logging.getLogger(__name__)
 
 
@@ -152,11 +156,11 @@ def _list_project_silos():
 
 class AssetModel(TreeModel):
     """A model listing assets in the silo in the activec project.
-    
+
     The assets are displayed in a treeview, they are visually parented by
     a `visualParent` field in the database containing an `_id` to a parent
     asset.
-    
+
     """
 
     COLUMNS = ["label", "tags", "deprecated"]
@@ -271,53 +275,25 @@ class AssetView(DeselectableTreeView):
     This implements a context menu.
 
     """
+
     def __init__(self):
         super(AssetView, self).__init__()
         self.setIndentation(15)
-        #self.setHeaderHidden(True)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-    #     self.customContextMenuRequested.connect(self.on_contextMenu)
-    #
-    # def on_contextMenu(self, point):
-    #     """Context menu for the item hierarchy view"""
-    #
-    #     index = self.currentIndex()
-    #     if not index or not index.isValid():
-    #         return
-    #
-    #     path = get_data(index, AssetModel.FilePathRole)
-    #     if not path or not os.path.exists(path):
-    #         logger.error("Item path does not exist. This is a bug.")
-    #         return
-    #
-    #     menu = QtWidgets.QMenu(self)
-    #
-    #     metadata = {"path": path}
-    #     from cbra.actions.generic import ShowPathInExplorerAction
-    #     from cbra.action import _to_action
-    #
-    #     action = _to_action(ShowPathInExplorerAction(),
-    #                         metadata,
-    #                         parent=menu)
-    #
-    #     menu.addAction(action)
-    #
-    #     # Start context menu
-    #     globalPoint = self.mapToGlobal(point)
-    #     menu.exec_(globalPoint)
 
 
 class SiloTabWidget(QtWidgets.QTabWidget):
     """Silo widget
-    
+
     Allows to add a silo, with "+" tab.
-    
+
     Note:
         When no silos are present an empty stub silo is added to
         use as the "blank" tab to start on, so the + tab becomes
         clickable.
-    
+
     """
+
     silo_changed = QtCore.Signal(str)
     silo_added = QtCore.Signal(str)
 
@@ -331,8 +307,6 @@ class SiloTabWidget(QtWidgets.QTabWidget):
         font = QtGui.QFont()
         font.setBold(True)
         self.setFont(font)
-
-        #self.setSizePolicy(QtGui)
 
         self.currentChanged.connect(self.on_tab_changed)
 
@@ -529,7 +503,7 @@ class AssetWidget(QtWidgets.QWidget):
 
     def refresh(self):
 
-        silos =_list_project_silos()
+        silos = _list_project_silos()
         self.silo.set_silos(silos)
 
         self._refresh_model()
@@ -548,36 +522,3 @@ class AssetWidget(QtWidgets.QWidget):
         selection = self.view.selectionModel()
         rows = selection.selectedRows()
         return [row.data(self.model.ObjectIdRole) for row in rows]
-
-    # def set_asset_selection(self, assets, expand=False):
-    #     """Select the relative items.
-    #
-    #     Also expands the tree view when `expand=True`.
-    #
-    #     Args:
-    #         assets (list): A list of asset names.
-    #
-    #     """
-    #
-    #     # TODO: Implement to select by unique asset "name"
-    #     if not isinstance(assets, (list, tuple)):
-    #         raise TypeError("Set items takes a list of items to set")
-    #
-    #     selection_model = self.view.selectionModel()
-    #     selection_model.clearSelection()
-    #     mode = selection_model.Select | selection_model.Rows
-    #
-    #     for asset in assets:
-    #
-    #         index = self.model.find_index(asset)
-    #         if not index or not index.isValid():
-    #             continue
-    #
-    #         index = self.proxy.mapFromSource(index)
-    #         selection_model.select(index, mode)
-    #
-    #         if expand:
-    #             # TODO: Implement expanding to the item
-    #             pass
-    #
-    #     self.selection_changed.emit()
