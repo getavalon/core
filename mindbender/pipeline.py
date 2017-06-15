@@ -330,6 +330,7 @@ def register_host(host):
     # Required signatures for each member
     signatures = {
         "load": [
+            "Loader",
             "representation"
         ],
         "create": [
@@ -433,7 +434,8 @@ def default_host():
     def ls():
         return list()
 
-    def load(representation=None,
+    def load(Loader=None,
+             representation=None,
              name=None,
              namespace=None,
              post_process=None,
@@ -485,12 +487,14 @@ def debug_host():
         for container in containers:
             yield container
 
-    def load(representation=None,
+    def load(Loader,
+             representation=None,
              name=None,
              namespace=None,
              post_process=None,
              preset=None):
         sys.stdout.write(pformat({
+            "loader": Loader,
             "representation": representation
         }) + "\n"),
 

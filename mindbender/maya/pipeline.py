@@ -252,7 +252,8 @@ def ls():
         yield data
 
 
-def load(representation,
+def load(Loader,
+         representation,
          name=None,
          namespace=None,
          post_process=True,
@@ -260,6 +261,7 @@ def load(representation,
     """Load asset via database
 
     Arguments:
+        Loader (api.Loader): The loader to process in host Maya.
         representation (dict, io.ObjectId or str): Address to representation
 
     """
@@ -293,41 +295,28 @@ def load(representation,
         suffix="_",
     )
 
-    nodes = list()
-    loaders = list()
-    families = context["version"]["data"]["families"]
-    for Loader in api.discover(api.Loader):
-        has_family = any(family in Loader.families for family in families)
-        has_representation = representation["name"] in Loader.representations
+    # TODO(roy): add compatibility check, see `tools.cbloader.lib`
 
-        if has_family and has_representation:
-            Loader.log.info(
-                "Running '%s' on '%s'" % (Loader.__name__, asset["name"])
-            )
+    Loader.log.info(
+        "Running '%s' on '%s'" % (Loader.__name__, asset["name"])
+    )
 
-            try:
-                loader = Loader(context)
-                loader.process(name, namespace, context)
-            except OSError as e:
-                print("WARNING: %s" % e)
-                continue
+    try:
+        loader = Loader(context)
+        loader.process(name, namespace, context)
+    except OSError as e:
+        print("WARNING: %s" % e)
+        return list()
 
-            if post_process:
-                loader.post_process(name, namespace, context)
-
-            loaders.append(Loader)
-            nodes.extend(loader)
-
-    assert loaders, "No loaders were run, this is a bug"
-    assert nodes, "No nodes were loaded, this is a bug"
+    if post_process:
+        loader.post_process(name, namespace, context)
 
     return containerise(
         name=name,
         namespace=namespace,
-        nodes=nodes,
+        nodes=loader[:],
         context=context,
-        loader=" ".join(Loader.__name__ for Loader in loaders)
-    )
+        loader=Loader.__name__)
 
 
 class Creator(api.Creator):

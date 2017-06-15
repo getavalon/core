@@ -1,6 +1,5 @@
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ... import io
-from ... import api
 
 from .model import SubsetsModel
 from .delegates import PrettyTimeDelegate, VersionDelegate
@@ -63,26 +62,6 @@ class SubsetWidget(QtWidgets.QWidget):
 
         view.customContextMenuRequested.connect(self.on_context_menu)
 
-    def load_representation(self, representation_id):
-
-        self.echo("Loading: {0}".format(representation_id))
-
-        try:
-            api.registered_host().load(representation=representation_id)
-
-        except ValueError as e:
-            self.echo(e)
-            raise
-
-        except NameError as e:
-            self.echo(e)
-            raise
-
-        # Catch-all
-        except Exception as e:
-            self.echo("Program error: %s" % str(e))
-            raise
-
     def on_context_menu(self, point):
 
         point_index = self.view.indexAt(point)
@@ -93,10 +72,11 @@ class SubsetWidget(QtWidgets.QWidget):
         version_document = subset_node['version_document']
         version_id = version_document['_id']
 
-        # List the loaders available for all representations
+        # Get all representations for the version
         representations = _get_representations(version_id)
 
-        loaders = []
+        # Get all representation->loader combinations available
+        loaders = list()
         for representation in representations:
             for loader in iter_loaders(representation["_id"]):
                 loaders.append((representation, loader))
@@ -106,19 +86,13 @@ class SubsetWidget(QtWidgets.QWidget):
             self.echo("No compatible loaders available for this version.")
             return
 
+        # List the available loaders
         menu = QtWidgets.QMenu(self)
         for representation, loader in loaders:
 
-            # Label the representation
-            label = representations[0].get("data", {}).get("label", None)
-            if not label:
-                label = ".{0}".format(representation['name'])
-
-            # Label the loader
             loader_label = loader.__name__
-
-            action = QtWidgets.QAction("{0} ({0})".format(loader_label,
-                                                          label), menu)
+            label = "{0} ({1})".format(loader_label, representation['name'])
+            action = QtWidgets.QAction(label, menu)
             action.setData((representation, loader))
             menu.addAction(action)
 
@@ -130,9 +104,8 @@ class SubsetWidget(QtWidgets.QWidget):
         if not action:
             return
 
-        representations = action.data()
-        for representation in representations:
-            self.load_representation(representation["_id"])
+        representation, loader = action.data()
+        run_loader(loader, representation['_id'])
 
     def echo(self, message):
         print(message)

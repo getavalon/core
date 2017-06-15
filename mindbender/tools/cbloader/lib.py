@@ -35,7 +35,7 @@ def get_representation_context(representation):
 
 def is_compatible_loader(Loader, context):
     """Return whether a loader is compatible with a context."""
-    families = context['version']['families']
+    families = context['version']['data']['families']
     representation = context['representation']
 
     has_family = any(family in Loader.families for family in families)
@@ -68,18 +68,5 @@ def run_loader(Loader,
     if not is_compatible_loader(Loader, context):
         raise RuntimeError("Loader is not compatible.")
 
-    Loader.log.info(
-        "Running '%s' on '%s'" % (Loader.__name__, context['asset']["name"])
-    )
-
-    try:
-        loader = Loader(context.copy())
-        loader.process()
-    except OSError as e:
-        print("WARNING: %s" % e)
-        return
-
-    if post_process:
-        loader.post_process()
-
-    return loader
+    host = api.registered_host()
+    return host.load(Loader, representation=representation)
