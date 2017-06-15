@@ -221,7 +221,6 @@ def show(root=None, debug=False, parent=None):
         pass
 
     if debug is True:
-        from ... import io
         io.install()
 
     with parentlib.application():
@@ -230,3 +229,16 @@ def show(root=None, debug=False, parent=None):
         window.refresh()
 
         module.window = window
+
+
+def cli(args):
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("project")
+
+    args = parser.parse_args(args)
+    project = args.project
+
+    io.install()
+    io.activate_project(project)
+    show()
