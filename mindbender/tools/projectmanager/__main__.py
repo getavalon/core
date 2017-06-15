@@ -1,4 +1,5 @@
-import sys
 from . import cli
 
-sys.exit(cli(sys.args))
+if __name__ == '__main__':
+    import sys
+    sys.exit(cli(sys.args))
