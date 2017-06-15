@@ -16,8 +16,6 @@ Motivation for api.py:
 
 """
 
-import logging
-
 from . import schema
 
 from .pipeline import (
@@ -31,7 +29,6 @@ from .pipeline import (
     register_root,
     register_host,
     register_format,
-    register_silo,
     register_plugin_path,
     register_plugin,
 
@@ -39,9 +36,9 @@ from .pipeline import (
     registered_plugin_paths,
     registered_formats,
     registered_root,
-    registered_silos,
 
-    deregister_plugins,
+    deregister_plugin,
+    deregister_plugin_path,
     deregister_format,
 )
 
@@ -54,10 +51,8 @@ from .lib import (
 
     find_latest_version,
     parse_version,
+    logger,
 )
-
-logging.basicConfig()
-logger = logging.getLogger("mindbender")
 
 
 __all__ = [
@@ -72,18 +67,17 @@ __all__ = [
 
     "register_host",
     "register_format",
-    "register_silo",
     "register_plugin_path",
     "register_plugin",
     "register_root",
 
     "registered_root",
-    "registered_silos",
     "registered_plugin_paths",
     "registered_host",
     "registered_formats",
 
-    "deregister_plugins",
+    "deregister_plugin",
+    "deregister_plugin_path",
     "deregister_format",
 
     "format_staging_dir",
@@ -92,6 +86,7 @@ __all__ = [
 
     "find_latest_version",
     "parse_version",
+    "logger",
 
     "time",
 ]
