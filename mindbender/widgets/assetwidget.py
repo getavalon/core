@@ -159,12 +159,13 @@ class AssetModel(TreeModel):
     
     """
 
-    COLUMNS = ["label", "tags", "deprecated"]
+    COLUMNS = ["label"]
     Name = 0
     Deprecated = 2
     ObjectId = 3
 
-    ObjectIdRole = QtCore.Qt.UserRole + 1
+    DocumentRole = QtCore.Qt.UserRole + 1
+    ObjectIdRole = QtCore.Qt.UserRole + 2
 
     def __init__(self, silo=None, parent=None):
         super(AssetModel, self).__init__(parent=parent)
@@ -214,6 +215,7 @@ class AssetModel(TreeModel):
                 "type": asset['type'],
                 "tags": ", ".join(asset.get("tags", [])),
                 "deprecated": deprecated,
+                "_document": asset
             })
             self.add_child(node, parent=parent)
 
@@ -261,6 +263,10 @@ class AssetModel(TreeModel):
         if role == self.ObjectIdRole:
             node = index.internalPointer()
             return node.get("_id", None)
+
+        if role == self.DocumentRole:
+            node = index.internalPointer()
+            return node.get("_document", None)
 
         return super(AssetModel, self).data(index, role)
 
@@ -540,6 +546,9 @@ class AssetWidget(QtWidgets.QWidget):
         """Return the asset id the current asset."""
         current = self.view.currentIndex()
         return current.data(self.model.ObjectIdRole)
+
+    def get_active_index(self):
+        return self.view.currentIndex()
 
     def get_selected_assets(self):
         """Return the assets' ids that are selected."""
