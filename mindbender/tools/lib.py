@@ -17,8 +17,7 @@ def resource(*path):
 def install_fonts():
     database = QtGui.QFontDatabase()
 
-    for font in ("fontawesome/FontAwesome.otf",
-                 "opensans/OpenSans-Regular.ttf"):
+    for font in ("opensans/OpenSans-Regular.ttf",):
         path = resource("font", font)
 
         if database.addApplicationFont(path) < 0:

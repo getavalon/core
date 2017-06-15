@@ -6,7 +6,7 @@ import datetime
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ... import api, io
 from .. import lib
-from ..awesome import tags as awesome
+from ...vendor import qtawesome as awesome
 
 module = sys.modules[__name__]
 module.window = None
@@ -68,7 +68,7 @@ class Window(QtWidgets.QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
 
         load_button = QtWidgets.QPushButton("Load")
-        refresh_button = QtWidgets.QPushButton(awesome["refresh"])
+        refresh_button = QtWidgets.QPushButton(awesome.icon("fa.refresh"), "")
         refresh_button.setStyleSheet("""
 QPushButton {
     max-width: 30px;

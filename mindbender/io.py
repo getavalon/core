@@ -48,6 +48,11 @@ def install():
     self._is_installed = True
 
 
+def active_project():
+    """Return the name of the active project collection."""
+    return self._collection.name
+
+
 def activate_project(project):
     try:
         # Support passing dictionary object
@@ -187,6 +192,11 @@ def find_one(filter, projection=None, sort=None):
 @requires_activation
 def save(*args, **kwargs):
     return self._collection.save(*args, **kwargs)
+
+
+@requires_activation
+def replace_one(filter, replacement):
+    return self._collection.replace_one(filter, replacement)
 
 
 @requires_activation
