@@ -5,7 +5,7 @@ from .. import io
 from .tree import TreeModel, Node
 from .proxy import RecursiveSortFilterProxyModel
 from .deselectabletreeview import DeselectableTreeView
-from ..vendor import qtawesome as qta
+from ..vendor import qtawesome as awesome
 from ..vendor.Qt import QtWidgets, QtCore, QtGui
 
 import logging
@@ -248,9 +248,9 @@ class AssetModel(TreeModel):
 
                 # If it has children show a full folder
                 if self.rowCount(index) > 0:
-                    return qta.icon("fa.folder", color=color)
+                    return awesome.icon("fa.folder", color=color)
                 else:
-                    return qta.icon("fa.folder-o", color=color)
+                    return awesome.icon("fa.folder-o", color=color)
 
         if role == QtCore.Qt.ForegroundRole:        # font color
 
@@ -468,7 +468,7 @@ class AssetWidget(QtWidgets.QWidget):
 
         silo = SiloTabWidget()
 
-        icon = qta.icon("fa.refresh", color=style.light)
+        icon = awesome.icon("fa.refresh", color=style.light)
         refresh = QtWidgets.QPushButton(icon, "")
         refresh.setToolTip("Refresh items")
 
