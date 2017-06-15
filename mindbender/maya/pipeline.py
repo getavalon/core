@@ -14,10 +14,7 @@ from ..vendor.Qt import QtCore, QtWidgets
 self = sys.modules[__name__]
 self._menu = "mindbendercore"
 self._events = dict()
-self._parent = {
-    widget.objectName(): widget
-    for widget in QtWidgets.QApplication.topLevelWidgets()
-}.get("MayaWindow")
+self._parent = None
 
 
 def install(config):
@@ -63,6 +60,8 @@ def _install_menu():
         publish,
     )
 
+    from . import interactive
+
     _uninstall_menu()
 
     def deferred():
@@ -93,8 +92,21 @@ def _install_menu():
 
         cmds.setParent("..", menu=True)
 
+        cmds.menuItem("Reset Frame Range",
+                      command=interactive.reset_frame_range)
+        cmds.menuItem("Reset Resolution",
+                      command=interactive.reset_resolution)
+
     # Allow time for uninstallation to finish.
     QtCore.QTimer.singleShot(100, deferred)
+
+    if self._parent is None:
+        # If the menu is created *before* QApplication has had a
+        # chance to settle, the parent won't be found.
+        self._parent = {
+            widget.objectName(): widget
+            for widget in QtWidgets.QApplication.topLevelWidgets()
+        }.get("MayaWindow")
 
 
 def _reload(*args):
