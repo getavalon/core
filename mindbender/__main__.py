@@ -9,11 +9,12 @@ parser.add_argument("--loader", action="store_true",
                     help="Launch Asset Loader in standalone mode")
 parser.add_argument("--manager", action="store_true",
                     help="Launch Manager in standalone mode")
+parser.add_argument("--projectmanager", action="store_true",
+                    help="Launch Manager in standalone mode")
 parser.add_argument("--root",
                     help="Absolute path to root directory of assets")
 
-args = parser.parse_args()
-
+args, unknown = parser.parse_known_args()
 host = pipeline.debug_host()
 pipeline.register_host(host)
 
@@ -29,3 +30,7 @@ elif args.loader:
 elif args.manager:
     from .tools import manager
     manager.show(debug=True)
+
+elif args.projectmanager:
+    from .tools import projectmanager
+    projectmanager.cli(unknown)
