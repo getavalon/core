@@ -7,11 +7,8 @@ the currently held state of mindbender-core.
 
 """
 
-_registered_data = dict()
-_registered_families = dict()
 _registered_formats = list()
 _registered_plugins = dict()
 _registered_plugin_paths = dict()
-_registered_silos = set()
 _registered_root = {"_": ""}
 _registered_host = {"_": None}
