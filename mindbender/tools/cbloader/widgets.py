@@ -112,7 +112,7 @@ class SubsetWidget(QtWidgets.QWidget):
             # Label the representation
             label = representations[0].get("data", {}).get("label", None)
             if not label:
-                label = ".{0}".format(name)
+                label = ".{0}".format(representation['name'])
 
             # Label the loader
             loader_label = loader.__name__
