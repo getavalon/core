@@ -1,9 +1,10 @@
 import os
 import sys
 import uuid
+import importlib
 
-import pyblish.api
 from maya import cmds, OpenMaya
+from pyblish import api as pyblish
 
 from . import lib, commands
 from .. import api, io
@@ -19,32 +20,35 @@ self._parent = {
 }.get("MayaWindow")
 
 
-def install():
+def install(config):
     """Install Maya-specific functionality of mindbender-core.
 
     This function is called automatically on calling `api.install(maya)`.
 
     """
 
-    try:
-        import pyblish_maya
-        assert pyblish_maya.is_setup()
-
-    except (ImportError, AssertionError):
-        raise ImportError("mindbender-core depends on pyblish-maya.")
-
+    _register_formats()
+    _register_callbacks()
     _install_menu()
 
-    _register_formats()
-    _register_plugins()
-    _register_loaders()
-    _register_creators()
+    pyblish.register_host("mayabatch")
+    pyblish.register_host("mayapy")
+    pyblish.register_host("maya")
 
-    _register_callbacks()
+    try:
+        config = importlib.import_module(config.__name__ + ".maya")
+    except ImportError:
+        pass
+    else:
+        config.install()
 
 
 def uninstall():
     _uninstall_menu()
+
+    pyblish.deregister_host("mayabatch")
+    pyblish.deregister_host("mayapy")
+    pyblish.deregister_host("maya")
 
     api.deregister_format(".ma")
     api.deregister_format(".mb")
@@ -55,10 +59,9 @@ def _install_menu():
     from ..tools import (
         creator,
         loader,
-        manager
+        manager,
+        publish,
     )
-
-    from . import interactive
 
     _uninstall_menu()
 
@@ -68,45 +71,17 @@ def _install_menu():
                   tearOff=True,
                   parent="MayaWindow")
 
-        cmds.menuItem("Show Creator",
+        cmds.menuItem("Create...",
                       command=lambda *args: creator.show(parent=self._parent))
-        cmds.menuItem("Show Loader",
+        cmds.menuItem("Load...",
                       command=lambda *args: loader.show(parent=self._parent))
-        cmds.menuItem("Show Manager",
+        cmds.menuItem("Publish...",
+                      command=lambda *args: publish.show(parent=self._parent),
+                      image=publish.ICON)
+        cmds.menuItem("Manage...",
                       command=lambda *args: manager.show(parent=self._parent))
 
         cmds.menuItem(divider=True)
-
-        # Modeling sub-menu
-        cmds.menuItem("Modeling",
-                      label="Modeling",
-                      tearOff=True,
-                      subMenu=True,
-                      parent=self._menu)
-
-        cmds.menuItem("Combine", command=interactive.combine)
-
-        # Rigging sub-menu
-        cmds.menuItem("Rigging",
-                      label="Rigging",
-                      tearOff=True,
-                      subMenu=True,
-                      parent=self._menu)
-
-        cmds.menuItem("Auto Connect", command=interactive.auto_connect)
-        cmds.menuItem("Clone (Local)", command=interactive.clone_localspace)
-        cmds.menuItem("Clone (World)", command=interactive.clone_worldspace)
-        cmds.menuItem("Clone (Special)", command=interactive.clone_special)
-        cmds.menuItem("Create Follicle", command=interactive.follicle)
-
-        # Animation sub-menu
-        cmds.menuItem("Animation",
-                      label="Animation",
-                      tearOff=True,
-                      subMenu=True,
-                      parent=self._menu)
-
-        cmds.menuItem("Set Defaults", command=interactive.set_defaults)
 
         cmds.menuItem("System",
                       label="System",
@@ -117,12 +92,6 @@ def _install_menu():
         cmds.menuItem("Reload Pipeline", command=_reload)
 
         cmds.setParent("..", menu=True)
-
-        cmds.menuItem(divider=True)
-
-        cmds.menuItem("Auto Connect", command=interactive.auto_connect_assets)
-        cmds.menuItem("Reset Frame Range",
-                      command=interactive.reset_frame_range)
 
     # Allow time for uninstallation to finish.
     QtCore.QTimer.singleShot(100, deferred)
@@ -178,27 +147,6 @@ def _register_formats():
     api.register_format(".ma")
     api.register_format(".mb")
     api.register_format(".abc")
-
-
-def _register_plugins():
-    lib_py_path = sys.modules[__name__].__file__
-    package_path = os.path.dirname(lib_py_path)
-    plugin_path = os.path.join(package_path, "plugins")
-    pyblish.api.register_plugin_path(plugin_path)
-
-
-def _register_loaders():
-    lib_py_path = sys.modules[__name__].__file__
-    package_path = os.path.dirname(lib_py_path)
-    plugin_path = os.path.join(package_path, "loaders")
-    api.register_plugin_path(api.Loader, plugin_path)
-
-
-def _register_creators():
-    lib_py_path = sys.modules[__name__].__file__
-    package_path = os.path.dirname(lib_py_path)
-    plugin_path = os.path.join(package_path, "creators")
-    api.register_plugin_path(api.Creator, plugin_path)
 
 
 def containerise(name,
@@ -603,8 +551,13 @@ def _register_callbacks():
         OpenMaya.MSceneMessage.kAfterNew, _on_scene_new
     )
 
-    print("Installed event handler __on_scene_save..")
+    self._events[_on_maya_initialized] = OpenMaya.MSceneMessage.addCallback(
+        OpenMaya.MSceneMessage.kMayaInitialized, _on_maya_initialized
+    )
+
+    print("Installed event handler _on_scene_save..")
     print("Installed event handler _on_scene_new..")
+    print("Installed event handler _on_maya_initialized..")
 
 
 def _set_uuid(node):
@@ -622,9 +575,22 @@ def _set_uuid(node):
         cmds.setAttr(attr, uid, type="string")
 
 
-def _on_scene_new(_):
-    print("Running scene new..")
+def _on_maya_initialized(_):
+    print("Running callback: maya initialized..")
     commands.reset_frame_range()
+    commands.reset_resolution()
+
+
+def _on_scene_new(_):
+    print("Running callback: scene new..")
+
+    # Load dependencies
+    # TODO(marcus): Externalise this
+    cmds.loadPlugin("AbcExport.mll", quiet=True)
+    cmds.loadPlugin("AbcImport.mll", quiet=True)
+
+    commands.reset_frame_range()
+    commands.reset_resolution()
 
 
 def _on_scene_save(_):
@@ -634,6 +600,8 @@ def _on_scene_save(_):
     is given one automatically on file save.
 
     """
+
+    print("Running callback: scene save..")
 
     nodes = (set(cmds.ls(type="mesh", long=True)) -
              set(cmds.ls(long=True, readOnly=True)) -

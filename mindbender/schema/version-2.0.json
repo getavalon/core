@@ -22,8 +22,7 @@
         },
         "name": {
             "description": "Number of version",
-            "type": "number",
-            "pattern": "^[a-zA-Z0-9_.]*$"
+            "type": "number"
         },
         "locations": {
             "description": "Where on the planet this version can be found.",

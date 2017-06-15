@@ -3,8 +3,7 @@ import sys
 import types
 import logging
 import inspect
-
-from pyblish import api
+import importlib
 
 from . import (
     io,
@@ -12,7 +11,6 @@ from . import (
 
     _registered_host,
     _registered_root,
-    _registered_silos,
     _registered_formats,
     _registered_plugins,
     _registered_plugin_paths,
@@ -44,18 +42,41 @@ def install(host):
         "%s missing from environment" % ", ".join(missing)
     )
 
-    # Optional host install function
-    if hasattr(host, "install"):
-        host.install()
-
-    register_host(host)
-    register_plugins()
+    project = os.environ["MINDBENDER_PROJECT"]
+    lib.logger.info("Activating %s.." % project)
 
     io.install()
-    io.activate_project(os.environ["MINDBENDER_PROJECT"])
+    io.activate_project(project)
+
+    config = find_config()
+
+    # Optional host install function
+    if hasattr(host, "install"):
+        host.install(config)
+
+    register_host(host)
+
+    config.install()
 
     self._is_installed = True
     self.log.info("Successfully installed Pyblish Mindbender!")
+
+
+def find_config():
+    lib.logger.info("Finding configuration for project..")
+
+    project = io.find_one({"type": "project"})
+    config = project["config"].get("name")
+
+    if not config:
+        config = os.getenv("MINDBENDER_CONFIG")
+
+    if not config:
+        raise EnvironmentError("No configuration found in "
+                               "the project nor environment")
+
+    lib.logger.info("Found %s, loading.." % config)
+    return importlib.import_module(config)
 
 
 def uninstall():
@@ -65,7 +86,6 @@ def uninstall():
         pass
 
     deregister_host()
-    deregister_plugins()
 
     io.uninstall()
 
@@ -253,6 +273,10 @@ def registered_plugin_paths():
     return duplicate
 
 
+def deregister_plugin(superclass, plugin):
+    _registered_plugins[superclass].remove(plugin)
+
+
 def deregister_plugin_path(superclass, path):
     _registered_plugin_paths[superclass].remove(path)
 
@@ -380,32 +404,6 @@ def register_host(host):
 
     else:
         _registered_host["_"] = host
-
-
-def register_plugins():
-    """Register accompanying plugins"""
-    module_path = sys.modules[__name__].__file__
-    package_path = os.path.dirname(module_path)
-    plugins_path = os.path.join(package_path, "plugins")
-    api.register_plugin_path(plugins_path)
-
-
-def deregister_plugins():
-    module_path = sys.modules[__name__].__file__
-    package_path = os.path.dirname(module_path)
-    plugins_path = os.path.join(package_path, "plugins")
-    api.deregister_plugin_path(plugins_path)
-
-
-def register_silo(name):
-    _registered_silos.add(name)
-
-
-def registered_silos():
-    return (
-        list(_registered_silos) or
-        os.getenv("MINDBENDER_SILO", "").split()
-    )
 
 
 def registered_formats():

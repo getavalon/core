@@ -5,6 +5,10 @@ import logging
 import datetime
 
 
+logging.basicConfig()
+logger = logging.getLogger("mindbender")
+
+
 def listdir(dirname):
     """Prefer empty list to OSError on os.listdir
 

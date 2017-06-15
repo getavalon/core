@@ -43,7 +43,6 @@ if __name__ == "__main__":
         "--exclude-dir=mindbender/nuke",
         "--exclude-dir=mindbender/houdini",
         "--exclude-dir=mindbender/schema",
-        "--exclude-dir=mindbender/plugins",
 
         # We can expect any vendors to
         # be well tested beforehand.
