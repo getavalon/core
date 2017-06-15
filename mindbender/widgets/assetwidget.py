@@ -313,7 +313,7 @@ class AssetView(DeselectableTreeView):
     #     menu.exec_(globalPoint)
 
 
-class SiloTabWidget(QtWidgets.QTabWidget):
+class SiloTabWidget(QtWidgets.QTabBar):
     """Silo widget
     
     Allows to add a silo, with "+" tab.
@@ -358,6 +358,15 @@ class SiloTabWidget(QtWidgets.QTabWidget):
         # Store for the next calls
         self._previous_tab_index = index
 
+    def clear(self):
+        """Removes all tabs.
+        
+        Implemented similar to `QTabWidget.clear()`
+        
+        """
+        for i in range(self.count()):
+            self.removeTab(0)
+
     def set_silos(self, silos):
 
         current_silo = self.get_current_silo()
@@ -370,10 +379,10 @@ class SiloTabWidget(QtWidgets.QTabWidget):
         self.blockSignals(True)
         self.clear()
         for silo in sorted(silos):
-            self.addTab(QtWidgets.QWidget(), silo)
+            self.addTab(silo)
 
         # Add the "+" tab
-        self.addTab(QtWidgets.QWidget(), "+")
+        self.addTab("+")
 
         self.set_current_silo(current_silo)
         self.blockSignals(False)
