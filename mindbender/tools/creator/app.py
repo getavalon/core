@@ -2,15 +2,17 @@ import os
 import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import pipeline, io
+from ... import api, io
 from .. import lib
 
-self = sys.modules[__name__]
-self._window = None
+module = sys.modules[__name__]
+module.window = None
+module.root = api.registered_root()
 
 HelpRole = QtCore.Qt.UserRole + 2
 FamilyRole = QtCore.Qt.UserRole + 3
 ExistsRole = QtCore.Qt.UserRole + 4
+PluginRole = QtCore.Qt.UserRole + 5
 
 
 class Window(QtWidgets.QDialog):
@@ -77,7 +79,7 @@ class Window(QtWidgets.QDialog):
             listing: "Listing",
             useselection_chk: "Use Selection Checkbox",
             autoclose_chk: "Autoclose Checkbox",
-            name: "Name",
+            name: "Subset",
             asset: "Asset",
             error_msg: "Error Message",
         }
@@ -102,13 +104,18 @@ class Window(QtWidgets.QDialog):
         lib.schedule(self._on_data_changed, 500, channel="gui")
 
     def on_selection_changed(self, *args):
-        name = self.findChild(QtWidgets.QWidget, "Name")
+        name = self.findChild(QtWidgets.QWidget, "Subset")
         item = self.findChild(QtWidgets.QWidget, "Listing").currentItem()
 
-        # Set default name, e.g. modelDefault, lookdevDefault
-        label = item.data(FamilyRole) or "null"
-        label = label.rsplit(".")[-1]
-        label = label.lower() + "Default"
+        plugin = item.data(PluginRole)
+
+        if plugin is None:
+            return
+
+        label = (
+            plugin.name or
+            plugin.family.lower().rsplit(".", 1)[-1] + "Default"
+        )
 
         name.setText(label)
 
@@ -117,7 +124,7 @@ class Window(QtWidgets.QDialog):
     def _on_data_changed(self):
         button = self.findChild(QtWidgets.QPushButton, "Create Button")
         asset = self.findChild(QtWidgets.QWidget, "Asset")
-        name = self.findChild(QtWidgets.QWidget, "Name")
+        name = self.findChild(QtWidgets.QWidget, "Subset")
         item = self.findChild(QtWidgets.QWidget, "Listing").currentItem()
 
         if asset.text() in (asset["name"]
@@ -148,18 +155,22 @@ class Window(QtWidgets.QDialog):
 
         """
 
-    def refresh(self, families):
+    def refresh(self):
         listing = self.findChild(QtWidgets.QWidget, "Listing")
         asset = self.findChild(QtWidgets.QWidget, "Asset")
         asset.setText(os.environ["MINDBENDER_ASSET"])
 
         has_families = False
 
-        for family in sorted(families.values(), key=lambda f: f["name"]):
-            item = QtWidgets.QListWidgetItem(family["label"] or family["name"])
+        creators = api.discover(api.Creator)
+
+        for creator in creators:
+            label = creator.label or creator.family
+            item = QtWidgets.QListWidgetItem(label)
             item.setData(QtCore.Qt.ItemIsEnabled, True)
-            item.setData(HelpRole, family["help"])
-            item.setData(FamilyRole, family["name"])
+            item.setData(HelpRole, creator.__doc__)
+            item.setData(FamilyRole, creator.family)
+            item.setData(PluginRole, creator)
             item.setData(ExistsRole, False)
             listing.addItem(item)
 
@@ -185,17 +196,17 @@ class Window(QtWidgets.QDialog):
         useselection_chk = self.findChild(QtWidgets.QWidget,
                                           "Use Selection Checkbox")
 
-        asset = asset.text()
         item = listing.currentItem()
 
         if item is not None:
+            name = self.findChild(QtWidgets.QWidget, "Subset").text()
+            asset = asset.text()
             family = item.data(FamilyRole)
-            name = self.findChild(QtWidgets.QWidget, "Name").text()
 
             try:
-                host = pipeline.registered_host()
-                host.create(asset, name, family, options={
-                    "useSelection": bool(useselection_chk.checkState())
+                host = api.registered_host()
+                host.create(name, asset, family, options={
+                    "useSelection": useselection_chk.checkState()
                 })
 
             except NameError as e:
@@ -230,20 +241,31 @@ def show(debug=False, parent=None):
 
     """
 
-    families = pipeline.registered_families()
-
-    if self._window:
-        self._window.close()
-        del(self._window)
+    if module.window:
+        module.window.close()
+        del(module.window)
 
     if debug:
-        pipeline.register_family("debug.model")
-        pipeline.register_family("debug.rig")
-        pipeline.register_family("debug.animation")
+        from mindbender import mock
+        for creator in mock.creators:
+            api.register_plugin(api.Creator, creator)
+
+        import traceback
+        sys.excepthook = lambda typ, val, tb: traceback.print_last()
+
+        io.install()
+
+        any_project = next(
+            project for project in io.projects()
+            if project.get("active", True) is not False
+        )
+
+        io.activate_project(any_project)
+        module.project = any_project["name"]
 
     with lib.application():
         window = Window(parent)
-        window.refresh(families)
+        window.refresh()
         window.show()
 
-        self._window = window
+        module.window = window

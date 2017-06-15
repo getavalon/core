@@ -8,11 +8,14 @@ from .pipeline import (
     install,
     uninstall,
 
+    Creator,
+
     ls,
     load,
     create,
     remove,
     update,
+    containerise,
 )
 
 from .lib import (
@@ -26,14 +29,14 @@ from .lib import (
 
     unique_name,
     unique_namespace,
-
-    containerise,
 )
 
 
 __all__ = [
     "install",
     "uninstall",
+
+    "Creator",
 
     "ls",
     "load",

@@ -5,69 +5,6 @@ from maya import cmds, mel
 from maya.api import OpenMaya as om
 
 
-def containerise(name,
-                 namespace,
-                 nodes,
-                 asset,
-                 subset,
-                 version,
-                 representation,
-                 loader=None,
-                 suffix="_CON"):
-    """Bundle `nodes` into an assembly and imprint it with metadata
-
-    Containerisation enables a tracking of version, author and origin
-    for loaded assets.
-
-    Arguments:
-        name (str): Name of resulting assembly
-        nodes (list): Long names of nodes to containerise
-        namespace (str): Namespace under which to host container
-        asset (mindbender-core:asset-1.0): Current asset
-        subset (mindbender-core:subset-1.0): Current subset
-        version (mindbender-core:version-1.0): Current version
-        representation (mindbender-core:representation-1.0): ...
-        loader (str, optional): Name of loader used to produce this container.
-        suffix (str, optional): Suffix of container, defaults to `_CON`.
-
-    Returns:
-        container (str): Name of container assembly
-
-    """
-
-    container = cmds.sets(nodes, name=namespace + ":" + name + suffix)
-
-    data = [
-        ("id", "pyblish.mindbender.container"),
-        ("name", namespace),
-        ("loader", str(loader)),
-        ("families", " ".join(version["data"].get("families", list()))),
-        ("subset", subset["name"]),
-        ("representation", str(representation["_id"])),
-        ("version", version["name"]),
-        ("source", version["data"]["source"]),
-        ("comment", version["data"].get("comment", ""))
-    ]
-
-    for key, value in data:
-
-        if not value:
-            continue
-
-        if isinstance(value, (int, float)):
-            cmds.addAttr(container, longName=key, attributeType="short")
-            cmds.setAttr(container + "." + key, value)
-
-        else:
-            cmds.addAttr(container, longName=key, dataType="string")
-            cmds.setAttr(container + "." + key, value, type="string")
-
-    # Hide in outliner
-    cmds.setAttr(container + ".verticesOnlySet", True)
-
-    return container
-
-
 def unique_name(name, format="%02d", namespace="", prefix="", suffix=""):
     """Return unique `name`
 
@@ -407,7 +344,7 @@ def serialise_shaders(nodes):
     return shader_by_id
 
 
-def apply_shaders(relationships):
+def apply_shaders(relationships, namespace=None):
     """Given a dictionary of `relationships`, apply shaders to meshes
 
     Arguments:
@@ -415,6 +352,14 @@ def apply_shaders(relationships):
             shaders and how they relate to meshes.
 
     """
+
+    if namespace is not None:
+        # Append namespace to shader group identifier.
+        # E.g. `blinn1SG` -> `Bruce_:blinn1SG`
+        relationships = {
+            "%s:%s" % (namespace, shader): relationships[shader]
+            for shader in relationships
+        }
 
     for shader, ids in relationships.items():
         print("Looking for '%s'.." % shader)
