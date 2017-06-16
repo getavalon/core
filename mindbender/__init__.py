@@ -12,3 +12,4 @@ _registered_plugins = dict()
 _registered_plugin_paths = dict()
 _registered_root = {"_": ""}
 _registered_host = {"_": None}
+_registered_config = {"_": None}
