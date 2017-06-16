@@ -65,7 +65,11 @@ def activate_project(project):
 
 
 def uninstall():
-    self._client.close()
+    try:
+        self._client.close()
+    except AttributeError:
+        pass
+
     self._client = None
     self._database = None
     self._collection = None
