@@ -26,6 +26,7 @@ from .lib import (
     apply_shaders,
     without_extension,
     maintained_selection,
+    suspended_refresh,
 
     unique_name,
     unique_namespace,
@@ -54,6 +55,7 @@ __all__ = [
     "apply_shaders",
     "without_extension",
     "maintained_selection",
+    "suspended_refresh",
 
     "containerise",
 ]

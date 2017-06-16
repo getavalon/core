@@ -235,6 +235,17 @@ def maintained_selection():
                         noExpand=True)
 
 
+@contextlib.contextmanager
+def suspended_refresh():
+    """Suspend viewport refreshes"""
+
+    try:
+        cmds.refresh(suspend=True)
+        yield
+    finally:
+        cmds.refresh(suspend=False)
+
+
 def serialise_shaders(nodes):
     """Generate a shader set dictionary
 
