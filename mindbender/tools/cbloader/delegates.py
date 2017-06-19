@@ -28,6 +28,7 @@ def pretty_date(t, now=None):
     assert isinstance(t, datetime)
     if now is None:
         now = datetime.utcnow()
+    assert isinstance(now, datetime)
     diff = now - t
 
     second_diff = diff.seconds
@@ -55,16 +56,31 @@ def pretty_date(t, now=None):
     return t.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def pretty_timestamp(t):
+def pretty_timestamp(t, now=None):
     """Parse timestamp to user readable format
     
     >>> pretty_timestamp("20170614T151122Z", now="20170614T151123Z")
-    "just now"
+    'just now'
     
     >>> pretty_timestamp("20170614T151122Z", now="20170614T171222Z")
-    "2:01 hours ago"
+    '2:01 hours ago'
+    
+    Args:
+        t (str): The time string to parse.
+        now (str, optional)
+        
+    Returns:
+        str: human readable "recent" date.
     
     """
+
+    if now is not None:
+        try:
+            now = time.strptime(now, "%Y%m%dT%H%M%SZ")
+            now = datetime.fromtimestamp(time.mktime(now))
+        except ValueError, e:
+            log.warning("Can't parse 'now' time format: {0} {1}".format(t, e))
+            return None
 
     try:
         t = time.strptime(t, "%Y%m%dT%H%M%SZ")
@@ -74,7 +90,7 @@ def pretty_timestamp(t):
     dt = datetime.fromtimestamp(time.mktime(t))
 
     # prettify
-    return pretty_date(dt)
+    return pretty_date(dt, now=now)
 
 
 class PrettyTimeDelegate(QtWidgets.QStyledItemDelegate):
