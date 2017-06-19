@@ -10,24 +10,37 @@
 
     "required": [
         "schema",
+        "type",
         "name",
         "data"
     ],
 
     "properties": {
         "schema": {
-            "description": "Schema identifier for payload",
-            "type": "string"
+            "description": "The schema associated with this document",
+            "type": "string",
+            "const": "mindbender-core:subset-2.0",
+            "example": "mindbender-core:subset-2.0"
+        },
+        "type": {
+            "description": "The type of document",
+            "type": "string",
+            "const": "subset",
+            "example": "subset"
         },
         "name": {
             "description": "Name of directory",
             "type": "string",
-            "pattern": "^[a-zA-Z0-9_.]*$"
+            "pattern": "^[a-zA-Z0-9_.]*$",
+            "example": "shot01"
         },
         "data": {
-            "type": "object"
+            "type": "object",
+            "description": "Document metadata",
+            "example": {
+                "startFrame": 1000,
+                "endFrame": 1201
+            }
         }
-    },
-
-    "definitions": {}
+    }
 }

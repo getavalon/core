@@ -19,34 +19,46 @@
     ],
 
     "properties": {
-        "schema": {"type": "string"},
+        "schema": {
+            "description": "Schema identifier for payload",
+            "type": "string",
+            "const": "mindbender-core:container-2.0",
+            "example": "mindbender-core:container-2.0"
+        },
         "name": {
             "description": "Full name of application object",
-            "type": "string"
+            "type": "string",
+            "example": "modelDefault"
         },
         "path": {
             "description": "Absolute path",
-            "type": "string"
+            "type": "string",
+            "example": "|someParent|someNamespace_:modelDefault_CON"
         },
         "objectName": {
             "description": "Name of internal object, such as the objectSet in Maya.",
-            "type": "string"
+            "type": "string",
+            "example": "modelDefault_CON"
         },
         "subset": {
-            "description": "Name of subset",
-            "type": "string"
+            "description": "Name of source subset",
+            "type": "string",
+            "example": "modelDefault"
         },
         "asset": {
-            "description": "Name of asset",
-            "type": "string"  
+            "description": "Name of source asset",
+            "type": "string"  ,
+            "example": "Bruce"
         },
         "version": {
             "description": "Version number",
-            "type": "number"
+            "type": "number",
+            "example": 12
         },
         "author": {
             "description": "Name of the author of the published version",
-            "type": "string"
+            "type": "string",
+            "example": "Marcus Ottosson"
         }
     }
 }
