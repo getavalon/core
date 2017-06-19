@@ -37,9 +37,10 @@ def is_compatible_loader(Loader, context):
     """Return whether a loader is compatible with a context."""
     families = context['version']['data']['families']
     representation = context['representation']
-
-    has_family = any(family in Loader.families for family in families)
-    has_representation = representation["name"] in Loader.representations
+    has_family = ("*" in Loader.families or
+                  any(family in Loader.families for family in families))
+    has_representation = ("*" in Loader.representations or
+                          representation["name"] in Loader.representations)
     return has_family and has_representation
 
 
