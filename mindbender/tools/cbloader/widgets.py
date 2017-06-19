@@ -90,8 +90,14 @@ class SubsetWidget(QtWidgets.QWidget):
         menu = QtWidgets.QMenu(self)
         for representation, loader in loaders:
 
-            loader_label = loader.__name__
-            label = "{0} ({1})".format(loader_label, representation['name'])
+            # Label
+            label = getattr(loader, "label", None)
+            if label is None:
+                label = loader.__name__
+
+            # Add the representation as suffix
+            label = "{0} ({1})".format(label, representation['name'])
+
             action = QtWidgets.QAction(label, menu)
             action.setData((representation, loader))
             menu.addAction(action)
