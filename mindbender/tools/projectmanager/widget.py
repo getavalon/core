@@ -283,6 +283,7 @@ class AssetView(DeselectableTreeView):
         super(AssetView, self).__init__()
         self.setIndentation(15)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.setHeaderHidden(True)
 
 
 class SiloTabWidget(QtWidgets.QTabBar):
