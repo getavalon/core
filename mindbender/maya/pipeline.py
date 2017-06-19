@@ -12,9 +12,9 @@ from ..vendor import six
 from ..vendor.Qt import QtCore, QtWidgets
 
 self = sys.modules[__name__]
-self._menu = "mindbendercore"
-self._events = dict()
-self._parent = None
+self._menu = "mindbendercore"  # Unique name of menu, for uninstall purposes
+self._events = dict()  # Registered Maya callbacks
+self._parent = None  # Main Window
 
 
 def install(config):
@@ -99,14 +99,6 @@ def _install_menu():
 
     # Allow time for uninstallation to finish.
     QtCore.QTimer.singleShot(100, deferred)
-
-    if self._parent is None:
-        # If the menu is created *before* QApplication has had a
-        # chance to settle, the parent won't be found.
-        self._parent = {
-            widget.objectName(): widget
-            for widget in QtWidgets.QApplication.topLevelWidgets()
-        }.get("MayaWindow")
 
 
 def _reload(*args):
@@ -358,6 +350,7 @@ def create(name, asset, family, options=None, data=None):
 
     """
 
+    plugins = list()
     for Plugin in api.discover(api.Creator):
         has_family = family == Plugin.family
 
@@ -368,10 +361,18 @@ def create(name, asset, family, options=None, data=None):
             "Creating '%s' with '%s'" % (name, Plugin.__name__)
         )
 
-        plugin = Plugin(name, asset, options, data)
+        try:
+            plugin = Plugin(name, asset, options, data)
 
-        with lib.maintained_selection():
-            plugin.process()
+            with lib.maintained_selection():
+                plugin.process()
+        except Exception as e:
+            print("WARNING: %s" % e)
+            continue
+
+        plugins.append(plugin)
+
+    assert plugins, "No Creator plug-ins were run, this is a bug"
 
 
 def _create(name, family, asset=None, options=None, data=None):
@@ -580,6 +581,12 @@ def _on_maya_initialized(_):
     print("Running callback: maya initialized..")
     commands.reset_frame_range()
     commands.reset_resolution()
+
+    # Keep reference to the main Window, once a main window exists.
+    self._parent = {
+        widget.objectName(): widget
+        for widget in QtWidgets.QApplication.topLevelWidgets()
+    }["MayaWindow"]
 
 
 def _on_scene_new(_):

@@ -11,6 +11,7 @@ from . import (
 
     _registered_host,
     _registered_root,
+    _registered_config,
     _registered_formats,
     _registered_plugins,
     _registered_plugin_paths,
@@ -22,6 +23,7 @@ self = sys.modules[__name__]
 
 self.log = logging.getLogger("mindbender-core")
 self._is_installed = False
+self._config = None
 
 
 def install(host):
@@ -55,10 +57,12 @@ def install(host):
         host.install(config)
 
     register_host(host)
+    register_config(config)
 
     config.install()
 
     self._is_installed = True
+    self._config = config
     self.log.info("Successfully installed Pyblish Mindbender!")
 
 
@@ -85,7 +89,13 @@ def uninstall():
     except AttributeError:
         pass
 
+    try:
+        registered_config().uninstall()
+    except AttributeError:
+        pass
+
     deregister_host()
+    deregister_config()
 
     io.uninstall()
 
@@ -238,7 +248,15 @@ def plugin_from_module(superclass, module):
         if not inspect.isclass(obj):
             continue
 
-        if not issubclass(obj, superclass):
+        bases = obj.__bases__
+
+        # These are subclassed from nothing, not even `object`
+        if not len(bases) > 0:
+            continue
+
+        # Use string comparison rather than `issubclass`
+        # in order to support reloading of this module.
+        if bases[0].__name__ != superclass.__name__:
             continue
 
         types.append(obj)
@@ -314,11 +332,6 @@ def deregister_format(format):
 def register_host(host):
     """Register a new host for the current process
 
-    A majority of this function relates to validating
-    the registered host. No host may be registered unless
-    it fulfils the required interface, as specified in the
-    Host API documentation.
-
     Arguments:
         host (ModuleType): A module implementing the
             Host API interface. See the Host API
@@ -326,8 +339,6 @@ def register_host(host):
             required, or browse the source code.
 
     """
-
-    # Required signatures for each member
     signatures = {
         "load": [
             "Loader",
@@ -351,17 +362,41 @@ def register_host(host):
         ],
     }
 
+    _validate_signature(host, signatures)
+    _registered_host["_"] = host
+
+
+def register_config(config):
+    """Register a new config for the current process
+
+    Arguments:
+        config (ModuleType): A module implementing the Config API.
+
+    """
+
+    signatures = {
+        "install": [],
+        "uninstall": [],
+    }
+
+    _validate_signature(config, signatures)
+    _registered_config["_"] = config
+
+
+def _validate_signature(module, signatures):
+    # Required signatures for each member
+
     missing = list()
     invalid = list()
     success = True
 
     for member in signatures:
-        if not hasattr(host, member):
+        if not hasattr(module, member):
             missing.append(member)
             success = False
 
         else:
-            attr = getattr(host, member)
+            attr = getattr(module, member)
             signature = inspect.getargspec(attr)[0]
             required_signature = signatures[member]
 
@@ -382,15 +417,15 @@ def register_host(host):
 
         if missing:
             report.append(
-                "Incomplete interface for host: '%s'\n"
-                "Missing: %s" % (host, ", ".join(
+                "Incomplete interface for module: '%s'\n"
+                "Missing: %s" % (module, ", ".join(
                     "'%s'" % member for member in missing))
             )
 
         if invalid:
             report.append(
                 "'%s': One or more members were found, but didn't "
-                "have the right argument signature." % host.__name__
+                "have the right argument signature." % module.__name__
             )
 
             for member in invalid:
@@ -403,8 +438,13 @@ def register_host(host):
 
         raise ValueError("\n".join(report))
 
-    else:
-        _registered_host["_"] = host
+
+def deregister_config():
+    _registered_config["_"] = None
+
+
+def registered_config():
+    return _registered_config["_"]
 
 
 def registered_formats():
