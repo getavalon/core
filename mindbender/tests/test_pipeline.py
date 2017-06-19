@@ -34,7 +34,7 @@ def setup():
     host.__dict__.update({
         "ls": lambda: [],
         "create": lambda name, asset, family, options, data: None,
-        "load": lambda asset, subset, version, representation: None,
+        "load": lambda Loader, representation: None,
         "update": lambda container, version: None,
         "remove": lambda container: None,
     })
@@ -56,7 +56,7 @@ def test_loaders():
 from mindbender import api
 
 class DemoLoader(api.Loader):
-    def process(self, asset, subset, version, representation):
+    def process(self, name, namespace, context):
         pass
 
 """
