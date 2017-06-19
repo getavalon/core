@@ -23,8 +23,6 @@ def pretty_date(t, now=None):
 
     """
 
-    # TODO: utcnow is off by an hour at CBHQ yet pyblish encodes like that
-
     assert isinstance(t, datetime)
     if now is None:
         now = datetime.utcnow()
