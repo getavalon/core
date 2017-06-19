@@ -309,7 +309,7 @@ def registered_root():
     """Return currently registered root"""
     return (
         _registered_root["_"] or
-        os.getenv("MINDBENDER_ROOT") or ""
+        os.getenv("MINDBENDER_PROJECTS") or ""
     ).replace("\\", "/")
 
 
