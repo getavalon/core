@@ -20,25 +20,31 @@
     "properties": {
         "schema": {
             "description": "Schema identifier for payload",
-            "type": "string"
+            "type": "string",
+            "const": "mindbender-core:asset-2.0",
+            "example": "mindbender-core:asset-2.0"
         },
         "type": {
             "description": "The type of document",
             "type": "string",
-            "const": "asset"
+            "const": "asset",
+            "example": "asset"
         },
         "name": {
-            "description": "Name of directory",
+            "description": "Name of asset",
             "type": "string",
-            "pattern": "^[a-zA-Z0-9_.]*$"
+            "pattern": "^[a-zA-Z0-9_.]*$",
+            "example": "Bruce"
         },
         "silo": {
-            "description": "Parent directory of asset",
-            "type": "string"
+            "description": "Group or container of asset",
+            "type": "string",
+            "example": "assets"
         },
         "data": {
             "description": "Document metadata",
-            "type": "object"
+            "type": "object",
+            "example": {"key": "value"}
         }
     },
 
