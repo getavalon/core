@@ -34,7 +34,6 @@ from .pipeline import (
 
     registered_host,
     registered_plugin_paths,
-    registered_formats,
     registered_root,
 
     deregister_plugin,
@@ -44,7 +43,6 @@ from .pipeline import (
 
 from .lib import (
     format_staging_dir,
-    format_shared_dir,
     format_version,
 
     time,
@@ -74,14 +72,12 @@ __all__ = [
     "registered_root",
     "registered_plugin_paths",
     "registered_host",
-    "registered_formats",
 
     "deregister_plugin",
     "deregister_plugin_path",
     "deregister_format",
 
     "format_staging_dir",
-    "format_shared_dir",
     "format_version",
 
     "find_latest_version",
