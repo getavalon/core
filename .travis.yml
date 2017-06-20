@@ -14,7 +14,6 @@ install:
   - docker build -t pyblish/mindbender -f Dockerfile-maya2016 .
 
 script:
-  # Run tests
   - >
     docker run
     --rm
@@ -26,17 +25,16 @@ script:
     pyblish/mindbender
 
 after_script:
-  # Build documentation
   - >
-  docker run
-  --rm
-  -v $(pwd):/workspace
-  --link mindbender-mongo:mongo
-  -e COVERALLS_REPO_TOKEN
-  -e TRAVIS_JOB_ID
-  -e MINDBENDER_MONGO=mongodb://mongo:27017
-  --entrypoint="sphinx-build docs/source docs/build"
-  pyblish/mindbender
+    docker run
+    --rm
+    -v $(pwd):/workspace
+    --link mindbender-mongo:mongo
+    -e COVERALLS_REPO_TOKEN
+    -e TRAVIS_JOB_ID
+    -e MINDBENDER_MONGO=mongodb://mongo:27017
+    --entrypoint="sphinx-build docs/source docs/build"
+    pyblish/mindbender
 
 before_deploy:
   - cd docs/build
