@@ -1,8 +1,5 @@
 language: python
 
-sudo: required
-dist: trusty
-
 python:
   - 2.7
 
@@ -33,7 +30,6 @@ script:
     --entrypoint=mayapy
     mindbender/core
     -m sphinx docs/source docs/build
-
 
 before_deploy:
   - cd docs/build
