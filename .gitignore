@@ -8,3 +8,4 @@ _site
 *.pyc
 .idea/
 *.bat
+build

@@ -9,6 +9,7 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && \
 		pyblish-base==1.4.2 \
 		pyblish-maya \
 		pymongo \
+		sphinx \
 		python-coveralls
 
 # Avoid creation of auxilliary files
