@@ -34,7 +34,6 @@ script:
 before_deploy:
   - sudo chmod -R 777 docs/build/
   - cd docs/build
-  - touch .nojekyll
   - ls -l
 
 deploy:
