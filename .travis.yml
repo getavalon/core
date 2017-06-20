@@ -32,7 +32,9 @@ script:
     -m sphinx docs/source docs/build
 
 before_deploy:
+  - chmod -R 777 docs/build/
   - cd docs/build
+  - ls -l
 
 deploy:
   provider: pages
