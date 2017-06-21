@@ -10,8 +10,7 @@
     "required": [
         "template",
         "tasks",
-        "apps",
-        "copy"
+        "apps"
     ],
 
     "properties": {
@@ -52,18 +51,6 @@
                     "label": {"type": "string"}
                 },
                 "required": ["name"]
-            }
-        },
-        "copy": {
-            "type": "object",
-            "additionalProperties": false,
-            "patternProperties": {
-                "^.*$": {
-                    "anyOf": [
-                        {"type": "string"},
-                        {"type": "null"}
-                    ]
-                }
             }
         }
     }
