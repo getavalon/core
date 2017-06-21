@@ -1,4 +1,3 @@
-
 from ... import io
 from ..projectmanager.model import (
     TreeModel,
@@ -31,6 +30,49 @@ class SubsetsModel(TreeModel):
         self._asset_id = asset_id
         self.refresh()
 
+    def set_version(self, index, version):
+        """Update the version data of the given index.
+        
+        Arguments:
+            version (dict) Version document in the database. """
+
+        assert isinstance(index, QtCore.QModelIndex)
+        if not index.isValid():
+            return
+
+        node = index.internalPointer()
+
+        assert version['parent'] == node['_id'], \
+            "Version does not belong to subset"
+
+        # Get the data from the version
+        version_data = version.get("data", dict())
+
+        # Compute frame ranges (if data is present)
+        start = version_data.get("startFrame", None)
+        end = version_data.get("endFrame", None)
+        handles = version_data.get("handles", None)
+        if start is not None and end is not None:
+            frames = "{0}-{1}".format(start, end)
+            duration = end - start + 1
+        else:
+            frames = None
+            duration = None
+
+        node.update({
+            "version": version['name'],
+            "version_document": version,
+            "author": version_data.get("author", None),
+            "time": version_data.get("time", None),
+            "family": version_data.get("families", ["<unknown>"])[0],
+            "startFrame": start,
+            "endFrame": end,
+            "duration": duration,
+            "handles": handles,
+            "frames": frames,
+            "step": version_data.get("step", None)
+        })
+
     def refresh(self):
 
         self.clear()
@@ -39,6 +81,7 @@ class SubsetsModel(TreeModel):
 
         parent = self._asset_id
 
+        row = 0
         for subset in io.find({"type": "subset", "parent": parent}):
 
             last_version = io.find_one({"type": "version",
@@ -49,39 +92,18 @@ class SubsetsModel(TreeModel):
                 continue
 
             data = subset.copy()
-
-            # TODO(roy): Support switching "version" by the user
             data['subset'] = data['name']
-            data['version'] = last_version['name']
-            data['version_document'] = last_version
-
-            # Get the data from the version
-            version_data = last_version.get("data", dict())
-            data['author'] = version_data.get("author", None)
-            data['time'] = version_data.get("time", None)
-            data["family"] = version_data.get("families", ["<unknown>"])[0]
-
-            # Compute frame ranges (if data is present)
-            start = version_data.get("startFrame", None)
-            end = version_data.get("endFrame", None)
-            handles = version_data.get("handles", None)
-            if start is not None and end is not None:
-                frames = "{0}-{1}".format(start, end)
-                duration = end - start + 1
-            else:
-                frames = None
-                duration = None
-
-            data['startFrame'] = start
-            data['endFrame'] = end
-            data['duration'] = duration
-            data['handles'] = handles
-            data['frames'] = frames
-            data['step'] = version_data.get("step", None)
 
             node = Node()
             node.update(data)
+
             self.add_child(node)
+
+            # Set the version information
+            index = self.index(row, 0, parent=QtCore.QModelIndex())
+            self.set_version(index, last_version)
+
+            row += 1
 
     def data(self, index, role):
 
@@ -91,3 +113,12 @@ class SubsetsModel(TreeModel):
                 return self._icons['subset']
 
         return super(SubsetsModel, self).data(index, role)
+
+    def flags(self, index):
+        flags = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
+
+        # Make the version column editable
+        if index.column() == 2:  # version column
+            flags |= QtCore.Qt.ItemIsEditable
+
+        return flags
