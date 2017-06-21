@@ -3,7 +3,7 @@ from ... import io
 
 from .model import SubsetsModel
 from .delegates import PrettyTimeDelegate, VersionDelegate
-from .lib import iter_loaders, run_loader
+from . import lib
 
 
 def _get_representations(version_id):
@@ -68,17 +68,13 @@ class SubsetWidget(QtWidgets.QWidget):
         if not point_index.isValid():
             return
 
-        subset_node = point_index.data(self.model.NodeRole)
-        version_document = subset_node['version_document']
-        version_id = version_document['_id']
-
-        # Get all representations for the version
-        representations = _get_representations(version_id)
-
-        # Get all representation->loader combinations available
+        # Get all representation->loader combinations available for the
+        # index under the cursor, so we can list the user the options.
         loaders = list()
-        for representation in representations:
-            for loader in iter_loaders(representation["_id"]):
+        node = point_index.data(self.model.NodeRole)
+        version_id = node['version_document']['_id']
+        for representation in _get_representations(version_id):
+            for loader in lib.iter_loaders(representation["_id"]):
                 loaders.append((representation, loader))
 
         if not loaders:
@@ -105,13 +101,48 @@ class SubsetWidget(QtWidgets.QWidget):
         # Show the context action menu
         global_point = self.view.mapToGlobal(point)
         action = menu.exec_(global_point)
-
-        # Trigger actions
         if not action:
             return
 
-        representation, loader = action.data()
-        run_loader(loader, representation['_id'])
+        # Find the representation name and loader to trigger
+        action_representation, loader = action.data()
+        representation_name = action_representation['name']  # extension
+
+        # Run the loader for all selected indices, for those that have the
+        # same representation available
+        selection = self.view.selectionModel()
+        rows = selection.selectedRows()
+
+        # Ensure point index is run first.
+        try:
+            rows.remove(point_index)
+        except ValueError:
+            pass
+        rows.insert(0, point_index)
+
+        # Trigger
+        for row in rows:
+            node = row.data(self.model.NodeRole)
+            version_id = node['version_document']['_id']
+            representation = io.find_one({"type": "representation",
+                                          "name": representation_name,
+                                          "parent": version_id})
+            if not representation:
+                self.echo("Subset '{}' has no representation '{}'".format(
+                        node['subset'],
+                        representation_name
+                ))
+                continue
+
+            # If the representation can be
+            context = lib.get_representation_context(representation["_id"])
+            if not lib.is_compatible_loader(loader, context):
+                self.echo("Loader not compatible with '{}'".format(
+                        node['subset']
+                ))
+                continue
+
+            lib.run_loader(loader, representation['_id'])
 
     def echo(self, message):
         print(message)
