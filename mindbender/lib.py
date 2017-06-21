@@ -42,11 +42,14 @@ def time():
     return datetime.datetime.now().strftime("%Y%m%dT%H%M%SZ")
 
 
-def format_shared_dir(root):
-    return os.path.join(root, "publish")
-
-
 def format_staging_dir(root, time, name):
+    """Return directory used for staging of published assets
+
+    TODO(marcus): Deprecated, this should be a path template similar to
+        how other paths are defined.
+
+    """
+
     dirname = os.path.join(root, "stage", name, time)
     return dirname
 

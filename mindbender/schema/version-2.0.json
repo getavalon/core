@@ -16,20 +16,31 @@
     ],
 
     "properties": {
-        "schema": {"type": "string"},
+        "schema": {
+            "description": "The schema associated with this document",
+            "type": "string",
+            "const": "mindbender-core:version-2.0",
+            "example": "mindbender-core:version-2.0"
+        },
         "type": {
-            "type": "string"
+            "description": "The type of document",
+            "type": "string",
+            "const": "version",
+            "example": "version"
         },
         "name": {
             "description": "Number of version",
-            "type": "number"
+            "type": "number",
+            "example": 12
         },
         "locations": {
             "description": "Where on the planet this version can be found.",
             "type": "array",
-            "items": {"type": "string"}
+            "items": {"type": "string"},
+            "example": ["data.mindbender.com"]
         },
         "data": {
+            "description": "Document metadata",
             "type": "object",
             "required": ["families", "author", "source", "time"],
             "properties": {
@@ -59,8 +70,17 @@
                 },
                 "families": {
                     "type": "array",
-                    "items": {"type": "string"}
+                    "items": {"type": "string"},
+                    "description": "One or more families associated with this version"
                 }
+            },
+            "example": {
+                "source" : "{root}/f02_prod/assets/BubbleWitch/work/modeling/marcus/maya/scenes/model_v001.ma",
+                "author" : "marcus",
+                "families" : [ 
+                    "mindbender.model"
+                ],
+                "time" : "20170510T090203Z" 
             }
         }
     }

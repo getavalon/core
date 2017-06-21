@@ -84,6 +84,7 @@ def find_config():
 
 
 def uninstall():
+    """Undo all of what `install()` did"""
     try:
         registered_host().uninstall()
     except AttributeError:
@@ -151,6 +152,7 @@ class Loader(list):
 
 @lib.log
 class Creator(object):
+    """Determine how assets are created"""
     name = None
     label = None
     family = None
@@ -265,6 +267,14 @@ def plugin_from_module(superclass, module):
 
 
 def register_plugin(superclass, obj):
+    """Register an individual `obj` of type `superclass`
+
+    Arguments:
+        superclass (type): Superclass of plug-in
+        obj (object): Subclass of `superclass`
+
+    """
+
     if superclass not in _registered_plugins:
         _registered_plugins[superclass] = list()
 
@@ -273,6 +283,14 @@ def register_plugin(superclass, obj):
 
 
 def register_plugin_path(superclass, path):
+    """Register a directory of one or more plug-ins
+
+    Arguments:
+        superclass (type): Superclass of plug-ins to look for during discovery
+        path (str): Absolute path to directory in which to discover plug-ins
+
+    """
+
     if superclass not in _registered_plugin_paths:
         _registered_plugin_paths[superclass] = list()
 
@@ -282,6 +300,8 @@ def register_plugin_path(superclass, path):
 
 
 def registered_plugin_paths():
+    """Return all currently registered plug-in paths"""
+
     # Prohibit editing in-place
     duplicate = {
         superclass: paths[:]
@@ -292,10 +312,12 @@ def registered_plugin_paths():
 
 
 def deregister_plugin(superclass, plugin):
+    """Oppsite of `register_plugin()`"""
     _registered_plugins[superclass].remove(plugin)
 
 
 def deregister_plugin_path(superclass, path):
+    """Oppsite of `register_plugin_path()`"""
     _registered_plugin_paths[superclass].remove(path)
 
 
@@ -440,18 +462,17 @@ def _validate_signature(module, signatures):
 
 
 def deregister_config():
+    """Undo `register_config()`"""
     _registered_config["_"] = None
 
 
 def registered_config():
+    """Return currently registered config"""
     return _registered_config["_"]
 
 
-def registered_formats():
-    return _registered_formats[:]
-
-
 def registered_host():
+    """Return currently registered host"""
     return _registered_host["_"]
 
 

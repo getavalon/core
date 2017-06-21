@@ -1,8 +1,5 @@
 language: python
 
-sudo: required
-dist: trusty
-
 python:
   - 2.7
 
@@ -11,9 +8,10 @@ services:
 
 install:
   - docker run --name mindbender-mongo -d mongo
-  - docker build -t pyblish/mindbender -f Dockerfile-maya2016 .
+  - docker build -t mindbender/core -f Dockerfile-maya2016 .
 
 script:
+  # Run Tests
   - >
     docker run
     --rm
@@ -22,4 +20,26 @@ script:
     -e COVERALLS_REPO_TOKEN
     -e TRAVIS_JOB_ID
     -e MINDBENDER_MONGO=mongodb://mongo:27017
-    pyblish/mindbender
+    mindbender/core
+
+  # Build Documentation
+  - >
+    docker run
+    --rm
+    -v $(pwd):/workspace
+    --entrypoint=mayapy
+    mindbender/core
+    -m sphinx docs/source docs/build
+
+before_deploy:
+  - sudo chmod -R 777 docs/build/
+  - cd docs/build
+  - touch .nojekyll
+  - ls -l
+
+deploy:
+  provider: pages
+  skip_cleanup: true
+  github_token: $GITHUB_TOKEN
+  on:
+    branch: master

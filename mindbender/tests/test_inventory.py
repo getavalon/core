@@ -80,6 +80,31 @@ def clean():
 
 
 @with_setup(clean)
+def test_init():
+    """Initialising a new project yields defaults"""
+
+    test_project = tempfile.mkdtemp(dir=self._tempdir)
+
+    inventory_fname = os.path.join(test_project, ".inventory.toml")
+    config_fname = os.path.join(test_project, ".config.toml")
+
+    assert 0 == subprocess.call([
+        sys.executable, "-u", "-m", "mindbender.inventory", "--init"
+    ], cwd=test_project)
+
+    assert os.path.isfile(inventory_fname), ".inventory.toml not found"
+    assert os.path.isfile(config_fname), ".config.toml not found"
+
+    with open(inventory_fname) as f:
+        inventory_dict = toml.load(f)
+        assert_equals(inventory_dict, inventory.DEFAULTS["inventory"])
+
+    with open(config_fname) as f:
+        config_dict = toml.load(f)
+        assert_equals(config_dict, inventory.DEFAULTS["config"])
+
+
+@with_setup(clean)
 def test_save():
     """Saving works well under normal circumstances"""
     config_ = {
@@ -197,34 +222,42 @@ def test_save_idempotent():
 
 
 @with_setup(clean)
-def test_cli_load():
-    """Loading from command-line works well"""
+def test_cli_load_no_project():
+    """Loading a project via CLI that does not exist throws an error"""
 
-    assert 0 == subprocess.call([
+    assert 0 != subprocess.call([
         sys.executable, "-u", "-m", "mindbender.inventory", "--load"
     ], cwd=self._tempdir)
 
-    with open(os.path.join(self._tempdir, ".inventory.toml")) as f:
-        inventory_ = toml.load(f)
 
-    with open(os.path.join(self._tempdir, ".config.toml")) as f:
-        config_ = toml.load(f)
+@with_setup(clean)
+def test_load_no_project():
+    """Loading a project that does not exist throws an error"""
 
-    schema.validate(inventory_)
-    schema.validate(config_)
+    assert_raises(Exception, inventory.load, PROJECT_NAME)
 
 
 @with_setup(clean)
 def test_cli_load_overwrite():
     """Loading when an existing inventory exists quietly overwrites it"""
 
-    assert 0 == subprocess.call([
-        sys.executable, "-u", "-m", "mindbender.inventory", "--load"
-    ], cwd=self._tempdir)
+    test_project = tempfile.mkdtemp(dir=self._tempdir)
+
+    subprocess.call([
+        sys.executable, "-u", "-m", "mindbender.inventory", "--init"
+    ], cwd=test_project)
+
+    subprocess.call([
+        sys.executable, "-u", "-m", "mindbender.inventory", "--save"
+    ], cwd=test_project)
 
     assert 0 == subprocess.call([
         sys.executable, "-u", "-m", "mindbender.inventory", "--load"
-    ], cwd=self._tempdir)
+    ], cwd=test_project)
+
+    assert 0 == subprocess.call([
+        sys.executable, "-u", "-m", "mindbender.inventory", "--load"
+    ], cwd=test_project)
 
 
 @with_setup(clean)
@@ -305,15 +338,6 @@ def test_save_asset_data():
     asset = io.find_one({"type": "asset", "name": asset["name"]})
     print(asset)
     assert_equals(asset["data"]["key"], "value")
-
-
-@with_setup(clean)
-def test_load_without_project():
-    """Loading without an active project yields defaults"""
-
-    config_, inventory_ = inventory.load(PROJECT_NAME)
-    assert_equals(config_, inventory.DEFAULTS["config"])
-    assert_equals(inventory_, inventory.DEFAULTS["inventory"])
 
 
 @with_setup(clean)

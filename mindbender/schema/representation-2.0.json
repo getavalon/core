@@ -18,24 +18,39 @@
     "properties": {
         "schema": {
             "description": "Schema identifier for payload",
-            "type": "string"
+            "type": "string",
+            "const": "mindbender-core:representation-2.0",
+            "example": "mindbender-core:representation-2.0"
         },
         "type": {
-            "type": "string"
+            "description": "The type of document",
+            "type": "string",
+            "const": "representation",
+            "example": "representation"
         },
         "name": {
-            "description": "Name of directory",
+            "description": "Name of representation",
             "type": "string",
-            "pattern": "^[a-zA-Z0-9_.]*$"
+            "pattern": "^[a-zA-Z0-9_.]*$",
+            "example": "abc"
         },
         "data": {
-            "type": "object"
+            "description": "Document metadata",
+            "type": "object",
+            "example": {
+                "label": "Alembic"
+            }
         },
         "dependencies": {
+            "description": "Other representation that this representation depends on",
             "type": "array",
-            "items": {"type": "string"}
+            "items": {"type": "string"},
+            "example": [
+                "592d547a5f8c1b388093c145"
+            ]
         },
         "context": {
+            "description": "Summary of the context to which this representation belong.",
             "type": "object",
             "properties": {
                 "project": {"type": "string"},
@@ -44,6 +59,14 @@
                 "subset": {"type": "string"},
                 "version": {"type": "number"},
                 "representation": {"type": "string"}
+            },
+            "example": {
+                "project": "hulk",
+                "asset": "Bruce",
+                "silo": "assets",
+                "subset": "rigDefault",
+                "version": 12,
+                "representation": "ma"
             }
         }
     }

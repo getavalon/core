@@ -218,6 +218,20 @@ def save(name, config, inventory):
             handler(name, data)
 
 
+def init(name):
+    io.activate_project(name)
+    project = io.find_one({"type": "project"})
+
+    if project is not None:
+        raise Exception("'%s' already exists, "
+                        "try --load instead" % project["name"])
+
+    config = DEFAULTS["config"]
+    inventory = DEFAULTS["inventory"]
+
+    return config, inventory
+
+
 def load(name):
     """Write config and inventory to `root` from database
 
@@ -232,9 +246,8 @@ def load(name):
     project = io.find_one({"type": "project"})
 
     if project is None:
-        print("No project found, loading defaults..")
-        config = {}
-        inventory = DEFAULTS["inventory"]
+        raise Exception("'%s' not found, try --init "
+                        "to start a new project." % name)
 
     else:
         config = project["config"]
@@ -543,6 +556,9 @@ def _cli():
                         action="append",
                         default=["assets", "film"])
     parser.add_argument("--silo-parent", help="Optional silo silo_parent")
+    parser.add_argument("--init",
+                        action="store_true",
+                        help="Start a new project")
     parser.add_argument("--save",
                         action="store_true",
                         help="Save inventory from disk to database")
@@ -566,10 +582,16 @@ def _cli():
     root = kwargs.root or os.getcwd()
     name = os.path.basename(root)
 
-    if any([kwargs.load, kwargs.save, kwargs.upload]):
+    if any([kwargs.load, kwargs.save, kwargs.upload, kwargs.init]):
         io.install()
 
-    if kwargs.load:
+    if kwargs.init:
+        config, inventory = init(name)
+        _write(root, "config", config)
+        _write(root, "inventory", inventory)
+        print("Success!")
+
+    elif kwargs.load:
         config, inventory = load(name)
         _write(root, "config", config)
         _write(root, "inventory", inventory)
@@ -594,4 +616,8 @@ def _cli():
 
 
 if __name__ == '__main__':
-    sys.exit(_cli())
+    try:
+        _cli()
+    except Exception as e:
+        print(e)
+        sys.exit(1)
