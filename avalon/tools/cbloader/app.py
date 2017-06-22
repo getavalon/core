@@ -151,6 +151,9 @@ class Window(QtWidgets.QDialog):
         for i in range(rows):
             subsets.view.resizeColumnToContents(i)
 
+        # Clear the version information on asset change
+        self.data['model']['version'].set_version(None)
+
         self.data["state"]["context"]["asset"] = document["name"]
         self.data["state"]["context"]["silo"] = document["silo"]
         self.echo("Duration: %.3fs" % (time.time() - t1))
