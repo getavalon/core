@@ -54,8 +54,7 @@ DEFAULTS = {
             "publish":
                 "{root}/{project}/{silo}/{asset}/publish/"
                 "{subset}/v{version:0>3}/{subset}.{representation}"
-        },
-        "copy": {}
+        }
     },
     "inventory": {
         "schema": "mindbender-core:inventory-1.0",
