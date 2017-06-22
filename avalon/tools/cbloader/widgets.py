@@ -1,4 +1,5 @@
 import datetime
+import pprint
 
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ... import io
@@ -154,56 +155,68 @@ class SubsetWidget(QtWidgets.QWidget):
         print(message)
 
 
-class VersionWidget(QtWidgets.QWidget):
-    """A Widget that display information about a specific version"""
+class VersionTextEdit(QtWidgets.QTextEdit):
+    """QTextEdit that displays version specific information.
+    
+    This also overrides the context menu to add actions like copying
+    source path to clipboard or copying the raw data of the version
+    to clipboard.
+    
+    """
     def __init__(self, parent=None):
-        super(VersionWidget, self).__init__(parent=parent)
+        super(VersionTextEdit, self).__init__(parent=parent)
 
-        layout = QtWidgets.QVBoxLayout(self)
+        self.data = {
+            "source": None,
+            "raw": None
+        }
 
-        label = QtWidgets.QLabel("Version")
-        data = QtWidgets.QTextEdit()
-        data.setReadOnly(True)
-        layout.addWidget(label)
-        layout.addWidget(data)
-
-        self.data = data
-
-        # initialize to empty state
+        # Reset
         self.set_version(None)
 
     def set_version(self, version_id):
-        if version_id:
-            version = io.find_one({"_id": version_id, "type": "version"})
-            assert version, "Not a valid version id"
 
-            subset = io.find_one({"_id": version['parent'], "type": "subset"})
-            assert subset, "No valid subset parent for version"
-
-            # Define readable creation timestamp
-            created = version["data"]["time"]
-            created = datetime.datetime.strptime(created, "%Y%m%dT%H%M%SZ")
-            created = datetime.datetime.strftime(created, "%b %d %Y %I:%M%p")
-
-            comment = version['data'].get("comment", None) or "No comment"
-
-            # Format raw source to source with current {root}
-            raw_source = version['data'].get("source", "")
-            if raw_source:
-                source = raw_source.format(root=api.registered_root())
-            else:
-                source = raw_source
-
-            data = {
-                "subset": subset['name'],
-                "version": version['name'],
-                "comment": comment,
-                "created": created,
-                "source": source,
-                "raw_source": raw_source
+        if not version_id:
+            # Reset state to empty
+            self.data = {
+                "source": None,
+                "raw": None,
             }
+            self.setText("")
+            self.setEnabled(True)
+            return
 
-            self.data.setHtml("""
+        self.setEnabled(True)
+
+        version = io.find_one({"_id": version_id, "type": "version"})
+        assert version, "Not a valid version id"
+
+        subset = io.find_one({"_id": version['parent'], "type": "subset"})
+        assert subset, "No valid subset parent for version"
+
+        # Define readable creation timestamp
+        created = version["data"]["time"]
+        created = datetime.datetime.strptime(created, "%Y%m%dT%H%M%SZ")
+        created = datetime.datetime.strftime(created, "%b %d %Y %I:%M%p")
+
+        comment = version['data'].get("comment", None) or "No comment"
+
+        source = version['data'].get("source", None)
+        source_label = source if source else "No source"
+
+        # Store source and raw data
+        self.data['source'] = source
+        self.data['raw'] = version
+
+        data = {
+            "subset": subset['name'],
+            "version": version['name'],
+            "comment": comment,
+            "created": created,
+            "source": source_label
+        }
+
+        self.setHtml("""
 <h3>{subset} v{version:03d}</h3>
 <b>Comment</b><br>
 {comment}<br>
@@ -212,9 +225,69 @@ class VersionWidget(QtWidgets.QWidget):
 {created}<br>
 <br>
 <b>Source</b><br>
-{source}<br>
-<br>
-<b>Raw Source</b><br>
-{raw_source}<br>""".format(**data))
-        else:
-            self.data.setText("")
+{source}<br>""".format(**data))
+
+    def contextMenuEvent(self, event):
+        """Context menu with additional actions"""
+        menu = self.createStandardContextMenu()
+
+        # Add additional actions when any text so we can assume
+        # the version is set.
+        if self.toPlainText().strip():
+
+            menu.addSeparator()
+            action = QtWidgets.QAction("Copy source path to clipboard",
+                                       menu)
+            action.triggered.connect(self.on_copy_source)
+            menu.addAction(action)
+
+            action = QtWidgets.QAction("Copy raw data to clipboard",
+                                       menu)
+            action.triggered.connect(self.on_copy_raw)
+            menu.addAction(action)
+
+        menu.exec_(event.globalPos())
+        del menu
+
+    def on_copy_source(self):
+        """Copy formatted source path to clipboard"""
+        source = self.data.get("source", None)
+        if not source:
+            return
+
+        path = source.format(root=api.registered_root())
+        clipboard = QtWidgets.QApplication.clipboard()
+        clipboard.setText(path)
+
+    def on_copy_raw(self):
+        """Copy raw version data to clipboard
+        
+        The data is string formatted with `pprint.pformat`.
+        
+        """
+        raw = self.data.get("raw", None)
+        if not raw:
+            return
+
+        raw_text = pprint.pformat(raw)
+        clipboard = QtWidgets.QApplication.clipboard()
+        clipboard.setText(raw_text)
+
+
+class VersionWidget(QtWidgets.QWidget):
+    """A Widget that display information about a specific version"""
+    def __init__(self, parent=None):
+        super(VersionWidget, self).__init__(parent=parent)
+
+        layout = QtWidgets.QVBoxLayout(self)
+
+        label = QtWidgets.QLabel("Version")
+        data = VersionTextEdit()
+        data.setReadOnly(True)
+        layout.addWidget(label)
+        layout.addWidget(data)
+
+        self.data = data
+
+    def set_version(self, version_id):
+        self.data.set_version(version_id)
