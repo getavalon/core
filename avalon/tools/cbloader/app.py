@@ -10,8 +10,6 @@ from .widgets import SubsetWidget, VersionWidget
 
 module = sys.modules[__name__]
 module.window = None
-module.root = api.registered_root()
-module.project = os.getenv("MINDBENDER_PROJECT")
 
 # Custom roles
 DocumentRole = AssetModel.DocumentRole
@@ -24,7 +22,8 @@ class Window(QtWidgets.QDialog):
         super(Window, self).__init__(parent)
         self.setWindowTitle(
             "Asset Loader 2.0 - %s/%s" % (
-                module.root, module.project))
+                api.registered_root(),
+                os.getenv("AVALON_PROJECT")))
 
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
