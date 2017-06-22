@@ -146,6 +146,11 @@ class Window(QtWidgets.QDialog):
         document = asset_item.data(DocumentRole)
         subsets_model.set_asset(document['_id'])
 
+        # Enforce the columns to fit the data (purely cosmetic)
+        rows = subsets_model.rowCount(QtCore.QModelIndex())
+        for i in range(rows):
+            subsets.view.resizeColumnToContents(i)
+
         self.data["state"]["context"]["asset"] = document["name"]
         self.data["state"]["context"]["silo"] = document["silo"]
         self.echo("Duration: %.3fs" % (time.time() - t1))
