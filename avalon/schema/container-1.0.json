@@ -1,0 +1,64 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+
+    "title": "avalon-core:container-1.0",
+    "description": "A loaded asset",
+
+    "type": "object",
+
+    "additionalProperties": true,
+
+    "required": [
+        "schema",
+        "name",
+        "objectName",
+        "asset",
+        "subset",
+        "version",
+        "path"
+    ],
+
+    "properties": {
+        "schema": {
+            "description": "Schema identifier for payload",
+            "type": "string",
+            "const": "avalon-core:container-2.0",
+            "example": "avalon-core:container-2.0"
+        },
+        "name": {
+            "description": "Full name of application object",
+            "type": "string",
+            "example": "modelDefault"
+        },
+        "path": {
+            "description": "Absolute path",
+            "type": "string",
+            "example": "|someParent|someNamespace_:modelDefault_CON"
+        },
+        "objectName": {
+            "description": "Name of internal object, such as the objectSet in Maya.",
+            "type": "string",
+            "example": "modelDefault_CON"
+        },
+        "subset": {
+            "description": "Name of source subset",
+            "type": "string",
+            "example": "modelDefault"
+        },
+        "asset": {
+            "description": "Name of source asset",
+            "type": "string"  ,
+            "example": "Bruce"
+        },
+        "version": {
+            "description": "Version number",
+            "type": "number",
+            "example": 12
+        },
+        "author": {
+            "description": "Name of the author of the published version",
+            "type": "string",
+            "example": "Marcus Ottosson"
+        }
+    }
+}

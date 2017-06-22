@@ -1,11 +1,11 @@
-### Mindbender Core
+### Avalon Core
 
-[![Build Status](https://travis-ci.org/mindbender-studio/core.svg?branch=master)](https://travis-ci.org/mindbender-studio/core) [![Coverage Status](https://coveralls.io/repos/github/mindbender-studio/core/badge.svg?branch=master)](https://coveralls.io/github/mindbender-studio/core?branch=master)
+[![Build Status](https://travis-ci.org/getavalon/core.svg?branch=master)](https://travis-ci.org/getavalon/core) [![Coverage Status](https://coveralls.io/repos/github/getavalon/core/badge.svg?branch=master)](https://coveralls.io/github/getavalon/core?branch=master)
 
-The production pipeline at Mindbender Animation Studio.
+The production pipeline at Avalon Animation Studio.
 
-- [Documentation](https://mindbender-studio.github.io)
-- [Installation](https://mindbender-studio.github.io/#install)
+- [Documentation](https://getavalon.github.io)
+- [Installation](https://getavalon.github.io/#install)
 
 <br>
 
@@ -18,10 +18,10 @@ The production pipeline at Mindbender Animation Studio.
 ### Testing
 
 ```bash
-$ cd mindbender-core
+$ cd avalon-core
 
 # One-time build and database
-$ docker run --name mindbender-mongo -d mongo
+$ docker run --name avalon-mongo -d mongo
 $ . build_docker.sh
 
 # Run

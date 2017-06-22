@@ -1,2 +1,2 @@
-from mindbender import api, maya
+from avalon import api, maya
 api.install(maya)

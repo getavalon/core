@@ -7,8 +7,8 @@ services:
   - docker
 
 install:
-  - docker run --name mindbender-mongo -d mongo
-  - docker build -t mindbender/core -f Dockerfile-maya2016 .
+  - docker run --name avalon-mongo -d mongo
+  - docker build -t avalon/core -f Dockerfile-maya2016 .
 
 script:
   # Run Tests
@@ -16,11 +16,11 @@ script:
     docker run
     --rm
     -v $(pwd):/workspace
-    --link mindbender-mongo:mongo
+    --link avalon-mongo:mongo
     -e COVERALLS_REPO_TOKEN
     -e TRAVIS_JOB_ID
-    -e MINDBENDER_MONGO=mongodb://mongo:27017
-    mindbender/core
+    -e AVALON_MONGO=mongodb://mongo:27017
+    avalon/core
 
   # Build Documentation
   - >
@@ -28,7 +28,7 @@ script:
     --rm
     -v $(pwd):/workspace
     --entrypoint=mayapy
-    mindbender/core
+    avalon/core
     -m sphinx docs/source docs/build
 
 before_deploy:

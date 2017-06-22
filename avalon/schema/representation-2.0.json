@@ -1,0 +1,73 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+
+    "title": "avalon-core:representation-2.0",
+    "description": "The inverse of an instance",
+
+    "type": "object",
+
+    "additionalProperties": true,
+
+    "required": [
+        "schema",
+        "type",
+        "name",
+        "data"
+    ],
+
+    "properties": {
+        "schema": {
+            "description": "Schema identifier for payload",
+            "type": "string",
+            "const": "avalon-core:representation-2.0",
+            "example": "avalon-core:representation-2.0"
+        },
+        "type": {
+            "description": "The type of document",
+            "type": "string",
+            "const": "representation",
+            "example": "representation"
+        },
+        "name": {
+            "description": "Name of representation",
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_.]*$",
+            "example": "abc"
+        },
+        "data": {
+            "description": "Document metadata",
+            "type": "object",
+            "example": {
+                "label": "Alembic"
+            }
+        },
+        "dependencies": {
+            "description": "Other representation that this representation depends on",
+            "type": "array",
+            "items": {"type": "string"},
+            "example": [
+                "592d547a5f8c1b388093c145"
+            ]
+        },
+        "context": {
+            "description": "Summary of the context to which this representation belong.",
+            "type": "object",
+            "properties": {
+                "project": {"type": "string"},
+                "asset": {"type": "string"},
+                "silo": {"type": "string"},
+                "subset": {"type": "string"},
+                "version": {"type": "number"},
+                "representation": {"type": "string"}
+            },
+            "example": {
+                "project": "hulk",
+                "asset": "Bruce",
+                "silo": "assets",
+                "subset": "rigDefault",
+                "version": 12,
+                "representation": "ma"
+            }
+        }
+    }
+}
