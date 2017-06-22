@@ -38,7 +38,10 @@ def validate(data, schema=None):
     """
 
     root, schema = data["schema"].rsplit(":", 1)
-    assert root == "avalon-core"
+    assert root in (
+        "mindbender-core",  # Backwards compatiblity
+        "avalon-core"
+    )
 
     if isinstance(schema, basestring):
         schema = _cache[schema + ".json"]

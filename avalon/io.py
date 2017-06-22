@@ -25,7 +25,12 @@ def install():
 
     self._client = pymongo.MongoClient(
         self._uri, serverSelectionTimeoutMS=self._timeout)
-    self._database = self._client["avalon"]
+
+    # Backwards compatibility
+    if "avalon" in self._client.database_names():
+        self._database = self._client["avalon"]
+    else:
+        self._database = self._client["mindbender"]
 
     for retry in range(3):
         try:
