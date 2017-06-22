@@ -2,6 +2,7 @@ import datetime
 
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ... import io
+from ... import api
 
 from .model import SubsetsModel
 from .delegates import PrettyTimeDelegate, VersionDelegate
@@ -186,12 +187,20 @@ class VersionWidget(QtWidgets.QWidget):
 
             comment = version['data'].get("comment", None) or "No comment"
 
+            # Format raw source to source with current {root}
+            raw_source = version['data'].get("source", "")
+            if raw_source:
+                source = raw_source.format(root=api.registered_root())
+            else:
+                source = raw_source
+
             data = {
                 "subset": subset['name'],
                 "version": version['name'],
                 "comment": comment,
-                "source": version['data'].get("source", "No source"),
-                "created": created
+                "created": created,
+                "source": source,
+                "raw_source": raw_source
             }
 
             self.data.setHtml("""
@@ -203,6 +212,9 @@ class VersionWidget(QtWidgets.QWidget):
 {created}<br>
 <br>
 <b>Source</b><br>
-{source}<br>""".format(**data))
+{source}<br>
+<br>
+<b>Raw Source</b><br>
+{raw_source}<br>""".format(**data))
         else:
             self.data.setText("")
