@@ -58,6 +58,7 @@ def _install_menu():
         loader,
         manager,
         publish,
+        cbloader
     )
 
     from . import interactive
@@ -72,7 +73,9 @@ def _install_menu():
 
         cmds.menuItem("Create...",
                       command=lambda *args: creator.show(parent=self._parent))
-        cmds.menuItem("Load...",
+        cmds.menuItem("Load... (new)",
+                      command=lambda *args: cbloader.show(parent=self._parent))
+        cmds.menuItem("Load... (old)",
                       command=lambda *args: loader.show(parent=self._parent))
         cmds.menuItem("Publish...",
                       command=lambda *args: publish.show(parent=self._parent),
