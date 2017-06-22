@@ -52,6 +52,9 @@
                 },
                 "required": ["name"]
             }
+        },
+        "copy": {
+            "type": "object"
         }
     }
 }
