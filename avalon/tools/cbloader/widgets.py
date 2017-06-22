@@ -1,3 +1,5 @@
+import datetime
+
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ... import io
 
@@ -61,6 +63,9 @@ class SubsetWidget(QtWidgets.QWidget):
         self.view = view
 
         view.customContextMenuRequested.connect(self.on_context_menu)
+
+        selection = view.selectionModel()
+        selection.selectionChanged.connect(self.active_changed)
 
     def on_context_menu(self, point):
 
@@ -146,3 +151,58 @@ class SubsetWidget(QtWidgets.QWidget):
 
     def echo(self, message):
         print(message)
+
+
+class VersionWidget(QtWidgets.QWidget):
+    """A Widget that display information about a specific version"""
+    def __init__(self, parent=None):
+        super(VersionWidget, self).__init__(parent=parent)
+
+        layout = QtWidgets.QVBoxLayout(self)
+
+        label = QtWidgets.QLabel("Version")
+        data = QtWidgets.QTextEdit()
+        data.setReadOnly(True)
+        layout.addWidget(label)
+        layout.addWidget(data)
+
+        self.data = data
+
+        # initialize to empty state
+        self.set_version(None)
+
+    def set_version(self, version_id):
+        if version_id:
+            version = io.find_one({"_id": version_id, "type": "version"})
+            assert version, "Not a valid version id"
+
+            subset = io.find_one({"_id": version['parent'], "type": "subset"})
+            assert subset, "No valid subset parent for version"
+
+            # Define readable creation timestamp
+            created = version["data"]["time"]
+            created = datetime.datetime.strptime(created, "%Y%m%dT%H%M%SZ")
+            created = datetime.datetime.strftime(created, "%b %d %Y %I:%M%p")
+
+            comment = version['data'].get("comment", None) or "No comment"
+
+            data = {
+                "subset": subset['name'],
+                "version": version['name'],
+                "comment": comment,
+                "source": version['data'].get("source", "No source"),
+                "created": created
+            }
+
+            self.data.setHtml("""
+<h3>{subset} v{version:03d}</h3>
+<b>Comment</b><br>
+{comment}<br>
+<br>
+<b>Created</b><br>
+{created}<br>
+<br>
+<b>Source</b><br>
+{source}<br>""".format(**data))
+        else:
+            self.data.setText("")

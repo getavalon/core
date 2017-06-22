@@ -6,7 +6,7 @@ from ..projectmanager.widget import AssetWidget, AssetModel
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ... import api, io
 from .. import lib
-from .widgets import SubsetWidget
+from .widgets import SubsetWidget, VersionWidget
 
 module = sys.modules[__name__]
 module.window = None
@@ -36,14 +36,17 @@ class Window(QtWidgets.QDialog):
 
         assets = AssetWidget()
         subsets = SubsetWidget()
+        version = VersionWidget()
 
         layout = QtWidgets.QHBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
         split = QtWidgets.QSplitter()
         split.addWidget(assets)
         split.addWidget(subsets)
+        split.addWidget(version)
         split.setStretchFactor(0, 30)
         split.setStretchFactor(1, 90)
+        split.setStretchFactor(2, 30)
         layout.addWidget(split)
 
         layout = QtWidgets.QHBoxLayout(body)
@@ -65,6 +68,7 @@ class Window(QtWidgets.QDialog):
             "model": {
                 "assets": assets,
                 "subsets": subsets,
+                "version": version,
             },
             "label": {
                 "message": message,
@@ -85,9 +89,10 @@ class Window(QtWidgets.QDialog):
         }
 
         assets.selection_changed.connect(self.on_assetschanged)
+        subsets.active_changed.connect(self.on_versionschanged)
 
         # Defaults
-        self.resize(1100, 600)
+        self.resize(1200, 600)
 
     # -------------------------------
     # Delay calling blocking methods
@@ -104,9 +109,6 @@ class Window(QtWidgets.QDialog):
     def on_versionschanged(self, *args):
         self.echo("Fetching results..")
         lib.schedule(self._versionschanged, 100, channel="mongo")
-
-    def on_representationschanged(self, *args):
-        lib.schedule(self._representationschanged, 100, channel="mongo")
 
     # ------------------------------
 
@@ -131,7 +133,8 @@ class Window(QtWidgets.QDialog):
         """Selected assets have changed"""
 
         assets_model = self.data["model"]["assets"]
-        subsets_model = self.data["model"]["subsets"].model
+        subsets = self.data["model"]["subsets"]
+        subsets_model = subsets.model
         subsets_model.clear()
 
         t1 = time.time()
@@ -146,6 +149,23 @@ class Window(QtWidgets.QDialog):
         self.data["state"]["context"]["asset"] = document["name"]
         self.data["state"]["context"]["silo"] = document["silo"]
         self.echo("Duration: %.3fs" % (time.time() - t1))
+
+    def _versionschanged(self):
+
+        subsets = self.data["model"]["subsets"]
+        selection = subsets.view.selectionModel()
+
+        # Active must be in the selected rows otherwise we
+        # assume it's not actually an "active" current index.
+        version = None
+        active = selection.currentIndex()
+        if active:
+            rows = selection.selectedRows(column=active.column())
+            if active in rows:
+                node = active.data(subsets.model.NodeRole)
+                version = node['version_document']['_id']
+
+        self.data['model']['version'].set_version(version)
 
     def echo(self, message):
         widget = self.data["label"]["message"]
