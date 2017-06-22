@@ -2,8 +2,8 @@ docker run \
 	--rm \
 	-ti \
 	-v $(pwd):/workspace \
-	--link mindbender-mongo:mongo \
-	-e MINDBENDER_SILENT \
-	-e MINDBENDER_MONGO=mongodb://mongo:27017 \
+	--link avalon-mongo:mongo \
+	-e AVALON_SILENT \
+	-e AVALON_MONGO=mongodb://mongo:27017 \
 	--entrypoint bash \
-	mindbender/core
+	avalon/core

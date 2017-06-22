@@ -1,0 +1,46 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+
+    "title": "avalon-core:subset-2.0",
+    "description": "A container of instances",
+
+    "type": "object",
+
+    "additionalProperties": true,
+
+    "required": [
+        "schema",
+        "type",
+        "name",
+        "data"
+    ],
+
+    "properties": {
+        "schema": {
+            "description": "The schema associated with this document",
+            "type": "string",
+            "const": "avalon-core:subset-2.0",
+            "example": "avalon-core:subset-2.0"
+        },
+        "type": {
+            "description": "The type of document",
+            "type": "string",
+            "const": "subset",
+            "example": "subset"
+        },
+        "name": {
+            "description": "Name of directory",
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_.]*$",
+            "example": "shot01"
+        },
+        "data": {
+            "type": "object",
+            "description": "Document metadata",
+            "example": {
+                "startFrame": 1000,
+                "endFrame": 1201
+            }
+        }
+    }
+}

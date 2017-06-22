@@ -20,13 +20,13 @@ if __name__ == "__main__":
 
         "--verbose",
         "--with-doctest",
-        "--exclude-dir=mindbender/maya",
-        "--exclude-dir=mindbender/nuke",
-        "--exclude-dir=mindbender/houdini",
+        "--exclude-dir=avalon/maya",
+        "--exclude-dir=avalon/nuke",
+        "--exclude-dir=avalon/houdini",
 
         # We can expect any vendors to
         # be well tested beforehand.
-        "--exclude-dir=mindbender/vendor",
+        "--exclude-dir=avalon/vendor",
     ])
 
     nose.main(argv=argv,

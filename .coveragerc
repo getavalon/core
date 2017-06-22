@@ -1,8 +1,8 @@
 [run]
-source = mindbender
+source = avalon
 
 [report]
-include = *mindbender*
+include = *avalon*
 omit = 
     */vendor*
     */tests*

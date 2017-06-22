@@ -1,6 +1,6 @@
 ### Contributing
 
-Hi and welcome to the Mindbender pipeline project!
+Hi and welcome to the Avalon pipeline project!
 
 <br>
 
