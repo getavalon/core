@@ -160,12 +160,13 @@ class AssetModel(TreeModel):
 
     """
 
-    COLUMNS = ["label", "tags", "deprecated"]
+    COLUMNS = ["label"]
     Name = 0
     Deprecated = 2
     ObjectId = 3
 
-    ObjectIdRole = QtCore.Qt.UserRole + 1
+    DocumentRole = QtCore.Qt.UserRole + 1
+    ObjectIdRole = QtCore.Qt.UserRole + 2
 
     def __init__(self, silo=None, parent=None):
         super(AssetModel, self).__init__(parent=parent)
@@ -215,6 +216,7 @@ class AssetModel(TreeModel):
                 "type": asset['type'],
                 "tags": ", ".join(asset.get("tags", [])),
                 "deprecated": deprecated,
+                "_document": asset
             })
             self.add_child(node, parent=parent)
 
@@ -263,6 +265,10 @@ class AssetModel(TreeModel):
             node = index.internalPointer()
             return node.get("_id", None)
 
+        if role == self.DocumentRole:
+            node = index.internalPointer()
+            return node.get("_document", None)
+
         return super(AssetModel, self).data(index, role)
 
 
@@ -277,9 +283,10 @@ class AssetView(DeselectableTreeView):
         super(AssetView, self).__init__()
         self.setIndentation(15)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.setHeaderHidden(True)
 
 
-class SiloTabWidget(QtWidgets.QTabWidget):
+class SiloTabWidget(QtWidgets.QTabBar):
     """Silo widget
 
     Allows to add a silo, with "+" tab.
@@ -325,6 +332,15 @@ class SiloTabWidget(QtWidgets.QTabWidget):
         # Store for the next calls
         self._previous_tab_index = index
 
+    def clear(self):
+        """Removes all tabs.
+        
+        Implemented similar to `QTabWidget.clear()`
+        
+        """
+        for i in range(self.count()):
+            self.removeTab(0)
+
     def set_silos(self, silos):
 
         current_silo = self.get_current_silo()
@@ -337,10 +353,10 @@ class SiloTabWidget(QtWidgets.QTabWidget):
         self.blockSignals(True)
         self.clear()
         for silo in sorted(silos):
-            self.addTab(QtWidgets.QWidget(), silo)
+            self.addTab(silo)
 
         # Add the "+" tab
-        self.addTab(QtWidgets.QWidget(), "+")
+        self.addTab("+")
 
         self.set_current_silo(current_silo)
         self.blockSignals(False)
@@ -477,7 +493,7 @@ class AssetWidget(QtWidgets.QWidget):
         self.proxy = proxy
         self.view = view
 
-    def _on_silo_changed(self, index):
+    def _on_silo_changed(self):
         """Callback for silo change"""
 
         self._refresh_model()
@@ -513,6 +529,9 @@ class AssetWidget(QtWidgets.QWidget):
         """Return the asset id the current asset."""
         current = self.view.currentIndex()
         return current.data(self.model.ObjectIdRole)
+
+    def get_active_index(self):
+        return self.view.currentIndex()
 
     def get_selected_assets(self):
         """Return the assets' ids that are selected."""

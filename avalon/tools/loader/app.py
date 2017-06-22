@@ -569,7 +569,12 @@ QPushButton {
                 _id = document["_id"]
                 self.echo("api.registered_host()."
                           "load(representation=\"%s\")" % _id)
-                api.registered_host().load(representation=_id, preset=preset)
+                # TODO: This should not import library from other tool
+                from ..cbloader.lib import iter_loaders
+
+                host = api.registered_host()
+                for loader in iter_loaders(_id):
+                    host.load(loader, representation=_id, preset=preset)
 
             except ValueError as e:
                 self.echo(e)

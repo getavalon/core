@@ -331,7 +331,7 @@ def registered_root():
     """Return currently registered root"""
     return (
         _registered_root["_"] or
-        os.getenv("AVALON_ROOT") or ""
+        os.getenv("AVALON_PROJECTS") or ""
     ).replace("\\", "/")
 
 
@@ -363,6 +363,7 @@ def register_host(host):
     """
     signatures = {
         "load": [
+            "Loader",
             "representation"
         ],
         "create": [
@@ -494,7 +495,8 @@ def default_host():
     def ls():
         return list()
 
-    def load(representation=None,
+    def load(Loader=None,
+             representation=None,
              name=None,
              namespace=None,
              post_process=None,
@@ -546,12 +548,14 @@ def debug_host():
         for container in containers:
             yield container
 
-    def load(representation=None,
+    def load(Loader,
+             representation=None,
              name=None,
              namespace=None,
              post_process=None,
              preset=None):
         sys.stdout.write(pformat({
+            "loader": Loader,
             "representation": representation
         }) + "\n"),
 
