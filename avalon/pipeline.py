@@ -528,20 +528,20 @@ def debug_host():
     def ls():
         containers = [
             {
+                "representation": "ee-ft-a-uuid1",
                 "schema": "avalon-core:container-1.0",
                 "name": "Bruce01",
-                "asset": "Bruce",
-                "subset": "rigDefault",
+                "objectName": "Bruce01_node",
+                "namespace": "_bruce01_",
                 "version": 3,
-                "silo": "assets",
             },
             {
+                "representation": "aa-bc-s-uuid2",
                 "schema": "avalon-core:container-1.0",
                 "name": "Bruce02",
-                "asset": "Bruce",
-                "subset": "modelDefault",
+                "objectName": "Bruce01_node",
+                "namespace": "_bruce02_",
                 "version": 2,
-                "silo": "assets",
             }
         ]
 
