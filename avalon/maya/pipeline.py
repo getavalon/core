@@ -24,7 +24,6 @@ def install(config):
 
     """
 
-    _register_formats()
     _register_callbacks()
     _install_menu()
 
@@ -46,10 +45,6 @@ def uninstall():
     pyblish.deregister_host("mayabatch")
     pyblish.deregister_host("mayapy")
     pyblish.deregister_host("maya")
-
-    api.deregister_format(".ma")
-    api.deregister_format(".mb")
-    api.deregister_format(".abc")
 
 
 def _install_menu():
@@ -151,13 +146,6 @@ def _uninstall_menu():
     if menu:
         menu.deleteLater()
         del(menu)
-
-
-def _register_formats():
-    # These file-types will appear in the Loader GUI
-    api.register_format(".ma")
-    api.register_format(".mb")
-    api.register_format(".abc")
 
 
 def containerise(name,

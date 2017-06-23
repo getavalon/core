@@ -28,7 +28,6 @@ from .pipeline import (
 
     register_root,
     register_host,
-    register_format,
     register_plugin_path,
     register_plugin,
 
@@ -38,7 +37,6 @@ from .pipeline import (
 
     deregister_plugin,
     deregister_plugin_path,
-    deregister_format,
 )
 
 from .lib import (
@@ -64,7 +62,6 @@ __all__ = [
     "discover",
 
     "register_host",
-    "register_format",
     "register_plugin_path",
     "register_plugin",
     "register_root",
@@ -75,7 +72,6 @@ __all__ = [
 
     "deregister_plugin",
     "deregister_plugin_path",
-    "deregister_format",
 
     "format_staging_dir",
     "format_version",
