@@ -316,6 +316,8 @@ class Creator(api.Creator):
         instance = cmds.sets(nodes, name=self.name)
         lib.imprint(instance, self.data)
 
+        return instance
+
 
 def create(name, asset, family, options=None, data=None):
     """Create a new instance
