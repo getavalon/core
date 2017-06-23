@@ -58,7 +58,8 @@ def _install_menu():
         loader,
         manager,
         publish,
-        cbloader
+        cbloader,
+        cbsceneinventory
     )
 
     from . import interactive
@@ -80,7 +81,10 @@ def _install_menu():
         cmds.menuItem("Publish...",
                       command=lambda *args: publish.show(parent=self._parent),
                       image=publish.ICON)
-        cmds.menuItem("Manage...",
+        cmds.menuItem("Manage... (new)",
+                      command=lambda *args: cbsceneinventory.show(
+                          parent=self._parent))
+        cmds.menuItem("Manage... (old)",
                       command=lambda *args: manager.show(parent=self._parent))
 
         cmds.menuItem(divider=True)
