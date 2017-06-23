@@ -22,10 +22,12 @@ def _discover_gui():
     # Prefer last registered
     guis = reversed(api.registered_guis())
 
-    for gui in guis:
+    for gui in list(guis) + ["pyblish_qml"]:  # Incl. default
         try:
             gui = __import__(gui).show
         except (ImportError, AttributeError):
             continue
         else:
             return gui
+
+    raise ImportError("No Pyblish GUI found")

@@ -29,7 +29,7 @@ def install(host):
     """Install `host` into the running Python session.
 
     Arguments:
-        host (module): A Python module containing the Pyblish
+        host (module): A Python module containing the Avalon
             avalon host-interface.
 
     """
@@ -62,7 +62,7 @@ def install(host):
 
     self._is_installed = True
     self._config = config
-    self.log.info("Successfully installed Pyblish Avalon!")
+    self.log.info("Successfully installed Avalon!")
 
 
 def find_config():
@@ -99,7 +99,7 @@ def uninstall():
 
     io.uninstall()
 
-    self.log.info("Successfully uninstalled Pyblish Avalon!")
+    self.log.info("Successfully uninstalled Avalon!")
 
 
 def is_installed():
@@ -232,7 +232,7 @@ def plugin_from_module(superclass, module):
     Arguments:
         superclass (superclass): Superclass of subclasses to look for
         module (types.ModuleType): Imported module from which to
-            parse valid Pyblish plug-ins.
+            parse valid Avalon plug-ins.
 
     Returns:
         List of plug-ins, or empty list if none is found.
