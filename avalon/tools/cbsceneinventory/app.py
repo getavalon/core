@@ -37,11 +37,9 @@ def get_representation_path(representation):
         data[key] = value['name']
 
     # additional parameters
+    # see https://getavalon.github.io/2.0/reference/#project-configuration-api
     data['root'] = api.registered_root()
     data['silo'] = context['asset']['silo']
-
-    # todo(roy): Implement additional parameters.
-    # see https://getavalon.github.io/2.0/reference/#project-configuration-api
     data['user'] = getpass.getuser()
     data['app'] = os.environ.get("AVALON_APP", "")
     data['task'] = os.environ.get("AVALON_TASK", "")
