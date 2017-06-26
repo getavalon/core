@@ -34,18 +34,18 @@ def get_representation_path(representation):
     # template data from context
     data = dict()
     for key, value in context.items():
-        data[key] = value['name']
+        data[key] = value["name"]
 
     # additional parameters
     # see https://getavalon.github.io/2.0/reference/#project-configuration-api
-    data['root'] = api.registered_root()
-    data['silo'] = context['asset']['silo']
-    data['user'] = getpass.getuser()
-    data['app'] = os.environ.get("AVALON_APP", "")
-    data['task'] = os.environ.get("AVALON_TASK", "")
+    data["root"] = api.registered_root()
+    data["silo"] = context["asset"]["silo"]
+    data["user"] = getpass.getuser()
+    data["app"] = os.environ.get("AVALON_APP", "")
+    data["task"] = os.environ.get("AVALON_TASK", "")
 
     # get project template for published files
-    template = context['project']['config']['template']['publish']
+    template = context["project"]["config"]["template"]["publish"]
 
     return template.format(**data)
 
@@ -129,7 +129,7 @@ class View(QtWidgets.QTreeView):
         if not active.parent().isValid():
             assert active in indices, "No active item found in the selection"
 
-            # Push the active one as 'last' to selected
+            # Push the active one as *last* to selected
             indices.remove(active)
             indices.append(active)
 
@@ -177,7 +177,7 @@ class View(QtWidgets.QTreeView):
     def show_version_dialog(self, items):
         """Create a dialog with the available versions for the selected file
 
-        :param items: list of items to run the 'set_version' for
+        :param items: list of items to run the "set_version" for
         :type items: list
 
         :returns: None
@@ -188,27 +188,27 @@ class View(QtWidgets.QTreeView):
         print active
 
         # Get available versions for active representation
-        representation_id = io.ObjectId(active['representation'])
+        representation_id = io.ObjectId(active["representation"])
         representation = io.find_one({"_id": representation_id})
-        version = io.find_one({"_id": representation['parent']})
+        version = io.find_one({"_id": representation["parent"]})
 
-        versions = io.find({"parent": version['parent']},
+        versions = io.find({"parent": version["parent"]},
                            sort=[("name", 1)])
         versions = list(versions)
 
-        current_version = active['version']
+        current_version = active["version"]
 
         # Get index among the listed versions
         index = len(versions) - 1
         for i, version in enumerate(versions):
-            if version['name'] == current_version:
+            if version["name"] == current_version:
                 index = i
                 break
 
         versions_by_label = dict()
         labels = []
         for version in versions:
-            label = api.format_version(version['name'])
+            label = api.format_version(version["name"])
             labels.append(label)
             versions_by_label[label] = version
 
@@ -223,7 +223,7 @@ class View(QtWidgets.QTreeView):
             return
 
         if label:
-            version = versions_by_label[label]['name']
+            version = versions_by_label[label]["name"]
             host = api.registered_host()
             for item in items:
                 host.update(item, version)
