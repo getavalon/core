@@ -3,6 +3,7 @@ import pprint
 import inspect
 
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
+from ...vendor import qtawesome
 from ... import io
 from ... import api
 
@@ -115,6 +116,18 @@ class SubsetWidget(QtWidgets.QWidget):
             if tip:
                 action.setToolTip(tip)
                 action.setStatusTip(tip)
+
+            # Support font-awesome icons using the `.icon` and `.icon_color`
+            # attributes on plug-ins.
+            icon = getattr(loader, "icon", None)
+            if icon is not None:
+                try:
+                    key = "fa.{0}".format(icon)
+                    color = getattr(loader, "icon_color", "white")
+                    action.setIcon(qtawesome.icon(key, color=color))
+                except Exception as e:
+                    print("Unable to set icon for loader "
+                          "{}: {}".format(loader, e))
 
             menu.addAction(action)
 
