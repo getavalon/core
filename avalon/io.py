@@ -26,8 +26,8 @@ def install():
     self._client = pymongo.MongoClient(
         self._uri, serverSelectionTimeoutMS=self._timeout)
 
-    # Backwards compatibility
-    if "mindbender" in self._client.database_names():
+    # Backwards compatibility with Avalon before it was Avalon
+    if self._client["mindbender"].collection_names():
         self._database = self._client["mindbender"]
     else:
         self._database = self._client["avalon"]
