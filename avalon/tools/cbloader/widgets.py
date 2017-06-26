@@ -90,9 +90,14 @@ class SubsetWidget(QtWidgets.QWidget):
             self.echo("No compatible loaders available for this version.")
             return
 
+        def sorter(value):
+            """Sort the Loaders by their order and then their name"""
+            Plugin = value[1]
+            return Plugin.order, Plugin.__name__
+
         # List the available loaders
         menu = QtWidgets.QMenu(self)
-        for representation, loader in loaders:
+        for representation, loader in sorted(loaders, key=sorter):
 
             # Label
             label = getattr(loader, "label", None)
