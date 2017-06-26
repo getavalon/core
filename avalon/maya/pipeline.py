@@ -349,7 +349,7 @@ def create(name, asset, family, options=None, data=None):
         RuntimeError on host error
 
     Returns:
-        Instance as str
+        Name of instance
 
     """
 
@@ -368,7 +368,7 @@ def create(name, asset, family, options=None, data=None):
             plugin = Plugin(name, asset, options, data)
 
             with lib.maintained_selection():
-                plugin.process()
+                instance = plugin.process()
         except Exception as e:
             print("WARNING: %s" % e)
             continue
@@ -376,50 +376,6 @@ def create(name, asset, family, options=None, data=None):
         plugins.append(plugin)
 
     assert plugins, "No Creator plug-ins were run, this is a bug"
-
-
-def _create(name, family, asset=None, options=None, data=None):
-
-    family_ = api.registered_families().get(family)
-
-    assert family_ is not None, "{0} is not a valid family".format(
-        family)
-
-    # Merge incoming with existing data
-    # TODO(marcus): This is being delegated to Creator plug-ins.
-    data = dict(
-        dict(api.registered_data(), **family_.get("data", {})),
-        **(data or {})
-    )
-
-    instance = "%s_SET" % name
-    asset = asset or os.environ["AVALON_ASSET"]
-
-    if cmds.objExists(instance):
-        raise NameError("\"%s\" already exists." % instance)
-
-    with lib.maintained_selection():
-        nodes = list()
-
-        if (options or {}).get("useSelection"):
-            nodes = cmds.ls(selection=True)
-
-        instance = cmds.sets(nodes, name=instance)
-
-    # Resolve template
-    for key, value in data.items():
-        if isinstance(value, basestring):
-            try:
-                data[key] = str(value).format(
-                    subset=name,
-                    asset=asset,
-                    family=family_["name"]
-                )
-            except KeyError as e:
-                raise KeyError("Invalid dynamic property: %s" % e)
-
-    lib.imprint(instance, data)
-
     return instance
 
 
@@ -537,6 +493,11 @@ def remove(container):
         pass
 
 
+def publish():
+    import pyblish.util
+    return pyblish.util.publish()
+
+
 def _register_callbacks():
     for handler, event in self._events.copy().items():
         if event is None:
@@ -545,7 +506,7 @@ def _register_callbacks():
         try:
             OpenMaya.MMessage.removeCallback(event)
             self._events[handler] = None
-        except RuntimeError, e:
+        except RuntimeError as e:
             print(e)
 
     self._events[_on_scene_save] = OpenMaya.MSceneMessage.addCallback(

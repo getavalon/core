@@ -15,6 +15,7 @@ from .pipeline import (
     create,
     remove,
     update,
+    publish,
     containerise,
 )
 
@@ -44,6 +45,7 @@ __all__ = [
     "create",
     "remove",
     "update",
+    "publish",
 
     "export_alembic",
     "lsattr",

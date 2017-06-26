@@ -96,10 +96,11 @@ def find_config():
     lib.logger.info("Finding configuration for project..")
 
     project = io.find_one({"type": "project"})
-    config = project["config"].get("name")
 
-    if not config:
-        config = self.session["config"]
+    try:
+        config = project["config"]["name"]
+    except (TypeError, KeyError):
+        config = os.getenv("AVALON_CONFIG")
 
     if not config:
         raise EnvironmentError("No configuration found in "
@@ -175,6 +176,17 @@ class Loader(list):
 
     def process(self, name, namespace, context, data):
         pass
+
+
+def loaders_by_representation(Loaders, representation):
+    """Return `Loaders` compatible with the `representation`"""
+    assert isinstance(representation, "str")
+
+    for Loader in Loaders:
+        if representation not in Loader.representations:
+            continue
+
+        yield Loader
 
 
 @lib.log
