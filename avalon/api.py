@@ -25,6 +25,7 @@ from .pipeline import (
     Loader,
     Creator,
     discover,
+    session,
 
     register_root,
     register_host,
@@ -62,6 +63,7 @@ __all__ = [
     "Loader",
     "Creator",
     "discover",
+    "session",
 
     "register_host",
     "register_format",

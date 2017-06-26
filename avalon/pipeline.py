@@ -25,6 +25,31 @@ self.log = logging.getLogger("avalon-core")
 self._is_installed = False
 self._config = None
 
+# Environment is parsed once on start-up, and should
+# never again be referenced directly.
+self.session = {
+    key[0]: os.getenv("AVALON_" + key[0].upper(), key[1])
+    for key in (
+        # Root directory of projects on disk
+        ("projects", None),
+
+        # Name of current Project
+        ("project", None),
+
+        # Name of current Asset
+        ("asset", None),
+
+        # Name of current Config
+        # TODO(marcus): Establish a suitable default config
+        ("config", "no_config"),
+
+        # Name of Avalon in graphical user interfaces
+        # Use this to customise the visual appearance of Avalon
+        # to better integrate with your surrounding pipeline
+        ("label", "Avalon"),
+    )
+}
+
 
 def install(host):
     """Install `host` into the running Python session.
@@ -36,15 +61,15 @@ def install(host):
     """
 
     missing = list()
-    for key in ("AVALON_PROJECT", "AVALON_ASSET"):
-        if key not in os.environ:
+    for key in ("project", "asset"):
+        if self.session[key] is None:
             missing.append(key)
 
     assert not missing, (
         "%s missing from environment" % ", ".join(missing)
     )
 
-    project = os.environ["AVALON_PROJECT"]
+    project = self.session["project"]
     lib.logger.info("Activating %s.." % project)
 
     io.install()
@@ -73,7 +98,7 @@ def find_config():
     config = project["config"].get("name")
 
     if not config:
-        config = os.getenv("AVALON_CONFIG")
+        config = self.session["config"]
 
     if not config:
         raise EnvironmentError("No configuration found in "
@@ -331,7 +356,7 @@ def registered_root():
     """Return currently registered root"""
     return (
         _registered_root["_"] or
-        os.getenv("AVALON_PROJECTS") or ""
+        self.session["projects"] or ""
     ).replace("\\", "/")
 
 
