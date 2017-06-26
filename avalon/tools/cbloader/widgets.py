@@ -1,5 +1,6 @@
 import datetime
 import pprint
+import inspect
 
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ... import io
@@ -103,6 +104,13 @@ class SubsetWidget(QtWidgets.QWidget):
 
             action = QtWidgets.QAction(label, menu)
             action.setData((representation, loader))
+
+            # Add tooltip and statustip from Loader docstring
+            tip = inspect.getdoc(loader)
+            if tip:
+                action.setToolTip(tip)
+                action.setStatusTip(tip)
+
             menu.addAction(action)
 
         # Show the context action menu
