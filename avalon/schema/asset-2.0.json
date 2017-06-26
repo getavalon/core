@@ -29,6 +29,10 @@
             "const": "asset",
             "example": "asset"
         },
+        "parent": {
+            "description": "Unique identifier to parent document",
+            "example": "592c33475f8c1b064c4d1696"
+        },
         "name": {
             "description": "Name of asset",
             "type": "string",

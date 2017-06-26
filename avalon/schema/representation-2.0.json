@@ -11,6 +11,7 @@
     "required": [
         "schema",
         "type",
+        "parent",
         "name",
         "data"
     ],
@@ -27,6 +28,10 @@
             "type": "string",
             "const": "representation",
             "example": "representation"
+        },
+        "parent": {
+            "description": "Unique identifier to parent document",
+            "example": "592c33475f8c1b064c4d1696"
         },
         "name": {
             "description": "Name of representation",
