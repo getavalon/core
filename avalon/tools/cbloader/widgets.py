@@ -117,13 +117,13 @@ class SubsetWidget(QtWidgets.QWidget):
                 action.setToolTip(tip)
                 action.setStatusTip(tip)
 
-            # Support font-awesome icons using the `.icon` and `.icon_color`
+            # Support font-awesome icons using the `.icon` and `.color`
             # attributes on plug-ins.
             icon = getattr(loader, "icon", None)
             if icon is not None:
                 try:
                     key = "fa.{0}".format(icon)
-                    color = getattr(loader, "icon_color", "white")
+                    color = getattr(loader, "color", "white")
                     action.setIcon(qtawesome.icon(key, color=color))
                 except Exception as e:
                     print("Unable to set icon for loader "
