@@ -27,10 +27,10 @@ def install():
         self._uri, serverSelectionTimeoutMS=self._timeout)
 
     # Backwards compatibility
-    if "avalon" in self._client.database_names():
-        self._database = self._client["avalon"]
-    else:
+    if "mindbender" in self._client.database_names():
         self._database = self._client["mindbender"]
+    else:
+        self._database = self._client["avalon"]
 
     for retry in range(3):
         try:
