@@ -12,7 +12,7 @@ from ..vendor import six
 from ..vendor.Qt import QtCore, QtWidgets
 
 self = sys.modules[__name__]
-self._menu = "avaloncore"  # Unique name of menu, for uninstall purposes
+self._menu = api.session["label"] + "menu"  # Unique name of menu
 self._events = dict()  # Registered Maya callbacks
 self._parent = None  # Main Window
 
@@ -68,7 +68,7 @@ def _install_menu():
 
     def deferred():
         cmds.menu(self._menu,
-                  label="Avalon",
+                  label=api.session["label"],
                   tearOff=True,
                   parent="MayaWindow")
 
