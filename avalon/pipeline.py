@@ -12,7 +12,6 @@ from . import (
     _registered_host,
     _registered_root,
     _registered_config,
-    _registered_formats,
     _registered_plugins,
     _registered_plugin_paths,
 )
@@ -358,22 +357,6 @@ def registered_root():
         _registered_root["_"] or
         self.session["projects"] or ""
     ).replace("\\", "/")
-
-
-def register_format(format):
-    """Register a supported format
-
-    A supported format is used to determine which of any available
-    representations are relevant to the currently registered host.
-
-    """
-
-    _registered_formats.append(format)
-
-
-def deregister_format(format):
-    """Deregister a supported format"""
-    _registered_formats.remove(format)
 
 
 def register_host(host):
