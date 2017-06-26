@@ -7,7 +7,6 @@ the currently held state of avalon-core.
 
 """
 
-_registered_formats = list()
 _registered_plugins = dict()
 _registered_plugin_paths = dict()
 _registered_root = {"_": ""}

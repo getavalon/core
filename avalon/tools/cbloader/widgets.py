@@ -118,7 +118,11 @@ class SubsetWidget(QtWidgets.QWidget):
         # Run the loader for all selected indices, for those that have the
         # same representation available
         selection = self.view.selectionModel()
-        rows = selection.selectedRows()
+        rows = selection.selectedRows(column=0)
+
+        # Ensure active point index is also used as first column so we can
+        # correctly push it to the end in the rows list.
+        point_index = point_index.sibling(point_index.row(), 0)
 
         # Ensure point index is run first.
         try:
