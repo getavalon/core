@@ -92,23 +92,11 @@ class View(QtWidgets.QTreeView):
         setversion_action.triggered.connect(
             lambda: self.show_version_dialog(items))
 
-        # select
-        # highlight_icon = qta.icon("fa.hand-o-up", color=DEFAULT_COLOR)
-        # highlight_action = QtWidgets.QAction(highlight_icon,
-        #                                      "Select items", menu, )
-        # highlight_action.triggered.connect(lambda: api.select(items))
-
         # remove
         remove_icon = qta.icon("fa.remove", color=DEFAULT_COLOR)
         remove_action = QtWidgets.QAction(remove_icon, "Remove items", menu)
         remove_action.triggered.connect(
             lambda: self.show_remove_warning_dialog(items))
-
-        # show in explorer
-        explorer_icon = qta.icon("fa.folder-open-o", color=DEFAULT_COLOR)
-        explorer_action = QtWidgets.QAction(explorer_icon,
-                                            "Show in explorer ...", menu)
-        explorer_action.triggered.connect(lambda: self.show_in_explorer(items))
 
         # expand all items
         expandall_action = QtWidgets.QAction(menu, text="Expand all items")
@@ -123,11 +111,7 @@ class View(QtWidgets.QTreeView):
         menu.addAction(setversion_action)
 
         menu.addSeparator()
-        # menu.addAction(highlight_action)
         menu.addAction(remove_action)
-
-        menu.addSeparator()
-        menu.addAction(explorer_action)
 
         menu.addSeparator()
         menu.addAction(expandall_action)
@@ -158,16 +142,6 @@ class View(QtWidgets.QTreeView):
 
         menu = self.build_item_menu(nodes)
         menu.exec_(globalpos)
-
-    # def on_double_click(self):
-    #     """Select the items when double clicking a row"""
-    #
-    #     indices = self.get_indices()
-    #     if not indices:
-    #         return
-    #
-    #     nodes = [dict(i.data(InventoryModel.NodeRole)) for i in indices]
-    #     api.select(nodes)
 
     def get_indices(self):
         """Get the selected rows"""
@@ -278,27 +252,6 @@ class View(QtWidgets.QTreeView):
         for item in items:
             host.remove(item)
         self.data_changed.emit()
-
-    def show_in_explorer(self, items):
-        """Open the directory of the first selected item
-
-        :param items: a list of items
-        :type items: list
-
-        :return: None 
-        """
-
-        # last item is the under the mouse
-        item = items[-1]
-
-        # define the path on disk for this file
-        path = get_representation_path(item['representation'])
-        path = os.path.realpath(path)
-        path = os.path.abspath(str(path))
-
-        # show in explorer
-        # todo(roy): Make this cross-OS compatible; now it's windows-only
-        subprocess.Popen('explorer /select,"{0}"'.format(path))
 
 
 class Window(QtWidgets.QDialog):
