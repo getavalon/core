@@ -56,7 +56,7 @@ class Node(dict):
             siblings = self.parent().children()
             return siblings.index(self)
 
-    def addChild(self, child):
+    def add_child(self, child):
         """Add a child to this node"""
         child._parent = self
         self._children.append(child)
@@ -167,7 +167,7 @@ class TreeModel(QtCore.QAbstractItemModel):
         if parent is None:
             parent = self._root_node
 
-        parent.addChild(node)
+        parent.add_child(node)
 
     def column_name(self, column):
         """Return column key by index"""
