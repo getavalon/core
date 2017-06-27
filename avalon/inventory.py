@@ -120,82 +120,11 @@ def create_asset(name, silo, data, parent):
     }).inserted_id
 
 
-def _save_inventory_1_0(project_name, data):
-    data.pop("schema")
+def save(name, config, inventory):
+    """Write `config` and `inventory` to database as `name`
 
-    # Separate project metadata from assets
-    metadata = {}
-    for key, value in data.copy().items():
-        if not isinstance(value, list):
-            print("Separating project metadata: %s" % key)
-            metadata[key] = data.pop(key)
-
-    document = io.find_one({"type": "project"})
-    if document is None:
-        print("'%s' not found, creating.." % project_name)
-        _project = create_project(project_name)
-        document = io.find_one({"_id": _project})
-
-    print("Updating project data..")
-    for key, value in metadata.items():
-        document["data"][key] = value
-
-    io.save(document)
-
-    print("Updating assets..")
-    added = list()
-    updated = list()
-    missing = list()
-    for silo, assets in data.items():
-        for asset in assets:
-            asset_doc = io.find_one({
-                "name": asset["name"],
-                "type": "asset",
-            })
-
-            if asset_doc is None:
-                asset["silo"] = silo
-                missing.append(asset)
-                continue
-
-            for key, value in asset.items():
-                asset_doc["data"][key] = value
-
-                if key not in asset_doc["data"]:
-                    added.append("%s.%s: %s" % (asset["name"], key, value))
-
-                elif asset_doc["data"][key] != value:
-                    updated.append("%s.%s: %s -> %s" % (asset["name"],
-                                                        key,
-                                                        asset_doc["data"][key],
-                                                        value))
-
-            io.save(asset_doc)
-
-    for data in missing:
-        print("+ added %s" % data["name"])
-        name = data.pop("name")
-        silo = data.pop("silo")
-        create_asset(name, silo, data, document["_id"])
-
-    else:
-        print("| nothing missing")
-
-    _report(added, missing)
-
-
-def _save_config_1_0(project_name, data):
-    document = io.find_one({"type": "project"})
-
-    config = document["config"]
-
-    config["apps"] = data.get("apps", [])
-    config["tasks"] = data.get("tasks", [])
-    config["template"].update(data.get("template", {}))
-
-    schema.validate(document)
-
-    io.save(document)
+    Given a configuration and inventory, this function writes
+    the changes to the current database.
 
     Arguments:
         name (str): Project name
@@ -237,7 +166,7 @@ def _save_config_1_0(project_name, data):
 
 def init(name):
     """Initialise a new project called `name`
-    
+
     Upon creating a new project, call init to establish an example
     inventory and configuration for your project.
 
@@ -518,21 +447,7 @@ def _save_inventory_1_0(project_name, data):
     document = io.find_one({"type": "project"})
     if document is None:
         print("'%s' not found, creating.." % project_name)
-        _project = {
-            "schema": "avalon-core:project-2.0",
-            "type": "project",
-            "name": project_name,
-            "data": dict(),
-            "config": {
-                "template": {},
-                "tasks": [],
-                "apps": [],
-                "copy": {}
-            },
-            "parent": None,
-        }
-
-        _id = io.insert_one(_project).inserted_id
+        _id = create_project(project_name)
 
         document = io.find_one({"_id": _id})
 
@@ -575,16 +490,12 @@ def _save_inventory_1_0(project_name, data):
     for data in missing:
         print("+ added %s" % data["name"])
 
-        asset = {
-            "schema": "avalon-core:asset-2.0",
-            "name": data.pop("name"),
-            "silo": data.pop("silo"),
-            "parent": document["_id"],
-            "type": "asset",
-            "data": data
-        }
-
-        io.insert_one(asset)
+        create_asset(
+            name=data.pop("name"),
+            silo=data.pop("silo"),
+            data=data,
+            parent=document["_id"]
+        )
 
     else:
         print("| nothing missing")
