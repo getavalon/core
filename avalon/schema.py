@@ -1,4 +1,4 @@
-"""JSON Schema utilities
+"""Wrapper around :mod:`jsonschema`
 
 Schemas are implicitly loaded from the /schema directory of this project.
 

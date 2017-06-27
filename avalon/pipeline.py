@@ -1,3 +1,5 @@
+"""Core pipeline functionality"""
+
 import os
 import sys
 import types
@@ -147,6 +149,9 @@ class Loader(list):
         context (dict): avalon-core:context-1.0
         name (str, optional): Use pre-defined name
         namespace (str, optional): Use pre-defined namespace
+
+    .. versionadded:: 4.0
+       This class was introduced
 
     """
 
