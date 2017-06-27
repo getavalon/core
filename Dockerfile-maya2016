@@ -10,6 +10,8 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && \
 		pyblish-maya \
 		pymongo \
 		sphinx \
+		six \
+		sphinxcontrib-napoleon \
 		python-coveralls
 
 # Avoid creation of auxilliary files

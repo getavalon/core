@@ -1,3 +1,5 @@
+"""Wrapper around interactions with the database"""
+
 import os
 import sys
 import time
@@ -7,7 +9,28 @@ from . import schema
 
 # Third-party dependencies
 import pymongo
-from bson.objectid import ObjectId, InvalidId
+from bson.objectid import ObjectId as _ObjectId, InvalidId as _InvalidId
+
+__all__ = [
+    "ObjectId",
+    "InvalidId",
+    "install",
+    "active_project",
+    "activate_project",
+    "uninstall",
+    "projects",
+    "locate",
+    "insert_one",
+    "find",
+    "find_one",
+    "save",
+    "replace_one",
+    "update_many",
+    "distinct",
+    "drop",
+    "delete_many",
+    "parenthood",
+]
 
 self = sys.modules[__name__]
 self._client = None
@@ -19,7 +42,16 @@ self._is_activated = False
 self._timeout = int(os.getenv("AVALON_TIMEOUT", 1000))
 
 
+class ObjectId(_ObjectId):
+    """Unique identified used to document in database"""
+
+
+class InvalidId(_InvalidId):
+    """Exception thrown on an invalid ObjectId"""
+
+
 def install():
+    """Establish a persistent connection to the database"""
     if self._is_installed:
         return
 
@@ -54,11 +86,12 @@ def install():
 
 
 def active_project():
-    """Return the name of the active project collection."""
+    """Return the name of the active project"""
     return self._collection.name
 
 
 def activate_project(project):
+    """Establish a connection to a given collection within the database"""
     try:
         # Support passing dictionary object
         project = project["name"]
@@ -70,6 +103,7 @@ def activate_project(project):
 
 
 def uninstall():
+    """Close any connection to the database"""
     try:
         self._client.close()
     except AttributeError:
@@ -243,11 +277,3 @@ def parenthood(document):
         parents.append(document)
 
     return parents
-
-
-__all__ = [
-    "install",
-    "uninstall",
-    "ObjectId",
-    "InvalidId",
-]

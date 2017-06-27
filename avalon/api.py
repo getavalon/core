@@ -1,18 +1,11 @@
-"""Public API
+"""Public application programming interface
 
-Anything that is not defined here is **internal** and
-unreliable for external use.
+The following members are public and reliable.
+That is to say, anything **not** defined here is **internal**
+and likely **unreliable** for use outside of the codebase itself.
 
-Motivation for api.py:
-    Storing the API in a module, as opposed to in __init__.py, enables
-    use of it internally.
-
-    For example, from `pipeline.py`:
-        >> from . import api
-        >> api.do_this()
-
-    The important bit is avoiding circular dependencies, where api.py
-    is calling upon a module which in turn calls upon api.py.
+|
+|
 
 """
 
@@ -41,13 +34,7 @@ from .pipeline import (
 )
 
 from .lib import (
-    format_staging_dir,
-    format_version,
-
     time,
-
-    find_latest_version,
-    parse_version,
     logger,
 )
 
@@ -75,12 +62,6 @@ __all__ = [
     "deregister_plugin",
     "deregister_plugin_path",
 
-    "format_staging_dir",
-    "format_version",
-
-    "find_latest_version",
-    "parse_version",
     "logger",
-
     "time",
 ]

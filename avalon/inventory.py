@@ -1,4 +1,4 @@
-"""Utility script for updating database with configuration files
+"""Utilities for interacting with database through the Inventory API
 
 Until assets are created entirely in the database, this script
 provides a bridge between the file-based project inventory and configuration.
@@ -24,6 +24,14 @@ from avalon.vendor import toml
 
 self = sys.modules[__name__]
 self.collection = None
+
+__all__ = [
+    "save",
+    "init",
+    "load",
+    "extract",
+    "upload",
+]
 
 
 DEFAULTS = {
@@ -83,109 +91,19 @@ DEFAULTS = {
 }
 
 
-def _save_inventory_1_0(project_name, data):
-    data.pop("schema")
-
-    # Separate project metadata from assets
-    metadata = {}
-    for key, value in data.copy().items():
-        if not isinstance(value, list):
-            print("Separating project metadata: %s" % key)
-            metadata[key] = data.pop(key)
-
-    document = io.find_one({"type": "project"})
-    if document is None:
-        print("'%s' not found, creating.." % project_name)
-        _project = {
-            "schema": "avalon-core:project-2.0",
-            "type": "project",
-            "name": project_name,
-            "data": dict(),
-            "config": {
-                "template": {},
-                "tasks": [],
-                "apps": [],
-                "copy": {}
-            },
-            "parent": None,
-        }
-
-        _id = io.insert_one(_project).inserted_id
-
-        document = io.find_one({"_id": _id})
-
-    print("Updating project data..")
-    for key, value in metadata.items():
-        document["data"][key] = value
-
-    io.save(document)
-
-    print("Updating assets..")
-    added = list()
-    updated = list()
-    missing = list()
-    for silo, assets in data.items():
-        for asset in assets:
-            asset_doc = io.find_one({
-                "name": asset["name"],
-                "type": "asset",
-            })
-
-            if asset_doc is None:
-                asset["silo"] = silo
-                missing.append(asset)
-                continue
-
-            for key, value in asset.items():
-                asset_doc["data"][key] = value
-
-                if key not in asset_doc["data"]:
-                    added.append("%s.%s: %s" % (asset["name"], key, value))
-
-                elif asset_doc["data"][key] != value:
-                    updated.append("%s.%s: %s -> %s" % (asset["name"],
-                                                        key,
-                                                        asset_doc["data"][key],
-                                                        value))
-
-            io.save(asset_doc)
-
-    for data in missing:
-        print("+ added %s" % data["name"])
-
-        asset = {
-            "schema": "avalon-core:asset-2.0",
-            "name": data.pop("name"),
-            "silo": data.pop("silo"),
-            "parent": document["_id"],
-            "type": "asset",
-            "data": data
-        }
-
-        io.insert_one(asset)
-
-    else:
-        print("| nothing missing")
-
-    _report(added, missing)
-
-
-def _save_config_1_0(project_name, data):
-    document = io.find_one({"type": "project"})
-
-    config = document["config"]
-
-    config["apps"] = data.get("apps", [])
-    config["tasks"] = data.get("tasks", [])
-    config["template"].update(data.get("template", {}))
-
-    schema.validate(document)
-
-    io.save(document)
-
-
 def save(name, config, inventory):
-    """Write config and inventory to database from `root`"""
+    """Write `config` and `inventory` to database as `name`
+    
+    Given a configuration and inventory, this function writes
+    the changes to the current database.
+
+    Arguments:
+        name (str): Project name
+        config (dict): Current configuration
+        inventory (dict): Current inventory
+
+    """
+
     io.activate_project(name)
 
     config = copy.deepcopy(config)
@@ -218,6 +136,16 @@ def save(name, config, inventory):
 
 
 def init(name):
+    """Initialise a new project called `name`
+    
+    Upon creating a new project, call init to establish an example
+    inventory and configuration for your project.
+
+    Arguments:
+        name (str): Name of new project
+
+    """
+
     io.activate_project(name)
     project = io.find_one({"type": "project"})
 
@@ -232,7 +160,7 @@ def init(name):
 
 
 def load(name):
-    """Write config and inventory to `root` from database
+    """Read project called `name` from database
 
     Arguments:
         name (str): Project name
@@ -271,54 +199,16 @@ def load(name):
     return config, inventory
 
 
-def _parse_bat(root):
-    """Return environment variables from .bat files
-
-    Handles:
-        Integers:
-            $ set AVALON_VARIABLE=1000
-        Strings:
-            $ set AVALON_VARIABLE="String"
-        Plain
-            $ set AVALON_VARIABLE=plain
-
-
-    """
-
-    name = os.path.basename(root)
-    dirname = os.path.dirname(root)
-    data = dict()
-
-    try:
-        with open(os.path.join(dirname, name + ".bat")) as f:
-            for line in f:
-                if not line.startswith("set AVALON_"):
-                    continue
-
-                key, value = line.rstrip().split("=")
-                key = key[len("set AVALON_"):].lower()
-
-                # Automatically convert to proper datatype
-                try:
-                    value = json.loads(value)
-                    value = int(value)
-                except ValueError:
-                    # Value wasn't an integer
-                    pass
-
-                data[key] = value
-
-    except IOError:
-        pass
-
-    return data
-
-
 def extract(root, silo_parent=None):
     """Parse a given project and produce a JSON file of its contents
 
+    This function is used when migrating a project from 1.0 -> 2.0 and
+    will have no effect on projects already created with 2.0.
+
     Arguments:
         root (str): Absolute path to a file-based project
+        silo_parent (str, optional): Parent directory of silos within
+            a project directory
 
     """
 
@@ -463,6 +353,15 @@ def extract(root, silo_parent=None):
 
 
 def upload(root, overwrite=False):
+    """Upload project generated with :func:`extract` database
+
+    Arguments:
+        root (str): Absolute path to directory containing extracted project
+        overwrite (bool, optional): Whether or not to stop if a project
+            already exists.
+
+    """
+
     fname = os.path.join(root, "project.json")
 
     name = os.path.basename(root)
@@ -504,6 +403,150 @@ def upload(root, overwrite=False):
     _upload_recursive(None, [project])
 
     print("Successfully uploaded %s" % fname)
+
+
+def _save_inventory_1_0(project_name, data):
+    data.pop("schema")
+
+    # Separate project metadata from assets
+    metadata = {}
+    for key, value in data.copy().items():
+        if not isinstance(value, list):
+            print("Separating project metadata: %s" % key)
+            metadata[key] = data.pop(key)
+
+    document = io.find_one({"type": "project"})
+    if document is None:
+        print("'%s' not found, creating.." % project_name)
+        _project = {
+            "schema": "avalon-core:project-2.0",
+            "type": "project",
+            "name": project_name,
+            "data": dict(),
+            "config": {
+                "template": {},
+                "tasks": [],
+                "apps": [],
+                "copy": {}
+            },
+            "parent": None,
+        }
+
+        _id = io.insert_one(_project).inserted_id
+
+        document = io.find_one({"_id": _id})
+
+    print("Updating project data..")
+    for key, value in metadata.items():
+        document["data"][key] = value
+
+    io.save(document)
+
+    print("Updating assets..")
+    added = list()
+    updated = list()
+    missing = list()
+    for silo, assets in data.items():
+        for asset in assets:
+            asset_doc = io.find_one({
+                "name": asset["name"],
+                "type": "asset",
+            })
+
+            if asset_doc is None:
+                asset["silo"] = silo
+                missing.append(asset)
+                continue
+
+            for key, value in asset.items():
+                asset_doc["data"][key] = value
+
+                if key not in asset_doc["data"]:
+                    added.append("%s.%s: %s" % (asset["name"], key, value))
+
+                elif asset_doc["data"][key] != value:
+                    updated.append("%s.%s: %s -> %s" % (asset["name"],
+                                                        key,
+                                                        asset_doc["data"][key],
+                                                        value))
+
+            io.save(asset_doc)
+
+    for data in missing:
+        print("+ added %s" % data["name"])
+
+        asset = {
+            "schema": "avalon-core:asset-2.0",
+            "name": data.pop("name"),
+            "silo": data.pop("silo"),
+            "parent": document["_id"],
+            "type": "asset",
+            "data": data
+        }
+
+        io.insert_one(asset)
+
+    else:
+        print("| nothing missing")
+
+    _report(added, missing)
+
+
+def _save_config_1_0(project_name, data):
+    document = io.find_one({"type": "project"})
+
+    config = document["config"]
+
+    config["apps"] = data.get("apps", [])
+    config["tasks"] = data.get("tasks", [])
+    config["template"].update(data.get("template", {}))
+
+    schema.validate(document)
+
+    io.save(document)
+
+
+def _parse_bat(root):
+    """Return environment variables from .bat files
+
+    Handles:
+        Integers:
+            $ set AVALON_VARIABLE=1000
+        Strings:
+            $ set AVALON_VARIABLE="String"
+        Plain
+            $ set AVALON_VARIABLE=plain
+
+
+    """
+
+    name = os.path.basename(root)
+    dirname = os.path.dirname(root)
+    data = dict()
+
+    try:
+        with open(os.path.join(dirname, name + ".bat")) as f:
+            for line in f:
+                if not line.startswith("set AVALON_"):
+                    continue
+
+                key, value = line.rstrip().split("=")
+                key = key[len("set AVALON_"):].lower()
+
+                # Automatically convert to proper datatype
+                try:
+                    value = json.loads(value)
+                    value = int(value)
+                except ValueError:
+                    # Value wasn't an integer
+                    pass
+
+                data[key] = value
+
+    except IOError:
+        pass
+
+    return data
 
 
 def _report(added, updated):
