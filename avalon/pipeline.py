@@ -173,10 +173,7 @@ class Loader(list):
 
         self.fname = fname
 
-    def process(self, name, namespace, context):
-        pass
-
-    def post_process(self, name, namespace, context):
+    def process(self, name, namespace, context, data):
         pass
 
 
@@ -513,8 +510,7 @@ def default_host():
              representation=None,
              name=None,
              namespace=None,
-             post_process=None,
-             preset=None):
+             data=None):
         return None
 
     def create(family):
@@ -566,8 +562,7 @@ def debug_host():
              representation=None,
              name=None,
              namespace=None,
-             post_process=None,
-             preset=None):
+             data=None):
         sys.stdout.write(pformat({
             "loader": Loader,
             "representation": representation
