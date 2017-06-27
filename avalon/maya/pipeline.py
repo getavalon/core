@@ -12,9 +12,11 @@ from ..vendor import six
 from ..vendor.Qt import QtCore, QtWidgets
 
 self = sys.modules[__name__]
-self._menu = api.session["label"] + "menu"  # Unique name of menu
+self._menu = "avalonmaya"  # Unique name of menu
 self._events = dict()  # Registered Maya callbacks
 self._parent = None  # Main Window
+
+IS_HEADLESS = not hasattr(cmds, "about") or cmds.about(batch=True)
 
 
 def install(config):
@@ -24,8 +26,13 @@ def install(config):
 
     """
 
+    # Inherit globally set name
+    self._menu = api.session["label"] + "menu"
+
     _register_callbacks()
-    _install_menu()
+
+    if not IS_HEADLESS:
+        _install_menu()
 
     pyblish.register_host("mayabatch")
     pyblish.register_host("mayapy")

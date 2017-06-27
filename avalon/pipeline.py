@@ -25,6 +25,7 @@ self = sys.modules[__name__]
 self.log = logging.getLogger("avalon-core")
 self._is_installed = False
 self._config = None
+self.session = {}
 
 # Environment is parsed once on start-up, and should
 # never again be referenced directly.
@@ -61,13 +62,16 @@ def install(host):
 
     """
 
+    reset()
+
     missing = list()
     for key in ("project", "asset"):
         if self.session[key] is None:
             missing.append(key)
 
     assert not missing, (
-        "%s missing from environment" % ", ".join(missing)
+        "%s missing from environment" % ", ".join(
+            "AVALON_" + env.upper() for env in missing)
     )
 
     project = self.session["project"]
@@ -90,6 +94,31 @@ def install(host):
     self._is_installed = True
     self._config = config
     self.log.info("Successfully installed Avalon!")
+
+
+def reset():
+    self.session.update({
+        key[0]: os.getenv("AVALON_" + key[0].upper(), key[1])
+        for key in (
+            # Root directory of projects on disk
+            ("projects", None),
+
+            # Name of current Project
+            ("project", None),
+
+            # Name of current Asset
+            ("asset", None),
+
+            # Name of current Config
+            # TODO(marcus): Establish a suitable default config
+            ("config", "no_config"),
+
+            # Name of Avalon in graphical user interfaces
+            # Use this to customise the visual appearance of Avalon
+            # to better integrate with your surrounding pipeline
+            ("label", "Avalon"),
+        )
+    })
 
 
 def find_config():
