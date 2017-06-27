@@ -274,6 +274,11 @@ def load(Loader,
         "representation": representation,
     }
 
+    # Ensure data is a dictionary when no explicit data provided
+    if data is None:
+        data = dict()
+    assert isinstance(data, dict), "Data must be a dictionary"
+
     name = name or subset["name"]
     namespace = namespace or lib.unique_namespace(
         asset["name"] + "_",
