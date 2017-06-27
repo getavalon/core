@@ -243,17 +243,32 @@ class AssetModel(TreeModel):
             node = index.internalPointer()
             if column == self.Name:
 
-                # define color, including darker state
-                # when the asset is deprecated
-                color = style.default
+                # Allow a custom icon and custom icon color to be defined
+                data = node["_document"]["data"]
+                icon = data.get("icon", None)
+                color = data.get("color", style.default)
+
+                if icon is None:
+                    # Use default icons if no custom one is specified.
+                    # If it has children show a full folder, otherwise
+                    # show an open folder
+                    has_children = self.rowCount(index) > 0
+                    icon = "folder" if has_children else "folder-o"
+
+                # Make the color darker when the asset is deprecated
                 if node.get("deprecated", False):
                     color = QtGui.QColor(color).darker(250)
 
-                # If it has children show a full folder
-                if self.rowCount(index) > 0:
-                    return awesome.icon("fa.folder", color=color)
-                else:
-                    return awesome.icon("fa.folder-o", color=color)
+                try:
+                    key = "fa.{0}".format(icon)  # font-awesome key
+                    icon = awesome.icon(key, color=color)
+                    return icon
+                except Exception as exception:
+                    # Log an error message instead of erroring out completely
+                    # when the icon couldn't be created (e.g. invalid name)
+                    log.error(exception)
+
+                return
 
         if role == QtCore.Qt.ForegroundRole:        # font color
 

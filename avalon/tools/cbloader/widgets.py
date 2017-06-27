@@ -1,7 +1,9 @@
 import datetime
 import pprint
+import inspect
 
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
+from ...vendor import qtawesome
 from ... import io
 from ... import api
 
@@ -89,9 +91,14 @@ class SubsetWidget(QtWidgets.QWidget):
             self.echo("No compatible loaders available for this version.")
             return
 
+        def sorter(value):
+            """Sort the Loaders by their order and then their name"""
+            Plugin = value[1]
+            return Plugin.order, Plugin.__name__
+
         # List the available loaders
         menu = QtWidgets.QMenu(self)
-        for representation, loader in loaders:
+        for representation, loader in sorted(loaders, key=sorter):
 
             # Label
             label = getattr(loader, "label", None)
@@ -103,6 +110,25 @@ class SubsetWidget(QtWidgets.QWidget):
 
             action = QtWidgets.QAction(label, menu)
             action.setData((representation, loader))
+
+            # Add tooltip and statustip from Loader docstring
+            tip = inspect.getdoc(loader)
+            if tip:
+                action.setToolTip(tip)
+                action.setStatusTip(tip)
+
+            # Support font-awesome icons using the `.icon` and `.color`
+            # attributes on plug-ins.
+            icon = getattr(loader, "icon", None)
+            if icon is not None:
+                try:
+                    key = "fa.{0}".format(icon)
+                    color = getattr(loader, "color", "white")
+                    action.setIcon(qtawesome.icon(key, color=color))
+                except Exception as e:
+                    print("Unable to set icon for loader "
+                          "{}: {}".format(loader, e))
+
             menu.addAction(action)
 
         # Show the context action menu

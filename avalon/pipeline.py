@@ -156,6 +156,7 @@ class Loader(list):
 
     families = list()
     representations = list()
+    order = 0
 
     def __init__(self, context):
         template = context["project"]["config"]["template"]["publish"]
