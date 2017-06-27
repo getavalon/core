@@ -9,7 +9,7 @@ from . import schema
 
 # Third-party dependencies
 import pymongo
-from bson.objectid import ObjectId as _ObjectId, InvalidId as _InvalidId
+from bson.objectid import ObjectId, InvalidId
 
 __all__ = [
     "ObjectId",
@@ -40,14 +40,6 @@ self._uri = os.getenv("AVALON_MONGO", "mongodb://localhost:27017")
 self._is_installed = False
 self._is_activated = False
 self._timeout = int(os.getenv("AVALON_TIMEOUT", 1000))
-
-
-class ObjectId(_ObjectId):
-    """Unique identified used to document in database"""
-
-
-class InvalidId(_InvalidId):
-    """Exception thrown on an invalid ObjectId"""
 
 
 def install():
