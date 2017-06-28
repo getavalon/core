@@ -3,14 +3,15 @@
 Until assets are created entirely in the database, this script
 provides a bridge between the file-based project inventory and configuration.
 
-- Migrating an old project:
-    $ python -m avalon.inventory --extract --silo-parent=f02_prod
-    $ python -m avalon.inventory --upload
+Usage:
+    $ # Create new project:
+    $ python -m avalon.inventory --init
+    $ python -m avalon.inventory --save
 
-- Managing an existing project:
-    1. Run `python -m avalon.inventory --load`
-    2. Update the .inventory.toml or .config.toml
-    3. Run `python -m avalon.inventory --save`
+    $ # Manage existing project
+    $ python -m avalon.inventory --load
+    $ # Update the .inventory.toml or .config.toml
+    $ python -m avalon.inventory --save
 
 """
 
@@ -26,11 +27,9 @@ self = sys.modules[__name__]
 self.collection = None
 
 __all__ = [
-    "save",
     "init",
+    "save",
     "load",
-    "extract",
-    "upload",
 ]
 
 
@@ -226,212 +225,6 @@ def load(name):
     )
 
     return config, inventory
-
-
-def extract(root, silo_parent=None):
-    """Parse a given project and produce a JSON file of its contents
-
-    This function is used when migrating a project from 1.0 -> 2.0 and
-    will have no effect on projects already created with 2.0.
-
-    Arguments:
-        root (str): Absolute path to a file-based project
-        silo_parent (str, optional): Parent directory of silos within
-            a project directory
-
-    """
-
-    def _dirs(path):
-        try:
-            for base, dirs, files in os.walk(path):
-                return list(
-                    os.path.join(base, dirname) for dirname in dirs
-                )
-        except IOError:
-            return list()
-
-        return list()
-
-    name = os.path.basename(root)
-
-    print("Generating project.json..")
-
-    project_obj = {
-        "schema": "avalon-core:project-2.0",
-        "name": name,
-        "type": "project",
-        "data": {},
-        "config": {
-            "schema": "avalon-core:config-1.0",
-            "apps": copy.deepcopy(DEFAULTS["config"]["apps"]),
-            "tasks": copy.deepcopy(DEFAULTS["config"]["tasks"]),
-            "template": copy.deepcopy(DEFAULTS["config"]["template"]),
-            "copy": {},
-        },
-        "children": list(),
-    }
-
-    # Update template with silo_parent directory of silo
-    if silo_parent:
-        silo_parent = silo_parent.strip("\\/").rstrip("\\/")
-
-        template = project_obj["config"]["template"]
-        for key, value in template.items():
-            template[key] = value.replace("{silo}", silo_parent + "/{silo}")
-
-    # Parse .bat file for environment variables
-    project_obj["data"].update(_parse_bat(root))
-
-    for silo in ("assets", "film"):
-        for asset in _dirs(os.path.join(root, silo_parent or "", silo)):
-            asset_obj = {
-                "schema": "avalon-core:asset-2.0",
-                "type": "asset",
-                "name": os.path.basename(asset),
-                "silo": silo,
-                "data": {},
-                "children": list(),
-            }
-
-            schema.validate(asset_obj)
-
-            asset_obj.update(_parse_bat(asset))
-
-            project_obj["children"].append(asset_obj)
-
-            for subset in _dirs(os.path.join(asset, "publish")):
-                subset_obj = {
-                    "schema": "avalon-core:subset-2.0",
-                    "name": os.path.basename(subset),
-                    "type": "subset",
-                    "data": {},
-                    "children": list(),
-                }
-
-                schema.validate(subset_obj)
-
-                asset_obj["children"].append(subset_obj)
-
-                for version in _dirs(subset):
-                    try:
-                        with open(os.path.join(version,
-                                               ".metadata.json")) as f:
-                            metadata = json.load(f)
-                    except IOError:
-                        continue
-
-                    try:
-                        number = int(os.path.basename(version)[1:])
-                    except ValueError:
-                        # Directory not compatible with pipeline
-                        # E.g. 001_mySpecialVersion
-                        continue
-
-                    try:
-                        version_obj = {
-                            "schema": "avalon-core:version-2.0",
-                            "type": "version",
-                            "name": number,
-                            "locations": list(
-                                location for location in
-                                [os.getenv("AVALON_LOCATION")]
-                                if location is not None
-                            ),
-                            "data": {
-                                "families": metadata["families"],
-                                "author": metadata["author"],
-                                "source": metadata["source"],
-                                "time": metadata["time"],
-                            },
-                            "children": list(),
-                        }
-                    except KeyError:
-                        # Metadata not compatible with pipeline
-                        continue
-
-                    schema.validate(version_obj)
-
-                    subset_obj["children"].append(version_obj)
-
-                    for representation in metadata["representations"]:
-                        representation_obj = {
-                            "schema": "avalon-core:representation-2.0",
-                            "type": "representation",
-                            "name": representation["format"].strip("."),
-                            "data": {
-                                "label": {
-                                    ".ma": "Maya Ascii",
-                                    ".source": "Original source file",
-                                    ".abc": "Alembic"
-                                }.get(
-                                    representation["format"],
-                                    representation["format"].strip(".")
-                                ),
-                            },
-                            "children": list(),
-                        }
-
-                        schema.validate(representation_obj)
-
-                        version_obj["children"].append(representation_obj)
-
-    with open(os.path.join(root, "project.json"), "w") as f:
-        json.dump(project_obj, f, indent=4)
-
-    print("Successfully generated %s" % os.path.join(root, "project.json"))
-
-
-def upload(root, overwrite=False):
-    """Upload project generated with :func:`extract` database
-
-    Arguments:
-        root (str): Absolute path to directory containing extracted project
-        overwrite (bool, optional): Whether or not to stop if a project
-            already exists.
-
-    """
-
-    fname = os.path.join(root, "project.json")
-
-    name = os.path.basename(root)
-    io.activate_project(name)
-    print("Uploading %s" % os.path.basename(root))
-
-    try:
-        with open(fname) as f:
-            project = json.load(f)
-    except IOError:
-        raise IOError("No project.json found.")
-
-    def _upload_recursive(parent, children):
-        for child in children:
-            grandchildren = child.pop("children")
-            child["parent"] = parent
-
-            document = io.find_one({
-                key: child[key]
-                for key in ("parent",
-                            "type",
-                            "name")
-            })
-
-            if document is None:
-                _id = io.insert_one(child).inserted_id
-                print("+ {0[type]}: '{0[name]}'".format(child))
-            elif overwrite:
-                _id = document["_id"]
-                document.update(child)
-                io.save(document)
-                print("~ {0[type]}: '{0[name]}'".format(child))
-            else:
-                _id = document["_id"]
-                print("| {0[type]}: '{0[name]}'..".format(child))
-
-            _upload_recursive(_id, grandchildren)
-
-    _upload_recursive(None, [project])
-
-    print("Successfully uploaded %s" % fname)
 
 
 def _save_inventory_1_0(project_name, data):
@@ -654,14 +447,6 @@ def _cli():
         inventory = _read(root, "inventory")
         config = _read(root, "config")
         save(name, config, inventory)
-        print("Success!")
-
-    elif kwargs.extract:
-        extract(root=root, silo_parent=kwargs.silo_parent)
-        print("Success!")
-
-    elif kwargs.upload:
-        upload(root=root, overwrite=kwargs.overwrite)
         print("Success!")
 
     else:
