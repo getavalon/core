@@ -216,7 +216,12 @@ def ls():
 
     """
 
-    for container in sorted(lib.lsattr("id", "pyblish.avalon.container")):
+    containers = lib.lsattr("id", "pyblish.avalon.container")
+
+    # Backwards compatibility
+    containers += lib.lsattr("id", "pyblish.mindbender.container")
+
+    for container in sorted(containers):
         data = lib.read(container)
 
         try:
