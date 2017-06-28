@@ -248,19 +248,19 @@ def load(Loader,
          representation,
          name=None,
          namespace=None,
-         post_process=True,
-         preset=None):
+         data=None):
     """Load asset via database
 
     Arguments:
         Loader (api.Loader): The loader to process in host Maya.
         representation (dict, io.ObjectId or str): Address to representation
+        name (str, optional): Use pre-defined name
+        namespace (str, optional): Use pre-defined namespace
+        data (dict, optional): Additional settings dictionary
 
     """
 
     assert representation is not None, "This is a bug"
-
-    preset = preset or os.environ["AVALON_TASK"]
 
     if isinstance(representation, (six.string_types, io.ObjectId)):
         representation = io.find_one({"_id": io.ObjectId(str(representation))})
@@ -277,8 +277,12 @@ def load(Loader,
         "subset": subset,
         "version": version,
         "representation": representation,
-        "preset": {"name": preset}
     }
+
+    # Ensure data is a dictionary when no explicit data provided
+    if data is None:
+        data = dict()
+    assert isinstance(data, dict), "Data must be a dictionary"
 
     name = name or subset["name"]
     namespace = namespace or lib.unique_namespace(
@@ -295,13 +299,10 @@ def load(Loader,
 
     try:
         loader = Loader(context)
-        loader.process(name, namespace, context)
+        loader.process(name, namespace, context, data)
     except OSError as e:
         print("WARNING: %s" % e)
         return list()
-
-    if post_process:
-        loader.post_process(name, namespace, context)
 
     return containerise(
         name=name,
