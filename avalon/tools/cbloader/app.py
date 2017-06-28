@@ -25,6 +25,8 @@ class Window(QtWidgets.QDialog):
                 api.registered_root(),
                 os.getenv("AVALON_PROJECT")))
 
+        # Enable minimize and maximize for app
+        self.setWindowFlags(QtCore.Qt.Window)
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
         body = QtWidgets.QWidget()
