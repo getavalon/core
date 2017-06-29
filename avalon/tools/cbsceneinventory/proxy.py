@@ -63,6 +63,13 @@ class FilterProxyModel(RecursiveSortFilterProxyModel):
         column = self.filterKeyColumn()
         index = model.index(source_row, column, source_parent)
 
+        # Filters below are per version group (top-level entries) so if
+        # it's a child index consider it non-filtered, because the header
+        # group already would be.
+        has_parent = index.parent().isValid()
+        if has_parent:
+            return True
+
         # Filter to those that have the different version numbers
         node = index.internalPointer()
         version = node.get("version", None)
