@@ -229,8 +229,11 @@ def ls():
                 {"_id": io.ObjectId(data["representation"])}
             )
         except io.InvalidId:
-            api.logger.warning("Skipping %s, invalid id." % container)
-            continue
+            try:
+                document = _ls_4_0(data)
+            except io.InvalidId:
+                api.logger.warning("Skipping %s, invalid id." % container)
+                continue
 
         data = dict(
             schema="avalon-core:container-1.0",
@@ -242,6 +245,22 @@ def ls():
         )
 
         yield data
+
+
+def _ls_4_0(data):
+    """Representation ID is missing pre-5.0"""
+    document = io.locate([
+        api.session["project"],
+        data["asset"],
+        data["subset"],
+        data["version"],
+        data["representation"].strip(".")
+    ])
+
+    if not document:
+        raise io.InvalidId
+
+    return document
 
 
 def load(Loader,
