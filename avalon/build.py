@@ -181,13 +181,12 @@ from maya import cmds, standalone
 print("Initializing Maya..")
 standalone.initialize()
 
-from maya import cmds
-from avalon import maya
+from avalon import api
 
 fname = r"{fname}"
 
 cmds.file(fname, open=True, force=True, ignoreVersion=True)
-context = maya.publish()
+context = api.publish()
 
 success = all(
     result["success"]

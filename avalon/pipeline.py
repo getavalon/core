@@ -170,6 +170,11 @@ def is_installed():
     return self._is_installed
 
 
+def publish():
+    from pyblish import util
+    return util.publish()
+
+
 @lib.log
 class Loader(list):
     """Load representation into host application

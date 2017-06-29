@@ -20,6 +20,8 @@ from .pipeline import (
     discover,
     session,
 
+    publish,
+
     loaders_by_representation,
 
     register_root,
@@ -51,6 +53,8 @@ __all__ = [
     "Creator",
     "discover",
     "session",
+
+    "publish",
 
     "loaders_by_representation",
 
