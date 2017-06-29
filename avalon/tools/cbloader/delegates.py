@@ -111,6 +111,7 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
 
     def _format_version(self, value):
         """Formats integer to displayable version name"""
+        # todo(roy): formatting of version should be configurable
         return "v{0:03d}".format(value)
 
     def displayText(self, value, locale):
