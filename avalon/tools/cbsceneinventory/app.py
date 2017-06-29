@@ -208,7 +208,8 @@ class View(QtWidgets.QTreeView):
         versions_by_label = dict()
         labels = []
         for version in versions:
-            label = api.format_version(version["name"])
+            # todo(roy): formatting of version should be configurable
+            label = "v{0:03d}".format(version["name"])
             labels.append(label)
             versions_by_label[label] = version
 
