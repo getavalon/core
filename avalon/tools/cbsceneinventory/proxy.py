@@ -63,9 +63,10 @@ class FilterProxyModel(RecursiveSortFilterProxyModel):
         column = self.filterKeyColumn()
         index = model.index(source_row, column, source_parent)
 
-        # Filters below are per version group (top-level entries) so if
-        # it's a child index consider it non-filtered, because the header
-        # group already would be.
+        # The scene contents are grouped by "representation", e.g. the same
+        # "representation" loaded twice is grouped under the same header.
+        # Since the version check filters these parent groups we skip that
+        # check for the individual children.
         has_parent = index.parent().isValid()
         if has_parent:
             return True
