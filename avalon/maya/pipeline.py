@@ -7,7 +7,7 @@ from maya import cmds, OpenMaya
 from pyblish import api as pyblish
 
 from . import lib, commands
-from .. import api, io
+from .. import api, io, schema
 from ..vendor import six
 from ..vendor.Qt import QtCore, QtWidgets
 
@@ -117,14 +117,7 @@ def _reload(*args):
 
     """
 
-    from avalon import api, pipeline, io, lib
     import avalon.maya
-    import avalon.maya.pipeline
-    import avalon.maya.interactive
-    import avalon.maya.commands
-    import avalon.tools.creator.app
-    import avalon.tools.manager.app
-    import avalon.tools.loader.app
 
     api.uninstall()
 
@@ -168,12 +161,9 @@ def containerise(name,
 
     Arguments:
         name (str): Name of resulting assembly
-        nodes (list): Long names of nodes to containerise
         namespace (str): Namespace under which to host container
-        asset (avalon-core:asset-1.0): Current asset
-        subset (avalon-core:subset-1.0): Current subset
-        version (avalon-core:version-1.0): Current version
-        representation (avalon-core:representation-1.0): ...
+        nodes (list): Long names of nodes to containerise
+        context (dict): Asset information
         loader (str, optional): Name of loader used to produce this container.
         suffix (str, optional): Suffix of container, defaults to `_CON`.
 
@@ -185,14 +175,11 @@ def containerise(name,
     container = cmds.sets(nodes, name="%s_%s_%s" % (namespace, name, suffix))
 
     data = [
+        ("schema", "avalon-core:container-2.0"),
         ("id", "pyblish.avalon.container"),
         ("name", name),
         ("namespace", namespace),
         ("loader", str(loader)),
-        ("project", context["project"]["name"]),
-        ("asset", context["asset"]["name"]),
-        ("subset", context["subset"]["name"]),
-        ("version", context["version"]["name"]),
         ("representation", context["representation"]["_id"]),
     ]
 
@@ -223,51 +210,23 @@ def ls():
 
     """
 
-    containers = lib.lsattr("id", "pyblish.avalon.container")
-
-    # Backwards compatibility
-    containers += lib.lsattr("id", "pyblish.mindbender.container")
+    containers = list()
+    for identifier in ("pyblish.avalon.container",
+                       "pyblish.mindbender.container"):
+        containers += lib.lsattr("id", identifier)
 
     for container in sorted(containers):
         data = lib.read(container)
 
-        try:
-            document = io.find_one(
-                {"_id": io.ObjectId(data["representation"])}
-            )
-        except io.InvalidId:
-            try:
-                document = _ls_4_0(data)
-            except io.InvalidId:
-                api.logger.warning("Skipping %s, invalid id." % container)
-                continue
+        # Backwards compatibility pre-schemas for containers
+        data["schema"] = data.get("schema", "avalon-core:container-1.0")
 
-        data = dict(
-            schema="avalon-core:container-1.0",
-            objectName=container,
-            name=data["name"],
-            namespace=data["namespace"],
-            representation=data["representation"],
-            **document["data"]
-        )
+        # Append transient data
+        data["objectName"] = container
+
+        schema.validate(data)
 
         yield data
-
-
-def _ls_4_0(data):
-    """Representation ID is missing pre-5.0"""
-    document = io.locate([
-        api.session["project"],
-        data["asset"],
-        data["subset"],
-        data["version"],
-        data["representation"].strip(".")
-    ])
-
-    if not document:
-        raise io.InvalidId
-
-    return document
 
 
 def load(Loader,
