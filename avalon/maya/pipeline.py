@@ -1,6 +1,7 @@
 import os
 import sys
 import uuid
+import errno
 import importlib
 
 from maya import cmds, OpenMaya
@@ -30,6 +31,7 @@ def install(config):
     self._menu = api.session["label"] + "menu"
 
     _register_callbacks()
+    _set_project()
 
     if not IS_HEADLESS:
         _install_menu()
@@ -44,6 +46,21 @@ def install(config):
         pass
     else:
         config.install()
+
+
+def _set_project():
+    workdir = os.environ["AVALON_WORKDIR"]
+
+    try:
+        os.makedirs(workdir)
+    except OSError as e:
+        # An already existing working directory is fine.
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise
+
+    cmds.workspace(workdir, openWorkspace=True)
 
 
 def uninstall():
