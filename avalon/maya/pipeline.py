@@ -97,7 +97,7 @@ def _install_menu():
                       subMenu=True,
                       parent=self._menu)
 
-        cmds.menuItem("Reload Pipeline", command=_reload)
+        cmds.menuItem("Reload Pipeline", command=reload_pipeline)
 
         cmds.setParent("..", menu=True)
 
@@ -110,31 +110,52 @@ def _install_menu():
     QtCore.QTimer.singleShot(100, deferred)
 
 
-def _reload(*args):
+def reload_pipeline(*args):
     """Attempt to reload pipeline at run-time.
 
     CAUTION: This is primarily for development and debugging purposes.
 
     """
 
-    import avalon.maya
+    import importlib
 
     api.uninstall()
 
-    for module in (io,
-                   lib,
-                   pipeline,
-                   avalon.maya.commands,
-                   avalon.maya.interactive,
-                   avalon.maya.pipeline,
-                   avalon.maya.lib,
-                   avalon.tools.loader.app,
-                   avalon.tools.creator.app,
-                   avalon.tools.manager.app,
-                   api,
-                   avalon.maya):
+    for module in ("avalon.io",
+                   "avalon.lib",
+                   "avalon.pipeline",
+                   "avalon.maya.commands",
+                   "avalon.maya.interactive",
+                   "avalon.maya.pipeline",
+                   "avalon.maya.lib",
+                   "avalon.tools.loader.app",
+                   "avalon.tools.creator.app",
+                   "avalon.tools.manager.app",
+
+                   # NOTE(marcus): These have circular depenendencies
+                   #               that is preventing reloadability
+                   # "avalon.tools.cbloader.delegates",
+                   # "avalon.tools.cbloader.lib",
+                   # "avalon.tools.cbloader.model",
+                   # "avalon.tools.cbloader.widgets",
+                   # "avalon.tools.cbloader.app",
+                   # "avalon.tools.cbsceneinventory.model",
+                   # "avalon.tools.cbsceneinventory.proxy",
+                   # "avalon.tools.cbsceneinventory.app",
+                   # "avalon.tools.projectmanager.dialogs",
+                   # "avalon.tools.projectmanager.lib",
+                   # "avalon.tools.projectmanager.model",
+                   # "avalon.tools.projectmanager.style",
+                   # "avalon.tools.projectmanager.widget",
+                   # "avalon.tools.projectmanager.app",
+
+                   "avalon.api",
+                   "avalon.tools",
+                   "avalon.maya"):
+        module = importlib.import_module(module)
         reload(module)
 
+    import avalon.maya
     api.install(avalon.maya)
 
 
@@ -440,8 +461,6 @@ def update(container, version=-1):
     cmds.file(fname, loadReference=reference_node, type=file_type)
 
     # Update metadata
-    cmds.setAttr(container["objectName"] + ".version",
-                 new_version["name"])
     cmds.setAttr(container["objectName"] + ".representation",
                  str(new_representation["_id"]),
                  type="string")
