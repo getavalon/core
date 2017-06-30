@@ -9,36 +9,57 @@
     "additionalProperties": true,
 
     "required": [
-        "schema",
-        "name",
+        "id",
         "objectName",
-        "asset",
+        "name",
+        "author",
+        "loader",
+        "families",
+        "time",
         "subset",
+        "asset",
+        "representation",
         "version",
-        "path"
+        "silo",
+        "path",
+        "source"
     ],
-
     "properties": {
-        "schema": {
-            "description": "Schema identifier for payload",
+        "id": {
+            "description": "Identifier for finding object in host",
             "type": "string",
-            "const": "avalon-core:container-2.0",
-            "example": "avalon-core:container-2.0"
+            "const": "pyblish.mindbender.container",
+            "example": "pyblish.mindbender.container"
+        },
+        "objectName": {
+            "description": "Name of internal object, such as the objectSet in Maya.",
+            "type": "string",
+            "example": "Bruce_:rigDefault_CON"
         },
         "name": {
             "description": "Full name of application object",
             "type": "string",
             "example": "modelDefault"
         },
-        "path": {
-            "description": "Absolute path",
+        "author": {
+            "description": "Name of the author of the published version",
             "type": "string",
-            "example": "|someParent|someNamespace_:modelDefault_CON"
+            "example": "Marcus Ottosson"
         },
-        "objectName": {
-            "description": "Name of internal object, such as the objectSet in Maya.",
+        "loader": {
+            "description": "Name of loader plug-in used to produce this container",
             "type": "string",
-            "example": "modelDefault_CON"
+            "example": "ModelLoader"
+        },
+        "families": {
+            "description": "Families associated with the this subset",
+            "type": "string",
+            "example": "mindbender.model"
+        },
+        "time": {
+            "description": "File-system safe, formatted time",
+            "type": "string",
+            "example": "20170329T131545Z"
         },
         "subset": {
             "description": "Name of source subset",
@@ -50,15 +71,30 @@
             "type": "string"  ,
             "example": "Bruce"
         },
+        "representation": {
+            "description": "Name of source representation",
+            "type": "string"  ,
+            "example": ".ma"
+        },
         "version": {
             "description": "Version number",
             "type": "number",
             "example": 12
         },
-        "author": {
-            "description": "Name of the author of the published version",
+        "silo": {
+            "properties": "",
             "type": "string",
-            "example": "Marcus Ottosson"
+            "example": "assets"
+        },
+        "path": {
+            "description": "Absolute path on disk",
+            "type": "string",
+            "example": "{root}/assets/Bruce/publish/rigDefault/v002"
+        },
+        "source": {
+            "description": "Absolute path to file from which this version was published",
+            "type": "string",
+            "example": "{root}/assets/Bruce/work/rigging/maya/scenes/rig_v001.ma"
         }
     }
 }
