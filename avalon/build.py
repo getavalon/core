@@ -9,6 +9,7 @@ from avalon import lib, _session
 
 CREATE_NO_WINDOW = 0x08000000
 IS_WIN32 = sys.platform == "win32"
+DEBUG = os.getenv("AVALON_DEBUG", False)
 
 
 def run(src, fname, session):
@@ -83,11 +84,16 @@ def dispatch(root, job):
         "mayapy2017": mayapy,
     }[app]
 
-    job["session"]["projects"] = root
+    job["session"]["projects"] = os.path.dirname(root)
     job["session"]["mongo"] = os.getenv(
         "AVALON_MONGO", "mongodb://localhost:27017")
 
     with _session.new(**job["session"]) as session:
+        if DEBUG:
+            print("\n".join("%s: %s" % (key, value)
+                            for key, value in session.items()
+                            if key.startswith("AVALON_")))
+
         for fname in job.get("resources", list()):
             print(" processing '%s'.." % fname)
             fname = os.path.join(root, fname)
@@ -107,8 +113,12 @@ if __name__ == '__main__':
 
     kwargs = parser.parse_args()
 
-    with open(kwargs.file) as f:
-        script = json.load(f)
+    try:
+        with open(kwargs.file) as f:
+            script = json.load(f)
+    except OSError:
+        print("Error: No 'build.json' file found @ %s" % kwargs.file)
+        sys.exit(1)
 
     for job in script:
         app = job["session"]["app"]
