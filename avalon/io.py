@@ -77,6 +77,20 @@ def install():
     self._is_installed = True
 
 
+def uninstall():
+    """Close any connection to the database"""
+    try:
+        self._client.close()
+    except AttributeError:
+        pass
+
+    self._client = None
+    self._database = None
+    self._collection = None
+    self._is_installed = False
+    self._is_activated = False
+
+
 def active_project():
     """Return the name of the active project"""
     return self._collection.name
@@ -93,19 +107,6 @@ def activate_project(project):
     self._collection = self._database[project]
     self._is_activated = True
 
-
-def uninstall():
-    """Close any connection to the database"""
-    try:
-        self._client.close()
-    except AttributeError:
-        pass
-
-    self._client = None
-    self._database = None
-    self._collection = None
-    self._is_installed = False
-    self._is_activated = False
 
 
 def requires_install(f):
