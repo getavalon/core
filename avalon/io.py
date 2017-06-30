@@ -108,7 +108,6 @@ def activate_project(project):
     self._is_activated = True
 
 
-
 def requires_install(f):
     @functools.wraps(f)
     def decorated(*args, **kwargs):
