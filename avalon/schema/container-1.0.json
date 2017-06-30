@@ -82,7 +82,7 @@
             "example": 12
         },
         "silo": {
-            "properties": "",
+            "description": "Silo of parent asset",
             "type": "string",
             "example": "assets"
         },
