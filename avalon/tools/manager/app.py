@@ -173,7 +173,19 @@ class Window(QtWidgets.QDialog):
         for container in api.registered_host().ls():
             has["containers"] = True
 
-            name = "{namespace}{name}".format(**container)
+            if container["schema"] == "avalon-core:container-1.0":
+                name = container["objectName"]
+                container["representation"] = str(io.locate([
+                    api.session["project"],
+                    container["asset"],
+                    container["subset"],
+                    container["version"],
+                    container["representation"].strip("."),
+                ]))
+
+            else:
+                name = "{namespace}{name}".format(**container)
+
             item = QtWidgets.QListWidgetItem(name)
             item.setData(QtCore.Qt.ItemIsEnabled, True)
             item.setData(ContainerRole, container)
