@@ -1,138 +1,14 @@
 import os
 import sys
-import time
 import json
 import shutil
-import getpass
 import tempfile
 import subprocess
 
-# Third-party dependencies
-import pymongo
-
-from avalon import api, lib
-from avalon.vendor import six
+from avalon import lib, _session
 
 CREATE_NO_WINDOW = 0x08000000
 IS_WIN32 = sys.platform == "win32"
-
-
-class Session(dict):
-    def __enter__(self):
-        return self.install()
-
-    def __exit__(self, *args):
-        self.uninstall()
-
-    def __new__(cls, **kwargs):
-        for key, value in kwargs.items():
-            if not isinstance(key, six.string_types):
-                raise TypeError("key '%s' was not a string" % key)
-
-            if not isinstance(value, six.string_types):
-                raise TypeError("value '%s' was not a string" % value)
-
-        return super(Session, cls).__new__(cls, **kwargs)
-
-    def __init__(self, **kwargs):
-        super(Session, self).__init__(**kwargs)
-
-        projects = kwargs.get("projects") or os.environ["AVALON_PROJECTS"]
-        project = kwargs.get("project") or os.environ["AVALON_PROJECT"]
-        asset = kwargs.get("asset") or os.environ["AVALON_ASSET"]
-        silo = kwargs.get("silo") or os.environ["AVALON_SILO"]
-        task = kwargs.get("task") or os.environ["AVALON_TASK"]
-        app = kwargs.get("app") or os.environ["AVALON_APP"]
-        mongo = (
-            kwargs.get("mongo") or
-            os.getenv("AVALON_MONGO",
-                      "mongodb://localhost:27017")
-        )
-
-        config = kwargs.get("config") or os.environ["AVALON_CONFIG"]
-
-        self.connection = None
-
-        self.update({
-            "AVALON_PROJECTS": projects,
-            "AVALON_PROJECT": project,
-            "AVALON_SILO": silo,
-            "AVALON_ASSET": asset,
-            "AVALON_TASK": task,
-            "AVALON_CONFIG": config,
-            "AVALON_APP": app,
-            "AVALON_MONGO": mongo,
-            "AVALON_DB": "mindbender",
-            "AVALON_WORKDIR": None,
-
-            "AVALON_CORE": os.path.dirname(os.path.dirname(__file__)),
-            "PYTHONPATH": os.environ.get("PYTHONPATH", "")
-        })
-
-    def install(self):
-        self.connection = self._connect()
-
-        config = self.find_one({"type": "project"})["config"]
-        template = config["template"]["work"]
-
-        self["AVALON_WORKDIR"] = template.format(
-            root=self["AVALON_PROJECTS"],
-            app=self["AVALON_APP"],
-            user=getpass.getuser(),
-            **{
-                key[len("AVALON_"):].lower(): value
-                for key, value in self.items()
-                if key != "AVALON_APP"
-            }
-        )
-
-        self.application = lib.get_application(name=self["AVALON_APP"],
-                                               environment=self)
-
-        return dict(os.environ, **self)
-
-    def uninstall(self):
-        try:
-            self.connection.close()
-        except AttributeError:
-            pass
-
-    def _connect(self):
-        client = pymongo.MongoClient(
-            self["AVALON_MONGO"],
-            serverSelectionTimeoutMS=2000
-        )
-
-        for retry in range(3):
-            try:
-                t1 = time.time()
-                client.server_info()
-
-            except OSError:
-                api.logger.error("Retrying..")
-                time.sleep(1)
-
-            else:
-                break
-
-        else:
-            raise IOError("ERROR: Couldn't connect to %s in "
-                          "less than %.3f ms" % (self["AVALON_MONGO"], 2000))
-
-        api.logger.info("Connected to server, delay %.3f s" % (
-            time.time() - t1))
-
-        return client
-
-    def find_one(self, filter, projection=None, sort=None):
-        assert isinstance(filter, dict), "filter must be <dict>"
-        database = self.connection[self["AVALON_DB"]]
-        collection = database[self["AVALON_PROJECT"]]
-        return collection.find_one(
-            filter=filter,
-            projection=projection,
-            sort=sort
-        )
 
 
 def run(src, fname, session):
@@ -207,8 +83,13 @@ def dispatch(root, job):
         "mayapy2017": mayapy,
     }[app]
 
-    with Session(**job["session"]) as session:
+    job["session"]["projects"] = root
+    job["session"]["mongo"] = os.getenv(
+        "AVALON_MONGO", "mongodb://localhost:27017")
+
+    with _session.new(**job["session"]) as session:
         for fname in job.get("resources", list()):
+            print(" processing '%s'.." % fname)
             fname = os.path.join(root, fname)
             run(src(fname), fname, session)
 
@@ -230,9 +111,12 @@ if __name__ == '__main__':
         script = json.load(f)
 
     for job in script:
-        for app in job["session"]["app"]:
-            # TODO: Check availability of software
-            pass
+        app = job["session"]["app"]
+        # TODO: Check availability of software
+
+        for resource in job["resources"]:
+            # TODO: Check existence of resources
+            break
 
     for job in script:
         dispatch(kwargs.root, job)

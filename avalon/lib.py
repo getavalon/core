@@ -175,9 +175,11 @@ def get_application(name, environment):
             "This is typically a bug in the pipeline, "
             "ask your developer.")
 
-    for key, value in app.get("environment", {}).items():
+    # Ingest application environment
+    environment = app.get("environment", {})
+    for key, value in environment.copy().items():
         if isinstance(value, list):
-            # Treat list values as application_definition variables
+            # Treat list values as paths, e.g. PYTHONPATH=[]
             environment[key] = os.pathsep.join(value)
 
         elif isinstance(value, str):
@@ -185,7 +187,8 @@ def get_application(name, environment):
 
         else:
             logger.error(
-                "Unsupported environment variable in %s"
-                % application_definition)
+                "%s: Unsupported environment reference in %s"
+                % (value, name)
+            )
 
     return app
