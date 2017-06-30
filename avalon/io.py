@@ -5,7 +5,7 @@ import sys
 import time
 import functools
 
-from . import schema
+from . import schema, lib
 
 # Third-party dependencies
 import pymongo
@@ -62,7 +62,7 @@ def install():
             self._client.server_info()
 
         except Exception:
-            print("Retrying..")
+            lib.logger.error("Retrying..")
             time.sleep(1)
             self._timeout *= 1.5
 
@@ -73,8 +73,22 @@ def install():
         raise IOError("ERROR: Couldn't connect to %s in "
                       "less than %.3f ms" % (self._uri, self._timeout))
 
-    print("Connected to server, delay %.3f s" % (time.time() - t1))
+    lib.logger.info("Connected to server, delay %.3f s" % (time.time() - t1))
     self._is_installed = True
+
+
+def uninstall():
+    """Close any connection to the database"""
+    try:
+        self._client.close()
+    except AttributeError:
+        pass
+
+    self._client = None
+    self._database = None
+    self._collection = None
+    self._is_installed = False
+    self._is_activated = False
 
 
 def active_project():
@@ -93,19 +107,6 @@ def activate_project(project):
     self._collection = self._database[project]
     self._is_activated = True
 
-
-def uninstall():
-    """Close any connection to the database"""
-    try:
-        self._client.close()
-    except AttributeError:
-        pass
-
-    self._client = None
-    self._database = None
-    self._collection = None
-    self._is_installed = False
-    self._is_activated = False
 
 
 def requires_install(f):

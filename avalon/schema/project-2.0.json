@@ -29,6 +29,10 @@
             "const": "project",
             "example": "project"
         },
+        "parent": {
+            "description": "Unique identifier to parent document",
+            "example": "592c33475f8c1b064c4d1696"
+        },
         "name": {
             "description": "Name of directory",
             "type": "string",

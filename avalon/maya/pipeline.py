@@ -1,20 +1,23 @@
 import os
 import sys
 import uuid
+import errno
 import importlib
 
 from maya import cmds, OpenMaya
 from pyblish import api as pyblish
 
 from . import lib, commands
-from .. import api, io
+from .. import api, io, schema
 from ..vendor import six
 from ..vendor.Qt import QtCore, QtWidgets
 
 self = sys.modules[__name__]
-self._menu = api.session["label"] + "menu"  # Unique name of menu
+self._menu = "avalonmaya"  # Unique name of menu
 self._events = dict()  # Registered Maya callbacks
 self._parent = None  # Main Window
+
+IS_HEADLESS = not hasattr(cmds, "about") or cmds.about(batch=True)
 
 
 def install(config):
@@ -24,8 +27,14 @@ def install(config):
 
     """
 
+    # Inherit globally set name
+    self._menu = api.session["label"] + "menu"
+
     _register_callbacks()
-    _install_menu()
+    _set_project()
+
+    if not IS_HEADLESS:
+        _install_menu()
 
     pyblish.register_host("mayabatch")
     pyblish.register_host("mayapy")
@@ -37,6 +46,21 @@ def install(config):
         pass
     else:
         config.install()
+
+
+def _set_project():
+    workdir = os.environ["AVALON_WORKDIR"]
+
+    try:
+        os.makedirs(workdir)
+    except OSError as e:
+        # An already existing working directory is fine.
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise
+
+    cmds.workspace(workdir, openWorkspace=True)
 
 
 def uninstall():
@@ -90,7 +114,7 @@ def _install_menu():
                       subMenu=True,
                       parent=self._menu)
 
-        cmds.menuItem("Reload Pipeline", command=_reload)
+        cmds.menuItem("Reload Pipeline", command=reload_pipeline)
 
         cmds.setParent("..", menu=True)
 
@@ -103,38 +127,52 @@ def _install_menu():
     QtCore.QTimer.singleShot(100, deferred)
 
 
-def _reload(*args):
+def reload_pipeline(*args):
     """Attempt to reload pipeline at run-time.
 
     CAUTION: This is primarily for development and debugging purposes.
 
     """
 
-    from avalon import api, pipeline, io, lib
-    import avalon.maya
-    import avalon.maya.pipeline
-    import avalon.maya.interactive
-    import avalon.maya.commands
-    import avalon.tools.creator.app
-    import avalon.tools.manager.app
-    import avalon.tools.loader.app
+    import importlib
 
     api.uninstall()
 
-    for module in (io,
-                   lib,
-                   pipeline,
-                   avalon.maya.commands,
-                   avalon.maya.interactive,
-                   avalon.maya.pipeline,
-                   avalon.maya.lib,
-                   avalon.tools.loader.app,
-                   avalon.tools.creator.app,
-                   avalon.tools.manager.app,
-                   api,
-                   avalon.maya):
+    for module in ("avalon.io",
+                   "avalon.lib",
+                   "avalon.pipeline",
+                   "avalon.maya.commands",
+                   "avalon.maya.interactive",
+                   "avalon.maya.pipeline",
+                   "avalon.maya.lib",
+                   "avalon.tools.loader.app",
+                   "avalon.tools.creator.app",
+                   "avalon.tools.manager.app",
+
+                   # NOTE(marcus): These have circular depenendencies
+                   #               that is preventing reloadability
+                   # "avalon.tools.cbloader.delegates",
+                   # "avalon.tools.cbloader.lib",
+                   # "avalon.tools.cbloader.model",
+                   # "avalon.tools.cbloader.widgets",
+                   # "avalon.tools.cbloader.app",
+                   # "avalon.tools.cbsceneinventory.model",
+                   # "avalon.tools.cbsceneinventory.proxy",
+                   # "avalon.tools.cbsceneinventory.app",
+                   # "avalon.tools.projectmanager.dialogs",
+                   # "avalon.tools.projectmanager.lib",
+                   # "avalon.tools.projectmanager.model",
+                   # "avalon.tools.projectmanager.style",
+                   # "avalon.tools.projectmanager.widget",
+                   # "avalon.tools.projectmanager.app",
+
+                   "avalon.api",
+                   "avalon.tools",
+                   "avalon.maya"):
+        module = importlib.import_module(module)
         reload(module)
 
+    import avalon.maya
     api.install(avalon.maya)
 
 
@@ -161,12 +199,9 @@ def containerise(name,
 
     Arguments:
         name (str): Name of resulting assembly
-        nodes (list): Long names of nodes to containerise
         namespace (str): Namespace under which to host container
-        asset (avalon-core:asset-1.0): Current asset
-        subset (avalon-core:subset-1.0): Current subset
-        version (avalon-core:version-1.0): Current version
-        representation (avalon-core:representation-1.0): ...
+        nodes (list): Long names of nodes to containerise
+        context (dict): Asset information
         loader (str, optional): Name of loader used to produce this container.
         suffix (str, optional): Suffix of container, defaults to `_CON`.
 
@@ -178,14 +213,11 @@ def containerise(name,
     container = cmds.sets(nodes, name="%s_%s_%s" % (namespace, name, suffix))
 
     data = [
+        ("schema", "avalon-core:container-2.0"),
         ("id", "pyblish.avalon.container"),
         ("name", name),
         ("namespace", namespace),
         ("loader", str(loader)),
-        ("project", context["project"]["name"]),
-        ("asset", context["asset"]["name"]),
-        ("subset", context["subset"]["name"]),
-        ("version", context["version"]["name"]),
         ("representation", context["representation"]["_id"]),
     ]
 
@@ -216,30 +248,21 @@ def ls():
 
     """
 
-    containers = lib.lsattr("id", "pyblish.avalon.container")
-
-    # Backwards compatibility
-    containers += lib.lsattr("id", "pyblish.mindbender.container")
+    containers = list()
+    for identifier in ("pyblish.avalon.container",
+                       "pyblish.mindbender.container"):
+        containers += lib.lsattr("id", identifier)
 
     for container in sorted(containers):
         data = lib.read(container)
 
-        try:
-            document = io.find_one(
-                {"_id": io.ObjectId(data["representation"])}
-            )
-        except io.InvalidId:
-            api.logger.warning("Skipping %s, invalid id." % container)
-            continue
+        # Backwards compatibility pre-schemas for containers
+        data["schema"] = data.get("schema", "avalon-core:container-1.0")
 
-        data = dict(
-            schema="avalon-core:container-1.0",
-            objectName=container,
-            name=data["name"],
-            namespace=data["namespace"],
-            representation=data["representation"],
-            **document["data"]
-        )
+        # Append transient data
+        data["objectName"] = container
+
+        schema.validate(data)
 
         yield data
 
@@ -349,7 +372,7 @@ def create(name, asset, family, options=None, data=None):
         RuntimeError on host error
 
     Returns:
-        Instance as str
+        Name of instance
 
     """
 
@@ -368,7 +391,7 @@ def create(name, asset, family, options=None, data=None):
             plugin = Plugin(name, asset, options, data)
 
             with lib.maintained_selection():
-                plugin.process()
+                instance = plugin.process()
         except Exception as e:
             print("WARNING: %s" % e)
             continue
@@ -376,50 +399,6 @@ def create(name, asset, family, options=None, data=None):
         plugins.append(plugin)
 
     assert plugins, "No Creator plug-ins were run, this is a bug"
-
-
-def _create(name, family, asset=None, options=None, data=None):
-
-    family_ = api.registered_families().get(family)
-
-    assert family_ is not None, "{0} is not a valid family".format(
-        family)
-
-    # Merge incoming with existing data
-    # TODO(marcus): This is being delegated to Creator plug-ins.
-    data = dict(
-        dict(api.registered_data(), **family_.get("data", {})),
-        **(data or {})
-    )
-
-    instance = "%s_SET" % name
-    asset = asset or os.environ["AVALON_ASSET"]
-
-    if cmds.objExists(instance):
-        raise NameError("\"%s\" already exists." % instance)
-
-    with lib.maintained_selection():
-        nodes = list()
-
-        if (options or {}).get("useSelection"):
-            nodes = cmds.ls(selection=True)
-
-        instance = cmds.sets(nodes, name=instance)
-
-    # Resolve template
-    for key, value in data.items():
-        if isinstance(value, basestring):
-            try:
-                data[key] = str(value).format(
-                    subset=name,
-                    asset=asset,
-                    family=family_["name"]
-                )
-            except KeyError as e:
-                raise KeyError("Invalid dynamic property: %s" % e)
-
-    lib.imprint(instance, data)
-
     return instance
 
 
@@ -499,8 +478,6 @@ def update(container, version=-1):
     cmds.file(fname, loadReference=reference_node, type=file_type)
 
     # Update metadata
-    cmds.setAttr(container["objectName"] + ".version",
-                 new_version["name"])
     cmds.setAttr(container["objectName"] + ".representation",
                  str(new_representation["_id"]),
                  type="string")
@@ -537,6 +514,11 @@ def remove(container):
         pass
 
 
+def publish():
+    import pyblish.util
+    return pyblish.util.publish()
+
+
 def _register_callbacks():
     for handler, event in self._events.copy().items():
         if event is None:
@@ -545,7 +527,7 @@ def _register_callbacks():
         try:
             OpenMaya.MMessage.removeCallback(event)
             self._events[handler] = None
-        except RuntimeError, e:
+        except RuntimeError as e:
             print(e)
 
     self._events[_on_scene_save] = OpenMaya.MSceneMessage.addCallback(

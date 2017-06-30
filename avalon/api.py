@@ -20,6 +20,10 @@ from .pipeline import (
     discover,
     session,
 
+    publish,
+
+    loaders_by_representation,
+
     register_root,
     register_host,
     register_plugin_path,
@@ -49,6 +53,10 @@ __all__ = [
     "Creator",
     "discover",
     "session",
+
+    "publish",
+
+    "loaders_by_representation",
 
     "register_host",
     "register_plugin_path",

@@ -25,6 +25,7 @@ self = sys.modules[__name__]
 self.log = logging.getLogger("avalon-core")
 self._is_installed = False
 self._config = None
+self.session = {}
 
 # Environment is parsed once on start-up, and should
 # never again be referenced directly.
@@ -61,13 +62,16 @@ def install(host):
 
     """
 
+    reset()
+
     missing = list()
     for key in ("project", "asset"):
         if self.session[key] is None:
             missing.append(key)
 
     assert not missing, (
-        "%s missing from environment" % ", ".join(missing)
+        "%s missing from environment" % ", ".join(
+            "AVALON_" + env.upper() for env in missing)
     )
 
     project = self.session["project"]
@@ -92,14 +96,40 @@ def install(host):
     self.log.info("Successfully installed Avalon!")
 
 
+def reset():
+    self.session.update({
+        key[0]: os.getenv("AVALON_" + key[0].upper(), key[1])
+        for key in (
+            # Root directory of projects on disk
+            ("projects", None),
+
+            # Name of current Project
+            ("project", None),
+
+            # Name of current Asset
+            ("asset", None),
+
+            # Name of current Config
+            # TODO(marcus): Establish a suitable default config
+            ("config", "no_config"),
+
+            # Name of Avalon in graphical user interfaces
+            # Use this to customise the visual appearance of Avalon
+            # to better integrate with your surrounding pipeline
+            ("label", "Avalon"),
+        )
+    })
+
+
 def find_config():
     lib.logger.info("Finding configuration for project..")
 
     project = io.find_one({"type": "project"})
-    config = project["config"].get("name")
 
-    if not config:
-        config = self.session["config"]
+    try:
+        config = project["config"]["name"]
+    except (TypeError, KeyError):
+        config = os.getenv("AVALON_CONFIG")
 
     if not config:
         raise EnvironmentError("No configuration found in "
@@ -140,6 +170,11 @@ def is_installed():
     return self._is_installed
 
 
+def publish():
+    from pyblish import util
+    return util.publish()
+
+
 @lib.log
 class Loader(list):
     """Load representation into host application
@@ -175,6 +210,17 @@ class Loader(list):
 
     def process(self, name, namespace, context, data):
         pass
+
+
+def loaders_by_representation(Loaders, representation):
+    """Return `Loaders` compatible with the `representation`"""
+    assert isinstance(representation, "str")
+
+    for Loader in Loaders:
+        if representation not in Loader.representations:
+            continue
+
+        yield Loader
 
 
 @lib.log
