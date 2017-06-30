@@ -1,3 +1,12 @@
+"""Project Builder API
+
+Usage:
+    $ cd project
+    $ python -m avalon.build
+
+"""
+
+
 import os
 import sys
 import json
@@ -5,11 +14,9 @@ import shutil
 import tempfile
 import subprocess
 
-from avalon import lib, _session
+from avalon import lib, session
 
-CREATE_NO_WINDOW = 0x08000000
-IS_WIN32 = sys.platform == "win32"
-DEBUG = os.getenv("AVALON_DEBUG", False)
+AVALON_DEBUG = bool(os.getenv("AVALON_DEBUG"))
 
 
 def run(src, fname, session):
@@ -19,7 +26,7 @@ def run(src, fname, session):
                                      suffix=".py",
                                      delete=False) as f:
         module_name = f.name
-        f.write(src)
+        f.write(src.format(fname=fname))
 
     executable = lib.which(session["AVALON_APP"])
 
@@ -28,7 +35,7 @@ def run(src, fname, session):
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         universal_newlines=True,
-        env=session,
+        env=session.environment,
     )
 
     try:
@@ -43,26 +50,33 @@ def run(src, fname, session):
         popen.wait()  # Wait for return code
         shutil.rmtree(tempdir)
 
-        if popen.returncode != 0:
+        if AVALON_DEBUG or popen.returncode != 0:
             for number, line in enumerate(src.splitlines()):
                 sys.stdout.write("%i: %s\n" % (number + 1, line))
 
             sys.stdout.write("".join(output))
 
+        if popen.returncode != 0:
             raise RuntimeError("%s raised an error" % module_name)
 
 
-def mayapy(fname):
-    return """\
+mayapy = r"""\
+import os
+import sys
 from maya import cmds, standalone
+from avalon import api
+
 print("Initializing Maya..")
 standalone.initialize()
-
-from avalon import api
 
 fname = r"{fname}"
 
 cmds.file(fname, open=True, force=True, ignoreVersion=True)
+
+saved = cmds.file(rename=os.path.basename(fname))
+print("Saving to %s.." % saved)
+cmds.file(save=True)
+
 context = api.publish()
 
 success = all(
@@ -70,8 +84,10 @@ success = all(
     for result in context.data["results"]
 )
 
-assert success, "Publishing failed"
-""".format(fname=fname)
+if not success:
+    sys.stderr.write("Publishing failed\n")
+    sys.exit(1)
+"""
 
 
 def dispatch(root, job):
@@ -85,28 +101,25 @@ def dispatch(root, job):
     }[app]
 
     job["session"]["projects"] = os.path.dirname(root)
-    job["session"]["mongo"] = os.getenv(
-        "AVALON_MONGO", "mongodb://localhost:27017")
 
-    with _session.new(**job["session"]) as session:
-        if DEBUG:
-            print("\n".join("%s: %s" % (key, value)
-                            for key, value in session.items()
-                            if key.startswith("AVALON_")))
+    with session.new(**job["session"]) as sess:
+        print(sess.format()) if AVALON_DEBUG else ""
 
         for fname in job.get("resources", list()):
             print(" processing '%s'.." % fname)
             fname = os.path.join(root, fname)
-            run(src(fname), fname, session)
+            session.create_workdir(sess)
+            run(src, fname, sess)
 
 
-if __name__ == '__main__':
+def cli(args=None):
+
     import logging
     import argparse
 
     logging.getLogger().setLevel(logging.WARNING)
 
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(args or sys.argv[1:])
     parser.add_argument("--root", default=os.getcwd())
     parser.add_argument("--file", default=os.path.join(
         os.getcwd(), "build.json"))
@@ -128,5 +141,12 @@ if __name__ == '__main__':
             # TODO: Check existence of resources
             break
 
-    for job in script:
-        dispatch(kwargs.root, job)
+    try:
+        for job in script:
+            dispatch(kwargs.root, job)
+    except RuntimeError:
+        print("Project did not exist, try running --save first.")
+
+
+if __name__ == '__main__':
+    sys.exit(cli(sys.argv[1:]))
