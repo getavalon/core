@@ -171,6 +171,7 @@ def is_installed():
 
 
 def publish():
+    """Shorthand to publish from within host"""
     from pyblish import util
     return util.publish()
 
