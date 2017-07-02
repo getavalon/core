@@ -515,6 +515,7 @@ def remove(container):
 
 
 def publish():
+    """Shorthand to publish from within host"""
     import pyblish.util
     return pyblish.util.publish()
 
