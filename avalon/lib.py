@@ -134,7 +134,8 @@ def which_app(app):
     return None
 
 
-def get_application(name, environment):
+def get_application(name, environment=None):
+    environment = environment or os.environ
     application_definition = which_app(name)
 
     if application_definition is None:
