@@ -102,6 +102,10 @@ def dispatch(root, job):
 
     job["session"]["projects"] = os.path.dirname(root)
 
+    mongo = os.getenv("AVALON_MONGO")
+    if mongo:
+        job["session"]["mongo"] = mongo
+
     with session.new(**job["session"]) as sess:
         print(sess.format()) if AVALON_DEBUG else ""
 
@@ -113,7 +117,6 @@ def dispatch(root, job):
 
 
 def cli(args=None):
-
     import logging
     import argparse
 
@@ -133,19 +136,43 @@ def cli(args=None):
         print("Error: No 'build.json' file found @ %s" % kwargs.file)
         sys.exit(1)
 
+    missing_apps = set()
+    missing_resources = set()
     for job in script:
         app = job["session"]["app"]
         # TODO: Check availability of software
+        try:
+            lib.get_application(app)
+        except ValueError:
+            missing_apps.add(app)
 
         for resource in job["resources"]:
             # TODO: Check existence of resources
-            break
+            if not os.path.exists(resource):
+                missing_resources.add(resource)
+
+    if missing_apps:
+        sys.stderr.write("ERROR: Some applications were not found.\n")
+        sys.stderr.write("\n".join(
+            "- %s" % app for app in missing_apps)
+        )
+        sys.stderr.write("\n")
+        return 1
+
+    if missing_resources:
+        sys.stderr.write("ERROR: Some resources were not found.\n")
+        sys.stderr.write("\n".join(
+            "- %s" % resource for resource in missing_resources)
+        )
+        sys.stderr.write("\n")
+        return 1
 
     try:
         for job in script:
             dispatch(kwargs.root, job)
     except RuntimeError:
-        print("Project did not exist, try running --save first.")
+        sys.stderr.write("Project did not exist, try running --save first.\n")
+        return 1
 
 
 if __name__ == '__main__':
