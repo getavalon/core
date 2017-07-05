@@ -51,10 +51,12 @@ def install():
         self._uri, serverSelectionTimeoutMS=self._timeout)
 
     # Backwards compatibility with Avalon before it was Avalon
-    if self._client["mindbender"].collection_names():
-        self._database = self._client["mindbender"]
-    else:
+    try:
+        self._client["mindbender"].collection_names()
+    except pymongo.errors.OperationFailure:
         self._database = self._client["avalon"]
+    else:
+        self._database = self._client["mindbender"]
 
     for retry in range(3):
         try:

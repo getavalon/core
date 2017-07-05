@@ -171,7 +171,12 @@ class _Session(dict):
             time.time() - t1))
 
         # Backwards compatibility with Avalon before it was Avalon
-        if client["mindbender"].collection_names():
+        try:
+            client["mindbender"].collection_names()
+        except pymongo.errors.OperationFailure:
+            # We won't have access to a non-existing database
+            pass
+        else:
             self["AVALON_DB"] = "mindbender"
 
         database = client[self["AVALON_DB"]]
