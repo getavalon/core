@@ -154,7 +154,7 @@ def get_application(name, environment=None):
         logger.error("%s was invalid." % application_definition)
         raise
 
-    executable = which("mayapy")
+    executable = which(name)
 
     if executable is None:
         raise ValueError(

@@ -142,7 +142,7 @@ def cli(args=None):
         app = job["session"]["app"]
         # TODO: Check availability of software
         try:
-            lib.get_application(app)
+            lib.which(app)
         except ValueError:
             missing_apps.add(app)
 
