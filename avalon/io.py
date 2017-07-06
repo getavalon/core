@@ -32,6 +32,8 @@ __all__ = [
     "parenthood",
 ]
 
+MONGO_DB = os.getenv("MONGO_DB", "avalon")
+
 self = sys.modules[__name__]
 self._client = None
 self._database = None
@@ -49,14 +51,6 @@ def install():
 
     self._client = pymongo.MongoClient(
         self._uri, serverSelectionTimeoutMS=self._timeout)
-
-    # Backwards compatibility with Avalon before it was Avalon
-    try:
-        self._client["mindbender"].collection_names()
-    except pymongo.errors.OperationFailure:
-        self._database = self._client["avalon"]
-    else:
-        self._database = self._client["mindbender"]
 
     for retry in range(3):
         try:
@@ -76,6 +70,7 @@ def install():
                       "less than %.3f ms" % (self._uri, self._timeout))
 
     lib.logger.info("Connected to server, delay %.3f s" % (time.time() - t1))
+    self._database = self._client[MONGO_DB]
     self._is_installed = True
 
 
