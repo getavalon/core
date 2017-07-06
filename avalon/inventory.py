@@ -447,7 +447,7 @@ def _cli():
         inventory = _read(root, "inventory")
         config = _read(root, "config")
         save(name, config, inventory)
-        print("Success!")
+        print("Successfully saved to %s" % os.getenv("AVALON_MONGO"))
 
     else:
         print(__doc__)
