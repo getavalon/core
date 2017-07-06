@@ -1,7 +1,6 @@
 """Project Builder API
 
 Usage:
-    $ cd project
     $ python -m avalon.build
 
 """
@@ -102,11 +101,17 @@ def dispatch(root, job):
 
     job["session"]["projects"] = os.path.dirname(root)
 
-    mongo = os.getenv("AVALON_MONGO")
-    if mongo:
-        job["session"]["mongo"] = mongo
+    AVALON_DB = os.getenv("AVALON_DB")
+    AVALON_MONGO = os.getenv("AVALON_MONGO")
+
+    if AVALON_MONGO:
+        job["session"]["mongo"] = AVALON_MONGO
+
+    if AVALON_DB:
+        job["session"]["db"] = AVALON_DB
 
     with session.new(**job["session"]) as sess:
+        print("Got here")
         print(sess.format()) if AVALON_DEBUG else ""
 
         for fname in job.get("resources", list()):
@@ -140,14 +145,12 @@ def cli(args=None):
     missing_resources = set()
     for job in script:
         app = job["session"]["app"]
-        # TODO: Check availability of software
         try:
             lib.which(app)
         except ValueError:
             missing_apps.add(app)
 
         for resource in job["resources"]:
-            # TODO: Check existence of resources
             if not os.path.exists(resource):
                 missing_resources.add(resource)
 
@@ -170,8 +173,9 @@ def cli(args=None):
     try:
         for job in script:
             dispatch(kwargs.root, job)
-    except RuntimeError:
-        sys.stderr.write("Project did not exist, try running --save first.\n")
+    except RuntimeError as e:
+        sys.stderr.write(str(e) + "\n")
+        sys.stderr.write("Try running --save first.\n")
         return 1
 
 
