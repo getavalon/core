@@ -170,15 +170,6 @@ class _Session(dict):
         api.logger.info("Connected to server, delay %.3f s" % (
             time.time() - t1))
 
-        # Backwards compatibility with Avalon before it was Avalon
-        try:
-            client["mindbender"].collection_names()
-        except pymongo.errors.OperationFailure:
-            # We won't have access to a non-existing database
-            pass
-        else:
-            self["AVALON_DB"] = "mindbender"
-
         database = client[self["AVALON_DB"]]
         collection = database[self["AVALON_PROJECT"]]
 
