@@ -32,7 +32,7 @@ __all__ = [
     "parenthood",
 ]
 
-MONGO_DB = os.getenv("MONGO_DB", "avalon")
+AVALON_DB = os.getenv("AVALON_DB", "avalon")
 
 self = sys.modules[__name__]
 self._client = None
@@ -70,7 +70,7 @@ def install():
                       "less than %.3f ms" % (self._uri, self._timeout))
 
     lib.logger.info("Connected to server, delay %.3f s" % (time.time() - t1))
-    self._database = self._client[MONGO_DB]
+    self._database = self._client[AVALON_DB]
     self._is_installed = True
 
 
