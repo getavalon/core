@@ -17,6 +17,7 @@ self._menu = "avalonmaya"  # Unique name of menu
 self._events = dict()  # Registered Maya callbacks
 self._parent = None  # Main Window
 
+AVALON_EARLY_ADOPTER = bool(os.getenv("AVALON_EARLY_ADOPTER"))
 IS_HEADLESS = not hasattr(cmds, "about") or cmds.about(batch=True)
 
 
@@ -93,18 +94,25 @@ def _install_menu():
 
         cmds.menuItem("Create...",
                       command=lambda *args: creator.show(parent=self._parent))
-        cmds.menuItem("Load... (new)",
+        cmds.menuItem("Load...",
                       command=lambda *args: cbloader.show(parent=self._parent))
-        cmds.menuItem("Load... (old)",
-                      command=lambda *args: loader.show(parent=self._parent))
+
+        if AVALON_EARLY_ADOPTER:
+            cmds.menuItem("Load... (old)",
+                          command=lambda *args:
+                          loader.show(parent=self._parent))
+
         cmds.menuItem("Publish...",
                       command=lambda *args: publish.show(parent=self._parent),
                       image=publish.ICON)
-        cmds.menuItem("Manage... (new)",
+        cmds.menuItem("Manage...",
                       command=lambda *args: cbsceneinventory.show(
                           parent=self._parent))
-        cmds.menuItem("Manage... (old)",
-                      command=lambda *args: manager.show(parent=self._parent))
+
+        if AVALON_EARLY_ADOPTER:
+            cmds.menuItem("Manage... (old)",
+                          command=lambda *args:
+                          manager.show(parent=self._parent))
 
         cmds.menuItem(divider=True)
 
