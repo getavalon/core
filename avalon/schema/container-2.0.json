@@ -27,8 +27,8 @@
           "id": {
             "description": "Identifier for finding object in host",
             "type": "string",
-            "const": "pyblish.mindbender.container",
-            "example": "pyblish.mindbender.container"
+            "const": "pyblish.avalon.container",
+            "example": "pyblish.avalon.container"
         },
         "objectName": {
             "description": "Name of internal object, such as the objectSet in Maya.",
