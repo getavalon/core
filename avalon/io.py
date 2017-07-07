@@ -33,15 +33,16 @@ __all__ = [
 ]
 
 AVALON_DB = os.getenv("AVALON_DB", "avalon")
+AVALON_TIMEOUT = int(os.getenv("AVALON_TIMEOUT", "1000"))
+AVALON_MONGO = os.getenv("AVALON_MONGO", "mongodb://localhost:27017")
 
 self = sys.modules[__name__]
 self._client = None
 self._database = None
 self._collection = None
-self._uri = os.getenv("AVALON_MONGO", "mongodb://localhost:27017")
 self._is_installed = False
 self._is_activated = False
-self._timeout = int(os.getenv("AVALON_TIMEOUT", 1000))
+self._timeout = AVALON_TIMEOUT
 
 
 def install():
@@ -50,7 +51,7 @@ def install():
         return
 
     self._client = pymongo.MongoClient(
-        self._uri, serverSelectionTimeoutMS=self._timeout)
+        AVALON_MONGO, serverSelectionTimeoutMS=self._timeout)
 
     for retry in range(3):
         try:
@@ -67,7 +68,7 @@ def install():
 
     else:
         raise IOError("ERROR: Couldn't connect to %s in "
-                      "less than %.3f ms" % (self._uri, self._timeout))
+                      "less than %.3f ms" % (AVALON_MONGO, self._timeout))
 
     lib.logger.info("Connected to server, delay %.3f s" % (time.time() - t1))
     self._database = self._client[AVALON_DB]
