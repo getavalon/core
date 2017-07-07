@@ -353,6 +353,7 @@ def on(event, callback):
         ...    print("Init happened")
         ...
         >>> on("init", on_init)
+        >>> del on_init
 
     Arguments:
         event (str): Name of event
@@ -368,6 +369,22 @@ def on(event, callback):
 
 
 def emit(event):
+    """Trigger an `event`
+
+    Example:
+        >>> def on_init():
+        ...    print("Init happened")
+        ...
+        >>> on("init", on_init)
+        >>> emit("init")
+        Init happened
+        >>> del on_init
+
+    Arguments:
+        event (str): Name of event
+
+    """
+
     callbacks = _registered_event_handlers.get(event, set())
 
     for callback in callbacks:
