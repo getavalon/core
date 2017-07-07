@@ -1,0 +1,83 @@
+{
+    "$schema": "http://json-schema.org/schema#",
+
+    "title": "avalon-core:session-1.0",
+    "description": "The Avalon environment",
+
+    "type": "object",
+
+    "additionalProperties": true,
+
+    "required": [
+        "AVALON_PROJECTS",
+        "AVALON_PROJECT",
+        "AVALON_ASSET",
+        "AVALON_SILO",
+        "AVALON_TASK",
+        "AVALON_CONFIG",
+        "AVALON_APP"
+    ],
+
+    "properties": {
+        "AVALON_PROJECTS": {
+            "description": "Absolute path to root of project directories",
+            "type": "string",
+            "pattern": "^[A-Z_.]*$",
+            "example": "/nas/projects"
+        },
+        "AVALON_PROJECT": {
+            "description": "Name of project",
+            "type": "string",
+            "pattern": "^[A-Z_.]*$",
+            "example": "Hulk"
+        },
+        "AVALON_ASSET": {
+            "description": "Name of asset",
+            "type": "string",
+            "pattern": "^[A-Z_.]*$",
+            "example": "Bruce"
+        },
+        "AVALON_SILO": {
+            "description": "Name of asset group or container",
+            "type": "string",
+            "pattern": "^[A-Z_.]*$",
+            "example": "assets"
+        },
+        "AVALON_TASK": {
+            "description": "Name of task",
+            "type": "string",
+            "pattern": "^[A-Z_.]*$",
+            "example": "modeling"
+        },
+        "AVALON_CONFIG": {
+            "description": "Name of Avalon configuration",
+            "type": "string",
+            "pattern": "^[A-Z_.]*$",
+            "example": "polly"
+        },
+        "AVALON_APP": {
+            "description": "Name of application",
+            "type": "string",
+            "pattern": "^[A-Z_.]*$",
+            "example": "maya2016"
+        },
+        "AVALON_MONGO": {
+            "description": "Address to the asset database",
+            "type": "string",
+            "pattern": "^[A-Z_.]*$",
+            "example": "mongodb://localhost:27017"
+        },
+        "AVALON_DB": {
+            "description": "Name of database",
+            "type": "string",
+            "pattern": "^[A-Z_.]*$",
+            "example": "avalon"
+        },
+        "AVALON_LABEL": {
+            "description": "Nice name of Avalon, used in e.g. graphical user interfaces",
+            "type": "string",
+            "pattern": "^[A-Z_.]*$",
+            "example": "Mindbender"
+        }
+    }
+}
