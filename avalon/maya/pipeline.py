@@ -1,13 +1,13 @@
 import os
 import sys
-import uuid
 import errno
 import importlib
 
 from maya import cmds, OpenMaya
 from pyblish import api as pyblish
 
-from . import lib, commands
+from . import lib
+from ..lib import logger
 from .. import api, io, schema
 from ..vendor import six
 from ..vendor.Qt import QtCore, QtWidgets
@@ -332,7 +332,7 @@ def load(Loader,
         loader = Loader(context)
         loader.process(name, namespace, context, data)
     except OSError as e:
-        print("WARNING: %s" % e)
+        logger.info("WARNING: %s" % e)
         return list()
 
     return containerise(
@@ -401,7 +401,7 @@ def create(name, asset, family, options=None, data=None):
             with lib.maintained_selection():
                 instance = plugin.process()
         except Exception as e:
-            print("WARNING: %s" % e)
+            logger.info("WARNING: %s" % e)
             continue
 
         plugins.append(plugin)
@@ -509,7 +509,7 @@ def remove(container):
     assert reference_node, ("Imported container not supported; "
                             "container must be referenced.")
 
-    print("Removing '%s' from Maya.." % container["name"])
+    logger.info("Removing '%s' from Maya.." % container["name"])
 
     namespace = cmds.referenceQuery(reference_node, namespace=True)
     fname = cmds.referenceQuery(reference_node, filename=True)
@@ -537,7 +537,7 @@ def _register_callbacks():
             OpenMaya.MMessage.removeCallback(event)
             self._events[handler] = None
         except RuntimeError as e:
-            print(e)
+            logger.info(e)
 
     self._events[_on_scene_save] = OpenMaya.MSceneMessage.addCallback(
         OpenMaya.MSceneMessage.kBeforeSave, _on_scene_save
@@ -551,30 +551,13 @@ def _register_callbacks():
         OpenMaya.MSceneMessage.kMayaInitialized, _on_maya_initialized
     )
 
-    print("Installed event handler _on_scene_save..")
-    print("Installed event handler _on_scene_new..")
-    print("Installed event handler _on_maya_initialized..")
-
-
-def _set_uuid(node):
-    """Add mbID to `node`
-
-    Unless one already exists.
-
-    """
-
-    attr = "{0}.mbID".format(node)
-
-    if not cmds.objExists(attr):
-        cmds.addAttr(node, longName="mbID", dataType="string")
-        _, uid = str(uuid.uuid4()).rsplit("-", 1)
-        cmds.setAttr(attr, uid, type="string")
+    logger.info("Installed event handler _on_scene_save..")
+    logger.info("Installed event handler _on_scene_new..")
+    logger.info("Installed event handler _on_maya_initialized..")
 
 
 def _on_maya_initialized(_):
-    print("Running callback: maya initialized..")
-    commands.reset_frame_range()
-    commands.reset_resolution()
+    api.emit("init")
 
     # Keep reference to the main Window, once a main window exists.
     self._parent = {
@@ -584,33 +567,8 @@ def _on_maya_initialized(_):
 
 
 def _on_scene_new(_):
-    print("Running callback: scene new..")
-
-    # Load dependencies
-    # TODO(marcus): Externalise this
-    cmds.loadPlugin("AbcExport.mll", quiet=True)
-    cmds.loadPlugin("AbcImport.mll", quiet=True)
-
-    commands.reset_frame_range()
-    commands.reset_resolution()
+    api.emit("new")
 
 
 def _on_scene_save(_):
-    """Automatically add IDs to new nodes
-
-    Any transform of a mesh, without an exising ID,
-    is given one automatically on file save.
-
-    """
-
-    print("Running callback: scene save..")
-
-    nodes = (set(cmds.ls(type="mesh", long=True)) -
-             set(cmds.ls(long=True, readOnly=True)) -
-             set(cmds.ls(long=True, lockedNodes=True)))
-
-    transforms = cmds.listRelatives(list(nodes), parent=True) or list()
-
-    # Add unique identifiers
-    for node in transforms:
-        _set_uuid(node)
+    api.emit("save")

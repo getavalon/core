@@ -4,7 +4,9 @@ import os
 import sys
 import types
 import logging
+import weakref
 import inspect
+import traceback
 import importlib
 
 from . import (
@@ -16,6 +18,7 @@ from . import (
     _registered_config,
     _registered_plugins,
     _registered_plugin_paths,
+    _registered_event_handlers,
 )
 
 from .vendor import six
@@ -338,6 +341,57 @@ def plugin_from_module(superclass, module):
         types.append(obj)
 
     return types
+
+
+def on(event, callback):
+    """Call `callback` on `event`
+
+    Register `callback` to be run when `event` occurs.
+
+    Example:
+        >>> def on_init():
+        ...    print("Init happened")
+        ...
+        >>> on("init", on_init)
+        >>> del on_init
+
+    Arguments:
+        event (str): Name of event
+        callback (callable): Any callable
+
+    """
+
+    if event not in _registered_event_handlers:
+        _registered_event_handlers[event] = weakref.WeakSet()
+
+    events = _registered_event_handlers[event]
+    events.add(callback)
+
+
+def emit(event):
+    """Trigger an `event`
+
+    Example:
+        >>> def on_init():
+        ...    print("Init happened")
+        ...
+        >>> on("init", on_init)
+        >>> emit("init")
+        Init happened
+        >>> del on_init
+
+    Arguments:
+        event (str): Name of event
+
+    """
+
+    callbacks = _registered_event_handlers.get(event, set())
+
+    for callback in callbacks:
+        try:
+            callback()
+        except Exception:
+            lib.logger.debug(traceback.format_exc())
 
 
 def register_plugin(superclass, obj):
