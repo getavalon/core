@@ -72,13 +72,7 @@ def install(host):
 
 def find_config():
     lib.logger.info("Finding configuration for project..")
-
-    project = io.find_one({"type": "project"})
-
-    try:
-        config = project["config"]["name"]
-    except (TypeError, KeyError):
-        config = Session["AVALON_CONFIG"]
+    config = Session["AVALON_CONFIG"]
 
     if not config:
         raise EnvironmentError("No configuration found in "
