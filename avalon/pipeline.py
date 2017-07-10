@@ -29,6 +29,8 @@ self = sys.modules[__name__]
 self._is_installed = False
 self._config = None
 
+log = logging.getLogger(__name__)
+
 
 def install(host):
     """Install `host` into the running Python session.
@@ -52,7 +54,7 @@ def install(host):
     )
 
     project = Session["AVALON_PROJECT"]
-    lib.logger.info("Activating %s.." % project)
+    log.info("Activating %s.." % project)
 
     config = find_config()
 
@@ -67,18 +69,19 @@ def install(host):
 
     self._is_installed = True
     self._config = config
-    lib.logger.info("Successfully installed Avalon!")
+    log.info("Successfully installed Avalon!")
 
 
 def find_config():
-    lib.logger.info("Finding configuration for project..")
+    log.info("Finding configuration for project..")
+
     config = Session["AVALON_CONFIG"]
 
     if not config:
         raise EnvironmentError("No configuration found in "
                                "the project nor environment")
 
-    lib.logger.info("Found %s, loading.." % config)
+    log.info("Found %s, loading.." % config)
     return importlib.import_module(config)
 
 
@@ -99,7 +102,7 @@ def uninstall():
 
     io.uninstall()
 
-    self.lib.logger.info("Successfully uninstalled Avalon!")
+    log.info("Successfully uninstalled Avalon!")
 
 
 def is_installed():
@@ -331,7 +334,7 @@ def emit(event):
         try:
             callback()
         except Exception:
-            lib.logger.debug(traceback.format_exc())
+            log.debug(traceback.format_exc())
 
 
 def register_plugin(superclass, obj):
@@ -391,7 +394,7 @@ def deregister_plugin_path(superclass, path):
 
 def register_root(path):
     """Register currently active root"""
-    lib.logger.info("Registering root: %s" % path)
+    log.info("Registering root: %s" % path)
     _registered_root["_"] = path
 
 

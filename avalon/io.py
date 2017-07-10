@@ -3,9 +3,11 @@
 import os
 import sys
 import time
+import logging
 import functools
 
 from . import schema, lib, Session
+from .vendor.six.moves import urllib
 
 # Third-party dependencies
 import pymongo
@@ -15,8 +17,6 @@ __all__ = [
     "ObjectId",
     "InvalidId",
     "install",
-    "active_project",
-    "activate_project",
     "uninstall",
     "projects",
     "locate",
@@ -33,11 +33,13 @@ __all__ = [
 ]
 
 self = sys.modules[__name__]
-self._client = None
+self._mongo_client = None
+self._sentry_client = None
+self._sentry_logging_handler = None
 self._database = None
-self._collection = None
 self._is_installed = False
-self._is_activated = False
+
+log = logging.getLogger(__name__)
 
 
 def install():
@@ -45,19 +47,20 @@ def install():
     if self._is_installed:
         return
 
+    logging.basicConfig()
     Session.update(_from_environment())
 
     timeout = Session["AVALON_TIMEOUT"]
-    self._client = pymongo.MongoClient(
+    self._mongo_client = pymongo.MongoClient(
         Session["AVALON_MONGO"], serverSelectionTimeoutMS=timeout)
 
     for retry in range(3):
         try:
             t1 = time.time()
-            self._client.server_info()
+            self._mongo_client.server_info()
 
         except Exception:
-            lib.logger.error("Retrying..")
+            log.error("Retrying..")
             time.sleep(1)
             timeout *= 1.5
 
@@ -65,26 +68,63 @@ def install():
             break
 
     else:
-        raise IOError("ERROR: Couldn't connect to %s in "
-                      "less than %.3f ms" % (Session["AVALON_MONGO"], timeout))
+        raise IOError(
+            "ERROR: Couldn't connect to %s in "
+            "less than %.3f ms" % (Session["AVALON_MONGO"], timeout))
 
-    lib.logger.info("Connected to server, delay %.3f s" % (time.time() - t1))
-    self._database = self._client[Session["AVALON_DB"]]
+    log.info("Connected to %s, delay %.3f s" % (
+        Session["AVALON_MONGO"], time.time() - t1))
+
+    _install_sentry()
+
+    self._database = self._mongo_client[Session["AVALON_DB"]]
     self._is_installed = True
 
 
-def uninstall():
-    """Close any connection to the database"""
-    try:
-        self._client.close()
-    except AttributeError:
-        pass
+def _install_sentry():
+    if not Session["AVALON_SENTRY"]:
+        return
 
-    self._client = None
-    self._database = None
-    self._collection = None
-    self._is_installed = False
-    self._is_activated = False
+    try:
+        from raven import Client
+        from raven.handlers.logging import SentryHandler
+        from raven.conf import setup_logging
+    except ImportError:
+        # Note: There was a Sentry address in this Session
+        return lib.log.warning("Sentry disabled, raven not installed")
+
+    client = Client(Session["AVALON_SENTRY"])
+
+    def excepthook(*args, **kwargs):
+        try:
+            client.captureException()
+        except urllib.URLError:
+            # In case the parent process isn't able
+            # to access the internet, e.g. due to firewall
+            pass
+
+        try:
+            original_excepthook(*args, **kwargs)
+        except TypeError:
+            # None is not callable
+            pass
+
+    # To anyone having already wrapped excepthook,
+    # make sure we call theirs as well.
+    original_excepthook = sys.excepthook
+
+    # Upload any exceptions raised by Python during this interpreter session
+    sys.excepthook = excepthook
+
+    # Transmit log messages to Sentry
+    handler = SentryHandler(client)
+    handler.setLevel(logging.WARNING)
+
+    setup_logging(handler)
+
+    self._sentry_client = client
+    self._sentry_logging_handler = handler
+    log.info("Connected to Sentry @ %s" % Session["AVALON_SENTRY"])
 
 
 def _from_environment():
@@ -127,14 +167,17 @@ def _from_environment():
     }
 
 
-def active_project():
-    """Return the name of the active project"""
-    return self._collection.name
+def uninstall():
+    """Close any connection to the database"""
+    try:
+        self._mongo_client.close()
+    except AttributeError:
+        pass
 
-
-def activate_project(project):
-    """Establish a connection to a given collection within the database"""
-    print("io.activate_project is deprecated")
+    self._mongo_client = None
+    self._database = None
+    self._collection = None
+    self._is_installed = False
 
 
 def requires_install(f):
@@ -147,14 +190,15 @@ def requires_install(f):
     return decorated
 
 
-def requires_activation(f):
-    @functools.wraps(f)
-    def decorated(*args, **kwargs):
-        if not self._is_activated:
-            raise IOError("'io.%s()' requires an active project" % f.__name__)
-        return f(*args, **kwargs)
+@requires_install
+def active_project():
+    """Return the name of the active project"""
+    return Session["AVALON_PROJECT"]
 
-    return decorated
+
+def activate_project(project):
+    """Establish a connection to a given collection within the database"""
+    print("io.activate_project is deprecated")
 
 
 @requires_install

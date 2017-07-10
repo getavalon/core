@@ -8,8 +8,10 @@ import datetime
 from . import schema
 from .vendor import six, toml
 
-logging.basicConfig()
-logger = logging.getLogger("avalon")
+log_ = logging.getLogger(__name__)
+
+# Backwards compatibility
+logger = log_
 
 __all__ = [
     "time",
@@ -146,12 +148,12 @@ def get_application(name, environment=None):
     try:
         with open(application_definition) as f:
             app = toml.load(f)
-            logger.debug(json.dumps(app, indent=4))
+            log_.debug(json.dumps(app, indent=4))
             schema.validate(app, "application")
     except (schema.ValidationError,
             schema.SchemaError,
             toml.TomlDecodeError) as e:
-        logger.error("%s was invalid." % application_definition)
+        log_.error("%s was invalid." % application_definition)
         raise
 
     executable = which(name)
@@ -165,12 +167,12 @@ def get_application(name, environment=None):
     try:
         app = dict_format(app, **environment)
     except KeyError as e:
-        logger.error(
+        log_.error(
             "One of the {variables} defined in the application "
             "definition wasn't found in this session.\n"
             "The variable was %s " % e
         )
-        logger.error(json.dumps(environment, indent=4, sort_keys=True))
+        log_.error(json.dumps(environment, indent=4, sort_keys=True))
 
         raise ValueError(
             "This is typically a bug in the pipeline, "
@@ -187,7 +189,7 @@ def get_application(name, environment=None):
             environment[key] = value
 
         else:
-            logger.error(
+            log_.error(
                 "%s: Unsupported environment reference in %s"
                 % (value, name)
             )
