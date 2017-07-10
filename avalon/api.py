@@ -18,7 +18,7 @@ from .pipeline import (
     Loader,
     Creator,
     discover,
-    session,
+    Session,
 
     on,
     emit,
@@ -55,7 +55,7 @@ __all__ = [
     "Loader",
     "Creator",
     "discover",
-    "session",
+    "Session",
 
     "on",
     "emit",

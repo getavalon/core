@@ -176,7 +176,7 @@ class Window(QtWidgets.QDialog):
             if container["schema"] == "avalon-core:container-1.0":
                 name = container["objectName"]
                 container["representation"] = str(io.locate([
-                    api.session["project"],
+                    api.Session["AVALON_PROJECT"],
                     container["asset"],
                     container["subset"],
                     container["version"],
@@ -406,7 +406,7 @@ def show(root=None, debug=False, parent=None):
             if project.get("active", True) is not False
         )
 
-        io.activate_project(any_project)
+        api.Session["AVALON_PROJECT"] = any_project["name"]
 
     with lib.application():
         window = Window(parent)
