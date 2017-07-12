@@ -202,6 +202,16 @@ def insert_one(item):
     return self._collection.insert_one(item)
 
 
+def insert_many(items, ordered=True):
+    # check if all items are valid
+    assert isinstance(items, list), "`items` must be of type <list>"
+    for item in items:
+        assert isinstance(item, dict), "`item` must be of type <dict>"
+        schema.validate(item)
+
+    return self._collection.insert_many(items, ordered=ordered)
+
+
 @requires_activation
 def find(filter, projection=None, sort=None):
     return self._collection.find(
