@@ -13,6 +13,8 @@ from . import (
     io,
     lib,
 
+    Session,
+
     _registered_host,
     _registered_root,
     _registered_config,
@@ -24,36 +26,10 @@ from . import (
 from .vendor import six
 
 self = sys.modules[__name__]
-
-self.log = logging.getLogger("avalon-core")
 self._is_installed = False
 self._config = None
-self.session = {}
 
-# Environment is parsed once on start-up, and should
-# never again be referenced directly.
-self.session = {
-    key[0]: os.getenv("AVALON_" + key[0].upper(), key[1])
-    for key in (
-        # Root directory of projects on disk
-        ("projects", None),
-
-        # Name of current Project
-        ("project", None),
-
-        # Name of current Asset
-        ("asset", None),
-
-        # Name of current Config
-        # TODO(marcus): Establish a suitable default config
-        ("config", "no_config"),
-
-        # Name of Avalon in graphical user interfaces
-        # Use this to customise the visual appearance of Avalon
-        # to better integrate with your surrounding pipeline
-        ("label", "Avalon"),
-    )
-}
+log = logging.getLogger(__name__)
 
 
 def install(host):
@@ -65,11 +41,11 @@ def install(host):
 
     """
 
-    reset()
+    io.install()
 
     missing = list()
-    for key in ("project", "asset"):
-        if self.session[key] is None:
+    for key in ("AVALON_PROJECT", "AVALON_ASSET"):
+        if Session[key] is None:
             missing.append(key)
 
     assert not missing, (
@@ -77,11 +53,8 @@ def install(host):
             "AVALON_" + env.upper() for env in missing)
     )
 
-    project = self.session["project"]
-    lib.logger.info("Activating %s.." % project)
-
-    io.install()
-    io.activate_project(project)
+    project = Session["AVALON_PROJECT"]
+    log.info("Activating %s.." % project)
 
     config = find_config()
 
@@ -96,49 +69,19 @@ def install(host):
 
     self._is_installed = True
     self._config = config
-    self.log.info("Successfully installed Avalon!")
-
-
-def reset():
-    self.session.update({
-        key[0]: os.getenv("AVALON_" + key[0].upper(), key[1])
-        for key in (
-            # Root directory of projects on disk
-            ("projects", None),
-
-            # Name of current Project
-            ("project", None),
-
-            # Name of current Asset
-            ("asset", None),
-
-            # Name of current Config
-            # TODO(marcus): Establish a suitable default config
-            ("config", "no_config"),
-
-            # Name of Avalon in graphical user interfaces
-            # Use this to customise the visual appearance of Avalon
-            # to better integrate with your surrounding pipeline
-            ("label", "Avalon"),
-        )
-    })
+    log.info("Successfully installed Avalon!")
 
 
 def find_config():
-    lib.logger.info("Finding configuration for project..")
+    log.info("Finding configuration for project..")
 
-    project = io.find_one({"type": "project"})
-
-    try:
-        config = project["config"]["name"]
-    except (TypeError, KeyError):
-        config = os.getenv("AVALON_CONFIG")
+    config = Session["AVALON_CONFIG"]
 
     if not config:
         raise EnvironmentError("No configuration found in "
                                "the project nor environment")
 
-    lib.logger.info("Found %s, loading.." % config)
+    log.info("Found %s, loading.." % config)
     return importlib.import_module(config)
 
 
@@ -159,7 +102,7 @@ def uninstall():
 
     io.uninstall()
 
-    self.log.info("Successfully uninstalled Avalon!")
+    log.info("Successfully uninstalled Avalon!")
 
 
 def is_installed():
@@ -391,7 +334,7 @@ def emit(event):
         try:
             callback()
         except Exception:
-            lib.logger.debug(traceback.format_exc())
+            log.debug(traceback.format_exc())
 
 
 def register_plugin(superclass, obj):
@@ -451,7 +394,7 @@ def deregister_plugin_path(superclass, path):
 
 def register_root(path):
     """Register currently active root"""
-    self.log.info("Registering root: %s" % path)
+    log.info("Registering root: %s" % path)
     _registered_root["_"] = path
 
 
@@ -459,7 +402,7 @@ def registered_root():
     """Return currently registered root"""
     return (
         _registered_root["_"] or
-        self.session["projects"] or ""
+        Session.get("AVALON_PROJECTS") or ""
     ).replace("\\", "/")
 
 

@@ -19,7 +19,7 @@ import logging
 
 from .vendor import jsonschema
 
-_log = logging.getLogger("avalon-core")
+log_ = logging.getLogger(__name__)
 
 ValidationError = jsonschema.ValidationError
 SchemaError = jsonschema.SchemaError
@@ -100,7 +100,7 @@ def _precache():
         if not os.path.isfile(os.path.join(_SCHEMA_DIR, schema)):
             continue
         with open(os.path.join(_SCHEMA_DIR, schema)) as f:
-            _log.debug("Installing schema '%s'.." % schema)
+            log_.debug("Installing schema '%s'.." % schema)
             _cache[schema] = json.load(f)
 
 

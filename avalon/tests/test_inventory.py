@@ -64,8 +64,8 @@ self._inventory = {
 
 def setup():
     assert_equals.__self__.maxDiff = None
+    os.environ["AVALON_PROJECT"] = PROJECT_NAME
     io.install()
-    io.activate_project(PROJECT_NAME)
     self._tempdir = tempfile.mkdtemp()
 
 

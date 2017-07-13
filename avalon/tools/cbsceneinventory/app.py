@@ -3,7 +3,7 @@ import getpass
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ...vendor import qtawesome as qta
-from ... import io
+from ... import io, api
 from .. import lib as tools_lib
 
 import os
@@ -11,7 +11,6 @@ import subprocess
 
 from .proxy import FilterProxyModel
 from .model import InventoryModel
-from ... import api
 
 # todo(roy): refactor loading from other tools
 from ..projectmanager.widget import (
@@ -362,7 +361,7 @@ def show(root=None, debug=False, parent=None):
             if project.get("active", True) is not False
         )
 
-        io.activate_project(any_project)
+        api.Session["AVALON_PROJECT"] = any_project["name"]
 
     with tools_lib.application():
         window = Window(parent)

@@ -18,7 +18,10 @@ from .pipeline import (
     Loader,
     Creator,
     discover,
-    session,
+    Session,
+
+    # Deprectated
+    Session as session,
 
     on,
     emit,
@@ -55,6 +58,7 @@ __all__ = [
     "Loader",
     "Creator",
     "discover",
+    "Session",
     "session",
 
     "on",

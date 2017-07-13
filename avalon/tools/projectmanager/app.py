@@ -1,7 +1,7 @@
 import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import io, schema
+from ... import io, schema, api
 from .. import lib as parentlib
 from . import widget
 
@@ -240,5 +240,7 @@ def cli(args):
     project = args.project
 
     io.install()
-    io.activate_project(project)
+
+    api.Session["AVALON_PROJECT"] = project
+
     show()

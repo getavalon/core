@@ -78,6 +78,19 @@
             "type": "string",
             "pattern": "^[A-Z_.]*$",
             "example": "Mindbender"
+        },
+        "AVALON_SENTRY": {
+            "description": "Address to Sentry",
+            "type": "string",
+            "pattern": "^[A-Z_.]*$",
+            "example": "http://5b872b280de742919b115bdc8da076a5:8d278266fe764361b8fa6024af004a9c@logs.mindbender.com/2"
+        },
+        "AVALON_TIMEOUT": {
+            "description": "Wherever there is a need for a timeout, this is the default value.",
+            "type": "string",
+            "pattern": "^[A-Z_.]*$",
+            "default": "1000",
+            "example": "1000"
         }
     }
 }

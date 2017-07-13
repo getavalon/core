@@ -20,7 +20,7 @@ import sys
 import copy
 import json
 
-from avalon import schema, io
+from avalon import schema, io, api
 from avalon.vendor import toml
 
 self = sys.modules[__name__]
@@ -132,8 +132,6 @@ def save(name, config, inventory):
 
     """
 
-    io.activate_project(name)
-
     config = copy.deepcopy(config)
     inventory = copy.deepcopy(inventory)
 
@@ -174,7 +172,6 @@ def init(name):
 
     """
 
-    io.activate_project(name)
     project = io.find_one({"type": "project"})
 
     if project is not None:
@@ -197,7 +194,6 @@ def load(name):
 
     print("Loading .inventory.toml and .config.toml..")
 
-    io.activate_project(name)
     project = io.find_one({"type": "project"})
 
     if project is None:
@@ -429,6 +425,7 @@ def _cli():
     name = os.path.basename(root)
 
     if any([kwargs.load, kwargs.save, kwargs.upload, kwargs.init]):
+        os.environ["AVALON_PROJECT"] = name
         io.install()
 
     if kwargs.init:

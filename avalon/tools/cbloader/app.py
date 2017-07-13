@@ -236,7 +236,7 @@ def show(root=None, debug=False, parent=None):
             if project.get("active", True) is not False
         )
 
-        io.activate_project(any_project)
+        api.Session["AVALON_PROJECT"] = any_project["name"]
         module.project = any_project["name"]
 
     with lib.application():

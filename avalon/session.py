@@ -1,14 +1,17 @@
 import os
 import time
 import errno
+import logging
 import shutil
 import getpass
 
 # Third-party dependencies
 import pymongo
 
-from avalon import api, lib
+from avalon import lib
 from avalon.vendor import six
+
+log = logging.getLogger(__name__)
 
 
 def new(**kwargs):
@@ -157,7 +160,7 @@ class _Session(dict):
                 client.server_info()
 
             except OSError:
-                api.logger.error("Retrying..")
+                log.error("Retrying..")
                 time.sleep(1)
 
             else:
@@ -167,7 +170,7 @@ class _Session(dict):
             raise IOError("ERROR: Couldn't connect to %s in "
                           "less than %.3f ms" % (self["AVALON_MONGO"], 2000))
 
-        api.logger.info("Connected to server, delay %.3f s" % (
+        log.info("Connected to server, delay %.3f s" % (
             time.time() - t1))
 
         database = client[self["AVALON_DB"]]

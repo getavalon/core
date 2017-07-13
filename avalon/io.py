@@ -3,9 +3,11 @@
 import os
 import sys
 import time
+import logging
 import functools
 
-from . import schema, lib
+from . import schema, lib, Session
+from .vendor.six.moves import urllib
 
 # Third-party dependencies
 import pymongo
@@ -15,8 +17,6 @@ __all__ = [
     "ObjectId",
     "InvalidId",
     "install",
-    "active_project",
-    "activate_project",
     "uninstall",
     "projects",
     "locate",
@@ -32,17 +32,14 @@ __all__ = [
     "parenthood",
 ]
 
-AVALON_DB = os.getenv("AVALON_DB", "avalon")
-AVALON_TIMEOUT = int(os.getenv("AVALON_TIMEOUT", "1000"))
-AVALON_MONGO = os.getenv("AVALON_MONGO", "mongodb://localhost:27017")
-
 self = sys.modules[__name__]
-self._client = None
+self._mongo_client = None
+self._sentry_client = None
+self._sentry_logging_handler = None
 self._database = None
-self._collection = None
 self._is_installed = False
-self._is_activated = False
-self._timeout = AVALON_TIMEOUT
+
+log = logging.getLogger(__name__)
 
 
 def install():
@@ -50,60 +47,137 @@ def install():
     if self._is_installed:
         return
 
-    self._client = pymongo.MongoClient(
-        AVALON_MONGO, serverSelectionTimeoutMS=self._timeout)
+    logging.basicConfig()
+    Session.update(_from_environment())
+
+    timeout = Session["AVALON_TIMEOUT"]
+    self._mongo_client = pymongo.MongoClient(
+        Session["AVALON_MONGO"], serverSelectionTimeoutMS=timeout)
 
     for retry in range(3):
         try:
             t1 = time.time()
-            self._client.server_info()
+            self._mongo_client.server_info()
 
         except Exception:
-            lib.logger.error("Retrying..")
+            log.error("Retrying..")
             time.sleep(1)
-            self._timeout *= 1.5
+            timeout *= 1.5
 
         else:
             break
 
     else:
-        raise IOError("ERROR: Couldn't connect to %s in "
-                      "less than %.3f ms" % (AVALON_MONGO, self._timeout))
+        raise IOError(
+            "ERROR: Couldn't connect to %s in "
+            "less than %.3f ms" % (Session["AVALON_MONGO"], timeout))
 
-    lib.logger.info("Connected to server, delay %.3f s" % (time.time() - t1))
-    self._database = self._client[AVALON_DB]
+    log.info("Connected to %s, delay %.3f s" % (
+        Session["AVALON_MONGO"], time.time() - t1))
+
+    _install_sentry()
+
+    self._database = self._mongo_client[Session["AVALON_DB"]]
     self._is_installed = True
+
+
+def _install_sentry():
+    if not Session["AVALON_SENTRY"]:
+        return
+
+    try:
+        from raven import Client
+        from raven.handlers.logging import SentryHandler
+        from raven.conf import setup_logging
+    except ImportError:
+        # Note: There was a Sentry address in this Session
+        return lib.log.warning("Sentry disabled, raven not installed")
+
+    client = Client(Session["AVALON_SENTRY"])
+
+    def excepthook(*args, **kwargs):
+        try:
+            client.captureException()
+        except urllib.URLError:
+            # In case the parent process isn't able
+            # to access the internet, e.g. due to firewall
+            pass
+
+        try:
+            original_excepthook(*args, **kwargs)
+        except TypeError:
+            # None is not callable
+            pass
+
+    # To anyone having already wrapped excepthook,
+    # make sure we call theirs as well.
+    original_excepthook = sys.excepthook
+
+    # Upload any exceptions raised by Python during this interpreter session
+    sys.excepthook = excepthook
+
+    # Transmit log messages to Sentry
+    handler = SentryHandler(client)
+    handler.setLevel(logging.WARNING)
+
+    setup_logging(handler)
+
+    self._sentry_client = client
+    self._sentry_logging_handler = handler
+    log.info("Connected to Sentry @ %s" % Session["AVALON_SENTRY"])
+
+
+def _from_environment():
+    return {
+        item[0]: os.getenv(item[0], item[1])
+        for item in (
+            # Root directory of projects on disk
+            ("AVALON_PROJECTS", None),
+
+            # Name of current Project
+            ("AVALON_PROJECT", None),
+
+            # Name of current Asset
+            ("AVALON_ASSET", None),
+
+            # Name of current Config
+            # TODO(marcus): Establish a suitable default config
+            ("AVALON_CONFIG", "no_config"),
+
+            # Name of Avalon in graphical user interfaces
+            # Use this to customise the visual appearance of Avalon
+            # to better integrate with your surrounding pipeline
+            ("AVALON_LABEL", "Avalon"),
+
+            # Used during any connections to the outside world
+            ("AVALON_TIMEOUT", "1000"),
+
+            # Address to Asset Database
+            ("AVALON_MONGO", "mongodb://localhost:27017"),
+
+            # Name of database used in MongoDB
+            ("AVALON_DB", "avalon"),
+
+            # Address to Sentry
+            ("AVALON_SENTRY", None),
+
+            # Enable features not necessarily stable, at the user's own risk
+            ("AVALON_EARLY_ADOPTER", None),
+        )
+    }
 
 
 def uninstall():
     """Close any connection to the database"""
     try:
-        self._client.close()
+        self._mongo_client.close()
     except AttributeError:
         pass
 
-    self._client = None
+    self._mongo_client = None
     self._database = None
     self._collection = None
     self._is_installed = False
-    self._is_activated = False
-
-
-def active_project():
-    """Return the name of the active project"""
-    return self._collection.name
-
-
-def activate_project(project):
-    """Establish a connection to a given collection within the database"""
-    try:
-        # Support passing dictionary object
-        project = project["name"]
-    except TypeError:
-        pass
-
-    self._collection = self._database[project]
-    self._is_activated = True
 
 
 def requires_install(f):
@@ -116,14 +190,15 @@ def requires_install(f):
     return decorated
 
 
-def requires_activation(f):
-    @functools.wraps(f)
-    def decorated(*args, **kwargs):
-        if not self._is_activated:
-            raise IOError("'io.%s()' requires an active project" % f.__name__)
-        return f(*args, **kwargs)
+@requires_install
+def active_project():
+    """Return the name of the active project"""
+    return Session["AVALON_PROJECT"]
 
-    return decorated
+
+def activate_project(project):
+    """Establish a connection to a given collection within the database"""
+    print("io.activate_project is deprecated")
 
 
 @requires_install
@@ -148,7 +223,6 @@ def projects():
             yield document
 
 
-@requires_activation
 def locate(path):
     """Traverse a hierarchy from top-to-bottom
 
@@ -195,11 +269,10 @@ def locate(path):
     return parent
 
 
-@requires_activation
 def insert_one(item):
     assert isinstance(item, dict), "item must be of type <dict>"
     schema.validate(item)
-    return self._collection.insert_one(item)
+    return self._database[Session["AVALON_PROJECT"]].insert_one(item)
 
 
 def insert_many(items, ordered=True):
@@ -211,58 +284,55 @@ def insert_many(items, ordered=True):
 
     return self._collection.insert_many(items, ordered=ordered)
 
-
-@requires_activation
+  
 def find(filter, projection=None, sort=None):
-    return self._collection.find(
+    return self._database[Session["AVALON_PROJECT"]].find(
         filter=filter,
         projection=projection,
         sort=sort
     )
 
 
-@requires_activation
 def find_one(filter, projection=None, sort=None):
     assert isinstance(filter, dict), "filter must be <dict>"
 
-    return self._collection.find_one(
+    return self._database[Session["AVALON_PROJECT"]].find_one(
         filter=filter,
         projection=projection,
         sort=sort
     )
 
 
-@requires_activation
 def save(*args, **kwargs):
-    return self._collection.save(*args, **kwargs)
+    return self._database[Session["AVALON_PROJECT"]].save(
+        *args, **kwargs)
 
 
-@requires_activation
 def replace_one(filter, replacement):
-    return self._collection.replace_one(filter, replacement)
+    return self._database[Session["AVALON_PROJECT"]].replace_one(
+        filter, replacement)
 
 
-@requires_activation
 def update_many(filter, update):
-    return self._collection.update_many(filter, update)
+    return self._database[Session["AVALON_PROJECT"]].update_many(
+        filter, update)
 
 
-@requires_activation
 def distinct(*args, **kwargs):
-    return self._collection.distinct(*args, **kwargs)
+    return self._database[Session["AVALON_PROJECT"]].distinct(
+        *args, **kwargs)
 
 
-@requires_activation
 def drop(*args, **kwargs):
-    return self._collection.drop(*args, **kwargs)
+    return self._database[Session["AVALON_PROJECT"]].drop(
+        *args, **kwargs)
 
 
-@requires_activation
 def delete_many(*args, **kwargs):
-    return self._collection.delete_many(*args, **kwargs)
+    return self._database[Session["AVALON_PROJECT"]].delete_many(
+        *args, **kwargs)
 
 
-@requires_activation
 def parenthood(document):
     assert document is not None, "This is a bug"
 
