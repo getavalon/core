@@ -9,6 +9,7 @@ from .pipeline import (
     uninstall,
 
     Creator,
+    Loader,
 
     ls,
     load,
@@ -39,6 +40,7 @@ __all__ = [
     "uninstall",
 
     "Creator",
+    "Loader",
 
     "ls",
     "load",

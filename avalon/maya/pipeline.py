@@ -355,6 +355,14 @@ class Creator(api.Creator):
         return instance
 
 
+class Loader(api.Loader):
+    def __init__(self, context):
+        super(Loader, self).__init__(context)
+        self.fname = self.fname.replace(
+            api.registered_root(), "$AVALON_PROJECTS"
+        )
+
+
 def create(name, asset, family, options=None, data=None):
     """Create a new instance
 
