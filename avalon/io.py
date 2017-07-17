@@ -6,7 +6,7 @@ import time
 import logging
 import functools
 
-from . import schema, lib, Session
+from . import schema, Session
 from .vendor.six.moves import urllib
 
 # Third-party dependencies
@@ -91,7 +91,7 @@ def _install_sentry():
         from raven.conf import setup_logging
     except ImportError:
         # Note: There was a Sentry address in this Session
-        return lib.log.warning("Sentry disabled, raven not installed")
+        return log.warning("Sentry disabled, raven not installed")
 
     client = Client(Session["AVALON_SENTRY"])
 
