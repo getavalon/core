@@ -161,6 +161,10 @@ def _from_environment():
             # Address to Sentry
             ("AVALON_SENTRY", None),
 
+            # Address to Deadline Web Service
+            # E.g. http://192.167.0.1:8082
+            ("AVALON_DEADLINE", None),
+
             # Enable features not necessarily stable, at the user's own risk
             ("AVALON_EARLY_ADOPTER", None),
         )
