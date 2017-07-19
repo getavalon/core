@@ -98,7 +98,7 @@ def _install_sentry():
     def excepthook(*args, **kwargs):
         try:
             client.captureException()
-        except urllib.URLError:
+        except urllib.error.URLError:
             # In case the parent process isn't able
             # to access the internet, e.g. due to firewall
             pass
