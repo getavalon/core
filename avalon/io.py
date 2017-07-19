@@ -7,7 +7,6 @@ import logging
 import functools
 
 from . import schema, Session
-from .vendor.six.moves import urllib
 
 # Third-party dependencies
 import pymongo
@@ -94,27 +93,6 @@ def _install_sentry():
         return log.warning("Sentry disabled, raven not installed")
 
     client = Client(Session["AVALON_SENTRY"])
-
-    def excepthook(*args, **kwargs):
-        try:
-            client.captureException()
-        except urllib.error.URLError:
-            # In case the parent process isn't able
-            # to access the internet, e.g. due to firewall
-            pass
-
-        try:
-            original_excepthook(*args, **kwargs)
-        except TypeError:
-            # None is not callable
-            pass
-
-    # To anyone having already wrapped excepthook,
-    # make sure we call theirs as well.
-    original_excepthook = sys.excepthook
-
-    # Upload any exceptions raised by Python during this interpreter session
-    sys.excepthook = excepthook
 
     # Transmit log messages to Sentry
     handler = SentryHandler(client)
