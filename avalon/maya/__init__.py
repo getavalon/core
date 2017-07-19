@@ -24,6 +24,7 @@ from .lib import (
     export_alembic,
     lsattr,
     lsattrs,
+    read,
 
     apply_shaders,
     without_extension,
@@ -47,6 +48,7 @@ __all__ = [
     "create",
     "remove",
     "update",
+    "read",
     "publish",
 
     "export_alembic",
