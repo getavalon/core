@@ -26,6 +26,8 @@ def split(fname):
     Example:
         >>> split('rs_beauty.1000.png')
         ('rs_beauty.', '1000', '.png')
+        >>> split('myRender.0100.png')
+        ('myRender.', '0100', '.png')
 
     '''
 
@@ -34,9 +36,15 @@ def split(fname):
     except IndexError:
         raise ValueError("No collection found")
     else:
-        return (collections[0].head,
-                str(list(collections[0].indexes)[0]),
-                collections[0].tail)
+        # Search for indexes starting from end, as opposed to start
+        # E.g. myRender2017.001.png -> myRender2017.%03d.png
+        #             As opposed to -> myRender%d.%001.png
+        col = collections[-1]
+        idx = list(col.indexes)[0]
+
+        return (col.head,
+                str(idx).zfill(col.padding),
+                col.tail)
 
 
 def assemble(iterable, patterns=None, minimum_items=2, case_sensitive=True):
