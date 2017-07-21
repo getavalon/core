@@ -118,6 +118,9 @@ def _from_environment():
             # Name of current Asset
             ("AVALON_ASSET", None),
 
+            # Path to working directory
+            ("AVALON_WORKDIR", None),
+
             # Name of current Config
             # TODO(marcus): Establish a suitable default config
             ("AVALON_CONFIG", "no_config"),
