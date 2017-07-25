@@ -550,6 +550,10 @@ def _register_callbacks():
         OpenMaya.MSceneMessage.kBeforeSave, _on_scene_save
     )
 
+    self._events[_before_scene_save] = OpenMaya.MSceneMessage.addCheckCallback(
+        OpenMaya.MSceneMessage.kBeforeSaveCheck, _before_scene_save
+    )
+
     self._events[_on_scene_new] = OpenMaya.MSceneMessage.addCallback(
         OpenMaya.MSceneMessage.kAfterNew, _on_scene_new
     )
@@ -559,6 +563,7 @@ def _register_callbacks():
     )
 
     logger.info("Installed event handler _on_scene_save..")
+    logger.info("Installed event handler _before_scene_save..")
     logger.info("Installed event handler _on_scene_new..")
     logger.info("Installed event handler _on_maya_initialized..")
 
@@ -573,9 +578,13 @@ def _on_maya_initialized(_):
     }["MayaWindow"]
 
 
-def _on_scene_new(_):
-    api.emit("new")
+def _on_scene_new(*args):
+    api.emit("new", args)
 
 
-def _on_scene_save(_):
-    api.emit("save")
+def _on_scene_save(*args):
+    api.emit("save", args)
+
+
+def _before_scene_save(*args):
+    api.emit("before_save", args)
