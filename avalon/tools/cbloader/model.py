@@ -28,6 +28,21 @@ class SubsetsModel(TreeModel):
         self._asset_id = asset_id
         self.refresh()
 
+    def setData(self, index, value, role=QtCore.Qt.EditRole):
+
+        # Trigger additional edit when `version` column changed
+        # because it also updates the information in other columns
+        if index.column() == 2:
+            node = index.internalPointer()
+            parent = node["_id"]
+            version = io.find_one({"name": value,
+                                   "type": "version",
+                                   "parent": parent})
+            print node, version
+            self.set_version(index, version)
+
+        return super(SubsetsModel, self).setData(index, value, role)
+
     def set_version(self, index, version):
         """Update the version data of the given index.
         
@@ -39,7 +54,6 @@ class SubsetsModel(TreeModel):
             return
 
         node = index.internalPointer()
-
         assert version['parent'] == node['_id'], ("Version does not "
                                                   "belong to subset")
 

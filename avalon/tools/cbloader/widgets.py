@@ -30,7 +30,7 @@ class SubsetWidget(QtWidgets.QWidget):
         super(SubsetWidget, self).__init__(parent=parent)
 
         model = SubsetsModel()
-        proxy = FilterProxyModel()
+        proxy = QtGui.QSortFilterProxyModel()
 
         filter = QtGui.QLineEdit()
 
@@ -44,13 +44,13 @@ class SubsetWidget(QtWidgets.QWidget):
         """)
 
         # Set view delegates
-        time_delegate = VersionDelegate()
+        version_delegate = VersionDelegate()
         column = model.COLUMNS.index("version")
-        view.setItemDelegateForColumn(column, time_delegate)
-
-        version_delegate = PrettyTimeDelegate()
-        column = model.COLUMNS.index("time")
         view.setItemDelegateForColumn(column, version_delegate)
+
+        time_delegate = PrettyTimeDelegate()
+        column = model.COLUMNS.index("time")
+        view.setItemDelegateForColumn(column, time_delegate)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)

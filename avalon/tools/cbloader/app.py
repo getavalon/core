@@ -162,7 +162,7 @@ class Window(QtWidgets.QDialog):
     def _versionschanged(self):
 
         subsets = self.data["model"]["subsets"]
-        selection = subsets.selectionModel()
+        selection = subsets.view.selectionModel()
 
         # Active must be in the selected rows otherwise we
         # assume it's not actually an "active" current index.
@@ -171,7 +171,8 @@ class Window(QtWidgets.QDialog):
         if active:
             rows = selection.selectedRows(column=active.column())
             if active in rows:
-                node = active.data(subsets.model.NodeRole)
+                node_data = subsets.model.NodeRole
+                node = active.data(node_data)
                 version = node['version_document']['_id']
 
         self.data['model']['version'].set_version(version)
