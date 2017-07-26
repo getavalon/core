@@ -18,6 +18,11 @@ from .pipeline import (
     update,
     publish,
     containerise,
+
+    lock,
+    unlock,
+    is_locked,
+    lock_ignored,
 )
 
 from .lib import (
@@ -50,6 +55,11 @@ __all__ = [
     "update",
     "read",
     "publish",
+
+    "lock",
+    "unlock",
+    "is_locked",
+    "lock_ignored",
 
     "export_alembic",
     "lsattr",

@@ -2,6 +2,7 @@ import os
 import sys
 import errno
 import importlib
+import contextlib
 
 from maya import cmds, OpenMaya
 from pyblish import api as pyblish
@@ -93,25 +94,28 @@ def _install_menu():
 
         cmds.menuItem("Create...",
                       command=lambda *args: creator.show(parent=self._parent))
-        cmds.menuItem("Load...",
-                      command=lambda *args: cbloader.show(parent=self._parent))
 
         if api.Session["AVALON_EARLY_ADOPTER"]:
-            cmds.menuItem("Load... (old)",
+            cmds.menuItem("Load...",
                           command=lambda *args:
                           loader.show(parent=self._parent))
+        else:
+            cmds.menuItem("Load...",
+                          command=lambda *args:
+                          cbloader.show(parent=self._parent))
 
         cmds.menuItem("Publish...",
                       command=lambda *args: publish.show(parent=self._parent),
                       image=publish.ICON)
-        cmds.menuItem("Manage...",
-                      command=lambda *args: cbsceneinventory.show(
-                          parent=self._parent))
 
         if api.Session["AVALON_EARLY_ADOPTER"]:
-            cmds.menuItem("Manage... (old)",
+            cmds.menuItem("Manage...",
                           command=lambda *args:
                           manager.show(parent=self._parent))
+        else:
+            cmds.menuItem("Manage...",
+                          command=lambda *args: cbsceneinventory.show(
+                              parent=self._parent))
 
         cmds.menuItem(divider=True)
 
@@ -191,6 +195,78 @@ def _uninstall_menu():
     if menu:
         menu.deleteLater()
         del(menu)
+
+
+def lock():
+    """Lock scene
+
+    Add an invisible node to your Maya scene with the name of the
+    current file, indicating that this file is "locked" and cannot
+    be modified any further.
+
+    """
+
+    if not cmds.objExists("lock"):
+        with lib.maintained_selection():
+            cmds.createNode("objectSet", name="lock")
+            cmds.addAttr("lock", ln="basename", dataType="string")
+
+            # Permanently hide from outliner
+            cmds.setAttr("lock.verticesOnlySet", True)
+
+    fname = cmds.file(query=True, sceneName=True)
+    basename = os.path.basename(fname)
+    cmds.setAttr("lock.basename", basename, type="string")
+
+
+def unlock():
+    """Permanently unlock a locked scene
+
+    Doesn't throw an error if scene is already unlocked.
+
+    """
+
+    try:
+        cmds.delete("lock")
+    except ValueError:
+        pass
+
+
+def is_locked():
+    """Query whether current scene is locked"""
+    fname = cmds.file(query=True, sceneName=True)
+    basename = os.path.basename(fname)
+
+    try:
+        basename = os.path.basename()
+        return cmds.getAttr("lock.basename") == basename
+    except ValueError:
+        return False
+
+    return is_locked
+
+
+@contextlib.contextmanager
+def lock_ignored():
+    """Context manager for temporarily ignoring the lock of a scene
+
+    The purpose of this function is to enable locking a scene and
+    saving it with the lock still in place.
+
+    Example:
+        >>> with lock_ignored():
+        ...   pass  # Do things without lock
+
+    """
+
+    key = "_AVALON_IGNORE_LOCK"
+    previous_state = api.Session.get(key, "")
+    api.Session[key] = "True"
+
+    try:
+        yield
+    finally:
+        api.Session[key] = previous_state
 
 
 def containerise(name,
