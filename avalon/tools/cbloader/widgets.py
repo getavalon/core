@@ -32,6 +32,8 @@ class SubsetWidget(QtWidgets.QWidget):
         model = SubsetsModel()
         proxy = FilterProxyModel()
 
+        filter = QtGui.QLineEdit()
+
         view = QtWidgets.QTreeView()
         view.setIndentation(5)
         view.setStyleSheet("""
@@ -52,6 +54,7 @@ class SubsetWidget(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(filter)
         layout.addWidget(view)
 
         view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -68,16 +71,20 @@ class SubsetWidget(QtWidgets.QWidget):
         self.proxy = proxy
         self.model = model
         self.view = view
+        self.filter = filter
 
         # settings and connections
         self.proxy.setSourceModel(self.model)
         self.proxy.setDynamicSortFilter(True)
+        self.proxy.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
 
         self.view.setModel(self.proxy)
         self.view.customContextMenuRequested.connect(self.on_context_menu)
 
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.active_changed)
+
+        self.filter.textChanged.connect(self.proxy.setFilterRegExp)
 
         self.model.refresh()
 
