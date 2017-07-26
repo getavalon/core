@@ -113,7 +113,7 @@ class TreeModel(QtCore.QAbstractItemModel):
                 key = self.COLUMNS[column]
                 node[key] = value
 
-                self.dataChanged.emit(index, index, [QtCore.Qt.DisplayRole])
+                self.dataChanged.emit(index, index)
 
                 # must return true if successful
                 return True
