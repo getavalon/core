@@ -10,6 +10,7 @@ from ... import api
 from .model import SubsetsModel
 from .delegates import PrettyTimeDelegate, VersionDelegate
 from . import lib
+from .proxy import FilterProxyModel
 
 
 def _get_representations(version_id):
@@ -27,10 +28,11 @@ class SubsetWidget(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super(SubsetWidget, self).__init__(parent=parent)
-        model = SubsetsModel()
-        view = QtWidgets.QTreeView()
-        view.setModel(model)
 
+        model = SubsetsModel()
+        proxy = FilterProxyModel()
+
+        view = QtWidgets.QTreeView()
         view.setIndentation(5)
         view.setStyleSheet("""
             QTreeView::item{
@@ -38,11 +40,6 @@ class SubsetWidget(QtWidgets.QWidget):
                 border: 0px;
             }
         """)
-        view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        view.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-        view.setSortingEnabled(True)
-        view.sortByColumn(0, QtCore.Qt.AscendingOrder)
-        view.setAlternatingRowColors(True)
 
         # Set view delegates
         time_delegate = VersionDelegate()
@@ -57,19 +54,32 @@ class SubsetWidget(QtWidgets.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(view)
 
-        self.data = {
-            "delegates": {
-                "version": version_delegate,
-                "time": time_delegate
-            }
-        }
+        view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        view.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
+        view.setSortingEnabled(True)
+        view.sortByColumn(1, QtCore.Qt.AscendingOrder)
+        view.setAlternatingRowColors(True)
+
+        self.data = {"delegates":
+                         {"version": version_delegate,
+                           "time": time_delegate}
+                    }
+
+        self.proxy = proxy
         self.model = model
         self.view = view
 
-        view.customContextMenuRequested.connect(self.on_context_menu)
+        # settings and connections
+        self.proxy.setSourceModel(self.model)
+        self.proxy.setDynamicSortFilter(True)
+
+        self.view.setModel(self.proxy)
+        self.view.customContextMenuRequested.connect(self.on_context_menu)
 
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.active_changed)
+
+        self.model.refresh()
 
     def on_context_menu(self, point):
 

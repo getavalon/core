@@ -22,9 +22,7 @@ class SubsetsModel(TreeModel):
     def __init__(self, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
         self._asset_id = None
-        self._icons = {
-            "subset": qta.icon("fa.file-o", color=style.default)
-        }
+        self._icons = {"subset": qta.icon("fa.file-o", color=style.default)}
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id
@@ -42,8 +40,8 @@ class SubsetsModel(TreeModel):
 
         node = index.internalPointer()
 
-        assert version['parent'] == node['_id'], \
-            "Version does not belong to subset"
+        assert version['parent'] == node['_id'], ("Version does not "
+                                                  "belong to subset")
 
         # Get the data from the version
         version_data = version.get("data", dict())
@@ -76,13 +74,13 @@ class SubsetsModel(TreeModel):
     def refresh(self):
 
         self.clear()
+        self.beginResetModel()
         if not self._asset_id:
             return
 
-        parent = self._asset_id
-
         row = 0
-        for subset in io.find({"type": "subset", "parent": parent}):
+        for subset in io.find({"type": "subset",
+                               "parent": self._asset_id}):
 
             last_version = io.find_one({"type": "version",
                                         "parent": subset['_id']},
@@ -104,6 +102,8 @@ class SubsetsModel(TreeModel):
             self.set_version(index, last_version)
 
             row += 1
+
+        self.endResetModel()
 
     def data(self, index, role):
 

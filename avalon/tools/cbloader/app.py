@@ -162,7 +162,7 @@ class Window(QtWidgets.QDialog):
     def _versionschanged(self):
 
         subsets = self.data["model"]["subsets"]
-        selection = subsets.view.selectionModel()
+        selection = subsets.selectionModel()
 
         # Active must be in the selected rows otherwise we
         # assume it's not actually an "active" current index.
