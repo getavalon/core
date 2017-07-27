@@ -528,7 +528,7 @@ def remove(container):
     try:
         # If container is not automatically cleaned up by May (issue #118)
         cmds.namespace(removeNamespace=namespace, deleteNamespaceContent=True)
-    except RuntimeError as e:
+    except RuntimeError:
         pass
 
 
