@@ -105,11 +105,7 @@ class PrettyTimeDelegate(QtWidgets.QStyledItemDelegate):
 
 
 class VersionDelegate(QtWidgets.QStyledItemDelegate):
-    """A delegate that display version integer formatted as version string.
-
-    Note:
-        It is required to set source_model attribute.
-    """
+    """A delegate that display version integer formatted as version string."""
 
     def _format_version(self, value):
         """Formats integer to displayable version name"""

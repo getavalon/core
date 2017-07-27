@@ -171,8 +171,7 @@ class Window(QtWidgets.QDialog):
         if active:
             rows = selection.selectedRows(column=active.column())
             if active in rows:
-                node_data = subsets.model.NodeRole
-                node = active.data(node_data)
+                node = active.data(subsets.model.NodeRole)
                 version = node['version_document']['_id']
 
         self.data['model']['version'].set_version(version)

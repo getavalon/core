@@ -10,7 +10,6 @@ from ... import api
 from .model import SubsetsModel
 from .delegates import PrettyTimeDelegate, VersionDelegate
 from . import lib
-from .proxy import FilterProxyModel
 
 
 def _get_representations(version_id):

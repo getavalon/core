@@ -38,7 +38,6 @@ class SubsetsModel(TreeModel):
             version = io.find_one({"name": value,
                                    "type": "version",
                                    "parent": parent})
-            print node, version
             self.set_version(index, version)
 
         return super(SubsetsModel, self).setData(index, value, role)
