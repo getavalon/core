@@ -529,7 +529,6 @@ def remove(container):
         # If container is not automatically cleaned up by May (issue #118)
         cmds.namespace(removeNamespace=namespace, deleteNamespaceContent=True)
     except RuntimeError as e:
-        logger.debug(e)
         pass
 
 
