@@ -526,7 +526,8 @@ def remove(container):
         # If container is not automatically cleaned up by May (issue #118)
         cmds.namespace(removeNamespace=namespace, deleteNamespaceContent=True)
         cmds.delete(node)
-    except RuntimeError:
+    except RuntimeError as e:
+        logger.warning(e)
         pass
 
 
