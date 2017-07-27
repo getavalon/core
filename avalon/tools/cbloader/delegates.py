@@ -105,9 +105,7 @@ class PrettyTimeDelegate(QtWidgets.QStyledItemDelegate):
 
 
 class VersionDelegate(QtWidgets.QStyledItemDelegate):
-    """A delegate that display version integer formatted as version string.
-    
-    """
+    """A delegate that display version integer formatted as version string."""
 
     def _format_version(self, value):
         """Formats integer to displayable version name"""
@@ -147,4 +145,4 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
     def setModelData(self, editor, model, index):
         """Apply the integer version back in the model"""
         version = editor.itemData(editor.currentIndex())
-        model.set_version(index, version)
+        model.setData(index, version['name'])

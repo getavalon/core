@@ -22,13 +22,25 @@ class SubsetsModel(TreeModel):
     def __init__(self, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
         self._asset_id = None
-        self._icons = {
-            "subset": qta.icon("fa.file-o", color=style.default)
-        }
+        self._icons = {"subset": qta.icon("fa.file-o", color=style.default)}
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id
         self.refresh()
+
+    def setData(self, index, value, role=QtCore.Qt.EditRole):
+
+        # Trigger additional edit when `version` column changed
+        # because it also updates the information in other columns
+        if index.column() == 2:
+            node = index.internalPointer()
+            parent = node["_id"]
+            version = io.find_one({"name": value,
+                                   "type": "version",
+                                   "parent": parent})
+            self.set_version(index, version)
+
+        return super(SubsetsModel, self).setData(index, value, role)
 
     def set_version(self, index, version):
         """Update the version data of the given index.
@@ -41,9 +53,8 @@ class SubsetsModel(TreeModel):
             return
 
         node = index.internalPointer()
-
-        assert version['parent'] == node['_id'], \
-            "Version does not belong to subset"
+        assert version['parent'] == node['_id'], ("Version does not "
+                                                  "belong to subset")
 
         # Get the data from the version
         version_data = version.get("data", dict())
@@ -76,13 +87,13 @@ class SubsetsModel(TreeModel):
     def refresh(self):
 
         self.clear()
+        self.beginResetModel()
         if not self._asset_id:
             return
 
-        parent = self._asset_id
-
         row = 0
-        for subset in io.find({"type": "subset", "parent": parent}):
+        for subset in io.find({"type": "subset",
+                               "parent": self._asset_id}):
 
             last_version = io.find_one({"type": "version",
                                         "parent": subset['_id']},
@@ -104,6 +115,8 @@ class SubsetsModel(TreeModel):
             self.set_version(index, last_version)
 
             row += 1
+
+        self.endResetModel()
 
     def data(self, index, role):
 
