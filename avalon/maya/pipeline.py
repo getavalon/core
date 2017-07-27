@@ -17,6 +17,7 @@ self = sys.modules[__name__]
 self._menu = "avalonmaya"  # Unique name of menu
 self._events = dict()  # Registered Maya callbacks
 self._parent = None  # Main Window
+self._ignore_lock = False
 
 IS_HEADLESS = not hasattr(cmds, "about") or cmds.about(batch=True)
 
@@ -95,27 +96,22 @@ def _install_menu():
         cmds.menuItem("Create...",
                       command=lambda *args: creator.show(parent=self._parent))
 
-        if api.Session["AVALON_EARLY_ADOPTER"]:
-            cmds.menuItem("Load...",
-                          command=lambda *args:
-                          loader.show(parent=self._parent))
-        else:
+        if api.Session.get("AVALON_EARLY_ADOPTER"):
             cmds.menuItem("Load...",
                           command=lambda *args:
                           cbloader.show(parent=self._parent))
+        else:
+            cmds.menuItem("Load...",
+                          command=lambda *args:
+                          loader.show(parent=self._parent))
 
         cmds.menuItem("Publish...",
                       command=lambda *args: publish.show(parent=self._parent),
                       image=publish.ICON)
 
-        if api.Session["AVALON_EARLY_ADOPTER"]:
-            cmds.menuItem("Manage...",
-                          command=lambda *args:
-                          manager.show(parent=self._parent))
-        else:
-            cmds.menuItem("Manage...",
-                          command=lambda *args: cbsceneinventory.show(
-                              parent=self._parent))
+        cmds.menuItem("Manage...",
+                      command=lambda *args: cbsceneinventory.show(
+                          parent=self._parent))
 
         cmds.menuItem(divider=True)
 
@@ -183,6 +179,11 @@ def reload_pipeline(*args):
         module = importlib.import_module(module)
         reload(module)
 
+    self._parent = {
+        widget.objectName(): widget
+        for widget in QtWidgets.QApplication.topLevelWidgets()
+    }["MayaWindow"]
+
     import avalon.maya
     api.install(avalon.maya)
 
@@ -237,13 +238,13 @@ def is_locked():
     fname = cmds.file(query=True, sceneName=True)
     basename = os.path.basename(fname)
 
+    if self._ignore_lock:
+        return False
+
     try:
-        basename = os.path.basename()
         return cmds.getAttr("lock.basename") == basename
     except ValueError:
         return False
-
-    return is_locked
 
 
 @contextlib.contextmanager
@@ -259,14 +260,12 @@ def lock_ignored():
 
     """
 
-    key = "_AVALON_IGNORE_LOCK"
-    previous_state = api.Session.get(key, "")
-    api.Session[key] = "True"
+    self._ignore_lock = True
 
     try:
         yield
     finally:
-        api.Session[key] = previous_state
+        self._ignore_lock = False
 
 
 def containerise(name,
