@@ -161,7 +161,6 @@ def uninstall():
 
     self._mongo_client = None
     self._database = None
-    self._collection = None
     self._is_installed = False
 
 
@@ -267,7 +266,9 @@ def insert_many(items, ordered=True):
         assert isinstance(item, dict), "`item` must be of type <dict>"
         schema.validate(item)
 
-    return self._collection.insert_many(items, ordered=ordered)
+    return self._database[Session["AVALON_PROJECT"]].insert_many(
+        items,
+        ordered=ordered)
 
   
 def find(filter, projection=None, sort=None):
