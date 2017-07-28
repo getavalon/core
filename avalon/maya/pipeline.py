@@ -404,7 +404,10 @@ def load(Loader,
 
     try:
         loader = Loader(context)
-        loader.process(name, namespace, context, data)
+
+        with lib.maintained_selection():
+            loader.process(name, namespace, context, data)
+
     except OSError as e:
         logger.info("WARNING: %s" % e)
         return list()
