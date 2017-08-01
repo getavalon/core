@@ -18,7 +18,6 @@ Usage:
 import os
 import sys
 import copy
-import json
 
 from avalon import schema, io
 from avalon.vendor import toml
@@ -308,49 +307,6 @@ def _save_config_1_0(project_name, data):
     schema.validate(document)
 
     io.save(document)
-
-
-def _parse_bat(root):
-    """Return environment variables from .bat files
-
-    Handles:
-        Integers:
-            $ set AVALON_VARIABLE=1000
-        Strings:
-            $ set AVALON_VARIABLE="String"
-        Plain
-            $ set AVALON_VARIABLE=plain
-
-
-    """
-
-    name = os.path.basename(root)
-    dirname = os.path.dirname(root)
-    data = dict()
-
-    try:
-        with open(os.path.join(dirname, name + ".bat")) as f:
-            for line in f:
-                if not line.startswith("set AVALON_"):
-                    continue
-
-                key, value = line.rstrip().split("=")
-                key = key[len("set AVALON_"):].lower()
-
-                # Automatically convert to proper datatype
-                try:
-                    value = json.loads(value)
-                    value = int(value)
-                except ValueError:
-                    # Value wasn't an integer
-                    pass
-
-                data[key] = value
-
-    except IOError:
-        pass
-
-    return data
 
 
 def _report(added, updated):
