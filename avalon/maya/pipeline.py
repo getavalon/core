@@ -598,6 +598,12 @@ def remove(container):
     cmds.file(fname, removeReference=True)
 
     try:
+        cmds.delete(node)
+    except ValueError:
+        # Already implicitly deleted by Maya upon removing reference
+        pass
+
+    try:
         # If container is not automatically cleaned up by May (issue #118)
         cmds.namespace(removeNamespace=namespace, deleteNamespaceContent=True)
     except RuntimeError:
