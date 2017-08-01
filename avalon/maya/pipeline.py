@@ -77,7 +77,6 @@ def _install_menu():
     from ..tools import (
         creator,
         loader,
-        manager,
         publish,
         cbloader,
         cbsceneinventory
@@ -646,8 +645,8 @@ def _register_callbacks():
     logger.info("Installed event handler _on_maya_initialized..")
 
 
-def _on_maya_initialized(_):
-    api.emit("init")
+def _on_maya_initialized(*args):
+    api.emit("init", args)
 
     # Keep reference to the main Window, once a main window exists.
     self._parent = {
@@ -664,5 +663,11 @@ def _on_scene_save(*args):
     api.emit("save", args)
 
 
-def _before_scene_save(*args):
-    api.emit("before_save", args)
+def _before_scene_save(return_code, client_data):
+
+    # Default to allowing the action. Registered
+    # callbacks can optionally set this to False
+    # in order to block the operation.
+    OpenMaya.MScriptUtil.setBool(return_code, True)
+
+    api.emit("before_save", [return_code, client_data])
