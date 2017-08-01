@@ -569,12 +569,25 @@ QPushButton {
                 _id = document["_id"]
                 self.echo("api.registered_host()."
                           "load(representation=\"%s\")" % _id)
-                # TODO: This should not import library from other tool
-                from ..cbloader.lib import iter_loaders
+
+                # Current state
+                families = version["data"]["families"]
+                representation = document["name"]
+
+                loader = next(
+                    Loader for Loader in api.discover(api.Loader)
+                    if all([
+                        representation in Loader.representations,
+                        any(family in families for family in Loader.families)
+                    ])
+                )
 
                 host = api.registered_host()
-                for loader in iter_loaders(_id):
-                    host.load(loader, representation=_id, preset=preset)
+                host.load(Loader=loader,
+                          representation=_id)
+
+            except StopIteration:
+                raise IndexError("No loaders available")
 
             except ValueError as e:
                 self.echo(e)
