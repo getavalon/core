@@ -2,7 +2,7 @@ import datetime
 import pprint
 import inspect
 
-from ...vendor.Qt import QtWidgets, QtCore, QtGui
+from ...vendor.Qt import QtWidgets, QtCore
 from ...vendor import qtawesome
 from ... import io
 from ... import api
@@ -29,9 +29,9 @@ class SubsetWidget(QtWidgets.QWidget):
         super(SubsetWidget, self).__init__(parent=parent)
 
         model = SubsetsModel()
-        proxy = QtGui.QSortFilterProxyModel()
+        proxy = QtCore.QSortFilterProxyModel()
 
-        filter = QtGui.QLineEdit()
+        filter = QtWidgets.QLineEdit()
 
         view = QtWidgets.QTreeView()
         view.setIndentation(5)
