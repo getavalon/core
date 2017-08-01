@@ -522,8 +522,11 @@ def remove(container):
     fname = cmds.referenceQuery(reference_node, filename=True)
     cmds.file(fname, removeReference=True)
 
-    if cmds.objExists(node):
+    try:
         cmds.delete(node)
+    except ValueError:
+        # Already implicitly deleted by Maya upon removing reference
+        pass
 
     try:
         # If container is not automatically cleaned up by May (issue #118)
