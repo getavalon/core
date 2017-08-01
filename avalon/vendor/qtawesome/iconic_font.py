@@ -2,10 +2,11 @@
 
 from __future__ import print_function
 
-from ..Qt import QtCore, QtWidgets, QtGui
 import json
 import os
-#from six import unichr
+
+from .. import six
+from ..Qt import QtCore, QtGui
 
 
 _default_options = {
@@ -74,7 +75,9 @@ class CharIconPainter:
 
         painter.setOpacity(options.get('opacity', 1.0))
 
-        painter.drawText(rect, QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter, char)
+        painter.drawText(rect,
+                         QtCore.Qt.AlignCenter | QtCore.Qt.AlignVCenter,
+                         char)
         painter.restore()
 
 
@@ -84,7 +87,7 @@ class CharIconEngine(QtGui.QIconEngine):
 
     def __init__(self, iconic, painter, options):
         super(CharIconEngine, self).__init__()
-        self.iconic = iconic 
+        self.iconic = iconic
         self.painter = painter
         self.options = options
 
@@ -95,7 +98,10 @@ class CharIconEngine(QtGui.QIconEngine):
     def pixmap(self, size, mode, state):
         pm = QtGui.QPixmap(size)
         pm.fill(QtCore.Qt.transparent)
-        self.paint(QtGui.QPainter(pm), QtCore.QRect(QtCore.QPoint(0, 0), size), mode, state)
+        self.paint(QtGui.QPainter(pm),
+                   QtCore.QRect(QtCore.QPoint(0, 0), size),
+                   mode,
+                   state)
         return pm
 
 
@@ -122,7 +128,11 @@ class IconicFont(QtCore.QObject):
         for fargs in args:
             self.load_font(*fargs)
 
-    def load_font(self, prefix, ttf_filename, charmap_filename, directory=None):
+    def load_font(self,
+                  prefix,
+                  ttf_filename,
+                  charmap_filename,
+                  directory=None):
         """Loads a font file and the associated charmap
 
         If `directory` is None, the files will be looked up in ./fonts/
@@ -142,7 +152,7 @@ class IconicFont(QtCore.QObject):
         def hook(obj):
             result = {}
             for key in obj:
-                result[key] = unichr(int(obj[key], 16))
+                result[key] = six.unichr(int(obj[key], 16))
             return result
 
         if directory is None:
@@ -152,7 +162,8 @@ class IconicFont(QtCore.QObject):
         with open(os.path.join(directory, charmap_filename), 'r') as codes:
             self.charmap[prefix] = json.load(codes, object_hook=hook)
 
-        id_ = QtGui.QFontDatabase.addApplicationFont(os.path.join(directory, ttf_filename))
+        id_ = QtGui.QFontDatabase.addApplicationFont(
+            os.path.join(directory, ttf_filename))
 
         loadedFontFamilies = QtGui.QFontDatabase.applicationFontFamilies(id_)
 
