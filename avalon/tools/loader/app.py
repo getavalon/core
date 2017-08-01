@@ -556,6 +556,11 @@ QPushButton {
 
     def on_load_pressed(self):
         models = self.data["model"]
+
+        versions_model = models["versions"]
+        version_item = versions_model.currentItem()
+        version = version_item.data(DocumentRole)
+
         representations_model = models["representations"]
         representation_item = representations_model.currentItem()
         preset = self.data["label"]["preset"]
