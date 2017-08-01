@@ -1,6 +1,8 @@
 """Standalone helper functions"""
 
+import os
 import contextlib
+
 from maya import cmds, mel
 from maya.api import OpenMaya as om
 

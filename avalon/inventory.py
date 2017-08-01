@@ -20,7 +20,7 @@ import sys
 import copy
 import json
 
-from avalon import schema, io, api
+from avalon import schema, io
 from avalon.vendor import toml
 
 self = sys.modules[__name__]
@@ -37,6 +37,10 @@ DEFAULTS = {
     "config": {
         "schema": "avalon-core:config-1.0",
         "apps": [
+            {
+                "name": "shell",
+                "label": "Shell"
+            },
             {
                 "name": "maya2016",
                 "label": "Autodesk Maya 2016"

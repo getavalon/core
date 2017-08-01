@@ -24,6 +24,8 @@ from .pipeline import (
     Session as session,
 
     on,
+    after,
+    before,
     emit,
 
     publish,
@@ -62,6 +64,8 @@ __all__ = [
     "session",
 
     "on",
+    "after",
+    "before",
     "emit",
 
     "publish",

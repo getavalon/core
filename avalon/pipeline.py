@@ -311,7 +311,15 @@ def on(event, callback):
     events.add(callback)
 
 
-def emit(event):
+def before(event, callback):
+    on("before_" + event, callback)
+
+
+def after(event, callback):
+    on("after_" + event, callback)
+
+
+def emit(event, args=None):
     """Trigger an `event`
 
     Example:
@@ -325,14 +333,16 @@ def emit(event):
 
     Arguments:
         event (str): Name of event
+        args (list, optional): List of arguments passed to callback
 
     """
 
     callbacks = _registered_event_handlers.get(event, set())
+    args = args or list()
 
     for callback in callbacks:
         try:
-            callback()
+            callback(*args)
         except Exception:
             log.debug(traceback.format_exc())
 
