@@ -1,12 +1,9 @@
 import os
 import sys
 import time
-import errno
-import shutil
 import logging
 import datetime
 import threading
-import contextlib
 
 try:
     import Queue as queue
@@ -14,7 +11,6 @@ except ImportError:
     # Python 3+
     import queue
 
-from ...vendor import requests
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ... import api, io
 from .. import lib
@@ -317,13 +313,14 @@ QSlider::handle:horizontal:enabled {
                 break
 
             previous = 0
-            for progress, error in download(src, dst):
+            for progress, error in io.download(src, dst):
                 if module.closed:
                     return log.info(
                         "There were active downloads, they were cancelled"
                     )
 
                 if error:
+                    log.error(error)
                     self.download_errored.emit(
                         "ERROR: Could not download %s" % src)
                     break

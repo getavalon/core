@@ -3,6 +3,7 @@
 import os
 import sys
 import time
+import errno
 import shutil
 import logging
 import tempfile
@@ -10,6 +11,7 @@ import functools
 import contextlib
 
 from . import schema, Session
+from .vendor import requests
 
 # Third-party dependencies
 import pymongo
@@ -395,8 +397,8 @@ def download(src, dst):
             src,
             stream=True,
             auth=requests.auth.HTTPBasicAuth(
-                api.Session["AVALON_USERNAME"],
-                api.Session["AVALON_PASSWORD"]
+                Session["AVALON_USERNAME"],
+                Session["AVALON_PASSWORD"]
             )
         )
     except requests.ConnectionError as e:
@@ -417,9 +419,6 @@ def download(src, dst):
                 for data in response.iter_content(chunk_size=4096):
                     downloaded += len(data)
                     f.write(data)
-
-                    if module.debug:
-                        time.sleep(0.007)
 
                     yield int(100.0 * downloaded / total_length), None
 
