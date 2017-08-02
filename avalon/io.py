@@ -3,8 +3,11 @@
 import os
 import sys
 import time
+import shutil
 import logging
+import tempfile
 import functools
+import contextlib
 
 from . import schema, Session
 
@@ -176,6 +179,9 @@ def _from_environment():
             # Unique identifier for instances in working files
             ("AVALON_INSTANCE_ID", "avalon.instance"),
             ("AVALON_CONTAINER_ID", "avalon.container"),
+
+            # Enable debugging
+            ("AVALON_DEBUG", None),
 
         ) if os.getenv(item[0], item[1]) is not None
     }
@@ -360,3 +366,68 @@ def parenthood(document):
         parents.append(document)
 
     return parents
+
+
+@contextlib.contextmanager
+def tempdir():
+    tempdir = tempfile.mkdtemp()
+    try:
+        yield tempdir
+    finally:
+        shutil.rmtree(tempdir)
+
+
+def download(src, dst):
+    """Download `src` to `dst`
+
+    Arguments:
+        src (str): URL to source file
+        dst (str): Absolute path to destination file
+
+    Yields tuple (progress, error):
+        progress (int): Between 0-100
+        error (Exception): Any exception raised when first making connection
+
+    """
+
+    try:
+        response = requests.get(
+            src,
+            stream=True,
+            auth=requests.auth.HTTPBasicAuth(
+                api.Session["AVALON_USERNAME"],
+                api.Session["AVALON_PASSWORD"]
+            )
+        )
+    except requests.ConnectionError as e:
+        yield None, e
+        return
+
+    with tempdir() as dirname:
+        tmp = os.path.join(dirname, os.path.basename(src))
+
+        with open(tmp, "wb") as f:
+            total_length = response.headers.get("content-length")
+
+            if total_length is None:  # no content length header
+                f.write(response.content)
+            else:
+                downloaded = 0
+                total_length = int(total_length)
+                for data in response.iter_content(chunk_size=4096):
+                    downloaded += len(data)
+                    f.write(data)
+
+                    if module.debug:
+                        time.sleep(0.007)
+
+                    yield int(100.0 * downloaded / total_length), None
+
+        try:
+            os.makedirs(os.path.dirname(dst))
+        except OSError as e:
+            # An already existing destination directory is fine.
+            if e.errno != errno.EEXIST:
+                raise
+
+        shutil.copy(tmp, dst)

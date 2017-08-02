@@ -4,9 +4,9 @@ import time
 import errno
 import shutil
 import logging
-import tempfile
 import datetime
 import threading
+import contextlib
 
 try:
     import Queue as queue
@@ -27,6 +27,7 @@ module.window = None
 module.root = api.registered_root()
 module.project = os.getenv("AVALON_PROJECT")
 module.debug = bool(os.getenv("AVALON_DEBUG"))
+module.closed = False
 
 # Custom roles
 DocumentRole = QtCore.Qt.UserRole + 1
@@ -40,59 +41,6 @@ module._downloads = queue.Queue()
 
 # Which downloads are in progress?
 module._downloading = dict()
-
-
-def exists(src):
-    resp = requests.head(src)
-    print resp.status_code, resp.text, resp.headers
-
-
-def download(src, dst):
-    basename = os.path.basename(src)
-    tmp = os.path.join(tempfile.gettempdir(), basename)
-
-    try:
-        response = requests.get(
-            src,
-            stream=True,
-            auth=requests.auth.HTTPBasicAuth(
-                api.Session["AVALON_USERNAME"],
-                api.Session["AVALON_PASSWORD"]
-            )
-        )
-    except requests.ConnectionError as e:
-        yield None, e
-        return
-
-    with open(tmp, "wb") as f:
-
-        total_length = response.headers.get("content-length")
-
-        if total_length is None:  # no content length header
-            f.write(response.content)
-        else:
-            downloaded = 0
-            total_length = int(total_length)
-            for data in response.iter_content(chunk_size=4096):
-                downloaded += len(data)
-                f.write(data)
-
-                if module.debug:
-                    time.sleep(0.007)
-
-                yield int(100.0 * downloaded / total_length), None
-
-    try:
-        os.makedirs(os.path.dirname(dst))
-    except OSError as e:
-        # An already existing working directory is fine.
-        if e.errno != errno.EEXIST:
-            raise
-
-    shutil.copy(tmp, dst)
-
-    # Clean up
-    os.remove(tmp)
 
 
 class Window(QtWidgets.QDialog):
@@ -370,6 +318,10 @@ QSlider::handle:horizontal:enabled {
 
             previous = 0
             for progress, error in download(src, dst):
+                if module.closed:
+                    return log.info(
+                        "There were active downloads, they were cancelled"
+                    )
 
                 if error:
                     self.download_errored.emit(
@@ -380,14 +332,13 @@ QSlider::handle:horizontal:enabled {
                 # Progress is sometimes less than one whole percent.
                 if progress != previous:
                     previous = progress
+
                     self.download_progressed.emit(src, progress)
 
             module._downloading.pop(dst)
 
             if not error:
                 self.download_completed.emit()
-
-            log.info("Finished with my current download")
 
     def on_copy_source_to_clipboard(self):
         source = self.data["label"]["source"].text()
@@ -889,6 +840,7 @@ QSlider::handle:horizontal:enabled {
 
         if shift_pressed:
             print("Force quitted..")
+            module.closed = True
             self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         print("Good bye")
