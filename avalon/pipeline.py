@@ -2,6 +2,7 @@
 
 import os
 import sys
+import json
 import types
 import logging
 import weakref
@@ -45,13 +46,14 @@ def install(host):
 
     missing = list()
     for key in ("AVALON_PROJECT", "AVALON_ASSET"):
-        if Session[key] is None:
+        if key not in Session:
             missing.append(key)
 
     assert not missing, (
-        "%s missing from environment" % ", ".join(
-            "AVALON_" + env.upper() for env in missing)
-    )
+        "%s missing from environment, %s" % (
+            ", ".join(missing),
+            json.dumps(Session, indent=4, sort_keys=True)
+        ))
 
     project = Session["AVALON_PROJECT"]
     log.info("Activating %s.." % project)
@@ -157,17 +159,6 @@ class Loader(list):
 
     def process(self, name, namespace, context, data):
         pass
-
-
-def loaders_by_representation(Loaders, representation):
-    """Return `Loaders` compatible with the `representation`"""
-    assert isinstance(representation, "str")
-
-    for Loader in Loaders:
-        if representation not in Loader.representations:
-            continue
-
-        yield Loader
 
 
 @lib.log
@@ -410,10 +401,10 @@ def register_root(path):
 
 def registered_root():
     """Return currently registered root"""
-    return (
+    return os.path.normpath(
         _registered_root["_"] or
         Session.get("AVALON_PROJECTS") or ""
-    ).replace("\\", "/")
+    )
 
 
 def register_host(host):

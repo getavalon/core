@@ -30,8 +30,6 @@ from .pipeline import (
 
     publish,
 
-    loaders_by_representation,
-
     register_root,
     register_host,
     register_plugin_path,
@@ -69,8 +67,6 @@ __all__ = [
     "emit",
 
     "publish",
-
-    "loaders_by_representation",
 
     "register_host",
     "register_plugin_path",

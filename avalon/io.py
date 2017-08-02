@@ -3,10 +3,15 @@
 import os
 import sys
 import time
+import errno
+import shutil
 import logging
+import tempfile
 import functools
+import contextlib
 
 from . import schema, Session
+from .vendor import requests
 
 # Third-party dependencies
 import pymongo
@@ -49,7 +54,7 @@ def install():
     logging.basicConfig()
     Session.update(_from_environment())
 
-    timeout = Session["AVALON_TIMEOUT"]
+    timeout = int(Session["AVALON_TIMEOUT"])
     self._mongo_client = pymongo.MongoClient(
         Session["AVALON_MONGO"], serverSelectionTimeoutMS=timeout)
 
@@ -81,7 +86,7 @@ def install():
 
 
 def _install_sentry():
-    if not Session["AVALON_SENTRY"]:
+    if "AVALON_SENTRY" not in Session:
         return
 
     try:
@@ -106,7 +111,7 @@ def _install_sentry():
 
 
 def _from_environment():
-    return {
+    session = {
         item[0]: os.getenv(item[0], item[1])
         for item in (
             # Root directory of projects on disk
@@ -117,6 +122,15 @@ def _from_environment():
 
             # Name of current Asset
             ("AVALON_ASSET", None),
+
+            # Name of current silo
+            ("AVALON_SILO", None),
+
+            # Name of current task
+            ("AVALON_TASK", None),
+
+            # Name of current app
+            ("AVALON_APP", None),
 
             # Path to working directory
             ("AVALON_WORKDIR", None),
@@ -148,8 +162,40 @@ def _from_environment():
 
             # Enable features not necessarily stable, at the user's own risk
             ("AVALON_EARLY_ADOPTER", None),
-        )
+
+            # Address of central asset repository, contains
+            # the following interface:
+            #   /upload
+            #   /download
+            #   /manager (optional)
+            ("AVALON_LOCATION", "http://127.0.0.1"),
+
+            # Boolean of whether to upload published material
+            # to central asset repository
+            ("AVALON_UPLOAD", None),
+
+            # Generic username and password
+            ("AVALON_USERNAME", "avalon"),
+            ("AVALON_PASSWORD", "secret"),
+
+            # Unique identifier for instances in working files
+            ("AVALON_INSTANCE_ID", "avalon.instance"),
+            ("AVALON_CONTAINER_ID", "avalon.container"),
+
+            # Enable debugging
+            ("AVALON_DEBUG", None),
+
+        ) if os.getenv(item[0], item[1]) is not None
     }
+
+    session["schema"] = "avalon-core:session-1.0"
+    try:
+        schema.validate(session)
+    except schema.ValidationError as e:
+        # TODO(marcus): Make this mandatory
+        log.warning(e)
+
+    return session
 
 
 def uninstall():
@@ -333,3 +379,65 @@ def parenthood(document):
         parents.append(document)
 
     return parents
+
+
+@contextlib.contextmanager
+def tempdir():
+    tempdir = tempfile.mkdtemp()
+    try:
+        yield tempdir
+    finally:
+        shutil.rmtree(tempdir)
+
+
+def download(src, dst):
+    """Download `src` to `dst`
+
+    Arguments:
+        src (str): URL to source file
+        dst (str): Absolute path to destination file
+
+    Yields tuple (progress, error):
+        progress (int): Between 0-100
+        error (Exception): Any exception raised when first making connection
+
+    """
+
+    try:
+        response = requests.get(
+            src,
+            stream=True,
+            auth=requests.auth.HTTPBasicAuth(
+                Session["AVALON_USERNAME"],
+                Session["AVALON_PASSWORD"]
+            )
+        )
+    except requests.ConnectionError as e:
+        yield None, e
+        return
+
+    with tempdir() as dirname:
+        tmp = os.path.join(dirname, os.path.basename(src))
+
+        with open(tmp, "wb") as f:
+            total_length = response.headers.get("content-length")
+
+            if total_length is None:  # no content length header
+                f.write(response.content)
+            else:
+                downloaded = 0
+                total_length = int(total_length)
+                for data in response.iter_content(chunk_size=4096):
+                    downloaded += len(data)
+                    f.write(data)
+
+                    yield int(100.0 * downloaded / total_length), None
+
+        try:
+            os.makedirs(os.path.dirname(dst))
+        except OSError as e:
+            # An already existing destination directory is fine.
+            if e.errno != errno.EEXIST:
+                raise
+
+        shutil.copy(tmp, dst)
