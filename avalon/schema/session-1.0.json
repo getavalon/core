@@ -13,8 +13,7 @@
         "AVALON_PROJECT",
         "AVALON_ASSET",
         "AVALON_SILO",
-        "AVALON_CONFIG",
-        "AVALON_APP"
+        "AVALON_CONFIG"
     ],
 
     "properties": {
@@ -62,7 +61,7 @@
         "AVALON_MONGO": {
             "description": "Address to the asset database",
             "type": "string",
-            "pattern": "^mongodb://[\\w/:.]*$",
+            "pattern": "^mongodb://[\\w/@:.]*$",
             "example": "mongodb://localhost:27017",
             "default": "mongodb://localhost:27017"
         },
@@ -133,6 +132,12 @@
             "pattern": "^[\\w.]*$",
             "default": "avalon.container",
             "example": "avalon.container"
+        },
+        "AVALON_DEBUG": {
+            "description": "Enable debugging mode. Some applications may use this for e.g. extended verbosity or mock plug-ins.",
+            "type": "string",
+            "default": null,
+            "example": "True"
         }
     }
 }
