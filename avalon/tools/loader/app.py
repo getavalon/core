@@ -380,7 +380,7 @@ QSlider::handle:horizontal:enabled {
         representation_item = representations_model.currentItem()
 
         for representation in representation_item.data(RepresentationsRole):
-            version = io.find_one({"_id": representation["parent"]})
+            version = representation["_version"]
 
             # Backwards compatibility, older members did not have this key
             locations = version.get("locations", list())
@@ -640,13 +640,23 @@ QSlider::handle:horizontal:enabled {
                 if version["name"] > highest:
                     latest_versions[parent] = version
 
+            versions_by_id = {
+                version["_id"]: version
+                for version in latest_versions.values()
+            }
+
             representations = io.find({
                 "type": "representation",
-                "parent": {"$in": [v["_id"] for v in latest_versions.values()]}
+                "parent": {"$in": list(versions_by_id.keys())}
             })
 
             for representation in representations:
                 name = representation["name"]
+
+                # Embed version, internally
+                representation["_version"] = versions_by_id[
+                    representation["parent"]
+                ]
 
                 # TODO(marcus): These are permanently excluded
                 # for now, but look towards making this customisable.
@@ -668,15 +678,20 @@ QSlider::handle:horizontal:enabled {
             version_document = version_item.data(DocumentRole)
             self.data["state"]["context"]["version"] = version_document["name"]
 
-            representations_by_name = {
-                representation["name"]: [representation]
-                for representation in io.find(
-                    {"type": "representation",
-                     "parent": version_document["_id"]})
+            representations = io.find({"type": "representation",
+                                       "parent": version_document["_id"]})
+
+            representations_by_name = {}
+            for representation in representations:
+                print(representation["name"])
 
                 # Backwards compatibility
-                if representation["name"] not in ("json", "source")
-            }
+                if representation["name"] in ("json", "source"):
+                    continue
+
+                name = representation["name"]
+                representation["_version"] = version_document
+                representations_by_name[name] = [representation]
 
             self.data["label"]["commentContainer"].show()
             comment = self.data["label"]["comment"]
@@ -764,12 +779,6 @@ QSlider::handle:horizontal:enabled {
     def on_load_pressed(self):
         models = self.data["model"]
 
-        versions_model = models["versions"]
-        version_item = versions_model.currentItem()
-        version = version_item.data(DocumentRole)
-
-        assert version is not None, "This is a bug"
-
         representations_model = models["representations"]
         representation_item = representations_model.currentItem()
         preset = self.data["label"]["preset"]
@@ -785,6 +794,7 @@ QSlider::handle:horizontal:enabled {
                           "load(representation=\"%s\")" % _id)
 
                 # Current state
+                version = document["_version"]
                 families = version["data"]["families"]
                 representation = document["name"]
 
