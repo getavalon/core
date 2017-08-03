@@ -683,7 +683,6 @@ QSlider::handle:horizontal:enabled {
 
             representations_by_name = {}
             for representation in representations:
-                print(representation["name"])
 
                 # Backwards compatibility
                 if representation["name"] in ("json", "source"):
