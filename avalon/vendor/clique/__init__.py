@@ -8,6 +8,7 @@ from collections import defaultdict
 from ._version import __version__
 from .collection import Collection
 from .error import CollectionError
+from ..six import string_types
 
 
 #: Pattern for matching an index with optional padding.
@@ -100,7 +101,7 @@ def assemble(iterable, patterns=None, minimum_items=2, case_sensitive=True):
             return collections, list(iterable)
 
         for pattern in patterns:
-            if isinstance(pattern, basestring):
+            if isinstance(pattern, string_types):
                 compiled_patterns.append(re.compile(pattern, flags=flags))
             else:
                 compiled_patterns.append(pattern)
