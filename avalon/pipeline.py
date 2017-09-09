@@ -303,10 +303,12 @@ def on(event, callback):
 
 
 def before(event, callback):
+    """Convenience to `on()` for before-events"""
     on("before_" + event, callback)
 
 
 def after(event, callback):
+    """Convenience to `on()` for after-events"""
     on("after_" + event, callback)
 
 
