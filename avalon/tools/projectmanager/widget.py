@@ -152,7 +152,7 @@ def _list_project_silos():
 
 
 class AssetModel(TreeModel):
-    """A model listing assets in the silo in the activec project.
+    """A model listing assets in the silo in the active project.
 
     The assets are displayed in a treeview, they are visually parented by
     a `visualParent` field in the database containing an `_id` to a parent
@@ -199,7 +199,7 @@ class AssetModel(TreeModel):
         else:
             find_data["data.visualParent"] = parent['_id']
 
-        assets = io.find(find_data)
+        assets = io.find(find_data).sort('name', 1)
 
         for asset in assets:
 
