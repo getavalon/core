@@ -211,7 +211,8 @@ class TasksModel(TreeModel):
 
         tasks = collections.Counter()
         for asset in assets:
-            tasks.update(asset.get("tasks", []))
+            asset_tasks = asset.get("data", {}).get("tasks", [])
+            tasks.update(asset_tasks)
 
         self.clear()
         self.beginResetModel()

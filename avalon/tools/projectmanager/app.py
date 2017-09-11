@@ -172,13 +172,13 @@ class Window(QtWidgets.QDialog):
         selected = model.get_selected_assets()
         for asset_id in selected:
             asset = io.find_one({"_id": asset_id})
-            asset_tasks = asset.get('tasks', [])
+            asset_tasks = asset.get("data", {}).get("tasks", [])
             for task in tasks:
                 if task not in asset_tasks:
                     asset_tasks.append(task)
 
             # Update the field
-            asset['tasks'] = asset_tasks
+            asset['data']['tasks'] = asset_tasks
 
             schema.validate(asset)
             io.save(asset)

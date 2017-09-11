@@ -35,15 +35,11 @@ def create_asset(data):
     if project is None:
         raise RuntimeError("Project must exist prior to creating assets")
 
-    # Link to parent by id if provided, otherwise parent to the project
-    visual_parent = data.pop("visualParent", None)
-
     asset = {
         "schema": "avalon-core:asset-2.0",
         "parent": project['_id'],
         "name": data.pop("name"),
         "silo": data.pop("silo"),
-        "visualParent": visual_parent,
         "type": "asset",
         "data": data
     }

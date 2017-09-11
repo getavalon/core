@@ -193,11 +193,11 @@ class AssetModel(TreeModel):
             # if not a parent find all that are parented to the project
             # or do *not* have a visualParent field at all
             find_data['$or'] = [
-                {'visualParent': {'$exists': False}},
-                {'visualParent': None}
+                {'data.visualParent': {'$exists': False}},
+                {'data.visualParent': None}
             ]
         else:
-            find_data["visualParent"] = parent['_id']
+            find_data["data.visualParent"] = parent['_id']
 
         assets = io.find(find_data)
 
