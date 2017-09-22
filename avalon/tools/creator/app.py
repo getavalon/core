@@ -1,7 +1,6 @@
 import os
 import sys
 
-# from ...vendor import qtawesome
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io
 from .. import lib
@@ -170,17 +169,22 @@ class Window(QtWidgets.QDialog):
         assets = [asset for asset in assets_db if asset_name in asset["name"]]
 
         if assets:
+            # Get plugin and family
+            plugin = item.data(PluginRole)
+            family = plugin.family.rsplit(".", 1)[-1]
+
             # Get all subsets of the current asset
             asset_ids = [asset["_id"] for asset in assets]
             subsets = io.find(filter={"type": "subset",
+                                      "name": {"$regex": "{}*".format(family),
+                                               "$options": "i"},
                                       "parent": {"$in": asset_ids}}) or []
 
-            subsets = [subset["name"] for subset in subsets]
+            # Get all subsets' their description name, "Default", "High", "Low"
+            subsets = [subset["name"].split(family)[-1] for subset in subsets]
             self._build_menu(subsets)
 
             # Update the result
-            plugin = item.data(PluginRole)
-            family = plugin.family.rsplit(".", 1)[-1]
             if subset_name:
                 subset_name = subset_name[0].upper() + subset_name[1:]
             result.setText("{}{}".format(family, subset_name))
