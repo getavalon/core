@@ -197,14 +197,16 @@ def discover(superclass):
         assert os.path.isdir(path), "%s is not a directory" % path
 
         for fname in os.listdir(path):
-            abspath = os.path.join(path, fname)
-
-            if not os.path.isfile(abspath):
+            # Ignore files which start with underscore
+            if fname.startswith("_"):
                 continue
 
             mod_name, mod_ext = os.path.splitext(fname)
-
             if not mod_ext == ".py":
+                continue
+
+            abspath = os.path.join(path, fname)
+            if not os.path.isfile(abspath):
                 continue
 
             module = types.ModuleType(mod_name)
