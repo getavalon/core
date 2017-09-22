@@ -155,11 +155,11 @@ class Window(QtWidgets.QDialog):
 
     def _on_data_changed(self):
 
+        listing = self.data["Listing"]
         asset_name = self.data["Asset"]
-        button = self.data["Create Button"]
         subset = self.data["Subset"]
         result = self.data["Result"]
-        listing = self.data["Listing"]
+        button = self.data["Create Button"]
 
         item = listing.currentItem()
         subset_name = subset.text()
@@ -180,13 +180,13 @@ class Window(QtWidgets.QDialog):
 
             # Update the result
             plugin = item.data(PluginRole)
+            family = plugin.family.rsplit(".", 1)[-1]
             if subset_name:
                 subset_name = subset_name[0].upper() + subset_name[1:]
-
-            result.setText("{}{}".format(plugin.name, subset_name))
+            result.setText("{}{}".format(family, subset_name))
 
             item.setData(ExistsRole, True)
-            self.echo("Ready, existing subset ..")
+            self.echo("Ready ..")
         else:
             self._build_menu([])
             item.setData(ExistsRole, False)
