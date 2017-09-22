@@ -411,6 +411,11 @@ def load(Loader,
         logger.info("WARNING: %s" % e)
         return list()
 
+    # Only containerize if any nodes were loaded by the Loader
+    nodes = loader[:]
+    if not nodes:
+        return
+
     return containerise(
         name=name,
         namespace=namespace,
