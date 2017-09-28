@@ -37,7 +37,7 @@ def install(config):
 
     # Check if maya version is compatible else fix it, Maya2018 only
     # Should be run regardless of batch mode
-    if hasattr(cmds, "about") and cmds.about(verison=True) == "2018":
+    if hasattr(cmds, "about") and cmds.about(version=True) == "2018":
         compat.install()
 
     if not IS_HEADLESS:
