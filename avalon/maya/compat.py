@@ -1,7 +1,9 @@
 """Compatibility
 
-This module is
+This module is to ensure the compatibility between Maya, Avalon and Pyblish
+is maintained.
 """
+import maya.cmds as cmds
 import os
 
 
@@ -24,6 +26,6 @@ def remove_googleapiclient():
 
 
 def install():
-    remove_googleapiclient()
-
-
+    """Run all compatibility functions"""
+    if cmds.about(version=True) == "2018":
+        remove_googleapiclient()
