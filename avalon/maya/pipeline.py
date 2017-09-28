@@ -7,7 +7,7 @@ import contextlib
 from maya import cmds, OpenMaya
 from pyblish import api as pyblish
 
-from . import lib
+from . import lib, compat
 from ..lib import logger
 from .. import api, io, schema
 from ..vendor import six
@@ -34,6 +34,10 @@ def install(config):
 
     _register_callbacks()
     _set_project()
+
+    # Check if maya version is compatible else fix it, Maya2018 only
+    # Should be run regardless of batch mode
+    compat.install()
 
     if not IS_HEADLESS:
         _install_menu()
