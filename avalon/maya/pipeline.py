@@ -663,6 +663,10 @@ def _register_callbacks():
 def _on_maya_initialized(*args):
     api.emit("init", args)
 
+    if cmds.about(batch=True):
+        logger.warning("Running batch mode ...")
+        return
+
     # Keep reference to the main Window, once a main window exists.
     self._parent = {
         widget.objectName(): widget
