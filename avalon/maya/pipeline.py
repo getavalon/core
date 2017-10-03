@@ -102,7 +102,8 @@ def _install_menu():
         if api.Session.get("AVALON_EARLY_ADOPTER"):
             cmds.menuItem("Load...",
                           command=lambda *args:
-                          cbloader.show(parent=self._parent))
+                          cbloader.show(parent=self._parent,
+                                        use_context=True))
         else:
             cmds.menuItem("Load...",
                           command=lambda *args:
