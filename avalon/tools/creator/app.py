@@ -34,7 +34,7 @@ class Window(QtWidgets.QDialog):
         asset = QtWidgets.QLineEdit()
         name = QtWidgets.QLineEdit()
         result = QtWidgets.QLineEdit()
-        result.setReadOnly(True)
+        result.setEnabled(False)
 
         # region Menu for default subset names
 
