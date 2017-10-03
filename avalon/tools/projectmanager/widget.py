@@ -152,7 +152,7 @@ def _list_project_silos():
 
 
 class AssetModel(TreeModel):
-    """A model listing assets in the silo in the activec project.
+    """A model listing assets in the silo in the active project.
 
     The assets are displayed in a treeview, they are visually parented by
     a `visualParent` field in the database containing an `_id` to a parent
@@ -199,7 +199,7 @@ class AssetModel(TreeModel):
         else:
             find_data["data.visualParent"] = parent['_id']
 
-        assets = io.find(find_data)
+        assets = io.find(find_data).sort('name', 1)
 
         for asset in assets:
 
@@ -553,3 +553,39 @@ class AssetWidget(QtWidgets.QWidget):
         selection = self.view.selectionModel()
         rows = selection.selectedRows()
         return [row.data(self.model.ObjectIdRole) for row in rows]
+
+    def select_assets(self, assets, expand=True):
+        """Select assets by name.
+        
+        Args:
+            assets (list): List of asset names
+            expand (bool): Whether to also expand to the asset in the view
+        
+        Returns:
+            None
+        
+        """
+        # TODO: Instead of individual selection optimize for many assets
+
+        assert isinstance(assets,
+                          (tuple, list)), "Assets must be list or tuple"
+
+        # Clear selection
+        selection_model = self.view.selectionModel()
+        selection_model.clearSelection()
+
+        # Select
+        mode = selection_model.Select | selection_model.Rows
+        for index in _iter_model_rows(self.proxy,
+                                      column=0,
+                                      include_root=False):
+            data = index.data(self.model.NodeRole)
+            name = data['name']
+            if name in assets:
+                selection_model.select(index, mode)
+
+                if expand:
+                    self.view.expand(index)
+
+                # Set the currently active index
+                self.view.setCurrentIndex(index)

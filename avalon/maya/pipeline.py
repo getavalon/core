@@ -102,7 +102,8 @@ def _install_menu():
         if api.Session.get("AVALON_EARLY_ADOPTER"):
             cmds.menuItem("Load...",
                           command=lambda *args:
-                          cbloader.show(parent=self._parent))
+                          cbloader.show(parent=self._parent,
+                                        use_context=True))
         else:
             cmds.menuItem("Load...",
                           command=lambda *args:
@@ -415,6 +416,11 @@ def load(Loader,
         logger.info("WARNING: %s" % e)
         return list()
 
+    # Only containerize if any nodes were loaded by the Loader
+    nodes = loader[:]
+    if not nodes:
+        return
+
     return containerise(
         name=name,
         namespace=namespace,
@@ -657,6 +663,10 @@ def _register_callbacks():
 
 def _on_maya_initialized(*args):
     api.emit("init", args)
+
+    if cmds.about(batch=True):
+        logger.warning("Running batch mode ...")
+        return
 
     # Keep reference to the main Window, once a main window exists.
     self._parent = {

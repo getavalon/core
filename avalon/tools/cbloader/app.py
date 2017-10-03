@@ -111,6 +111,10 @@ class Window(QtWidgets.QDialog):
         self.echo("Fetching results..")
         lib.schedule(self._versionschanged, 100, channel="mongo")
 
+    def set_context(self, context):
+        self.echo("Setting context: {}".format(context))
+        lib.schedule(lambda: self._set_context(context), 100, channel="mongo")
+
     # ------------------------------
 
     def _refresh(self):
@@ -176,6 +180,36 @@ class Window(QtWidgets.QDialog):
 
         self.data['model']['version'].set_version(version)
 
+    def _set_context(self, context):
+        """Set the selection in the interface using a context.
+        
+        The context must contain `silo` and `asset` data by name.
+        
+        Note: Prior to setting context ensure `refresh` is triggered so that
+              the "silos" are listed correctly, aside from that setting the
+              context will force a refresh further down because it changes
+              the active silo and asset.
+        
+        Args:
+            context (dict): The context to apply.
+            
+        Returns:
+            None
+        
+        """
+
+        silo = context.get("silo", None)
+        if silo is None:
+            return
+
+        asset = context.get("asset", None)
+        if asset is None:
+            return
+
+        asset_widget = self.data['model']['assets']
+        asset_widget.model.set_silo(silo)
+        asset_widget.select_assets([asset], expand=True)
+
     def echo(self, message):
         widget = self.data["label"]["message"]
         widget.setText(str(message))
@@ -205,12 +239,14 @@ class Window(QtWidgets.QDialog):
         return super(Window, self).closeEvent(event)
 
 
-def show(root=None, debug=False, parent=None):
+def show(root=None, debug=False, parent=None, use_context=False):
     """Display Loader GUI
 
     Arguments:
         debug (bool, optional): Run loader in debug-mode,
             defaults to False
+        parent (QtCore.QObject, optional): The Qt object to parent to.
+        use_context (bool): Whether to apply the current context upon launch
 
     """
 
@@ -244,5 +280,10 @@ def show(root=None, debug=False, parent=None):
         window.show()
 
         window.refresh()
+
+        if use_context:
+            context = {"asset": os.environ['AVALON_ASSET'],
+                       "silo": os.environ['AVALON_SILO']}
+            window.set_context(context)
 
         module.window = window
