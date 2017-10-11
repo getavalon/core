@@ -54,12 +54,18 @@ def iter_loaders(representation):
 
 
 def run_loader(Loader,
-               representation):
+               representation,
+               name=None,
+               namespace=None,
+               data=None):
     """Run the loader on representation.
     
     Args:
         Loader (api.Loader): The loader class to run.
         representation (str): The representation database id.
+        name (str): optional, name of the subset
+        namespace (str): optional, namespace
+        data (dict): optional argument
     
     """
 
@@ -68,4 +74,8 @@ def run_loader(Loader,
         raise RuntimeError("Loader is not compatible.")
 
     host = api.registered_host()
-    return host.load(Loader, representation=representation)
+    return host.load(Loader,
+                     representation=representation,
+                     name=name,
+                     namespace=namespace,
+                     data=data)
