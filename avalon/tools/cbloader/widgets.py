@@ -12,13 +12,6 @@ from .delegates import PrettyTimeDelegate, VersionDelegate
 from . import lib
 
 
-def _get_representations(version_id):
-    """Return available representations representations for a version"""
-    return [representation for representation in
-            io.find({"type": "representation", "parent": version_id})
-            if representation["name"] not in ("json", "source")]
-
-
 class SubsetWidget(QtWidgets.QWidget):
     """A widget that lists the published subsets for an asset"""
 
@@ -98,7 +91,9 @@ class SubsetWidget(QtWidgets.QWidget):
         loaders = list()
         node = point_index.data(self.model.NodeRole)
         version_id = node['version_document']['_id']
-        for representation in _get_representations(version_id):
+        representations = io.find({"type": "representation",
+                                   "parent": version_id})
+        for representation in representations:
             for loader in lib.iter_loaders(representation["_id"]):
                 loaders.append((representation, loader))
 
