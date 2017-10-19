@@ -295,7 +295,7 @@ def containerise(name,
         container (str): Name of container assembly
 
     """
-
+    AVALON_CONTAINERS = "AVALON_CONTAINERS"
     container = cmds.sets(nodes, name="%s_%s_%s" % (namespace, name, suffix))
 
     data = [
@@ -319,8 +319,14 @@ def containerise(name,
             cmds.addAttr(container, longName=key, dataType="string")
             cmds.setAttr(container + "." + key, value, type="string")
 
-    # Hide in outliner
-    cmds.setAttr(container + ".verticesOnlySet", True)
+    main_container = cmds.ls(AVALON_CONTAINERS, type="objectSet")
+    if not main_container:
+        main_container = cmds.sets(empty=True, name=AVALON_CONTAINERS)
+    else:
+        main_container = main_container[0]
+
+    # addElement requires the set to which the items need to be added to
+    cmds.sets(container, addElement=main_container)
 
     return container
 
