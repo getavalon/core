@@ -63,7 +63,8 @@ def unique_namespace(namespace, format="%02d", prefix="", suffix=""):
     iteration = 1
     unique = prefix + (namespace + format % iteration) + suffix
 
-    while unique in cmds.namespaceInfo(listNamespace=True):
+    existing = set(cmds.namespaceInfo(listNamespace=True))
+    while unique in existing:
         iteration += 1
         unique = prefix + (namespace + format % iteration) + suffix
 
