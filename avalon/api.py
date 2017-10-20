@@ -92,8 +92,6 @@ __all__ = [
     "deregister_plugin",
     "deregister_plugin_path",
 
-    "get_representation_path",
-
     "logger",
     "time",
 ]
