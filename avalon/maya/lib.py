@@ -111,6 +111,12 @@ def export_alembic(nodes,
 
     """
 
+    if frame_range is None:
+        frame_range = (
+            cmds.playbackOptions(query=True, ast=True),
+            cmds.playbackOptions(query=True, aet=True)
+        )
+
     options = [
         ("file", file),
         ("frameRange", "%s %s" % frame_range),
@@ -129,12 +135,6 @@ def export_alembic(nodes,
 
     if write_visibility:
         options.append(("writeVisibility", ""))
-
-    if frame_range is None:
-        frame_range = (
-            cmds.playbackOptions(query=True, ast=True),
-            cmds.playbackOptions(query=True, aet=True)
-        )
 
     # Generate MEL command
     mel_args = list()
