@@ -301,13 +301,12 @@ class Window(QtWidgets.QDialog):
             return
 
         try:
-            host = api.registered_host()
-            host.create(subset_name,
-                        asset,
-                        family,
-                        options={"useSelection":
-                                 useselection_chk.checkState()}
-                        )
+            api.create(subset_name,
+                       asset,
+                       family,
+                       options={"useSelection":
+                                useselection_chk.checkState()}
+                       )
 
         except NameError as e:
             self.echo(e)

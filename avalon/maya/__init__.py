@@ -12,10 +12,6 @@ from .pipeline import (
     Loader,
 
     ls,
-    load,
-    create,
-    remove,
-    update,
     publish,
     containerise,
 
@@ -49,12 +45,8 @@ __all__ = [
     "Loader",
 
     "ls",
-    "load",
-    "create",
-    "remove",
-    "update",
-    "read",
     "publish",
+    "containerise",
 
     "lock",
     "unlock",
@@ -73,5 +65,4 @@ __all__ = [
     "maintained_selection",
     "suspended_refresh",
 
-    "containerise",
 ]
