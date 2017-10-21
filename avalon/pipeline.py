@@ -707,6 +707,10 @@ def load(Loader, representation, namespace=None, name=None, data=None):
         data = dict()
     assert isinstance(data, dict), "Data must be a dictionary"
 
+    # Fallback to subset when name is None
+    if name is None:
+        name = context['subset']['name']
+
     # todo(roy): Ensure the Loader is valid for the representation
 
     log.info(
