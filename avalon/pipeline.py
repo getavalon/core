@@ -718,7 +718,10 @@ def load(Loader, representation, namespace=None, name=None, data=None):
     )
 
     loader = Loader(context)
-    return loader.load(context, namespace, name, data)
+    return loader.load(context=context,
+                       name=name,
+                       namespace=namespace,
+                       data=data)
 
 
 def _get_container_loader(container):
