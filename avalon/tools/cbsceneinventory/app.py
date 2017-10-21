@@ -183,8 +183,6 @@ class View(QtWidgets.QTreeView):
 
         active = items[-1]
 
-        print active
-
         # Get available versions for active representation
         representation_id = io.ObjectId(active["representation"])
         representation = io.find_one({"_id": representation_id})
