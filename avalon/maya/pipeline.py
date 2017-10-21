@@ -295,7 +295,7 @@ def containerise(name,
         container (str): Name of container assembly
 
     """
-    AVALON_CONTAINERS = "AVALON_CONTAINERS"
+    AVALON_CONTAINERS = ":AVALON_CONTAINERS"
     container = cmds.sets(nodes, name="%s_%s_%s" % (namespace, name, suffix))
 
     data = [
