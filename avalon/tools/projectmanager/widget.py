@@ -554,6 +554,10 @@ class AssetWidget(QtWidgets.QWidget):
         rows = selection.selectedRows()
         return [row.data(self.model.ObjectIdRole) for row in rows]
 
+    def set_silo(self, silo):
+        """Set the active silo tab"""
+        self.silo.set_current_silo(silo)
+
     def select_assets(self, assets, expand=True):
         """Select assets by name.
         

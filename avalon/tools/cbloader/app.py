@@ -207,7 +207,6 @@ class Window(QtWidgets.QDialog):
         if asset is None:
             return
 
-        asset_widget = self.data['model']['assets']
         if refresh:
             # Workaround:
             # Force a direct (non-scheduled) refresh prior to setting the
@@ -217,7 +216,8 @@ class Window(QtWidgets.QDialog):
             # scheduled refresh and the silo tabs are not shown.
             self._refresh()
 
-        asset_widget.model.set_silo(silo)
+        asset_widget = self.data['model']['assets']
+        asset_widget.set_silo(silo)
         asset_widget.select_assets([asset], expand=True)
 
     def echo(self, message):
