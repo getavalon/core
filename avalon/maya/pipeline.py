@@ -408,9 +408,6 @@ class ReferenceLoader(Loader):
              data=None):
 
         asset = context['asset']['name']
-        subset = context['subset']['name']
-
-        name = name or subset
         namespace = namespace or lib.unique_namespace(
             asset + "_",
             prefix="_" if asset[0].isdigit() else "",
