@@ -331,6 +331,30 @@ def containerise(name,
     return container
 
 
+def parse_container(container, validate=True):
+    """Return the container node's full container data.
+    
+    Args:
+        container (str): A container node name. 
+
+    Returns:
+        dict: The container schema data for this container node.
+        
+    """
+    data = lib.read(container)
+
+    # Backwards compatibility pre-schemas for containers
+    data["schema"] = data.get("schema", "avalon-core:container-1.0")
+
+    # Append transient data
+    data["objectName"] = container
+
+    if validate:
+        schema.validate(data)
+
+    return data
+
+
 def ls():
     """List containers from active Maya scene
 
@@ -346,16 +370,7 @@ def ls():
         containers += lib.lsattr("id", identifier)
 
     for container in sorted(containers):
-        data = lib.read(container)
-
-        # Backwards compatibility pre-schemas for containers
-        data["schema"] = data.get("schema", "avalon-core:container-1.0")
-
-        # Append transient data
-        data["objectName"] = container
-
-        schema.validate(data)
-
+        data = parse_container(container)
         yield data
 
 
