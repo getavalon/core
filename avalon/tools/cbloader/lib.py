@@ -75,6 +75,6 @@ def run_loader(Loader,
 
     return api.load(Loader,
                     representation=representation,
-                    name=name,
                     namespace=namespace,
+                    name=name,
                     data=data)
