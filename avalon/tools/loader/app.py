@@ -863,16 +863,7 @@ def show(root=None, debug=False, parent=None):
     # Remember window
     if module.window is not None:
         try:
-            module.window.show()
-
-            # If the window is minimized then unminimize it.
-            if module.window.windowState() & QtCore.Qt.WindowMinimized:
-                module.window.setWindowState(QtCore.Qt.WindowActive)
-
-            # Raise and activate the window
-            module.window.raise_()             # for MacOS
-            module.window.activateWindow()     # for Windows
-            return
+            return module.window.show()
         except RuntimeError as e:
             if not e.message.rstrip().endswith("already deleted."):
                 raise
