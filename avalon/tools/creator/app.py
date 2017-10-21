@@ -403,7 +403,7 @@ class FamilyDescriptionWidget(QtWidgets.QWidget):
 
         # Support a font-awesome icon
         plugin = item.data(PluginRole)
-        icon = getattr(plugin, "icon", "filter")
+        icon = getattr(plugin, "icon", "info-circle")
         assert isinstance(icon, (str, unicode))
         icon = qtawesome.icon("fa.{}".format(icon), color="white")
         pixmap = icon.pixmap(self.SIZE, self.SIZE)
