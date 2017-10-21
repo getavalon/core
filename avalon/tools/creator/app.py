@@ -132,7 +132,7 @@ class Window(QtWidgets.QDialog):
         self.data['Create Button'].setEnabled(state)
 
     def _build_menu(self, default_names):
-        """Create optional predefines subset names
+        """Create optional predefined subset names
 
         Args:
             default_names(list): all predefined names
