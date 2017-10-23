@@ -12,6 +12,10 @@ from .pipeline import (
     Loader,
 
     ls,
+    load,               # deprecated (old load api)
+    create,             # deprecated (old creator api)
+    remove,             # deprecated (old load api)
+    update,             # deprecated (old load api)
     publish,
     containerise,
 
@@ -19,6 +23,7 @@ from .pipeline import (
     unlock,
     is_locked,
     lock_ignored,
+
 )
 
 from .lib import (
@@ -45,8 +50,11 @@ __all__ = [
     "Loader",
 
     "ls",
+    "load",
+    "create",
+    "remove",
+    "update",
     "publish",
-    "containerise",
 
     "lock",
     "unlock",
@@ -56,6 +64,7 @@ __all__ = [
     "export_alembic",
     "lsattr",
     "lsattrs",
+    "read",
 
     "unique_name",
     "unique_namespace",

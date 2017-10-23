@@ -9,9 +9,12 @@ from pyblish import api as pyblish
 
 from . import lib, compat
 from ..lib import logger
-from .. import api, io, schema
-from ..vendor import six
+from .. import api, schema
 from ..vendor.Qt import QtCore, QtWidgets
+
+# Backwards compatibility
+from .compat import load, update, remove
+from ..pipeline import create
 
 self = sys.modules[__name__]
 self._menu = "avalonmaya"  # Unique name of menu
@@ -395,138 +398,6 @@ class Loader(api.Loader):
         self.fname = self.fname.replace(
             api.registered_root(), "$AVALON_PROJECTS"
         )
-
-
-class ReferenceLoader(Loader):
-    """A basic loader that loads a Maya reference
-    
-    For backwards compatibility you can update your old Maya loaders from this
-    and it should work with the new loader methodology without `host.load`, 
-    `host.remove` and `host.update`. All you need to implement is the same
-    `process()` method as before.
-    
-    """
-
-    representations = ["ma", "mb", "abc"]
-
-    # Extension to maya file type conversion - for `update()` method
-    file_types = {
-        "ma": "mayaAscii",
-        "mb": "mayaBinary",
-        "abc": "Alembic"
-    }
-
-    def load(self,
-             context,
-             name=None,
-             namespace=None,
-             data=None):
-
-        asset = context['asset']['name']
-        namespace = namespace or lib.unique_namespace(
-            asset + "_",
-            prefix="_" if asset[0].isdigit() else "",
-            suffix="_",
-        )
-
-        try:
-            with lib.maintained_selection():
-                self.process(name, namespace, context, data)
-        except OSError as e:
-            logger.info("WARNING: %s" % e)
-            return list()
-
-        # Only containerize if any nodes were loaded by the Loader
-        nodes = self[:]
-        if not nodes:
-            return
-
-        return containerise(
-            name=name,
-            namespace=namespace,
-            nodes=nodes,
-            context=context,
-            loader=self.__class__.__name__)
-
-    def update(self, container, new_representation):
-        """
-        
-        This function relies on a container being referenced. At the time of 
-        this writing, all assets - models, rigs, animations, shaders - are 
-        referenced and should pose no problem. But should there be an asset 
-        that isn't referenced then this function will need to see an update.
-        
-        """
-
-        fname = api.get_representation_path(new_representation)
-        node = container["objectName"]
-
-        # Assume asset has been referenced
-        reference_node = next((node for node in cmds.sets(node, query=True)
-                               if cmds.nodeType(node) == "reference"), None)
-
-        assert reference_node, ("Imported container not supported; "
-                                "container must be referenced.")
-
-        file_type = self.file_types.get(new_representation["name"])
-
-        assert file_type, ("Unsupported representation: %s" %
-                           new_representation)
-
-        assert os.path.exists(fname), "%s does not exist." % fname
-        cmds.file(fname, loadReference=reference_node, type=file_type)
-
-        # Update metadata
-        cmds.setAttr(container["objectName"] + ".representation",
-                     str(new_representation["_id"]),
-                     type="string")
-
-    def remove(self, container):
-        """Remove an existing `container` from Maya scene
-
-        Arguments:
-            container (avalon-core:container-1.0): Which container
-                to remove from scene.
-
-        """
-
-        node = container["objectName"]
-
-        # Assume asset has been referenced
-        reference_node = next((node for node in cmds.sets(node, query=True)
-                               if cmds.nodeType(node) == "reference"), None)
-
-        assert reference_node, ("Imported container not supported; "
-                                "container must be referenced.")
-
-        logger.info("Removing '%s' from Maya.." % container["name"])
-
-        namespace = cmds.referenceQuery(reference_node, namespace=True)
-        fname = cmds.referenceQuery(reference_node, filename=True)
-        cmds.file(fname, removeReference=True)
-
-        try:
-            cmds.delete(node)
-        except ValueError:
-            # Already implicitly deleted by Maya upon removing reference
-            pass
-
-        try:
-            # If container is not automatically cleaned up by May (issue #118)
-            cmds.namespace(removeNamespace=namespace,
-                           deleteNamespaceContent=True)
-        except RuntimeError:
-            pass
-
-    def process(self, name, namespace, context, data):
-        """This method is here to preserve backwards compatibility.
-        
-        
-        """
-        self.log.error("When inheriting from `ReferenceLoader` you must "
-                       "implement the `process()` method.")
-        raise RuntimeError("No ReferenceLoader process implemented. "
-                           "See log for details.")
 
 
 def publish():

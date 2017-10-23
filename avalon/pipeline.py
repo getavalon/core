@@ -698,7 +698,30 @@ def _get_representation_context(representation):
     return context
 
 
+def _make_backwards_compatible_loader(Loader):
+    """Convert a old-style Loaders with `process` method to new-style Loader
+    
+    This will make a dynamic class inheriting the old-style loader together
+    with a BackwardsCompatibleLoader. This backwards compatible loader will
+    expose `load`, `remove` and `update` in the same old way for Maya loaders.
+    
+    The `load` method will then call `process()` just like before.
+    
+    """
+
+    # Assume new-style loader when no `process` method is exposed
+    # then we don't swap the loader with a backwards compatible one.
+    if not hasattr(Loader, "process"):
+        return Loader
+
+    log.warning("Making loader backwards compatible: %s", Loader.__name__)
+    from avalon.maya.compat import BackwardsCompatibleLoader
+    return type(Loader.__name__, (BackwardsCompatibleLoader, Loader), {})
+
+
 def load(Loader, representation, namespace=None, name=None, data=None):
+
+    Loader = _make_backwards_compatible_loader(Loader)
 
     context = _get_representation_context(representation)
 
@@ -742,6 +765,8 @@ def remove(container):
     if not Loader:
         raise RuntimeError("Can't remove container. See log for details.")
 
+    Loader = _make_backwards_compatible_loader(Loader)
+
     loader = Loader(_get_representation_context(container['representation']))
     return loader.remove(container)
 
@@ -783,6 +808,9 @@ def update(container, version=-1):
     Loader = _get_container_loader(container)
     if not Loader:
         raise RuntimeError("Can't update container. See log for details.")
+
+    Loader = _make_backwards_compatible_loader(Loader)
+
     loader = Loader(_get_representation_context(container['representation']))
     return loader.update(container, new_representation)
 
