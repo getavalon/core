@@ -261,15 +261,15 @@ class BackwardsCompatibleLoader(avalon.pipeline.Loader):
              name=None,
              namespace=None,
              data=None):
-        load(Loader=self.__class__,
-             representation=context['representation'],
-             name=name,
-             namespace=namespace,
-             data=data)
+        return load(Loader=self.__class__,
+                    representation=context['representation'],
+                    name=name,
+                    namespace=namespace,
+                    data=data)
 
     def remove(self, container):
-        remove(container)
+        return remove(container)
 
     def update(self, container, representation):
         version = representation['context']['version']
-        update(container, version=version)
+        return update(container, version=version)
