@@ -1,8 +1,11 @@
-![](https://user-images.githubusercontent.com/2152766/27429443-fefb534e-573c-11e7-8b0d-6b99ff1d9870.png)
+<p align="center">
+  <img align="center" src=https://user-images.githubusercontent.com/2152766/27429443-fefb534e-573c-11e7-8b0d-6b99ff1d9870.png>
+</p>
+<p align="center">
+  The safe post-production pipeline
+</p>
 
 [![Build Status](https://travis-ci.org/getavalon/core.svg?branch=master)](https://travis-ci.org/getavalon/core) [![Coverage Status](https://coveralls.io/repos/github/getavalon/core/badge.svg?branch=master)](https://coveralls.io/github/getavalon/core?branch=master)
-
-The safe post-production pipeline
 
 - [Documentation](https://getavalon.github.io)
 - [Installation](https://getavalon.github.io/2.0/howto)
