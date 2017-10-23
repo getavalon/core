@@ -183,15 +183,16 @@ class Loader(list):
 
     def remove(self, container):
         """Remove a container
-        
+
         Arguments:
             container (avalon-core:container-1.0): Container to remove,
                 from `host.ls()`.
-                
+
         Returns:
             bool: Whether the container was deleted
-            
+
         """
+
         raise NotImplementedError("Loader.remove() must be "
                                   "implemented by subclass")
 
@@ -665,6 +666,7 @@ def create(name, asset, family, options=None, data=None):
             plugin = Plugin(name, asset, options, data)
 
             with host.maintained_selection():
+                print("Running %s" % plugin)
                 instance = plugin.process()
         except Exception as e:
             log.warning(e)
@@ -673,6 +675,7 @@ def create(name, asset, family, options=None, data=None):
         plugins.append(plugin)
 
     assert plugins, "No Creator plug-ins were run, this is a bug"
+    print("Here: %s" % instance)
     return instance
 
 
@@ -703,13 +706,13 @@ def _get_representation_context(representation):
 
 def _make_backwards_compatible_loader(Loader):
     """Convert a old-style Loaders with `process` method to new-style Loader
-    
+
     This will make a dynamic class inheriting the old-style loader together
     with a BackwardsCompatibleLoader. This backwards compatible loader will
     expose `load`, `remove` and `update` in the same old way for Maya loaders.
-    
+
     The `load` method will then call `process()` just like before.
-    
+
     """
 
     # Assume new-style loader when no `process` method is exposed
@@ -723,14 +726,13 @@ def _make_backwards_compatible_loader(Loader):
 
 
 def load(Loader, representation, namespace=None, name=None, data=None):
-
     Loader = _make_backwards_compatible_loader(Loader)
-
     context = _get_representation_context(representation)
 
     # Ensure data is a dictionary when no explicit data provided
     if data is None:
         data = dict()
+
     assert isinstance(data, dict), "Data must be a dictionary"
 
     # Fallback to subset when name is None

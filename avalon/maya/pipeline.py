@@ -13,8 +13,10 @@ from .. import api, schema
 from ..vendor.Qt import QtCore, QtWidgets
 
 # Backwards compatibility
-from .compat import load, update, remove
-from ..pipeline import create
+load = compat.load
+update = compat.update
+remove = compat.remove
+create = compat.create
 
 self = sys.modules[__name__]
 self._menu = "avalonmaya"  # Unique name of menu
@@ -336,14 +338,15 @@ def containerise(name,
 
 def parse_container(container, validate=True):
     """Return the container node's full container data.
-    
+
     Args:
-        container (str): A container node name. 
+        container (str): A container node name.
 
     Returns:
         dict: The container schema data for this container node.
-        
+
     """
+
     data = lib.read(container)
 
     # Backwards compatibility pre-schemas for containers

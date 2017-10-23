@@ -11,6 +11,8 @@ import avalon.pipeline
 
 log = logging.getLogger(__name__)
 
+create = avalon.pipeline.create
+
 
 def remove_googleapiclient():
     """Check if the compatibility must be maintained
@@ -42,7 +44,7 @@ def load(Loader,
          namespace=None,
          data=None):
     """Load asset via database
-    
+
     Deprecated; this functionality is replaced by `api.load()`
 
     Arguments:
@@ -121,7 +123,7 @@ def load(Loader,
 
 def update(container, version=-1):
     """Update `container` to `version`
-    
+
     Deprecated; this functionality is replaced by `api.update()`
 
     This function relies on a container being referenced. At the time of this
@@ -207,7 +209,7 @@ def update(container, version=-1):
 
 def remove(container):
     """Remove an existing `container` from Maya scene
-    
+
     Deprecated; this functionality is replaced by `api.remove()`
 
     Arguments:
@@ -248,10 +250,10 @@ class BackwardsCompatibleLoader(avalon.pipeline.Loader):
     """A backwards compatible loader.
 
     This triggers the old-style `process` through the old Maya's host `load`,
-    `update` and `remove` methods and exposes it through the new-style Loader 
+    `update` and `remove` methods and exposes it through the new-style Loader
     api.
-    
-    Note: This inherits from `avalon.pipeline.Loader` and *not* from 
+
+    Note: This inherits from `avalon.pipeline.Loader` and *not* from
         `avalon.maya.pipeline.Loader`
 
     """
