@@ -36,10 +36,6 @@ def setup():
     host = types.ModuleType("Test")
     host.__dict__.update({
         "ls": lambda: [],
-        "create": lambda name, asset, family, options, data: None,
-        "load": lambda Loader, representation: None,
-        "update": lambda container, version: None,
-        "remove": lambda container: None,
     })
 
     pipeline.register_host(host)

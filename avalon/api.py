@@ -29,6 +29,12 @@ from .pipeline import (
     emit,
 
     publish,
+    create,
+    load,
+    update,
+    remove,
+
+    get_representation_path,
 
     register_root,
     register_host,
@@ -67,6 +73,12 @@ __all__ = [
     "emit",
 
     "publish",
+    "create",
+    "load",
+    "update",
+    "remove",
+
+    "get_representation_path",
 
     "register_host",
     "register_plugin_path",

@@ -111,9 +111,10 @@ class Window(QtWidgets.QDialog):
         self.echo("Fetching results..")
         lib.schedule(self._versionschanged, 100, channel="mongo")
 
-    def set_context(self, context):
+    def set_context(self, context, refresh=True):
         self.echo("Setting context: {}".format(context))
-        lib.schedule(lambda: self._set_context(context), 100, channel="mongo")
+        lib.schedule(lambda: self._set_context(context, refresh=refresh),
+                     100, channel="mongo")
 
     # ------------------------------
 
@@ -180,7 +181,7 @@ class Window(QtWidgets.QDialog):
 
         self.data['model']['version'].set_version(version)
 
-    def _set_context(self, context):
+    def _set_context(self, context, refresh=True):
         """Set the selection in the interface using a context.
         
         The context must contain `silo` and `asset` data by name.
@@ -206,8 +207,17 @@ class Window(QtWidgets.QDialog):
         if asset is None:
             return
 
+        if refresh:
+            # Workaround:
+            # Force a direct (non-scheduled) refresh prior to setting the
+            # asset widget's silo and asset selection to ensure it's correctly
+            # displaying the silo tabs. Calling `window.refresh()` and directly
+            # `window.set_context()` the `set_context()` seems to override the
+            # scheduled refresh and the silo tabs are not shown.
+            self._refresh()
+
         asset_widget = self.data['model']['assets']
-        asset_widget.model.set_silo(silo)
+        asset_widget.set_silo(silo)
         asset_widget.select_assets([asset], expand=True)
 
     def echo(self, message):
@@ -253,7 +263,16 @@ def show(root=None, debug=False, parent=None, use_context=False):
     # Remember window
     if module.window is not None:
         try:
-            return module.window.show()
+            module.window.show()
+
+            # If the window is minimized then unminimize it.
+            if module.window.windowState() & QtCore.Qt.WindowMinimized:
+                module.window.setWindowState(QtCore.Qt.WindowActive)
+
+            # Raise and activate the window
+            module.window.raise_()             # for MacOS
+            module.window.activateWindow()     # for Windows
+            return
         except RuntimeError as e:
             if not e.message.rstrip().endswith("already deleted."):
                 raise
@@ -279,11 +298,11 @@ def show(root=None, debug=False, parent=None, use_context=False):
         window = Window(parent)
         window.show()
 
-        window.refresh()
-
         if use_context:
             context = {"asset": os.environ['AVALON_ASSET'],
                        "silo": os.environ['AVALON_SILO']}
-            window.set_context(context)
+            window.set_context(context, refresh=True)
+        else:
+            window.refresh()
 
         module.window = window

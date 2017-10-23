@@ -154,11 +154,43 @@ class Loader(list):
         data["silo"] = context["asset"]["silo"]
 
         fname = template.format(**data)
-
         self.fname = fname
 
-    def process(self, name, namespace, context, data):
+    def load(self, context, name=None, namespace=None, data=None):
+        """Load asset via database
+
+        Arguments:
+            context (dict): Full parenthood of representation to load
+            name (str, optional): Use pre-defined name
+            namespace (str, optional): Use pre-defined namespace
+            data (dict, optional): Additional settings dictionary
+
+        """
         pass
+
+    def update(self, container, representation):
+        """Update `container` to `representation`
+
+        Arguments:
+            container (avalon-core:container-1.0): Container to update,
+                from `host.ls()`.
+            representation (dict): Update the container to this representation.
+
+        """
+        pass
+
+    def remove(self, container):
+        """Remove a container
+        
+        Arguments:
+            container (avalon-core:container-1.0): Container to remove,
+                from `host.ls()`.
+                
+        Returns:
+            bool: Whether the container was deleted
+            
+        """
+        return False
 
 
 @lib.log
@@ -255,6 +287,14 @@ def plugin_from_module(superclass, module):
 
     types = list()
 
+    def recursive_bases(klass):
+        r = []
+        bases = klass.__bases__
+        r.extend(bases)
+        for base in bases:
+            r.extend(recursive_bases(base))
+        return r
+
     for name in dir(module):
 
         # It could be anything at this point
@@ -263,15 +303,14 @@ def plugin_from_module(superclass, module):
         if not inspect.isclass(obj):
             continue
 
-        bases = obj.__bases__
-
         # These are subclassed from nothing, not even `object`
-        if not len(bases) > 0:
+        if not len(obj.__bases__) > 0:
             continue
 
         # Use string comparison rather than `issubclass`
         # in order to support reloading of this module.
-        if bases[0].__name__ != superclass.__name__:
+        bases = recursive_bases(obj)
+        if not any(base.__name__ == superclass.__name__ for base in bases):
             continue
 
         types.append(obj)
@@ -422,26 +461,7 @@ def register_host(host):
 
     """
     signatures = {
-        "load": [
-            "Loader",
-            "representation"
-        ],
-        "create": [
-            "name",
-            "family",
-            "asset",
-            "options",
-            "data"
-        ],
-        "ls": [
-        ],
-        "update": [
-            "container",
-            "version"
-        ],
-        "remove": [
-            "container"
-        ],
+        "ls": []
     }
 
     _validate_signature(host, signatures)
@@ -555,24 +575,8 @@ def default_host():
     def ls():
         return list()
 
-    def load(Loader=None,
-             representation=None,
-             name=None,
-             namespace=None,
-             data=None):
-        return None
-
-    def create(family):
-        return "instanceFromDefaultHost"
-
-    def remove(container):
-        print("Removing '%s' from defaultHost.." % container["name"])
-
     host.__dict__.update({
-        "ls": ls,
-        "load": load,
-        "create": create,
-        "remove": remove,
+        "ls": ls
     })
 
     return host
@@ -580,7 +584,6 @@ def default_host():
 
 def debug_host():
     """A debug host, useful to debugging features that depend on a host"""
-    from pprint import pformat
 
     host = types.ModuleType("debugHost")
 
@@ -607,40 +610,194 @@ def debug_host():
         for container in containers:
             yield container
 
-    def load(Loader,
-             representation=None,
-             name=None,
-             namespace=None,
-             data=None):
-        sys.stdout.write(pformat({
-            "loader": Loader,
-            "representation": representation
-        }) + "\n"),
-
-        return None
-
-    def create(name, asset, family, options=None, data=None):
-        sys.stdout.write(pformat({
-            "family": family,
-        }))
-        return "instanceFromDebugHost"
-
-    def update(container, version=-1):
-        print("Grading '{name}' from '{from_}' to '{to_}'".format(
-            name=container["name"],
-            from_=container["version"],
-            to_=version
-        ))
-
-    def remove(container):
-        print("Removing '%s' from debugHost.." % container["name"])
-
     host.__dict__.update({
-        "ls": ls,
-        "load": load,
-        "create": create,
-        "update": update,
-        "remove": remove,
+        "ls": ls
     })
 
     return host
+
+
+def create(name, asset, family, options=None, data=None):
+    """Create a new instance
+
+    Associate nodes with a subset and family. These nodes are later
+    validated, according to their `family`, and integrated into the
+    shared environment, relative their `subset`.
+
+    Data relative each family, along with default data, are imprinted
+    into the resulting objectSet. This data is later used by extractors
+    and finally asset browsers to help identify the origin of the asset.
+
+    Arguments:
+        name (str): Name of subset
+        asset (str): Name of asset
+        family (str): Name of family
+        options (dict, optional): Additional options from GUI
+        data (dict, optional): Additional data from GUI
+
+    Raises:
+        NameError on `subset` already exists
+        KeyError on invalid dynamic property
+        RuntimeError on host error
+
+    Returns:
+        Name of instance
+
+    """
+
+    host = registered_host()
+
+    plugins = list()
+    for Plugin in discover(Creator):
+        has_family = family == Plugin.family
+
+        if not has_family:
+            continue
+
+        Plugin.log.info(
+            "Creating '%s' with '%s'" % (name, Plugin.__name__)
+        )
+
+        try:
+            plugin = Plugin(name, asset, options, data)
+
+            with host.maintained_selection():
+                instance = plugin.process()
+        except Exception as e:
+            log.warning(e)
+            continue
+
+        plugins.append(plugin)
+
+    assert plugins, "No Creator plug-ins were run, this is a bug"
+    return instance
+
+
+def _get_representation_context(representation):
+
+    assert representation is not None, "This is a bug"
+
+    if isinstance(representation, (six.string_types, io.ObjectId)):
+        representation = io.find_one(
+            {"_id": io.ObjectId(str(representation))})
+
+    version, subset, asset, project = io.parenthood(representation)
+
+    assert all([representation, version, subset, asset, project]), (
+        "This is a bug"
+    )
+
+    context = {
+        "project": project,
+        "asset": asset,
+        "subset": subset,
+        "version": version,
+        "representation": representation,
+    }
+
+    return context
+
+
+def load(Loader, representation, namespace=None, name=None, data=None):
+
+    context = _get_representation_context(representation)
+
+    # Ensure data is a dictionary when no explicit data provided
+    if data is None:
+        data = dict()
+    assert isinstance(data, dict), "Data must be a dictionary"
+
+    # Fallback to subset when name is None
+    if name is None:
+        name = context['subset']['name']
+
+    # todo(roy): Ensure the Loader is valid for the representation
+
+    log.info(
+        "Running '%s' on '%s'" % (Loader.__name__, context['asset']["name"])
+    )
+
+    loader = Loader(context)
+    return loader.load(context=context,
+                       name=name,
+                       namespace=namespace,
+                       data=data)
+
+
+def _get_container_loader(container):
+    """Return the Loader corresponding to the container"""
+
+    loader = container['loader']
+    for Plugin in discover(Loader):
+
+        # TODO: Ensure the loader is valid
+        if Plugin.__name__ == loader:
+            return Plugin
+
+
+def remove(container):
+    """Remove a container"""
+
+    Loader = _get_container_loader(container)
+    if not Loader:
+        raise RuntimeError("Can't remove container. See log for details.")
+
+    loader = Loader(_get_representation_context(container['representation']))
+    return loader.remove(container)
+
+
+def update(container, version=-1):
+    """Update a container"""
+
+    # Compute the different version from 'representation'
+    current_representation = io.find_one({
+        "_id": io.ObjectId(container["representation"])
+    })
+
+    assert current_representation is not None, "This is a bug"
+
+    current_version, subset, asset, project = io.parenthood(
+        current_representation)
+
+    if version == -1:
+        new_version = io.find_one({
+            "type": "version",
+            "parent": subset["_id"]
+        }, sort=[("name", -1)])
+    else:
+        new_version = io.find_one({
+            "type": "version",
+            "parent": subset["_id"],
+            "name": version,
+        })
+
+    new_representation = io.find_one({
+        "type": "representation",
+        "parent": new_version["_id"],
+        "name": current_representation["name"]
+    })
+
+    assert new_version is not None, "This is a bug"
+
+    # Run update on the Loader for this container
+    Loader = _get_container_loader(container)
+    if not Loader:
+        raise RuntimeError("Can't update container. See log for details.")
+    loader = Loader(_get_representation_context(container['representation']))
+    return loader.update(container, new_representation)
+
+
+def get_representation_path(representation):
+    """Get filename from representation id"""
+
+    version_, subset, asset, project = io.parenthood(representation)
+    template_publish = project["config"]["template"]["publish"]
+    return template_publish.format(**{
+        "root": registered_root(),
+        "project": project["name"],
+        "asset": asset["name"],
+        "silo": asset["silo"],
+        "subset": subset["name"],
+        "version": version_["name"],
+        "representation": representation["name"],
+    })

@@ -318,7 +318,7 @@ class Window(QtWidgets.QDialog):
         if messagebox.exec_() == messagebox.Yes:
 
             self.echo("Removing '%s'.." % container["name"])
-            api.registered_host().remove(container)
+            api.remove(container)
 
             if autoclose_checkbox.checkState():
                 self.close()
@@ -347,7 +347,7 @@ class Window(QtWidgets.QDialog):
                         version=version["name"])
             )
 
-            api.registered_host().update(
+            api.update(
                 container=container,
                 version=version["name"]
             )
