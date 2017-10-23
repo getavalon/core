@@ -699,26 +699,6 @@ def _get_representation_context(representation):
 
 
 def load(Loader, representation, namespace=None, name=None, data=None):
-    if hasattr(Loader, "process"):
-        from .maya.pipeline import load
-        return load(
-            Loader,
-            representation,
-            namespace=None,
-            name=None,
-            data=None
-        )
-
-    return _load(
-        Loader,
-        representation,
-        namespace=None,
-        name=None,
-        data=None
-    )
-
-
-def _load(Loader, representation, namespace=None, name=None, data=None):
 
     context = _get_representation_context(representation)
 
