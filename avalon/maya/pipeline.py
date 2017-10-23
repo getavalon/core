@@ -19,6 +19,7 @@ self._events = dict()  # Registered Maya callbacks
 self._parent = None  # Main Window
 self._ignore_lock = False
 
+AVALON_CONTAINERS = ":AVALON_CONTAINERS"
 IS_HEADLESS = not hasattr(cmds, "about") or cmds.about(batch=True)
 
 
@@ -277,7 +278,7 @@ def containerise(name,
                  nodes,
                  context,
                  loader=None,
-                 suffix="_CON"):
+                 suffix="CON"):
     """Bundle `nodes` into an assembly and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
@@ -295,7 +296,6 @@ def containerise(name,
         container (str): Name of container assembly
 
     """
-    AVALON_CONTAINERS = ":AVALON_CONTAINERS"
     container = cmds.sets(nodes, name="%s_%s_%s" % (namespace, name, suffix))
 
     data = [
@@ -319,14 +319,27 @@ def containerise(name,
             cmds.addAttr(container, longName=key, dataType="string")
             cmds.setAttr(container + "." + key, value, type="string")
 
-    main_container = cmds.ls(AVALON_CONTAINERS, type="objectSet")
-    if not main_container:
-        main_container = cmds.sets(empty=True, name=AVALON_CONTAINERS)
-    else:
-        main_container = main_container[0]
+    import maya.utils
+    from functools import partial
 
-    # addElement requires the set to which the items need to be added to
-    cmds.sets(container, addElement=main_container)
+    def group_to_main_container(container):
+        """Group to main container callback"""
+
+        if not cmds.objExists(container):
+            return
+
+        main_container = cmds.ls(AVALON_CONTAINERS, type="objectSet")
+        if not main_container:
+            main_container = cmds.sets(empty=True, name=AVALON_CONTAINERS)
+        else:
+            main_container = main_container[0]
+
+        cmds.sets(container, addElement=main_container)
+
+    # Execute deferred so it's always done after the processing. E.g. any
+    # containers created during referencing in a MPxFileTranslator should not
+    # be grouped into their own referenced namespace.
+    maya.utils.executeDeferred(partial(group_to_main_container, container))
 
     return container
 
