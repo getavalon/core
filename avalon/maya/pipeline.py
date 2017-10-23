@@ -272,6 +272,262 @@ def lock_ignored():
         self._ignore_lock = False
 
 
+def load(Loader,
+         representation,
+         name=None,
+         namespace=None,
+         data=None):
+    """Load asset via database
+    Arguments:
+        Loader (api.Loader): The loader to process in host Maya.
+        representation (dict, io.ObjectId or str): Address to representation
+        name (str, optional): Use pre-defined name
+        namespace (str, optional): Use pre-defined namespace
+        data (dict, optional): Additional settings dictionary
+    """
+
+    assert representation is not None, "This is a bug"
+
+    if isinstance(representation, (six.string_types, io.ObjectId)):
+        representation = io.find_one({"_id": io.ObjectId(str(representation))})
+
+    version, subset, asset, project = io.parenthood(representation)
+
+    assert all([representation, version, subset, asset, project]), (
+        "This is a bug"
+    )
+
+    context = {
+        "project": project,
+        "asset": asset,
+        "subset": subset,
+        "version": version,
+        "representation": representation,
+    }
+
+    # Ensure data is a dictionary when no explicit data provided
+    if data is None:
+        data = dict()
+    assert isinstance(data, dict), "Data must be a dictionary"
+
+    name = name or subset["name"]
+    namespace = namespace or lib.unique_namespace(
+        asset["name"] + "_",
+        prefix="_" if asset["name"][0].isdigit() else "",
+        suffix="_",
+    )
+
+    # TODO(roy): add compatibility check, see `tools.cbloader.lib`
+
+    Loader.log.info(
+        "Running '%s' on '%s'" % (Loader.__name__, asset["name"])
+    )
+
+    try:
+        loader = Loader(context)
+
+        with lib.maintained_selection():
+            loader.process(name, namespace, context, data)
+
+    except OSError as e:
+        logger.info("WARNING: %s" % e)
+        return list()
+
+    # Only containerize if any nodes were loaded by the Loader
+    nodes = loader[:]
+    if not nodes:
+        return
+
+    return containerise(
+        name=name,
+        namespace=namespace,
+        nodes=loader[:],
+        context=context,
+        loader=Loader.__name__)
+
+
+class Creator(api.Creator):
+    def process(self):
+        nodes = list()
+
+        if (self.options or {}).get("useSelection"):
+            nodes = cmds.ls(selection=True)
+
+        instance = cmds.sets(nodes, name=self.name)
+        lib.imprint(instance, self.data)
+
+        return instance
+
+
+class Loader(api.Loader):
+    def __init__(self, context):
+        super(Loader, self).__init__(context)
+        self.fname = self.fname.replace(
+            api.registered_root(), "$AVALON_PROJECTS"
+        )
+
+
+def create(name, asset, family, options=None, data=None):
+    """Create a new instance
+    Associate nodes with a subset and family. These nodes are later
+    validated, according to their `family`, and integrated into the
+    shared environment, relative their `subset`.
+    Data relative each family, along with default data, are imprinted
+    into the resulting objectSet. This data is later used by extractors
+    and finally asset browsers to help identify the origin of the asset.
+    Arguments:
+        name (str): Name of subset
+        asset (str): Name of asset
+        family (str): Name of family
+        options (dict, optional): Additional options from GUI
+        data (dict, optional): Additional data from GUI
+    Raises:
+        NameError on `subset` already exists
+        KeyError on invalid dynamic property
+        RuntimeError on host error
+    Returns:
+        Name of instance
+    """
+
+    plugins = list()
+    for Plugin in api.discover(api.Creator):
+        has_family = family == Plugin.family
+
+        if not has_family:
+            continue
+
+        Plugin.log.info(
+            "Creating '%s' with '%s'" % (name, Plugin.__name__)
+        )
+
+        try:
+            plugin = Plugin(name, asset, options, data)
+
+            with lib.maintained_selection():
+                instance = plugin.process()
+        except Exception as e:
+            logger.info("WARNING: %s" % e)
+            continue
+
+        plugins.append(plugin)
+
+    assert plugins, "No Creator plug-ins were run, this is a bug"
+    return instance
+
+
+def update(container, version=-1):
+    """Update `container` to `version`
+    This function relies on a container being referenced. At the time of this
+    writing, all assets - models, rigs, animations, shaders - are referenced
+    and should pose no problem. But should there be an asset that isn't
+    referenced then this function will need to see an update.
+    Arguments:
+        container (avalon-core:container-1.0): Container to update,
+            from `host.ls()`.
+        version (int, optional): Update the container to this version.
+            If no version is passed, the latest is assumed.
+    """
+
+    node = container["objectName"]
+
+    # Assume asset has been referenced
+    reference_node = next((node for node in cmds.sets(node, query=True)
+                          if cmds.nodeType(node) == "reference"), None)
+
+    assert reference_node, ("Imported container not supported; "
+                            "container must be referenced.")
+
+    current_representation = io.find_one({
+        "_id": io.ObjectId(container["representation"])
+    })
+
+    assert current_representation is not None, "This is a bug"
+
+    version_, subset, asset, project = io.parenthood(current_representation)
+
+    if version == -1:
+        new_version = io.find_one({
+            "type": "version",
+            "parent": subset["_id"]
+        }, sort=[("name", -1)])
+    else:
+        new_version = io.find_one({
+            "type": "version",
+            "parent": subset["_id"],
+            "name": version,
+        })
+
+    new_representation = io.find_one({
+        "type": "representation",
+        "parent": new_version["_id"],
+        "name": current_representation["name"]
+    })
+
+    assert new_version is not None, "This is a bug"
+
+    template_publish = project["config"]["template"]["publish"]
+    fname = template_publish.format(**{
+        "root": api.registered_root(),
+        "project": project["name"],
+        "asset": asset["name"],
+        "silo": asset["silo"],
+        "subset": subset["name"],
+        "version": new_version["name"],
+        "representation": current_representation["name"],
+    })
+
+    file_type = {
+        "ma": "mayaAscii",
+        "mb": "mayaBinary",
+        "abc": "Alembic"
+    }.get(new_representation["name"])
+
+    assert file_type, ("Unsupported representation: %s" % new_representation)
+
+    assert os.path.exists(fname), "%s does not exist." % fname
+    cmds.file(fname, loadReference=reference_node, type=file_type)
+
+    # Update metadata
+    cmds.setAttr(container["objectName"] + ".representation",
+                 str(new_representation["_id"]),
+                 type="string")
+
+
+def remove(container):
+    """Remove an existing `container` from Maya scene
+    Arguments:
+        container (avalon-core:container-1.0): Which container
+            to remove from scene.
+    """
+
+    node = container["objectName"]
+
+    # Assume asset has been referenced
+    reference_node = next((node for node in cmds.sets(node, query=True)
+                          if cmds.nodeType(node) == "reference"), None)
+
+    assert reference_node, ("Imported container not supported; "
+                            "container must be referenced.")
+
+    logger.info("Removing '%s' from Maya.." % container["name"])
+
+    namespace = cmds.referenceQuery(reference_node, namespace=True)
+    fname = cmds.referenceQuery(reference_node, filename=True)
+    cmds.file(fname, removeReference=True)
+
+    try:
+        cmds.delete(node)
+    except ValueError:
+        # Already implicitly deleted by Maya upon removing reference
+        pass
+
+    try:
+        # If container is not automatically cleaned up by May (issue #118)
+        cmds.namespace(removeNamespace=namespace, deleteNamespaceContent=True)
+    except RuntimeError:
+        pass
+
+
 def containerise(name,
                  namespace,
                  nodes,
@@ -279,10 +535,8 @@ def containerise(name,
                  loader=None,
                  suffix="_CON"):
     """Bundle `nodes` into an assembly and imprint it with metadata
-
     Containerisation enables a tracking of version, author and origin
     for loaded assets.
-
     Arguments:
         name (str): Name of resulting assembly
         namespace (str): Namespace under which to host container
@@ -290,10 +544,8 @@ def containerise(name,
         context (dict): Asset information
         loader (str, optional): Name of loader used to produce this container.
         suffix (str, optional): Suffix of container, defaults to `_CON`.
-
     Returns:
         container (str): Name of container assembly
-
     """
     AVALON_CONTAINERS = "AVALON_CONTAINERS"
     container = cmds.sets(nodes, name="%s_%s_%s" % (namespace, name, suffix))

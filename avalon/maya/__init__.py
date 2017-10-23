@@ -12,6 +12,9 @@ from .pipeline import (
     Loader,
 
     ls,
+    create,
+    load,
+    update,
     publish,
     containerise,
 
@@ -45,6 +48,10 @@ __all__ = [
     "Loader",
 
     "ls",
+    "read",
+    "load",
+    "create",
+    "update",
     "publish",
     "containerise",
 
