@@ -67,13 +67,12 @@ class View(QtWidgets.QTreeView):
     def build_item_menu(self, items):
         """Create menu for the selected items"""
 
-        host = api.registered_host()
         menu = QtWidgets.QMenu(self)
 
         # update to latest version
         def _on_update_to_latest(items):
             for item in items:
-                host.update(item, -1)
+                api.update(item, -1)
             self.data_changed.emit()
 
         update_icon = qta.icon("fa.angle-double-up", color=DEFAULT_COLOR)
@@ -184,8 +183,6 @@ class View(QtWidgets.QTreeView):
 
         active = items[-1]
 
-        print active
-
         # Get available versions for active representation
         representation_id = io.ObjectId(active["representation"])
         representation = io.find_one({"_id": representation_id})
@@ -223,9 +220,8 @@ class View(QtWidgets.QTreeView):
 
         if label:
             version = versions_by_label[label]["name"]
-            host = api.registered_host()
             for item in items:
-                host.update(item, version)
+                api.update(item, version)
             # refresh model when done
             self.data_changed.emit()
 
@@ -247,7 +243,7 @@ class View(QtWidgets.QTreeView):
 
         host = api.registered_host()
         for item in items:
-            host.remove(item)
+            api.remove(item)
         self.data_changed.emit()
 
 

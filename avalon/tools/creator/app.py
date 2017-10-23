@@ -16,6 +16,9 @@ PluginRole = QtCore.Qt.UserRole + 5
 
 
 class Window(QtWidgets.QDialog):
+
+    stateChanged = QtCore.Signal(bool)
+
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
         self.setWindowTitle("Instance Creator")
@@ -23,6 +26,11 @@ class Window(QtWidgets.QDialog):
 
         # Store the widgets for lookup in here
         self.data = dict()
+
+        # Store internal states in here
+        self.state = {
+            "valid": False
+        }
 
         body = QtWidgets.QWidget()
         lists = QtWidgets.QWidget()
@@ -112,10 +120,16 @@ class Window(QtWidgets.QDialog):
         asset.textChanged.connect(self.on_data_changed)
         listing.currentItemChanged.connect(self.on_selection_changed)
 
+        self.stateChanged.connect(self._on_state_changed)
+
         # Defaults
         self.resize(220, 300)
         name.setFocus()
         create_btn.setEnabled(False)
+
+    def _on_state_changed(self, state):
+        self.state['valid'] = state
+        self.data['Create Button'].setEnabled(state)
 
     def _build_menu(self, default_names):
         """Create optional predefines subset names
@@ -196,16 +210,22 @@ class Window(QtWidgets.QDialog):
             item.setData(ExistsRole, False)
             self.echo("'%s' not found .." % asset_name)
 
-        button.setEnabled(
+        # Update the valid state
+        valid = (
             subset_name.strip() != "" and
             asset_name.strip() != "" and
             item.data(QtCore.Qt.ItemIsEnabled) and
             item.data(ExistsRole)
         )
+        self.stateChanged.emit(valid)
 
     def on_data_changed(self, *args):
-        button = self.data["Create Button"]
-        button.setEnabled(False)
+
+        # Set invalid state until it's reconfirmed to be valid by the
+        # scheduled callback so any form of creation is held back until
+        # valid again
+        self.stateChanged.emit(False)
+
         lib.schedule(self._on_data_changed, 500, channel="gui")
 
     def on_selection_changed(self, *args):
@@ -262,6 +282,10 @@ class Window(QtWidgets.QDialog):
 
     def on_create(self):
 
+        # Do not allow creation in an invalid state
+        if not self.state['valid']:
+            return
+
         asset = self.data["Asset"]
         listing = self.data["Listing"]
         result = self.data["Result"]
@@ -277,13 +301,12 @@ class Window(QtWidgets.QDialog):
             return
 
         try:
-            host = api.registered_host()
-            host.create(subset_name,
-                        asset,
-                        family,
-                        options={"useSelection":
-                                 useselection_chk.checkState()}
-                        )
+            api.create(subset_name,
+                       asset,
+                       family,
+                       options={"useSelection":
+                                useselection_chk.checkState()}
+                       )
 
         except NameError as e:
             self.echo(e)

@@ -73,9 +73,8 @@ def run_loader(Loader,
     if not is_compatible_loader(Loader, context):
         raise RuntimeError("Loader is not compatible.")
 
-    host = api.registered_host()
-    return host.load(Loader,
-                     representation=representation,
-                     name=name,
-                     namespace=namespace,
-                     data=data)
+    return api.load(Loader,
+                    representation=representation,
+                    namespace=namespace,
+                    name=name,
+                    data=data)

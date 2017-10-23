@@ -805,9 +805,7 @@ QSlider::handle:horizontal:enabled {
                     ])
                 )
 
-                host = api.registered_host()
-                host.load(Loader=loader,
-                          representation=_id)
+                api.load(Loader=loader, representation=_id)
 
             except StopIteration:
                 raise IndexError("No loaders available")
