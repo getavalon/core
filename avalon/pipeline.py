@@ -167,7 +167,7 @@ class Loader(list):
 
         """
         raise NotImplementedError("Loader.load() must be "
-                                  "implemented by subclasses")
+                                  "implemented by subclass")
 
     def update(self, container, representation):
         """Update `container` to `representation`
@@ -178,8 +178,8 @@ class Loader(list):
             representation (dict): Update the container to this representation.
 
         """
-        raise NotImplementedError("Loader.load() must be "
-                                  "implemented by subclasses")
+        raise NotImplementedError("Loader.update() must be "
+                                  "implemented by subclass")
 
     def remove(self, container):
         """Remove a container
@@ -192,8 +192,8 @@ class Loader(list):
             bool: Whether the container was deleted
             
         """
-        raise NotImplementedError("Loader.load() must be "
-                                  "implemented by subclasses")
+        raise NotImplementedError("Loader.remove() must be "
+                                  "implemented by subclass")
 
 
 @lib.log
