@@ -8,7 +8,7 @@
 [![Build Status](https://travis-ci.org/getavalon/core.svg?branch=master)](https://travis-ci.org/getavalon/core) [![Coverage Status](https://coveralls.io/repos/github/getavalon/core/badge.svg?branch=master)](https://coveralls.io/github/getavalon/core?branch=master)
 
 - [Documentation](https://getavalon.github.io)
-- [Installation](https://getavalon.github.io/2.0/howto)
+- [Installation](https://getavalon.github.io/2.0/guides/#install)
 
 <br>
 
