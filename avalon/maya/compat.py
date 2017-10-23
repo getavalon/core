@@ -7,7 +7,6 @@ import maya.cmds as cmds
 import os
 import logging
 
-# Get the Maya's host loader
 import avalon.pipeline
 
 log = logging.getLogger(__name__)
