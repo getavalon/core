@@ -675,7 +675,6 @@ def create(name, asset, family, options=None, data=None):
         plugins.append(plugin)
 
     assert plugins, "No Creator plug-ins were run, this is a bug"
-    print("Here: %s" % instance)
     return instance
 
 
