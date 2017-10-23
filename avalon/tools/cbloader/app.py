@@ -207,7 +207,6 @@ class Window(QtWidgets.QDialog):
         if asset is None:
             return
 
-        asset_widget = self.data['model']['assets']
         if refresh:
             # Workaround:
             # Force a direct (non-scheduled) refresh prior to setting the
@@ -217,7 +216,8 @@ class Window(QtWidgets.QDialog):
             # scheduled refresh and the silo tabs are not shown.
             self._refresh()
 
-        asset_widget.model.set_silo(silo)
+        asset_widget = self.data['model']['assets']
+        asset_widget.set_silo(silo)
         asset_widget.select_assets([asset], expand=True)
 
     def echo(self, message):
@@ -263,7 +263,16 @@ def show(root=None, debug=False, parent=None, use_context=False):
     # Remember window
     if module.window is not None:
         try:
-            return module.window.show()
+            module.window.show()
+
+            # If the window is minimized then unminimize it.
+            if module.window.windowState() & QtCore.Qt.WindowMinimized:
+                module.window.setWindowState(QtCore.Qt.WindowActive)
+
+            # Raise and activate the window
+            module.window.raise_()             # for MacOS
+            module.window.activateWindow()     # for Windows
+            return
         except RuntimeError as e:
             if not e.message.rstrip().endswith("already deleted."):
                 raise

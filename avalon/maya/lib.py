@@ -63,7 +63,12 @@ def unique_namespace(namespace, format="%02d", prefix="", suffix=""):
     iteration = 1
     unique = prefix + (namespace + format % iteration) + suffix
 
-    while unique in cmds.namespaceInfo(listNamespace=True):
+    # The `existing` set does not just contain the namespaces but *all* nodes
+    # within "current namespace". We need all because the namespace could
+    # also clash with a node name. To be truly unique and valid one needs to
+    # check against all.
+    existing = set(cmds.namespaceInfo(listNamespace=True))
+    while unique in existing:
         iteration += 1
         unique = prefix + (namespace + format % iteration) + suffix
 
@@ -110,6 +115,12 @@ def export_alembic(nodes,
 
     """
 
+    if frame_range is None:
+        frame_range = (
+            cmds.playbackOptions(query=True, ast=True),
+            cmds.playbackOptions(query=True, aet=True)
+        )
+
     options = [
         ("file", file),
         ("frameRange", "%s %s" % frame_range),
@@ -128,12 +139,6 @@ def export_alembic(nodes,
 
     if write_visibility:
         options.append(("writeVisibility", ""))
-
-    if frame_range is None:
-        frame_range = (
-            cmds.playbackOptions(query=True, ast=True),
-            cmds.playbackOptions(query=True, aet=True)
-        )
 
     # Generate MEL command
     mel_args = list()
