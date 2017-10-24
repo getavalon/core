@@ -820,7 +820,15 @@ def update(container, version=-1):
 
 
 def get_representation_path(representation):
-    """Get filename from representation id"""
+    """Get filename from representation document
+
+    Args:
+        representation(dict): representation document from the database
+
+    Returns:
+        str: fullpath of the representation
+
+    """
 
     version_, subset, asset, project = io.parenthood(representation)
     template_publish = project["config"]["template"]["publish"]

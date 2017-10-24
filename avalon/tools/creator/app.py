@@ -1,7 +1,8 @@
 import os
 import sys
 
-from ...vendor.Qt import QtWidgets, QtCore
+from ...vendor.Qt import QtWidgets, QtCore, QtGui
+from ...vendor import qtawesome
 from ... import api, io
 from .. import lib
 
@@ -60,6 +61,10 @@ class Window(QtWidgets.QDialog):
         name_layout.setContentsMargins(0, 0, 0, 0)
 
         layout = QtWidgets.QVBoxLayout(container)
+
+        header = FamilyDescriptionWidget(parent=self)
+        layout.addWidget(header)
+
         layout.addWidget(QtWidgets.QLabel("Family"))
         layout.addWidget(listing)
         layout.addWidget(QtWidgets.QLabel("Asset"))
@@ -119,11 +124,12 @@ class Window(QtWidgets.QDialog):
         name.textChanged.connect(self.on_data_changed)
         asset.textChanged.connect(self.on_data_changed)
         listing.currentItemChanged.connect(self.on_selection_changed)
+        listing.currentItemChanged.connect(header.set_item)
 
         self.stateChanged.connect(self._on_state_changed)
 
         # Defaults
-        self.resize(220, 300)
+        self.resize(300, 400)
         name.setFocus()
         create_btn.setEnabled(False)
 
@@ -132,7 +138,7 @@ class Window(QtWidgets.QDialog):
         self.data['Create Button'].setEnabled(state)
 
     def _build_menu(self, default_names):
-        """Create optional predefines subset names
+        """Create optional predefined subset names
 
         Args:
             default_names(list): all predefined names
@@ -322,6 +328,93 @@ class Window(QtWidgets.QDialog):
         widget.show()
 
         lib.schedule(lambda: widget.setText(""), 5000, channel="message")
+
+
+class FamilyDescriptionWidget(QtWidgets.QWidget):
+    """A family description widget.
+
+    Shows a family icon, family name and a help description.
+    Used in creator header.
+
+     _________________
+    |  ____           |
+    | |icon| FAMILY   |
+    | |____| help     |
+    |_________________|
+
+    """
+
+    SIZE = 35
+
+    def __init__(self, parent=None):
+        super(FamilyDescriptionWidget, self).__init__(parent=parent)
+
+        # Header font
+        font = QtGui.QFont()
+        font.setBold(True)
+        font.setPointSize(14)
+
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        icon = QtWidgets.QLabel()
+        icon.setSizePolicy(QtWidgets.QSizePolicy.Maximum,
+                           QtWidgets.QSizePolicy.Maximum)
+
+        # Add 2 pixel padding to avoid icon being cut off
+        icon.setFixedWidth(self.SIZE + 2)
+        icon.setFixedHeight(self.SIZE + 2)
+        icon.setStyleSheet("""
+        QLabel {
+            padding-right: 5px;
+        }
+        """)
+
+        label_layout = QtWidgets.QVBoxLayout()
+        label_layout.setSpacing(0)
+
+        family = QtWidgets.QLabel("family")
+        family.setFont(font)
+        family.setAlignment(QtCore.Qt.AlignBottom | QtCore.Qt.AlignLeft)
+
+        help = QtWidgets.QLabel("help")
+        help.setAlignment(QtCore.Qt.AlignTop | QtCore.Qt.AlignLeft)
+
+        label_layout.addWidget(family)
+        label_layout.addWidget(help)
+
+        layout.addWidget(icon)
+        layout.addLayout(label_layout)
+
+        self.help = help
+        self.family = family
+        self.icon = icon
+
+    def set_item(self, item):
+        """Update elements to display information of a family item.
+
+        Args:
+            family (dict): A family item as registered with name, help and icon
+
+        Returns:
+            None
+
+        """
+        if not item:
+            return
+
+        # Support a font-awesome icon
+        plugin = item.data(PluginRole)
+        icon = getattr(plugin, "icon", "info-circle")
+        assert isinstance(icon, (str, unicode))
+        icon = qtawesome.icon("fa.{}".format(icon), color="white")
+        pixmap = icon.pixmap(self.SIZE, self.SIZE)
+        pixmap = pixmap.scaled(self.SIZE, self.SIZE)
+
+        self.icon.setPixmap(pixmap)
+
+        self.family.setText(item.data(FamilyRole))
+        self.help.setText(item.data(HelpRole))
 
 
 def show(debug=False, parent=None):
