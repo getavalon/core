@@ -1,5 +1,6 @@
 import os
 import sys
+import inspect
 
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ...vendor import qtawesome
@@ -411,10 +412,13 @@ class FamilyDescriptionWidget(QtWidgets.QWidget):
         pixmap = icon.pixmap(self.SIZE, self.SIZE)
         pixmap = pixmap.scaled(self.SIZE, self.SIZE)
 
-        self.icon.setPixmap(pixmap)
+        # Parse a clean line from the Creator's docstring
+        docstring = inspect.getdoc(plugin)
+        help = docstring.splitlines()[0] if docstring else ""
 
+        self.icon.setPixmap(pixmap)
         self.family.setText(item.data(FamilyRole))
-        self.help.setText(item.data(HelpRole))
+        self.help.setText(help)
 
 
 def show(debug=False, parent=None):
