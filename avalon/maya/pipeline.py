@@ -24,6 +24,7 @@ self._events = dict()  # Registered Maya callbacks
 self._parent = None  # Main Window
 self._ignore_lock = False
 
+AVALON_CONTAINERS = ":AVALON_CONTAINERS"
 IS_HEADLESS = not hasattr(cmds, "about") or cmds.about(batch=True)
 
 
@@ -282,7 +283,7 @@ def containerise(name,
                  nodes,
                  context,
                  loader=None,
-                 suffix="_CON"):
+                 suffix="CON"):
     """Bundle `nodes` into an assembly and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
@@ -300,7 +301,6 @@ def containerise(name,
         container (str): Name of container assembly
 
     """
-    AVALON_CONTAINERS = "AVALON_CONTAINERS"
     container = cmds.sets(nodes, name="%s_%s_%s" % (namespace, name, suffix))
 
     data = [
@@ -330,7 +330,6 @@ def containerise(name,
     else:
         main_container = main_container[0]
 
-    # addElement requires the set to which the items need to be added to
     cmds.sets(container, addElement=main_container)
 
     return container
@@ -346,7 +345,6 @@ def parse_container(container, validate=True):
         dict: The container schema data for this container node.
 
     """
-
     data = lib.read(container)
 
     # Backwards compatibility pre-schemas for containers
