@@ -337,13 +337,13 @@ def containerise(name,
 
 def parse_container(container, validate=True):
     """Return the container node's full container data.
-    
+
     Args:
-        container (str): A container node name. 
+        container (str): A container node name.
 
     Returns:
         dict: The container schema data for this container node.
-        
+
     """
     data = lib.read(container)
 
