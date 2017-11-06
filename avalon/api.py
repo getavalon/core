@@ -35,6 +35,7 @@ from .pipeline import (
     remove,
 
     get_representation_path,
+    loaders_from_representation,
 
     register_root,
     register_host,
@@ -79,6 +80,7 @@ __all__ = [
     "remove",
 
     "get_representation_path",
+    "loaders_from_representation",
 
     "register_host",
     "register_plugin_path",

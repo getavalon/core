@@ -4,6 +4,7 @@ import os
 import sys
 import json
 import types
+import getpass
 import logging
 import weakref
 import inspect
@@ -31,6 +32,11 @@ self._is_installed = False
 self._config = None
 
 log = logging.getLogger(__name__)
+
+
+class IncompatibleLoaderError(ValueError):
+    """Error when Loader is incompatible with a representation."""
+    pass
 
 
 def install(host):
@@ -678,7 +684,17 @@ def create(name, asset, family, options=None, data=None):
     return instance
 
 
-def _get_representation_context(representation):
+def get_representation_context(representation):
+    """Return parenthood context for representation.
+    
+    Args:
+        representation (str or io.ObjectId or dict): The representation id
+            or full representation as returned by the database.
+            
+    Returns:
+        dict: The full representation context.
+        
+    """
 
     assert representation is not None, "This is a bug"
 
@@ -726,7 +742,13 @@ def _make_backwards_compatible_loader(Loader):
 
 def load(Loader, representation, namespace=None, name=None, data=None):
     Loader = _make_backwards_compatible_loader(Loader)
-    context = _get_representation_context(representation)
+    context = get_representation_context(representation)
+
+    # Ensure the Loader is compatible for the representation
+    if not is_compatible_loader(Loader, context):
+        raise IncompatibleLoaderError("Loader {} is incompatible with "
+                                      "{}".format(Loader.__name__,
+                                                  context['subset']['name']))
 
     # Ensure data is a dictionary when no explicit data provided
     if data is None:
@@ -737,8 +759,6 @@ def load(Loader, representation, namespace=None, name=None, data=None):
     # Fallback to subset when name is None
     if name is None:
         name = context['subset']['name']
-
-    # todo(roy): Ensure the Loader is valid for the representation
 
     log.info(
         "Running '%s' on '%s'" % (Loader.__name__, context['asset']["name"])
@@ -771,7 +791,7 @@ def remove(container):
 
     Loader = _make_backwards_compatible_loader(Loader)
 
-    loader = Loader(_get_representation_context(container['representation']))
+    loader = Loader(get_representation_context(container['representation']))
     return loader.remove(container)
 
 
@@ -815,7 +835,7 @@ def update(container, version=-1):
 
     Loader = _make_backwards_compatible_loader(Loader)
 
-    loader = Loader(_get_representation_context(container['representation']))
+    loader = Loader(get_representation_context(container['representation']))
     return loader.update(container, new_representation)
 
 
@@ -840,4 +860,30 @@ def get_representation_path(representation):
         "subset": subset["name"],
         "version": version_["name"],
         "representation": representation["name"],
+        "user": getpass.getuser(),
+        "app": Session.get("AVALON_APP", ""),
+        "task": Session.get("AVALON_TASK", "")
     })
+
+
+def is_compatible_loader(Loader, context):
+    """Return whether a loader is compatible with a context.
+    
+    This checks the version's families and the representation for the given
+    Loader.
+    
+    """
+    families = context['version']['data']['families']
+    representation = context['representation']
+    has_family = ("*" in Loader.families or
+                  any(family in Loader.families for family in families))
+    has_representation = ("*" in Loader.representations or
+                          representation["name"] in Loader.representations)
+    return has_family and has_representation
+
+
+def loaders_from_representation(loaders, representation):
+    """Return all compatible loaders for a representation."""
+
+    context = get_representation_context(representation)
+    return [l for l in loaders if is_compatible_loader(l, context)]
