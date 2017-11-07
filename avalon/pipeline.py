@@ -748,11 +748,11 @@ def load(Loader, representation, namespace=None, name=None, data=None):
         representation (str or io.ObjectId): The representation id.
         namespace (str, Optional): The namespace to assign. Defaults to None.
         name (str, Optional): The name to assign. Defaults to subset name.
-        data (dict, Optional): Additional custom data to pass on to the loader. 
+        data (dict, Optional): Additional custom data to pass on to the loader.
 
     Returns:
         The return of the `loader.load()` method.
-        
+
     Raises:
         IncompatibleLoaderError: When the loader is not compatible with
             the representation.
