@@ -686,14 +686,14 @@ def create(name, asset, family, options=None, data=None):
 
 def get_representation_context(representation):
     """Return parenthood context for representation.
-    
+
     Args:
         representation (str or io.ObjectId or dict): The representation id
             or full representation as returned by the database.
-            
+
     Returns:
         dict: The full representation context.
-        
+
     """
 
     assert representation is not None, "This is a bug"
@@ -868,10 +868,10 @@ def get_representation_path(representation):
 
 def is_compatible_loader(Loader, context):
     """Return whether a loader is compatible with a context.
-    
+
     This checks the version's families and the representation for the given
     Loader.
-    
+
     """
     families = context['version']['data']['families']
     representation = context['representation']
