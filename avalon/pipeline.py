@@ -878,7 +878,7 @@ def get_representation_path(representation):
         "subset": subset["name"],
         "version": version_["name"],
         "representation": representation["name"],
-        "user": getpass.getuser(),
+        "user": Session.get("AVALON_USER", getpass.getuser()),
         "app": Session.get("AVALON_APP", ""),
         "task": Session.get("AVALON_TASK", "")
     })
