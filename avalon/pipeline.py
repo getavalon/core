@@ -213,7 +213,8 @@ class Creator(object):
             "id": "pyblish.avalon.instance",
             "family": self.family,
             "asset": asset,
-            "subset": name
+            "subset": name,
+            "active": True
         }, **(data or {}))
 
     def process(self):
