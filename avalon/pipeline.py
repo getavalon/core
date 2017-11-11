@@ -720,6 +720,21 @@ def get_representation_context(representation):
     return context
 
 
+def get_work_directory():
+    """Return the current Avalon session work directory.
+
+    The work directory is the parsed work template of the project configuration
+    against the current Session dict.
+
+    Returns:
+        str: Path to work directory
+
+    """
+    project = io.find_one({"type": "project"})
+    template = project['config']['template']['work']
+    return template.format(**Session)
+
+
 def _make_backwards_compatible_loader(Loader):
     """Convert a old-style Loaders with `process` method to new-style Loader
 
