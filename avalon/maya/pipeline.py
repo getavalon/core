@@ -61,7 +61,13 @@ def install(config):
 
 
 def _set_project():
-    workdir = os.environ["AVALON_WORKDIR"]
+    """Sets the maya project to the current Session's work directory.
+
+    Returns:
+        None
+
+    """
+    workdir = api.get_work_directory()
 
     try:
         os.makedirs(workdir)
@@ -169,7 +175,6 @@ def reload_pipeline(*args):
                    # NOTE(marcus): These have circular depenendencies
                    #               that is preventing reloadability
                    # "avalon.tools.cbloader.delegates",
-                   # "avalon.tools.cbloader.lib",
                    # "avalon.tools.cbloader.model",
                    # "avalon.tools.cbloader.widgets",
                    # "avalon.tools.cbloader.app",
