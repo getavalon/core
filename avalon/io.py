@@ -132,9 +132,6 @@ def _from_environment():
             # Name of current app
             ("AVALON_APP", None),
 
-            # Path to working directory
-            ("AVALON_WORKDIR", None),
-
             # Name of current Config
             # TODO(marcus): Establish a suitable default config
             ("AVALON_CONFIG", "no_config"),
@@ -316,7 +313,7 @@ def insert_many(items, ordered=True):
         items,
         ordered=ordered)
 
-  
+
 def find(filter, projection=None, sort=None):
     return self._database[Session["AVALON_PROJECT"]].find(
         filter=filter,
