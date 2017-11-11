@@ -732,7 +732,15 @@ def get_work_directory():
     """
     project = io.find_one({"type": "project"})
     template = project['config']['template']['work']
-    return template.format(**Session)
+    return template.format(**{
+        "root": registered_root(),
+        "project": Session['AVALON_PROJECT'],
+        "silo": Session["AVALON_SILO"],
+        "asset": Session['AVALON_ASSET'],
+        "task": Session["AVALON_TASK"],
+        "app": Session["AVALON_APP"],
+        "user": Session.get("AVALON_USER", getpass.getuser())
+    })
 
 
 def _make_backwards_compatible_loader(Loader):
