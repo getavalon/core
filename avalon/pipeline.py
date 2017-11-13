@@ -738,8 +738,7 @@ def update_current_context(context):
         "AVALON_TASK": context.get("task", None),
         "AVALON_APP": context.get("app", None),
     }
-    changed = {key: value for key, value in mapping.items() if
-               value and Session[key] != value}
+    changed = {key: value for key, value in mapping.items() if value}
     if not changed:
         return
 
