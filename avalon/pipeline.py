@@ -389,7 +389,7 @@ def emit(event, args=None):
         try:
             callback(*args)
         except Exception:
-            log.debug(traceback.format_exc())
+            log.warning(traceback.format_exc())
 
 
 def register_plugin(superclass, obj):
