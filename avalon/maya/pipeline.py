@@ -496,4 +496,10 @@ def _before_scene_save(return_code, client_data):
 
 def _on_current_context_updated(*args):
     logger.info("Running _on_current_context_updated()")
-    _set_project()
+
+    workdir = api.Session["AVALON_WORKDIR"]
+    if os.path.exists(workdir):
+        _set_project()
+    else:
+        logger.warning("Can't set project for new context because "
+                       "path does not exist: %s", workdir)
