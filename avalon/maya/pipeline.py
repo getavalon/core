@@ -493,6 +493,7 @@ def _before_scene_save(return_code, client_data):
 
     api.emit("before_save", [return_code, client_data])
 
+
 def _on_current_context_updated(*args):
     logger.info("Running _on_current_context_updated()")
     _set_project()
