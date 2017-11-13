@@ -720,26 +720,81 @@ def get_representation_context(representation):
     return context
 
 
-def get_work_directory():
-    """Return the current Avalon session work directory.
+def update_current_context(context):
+    """Update active Session to new context.
 
-    The work directory is the parsed work template of the project configuration
-    against the current Session dict.
+    The context can hold `asset`, `task` and `app`, other keys are ignored.
+
+    Args:
+        context (dict): The context to apply.
 
     Returns:
-        str: Path to work directory
+        dict: The changed key, values in the current Session.
 
     """
-    project = io.find_one({"type": "project"})
+
+    mapping = {
+        "AVALON_ASSET": context.get("asset", None),
+        "AVALON_TASK": context.get("task", None),
+        "AVALON_APP": context.get("app", None),
+    }
+    changed = {key: value for key, value in mapping.items() if
+               value and Session[key] != value}
+    if not changed:
+        return
+
+    # Update silo when asset changed
+    if "AVALON_ASSET" in changed:
+        asset_document = io.find_one({"name": changed['AVALON_ASSET'],
+                                      "type": "asset"},
+                                     projection={"silo": True})
+        assert asset_document, "Asset must exist"
+        changed["AVALON_SILO"] = asset_document['silo']
+
+    # Compute work directory (with the temporary changed session so far)
+    project = io.find_one({"type": "project"},
+                          projection={"config.template.work": True})
     template = project['config']['template']['work']
+    _session = Session.copy()
+    _session.update(changed)
+    changed['AVALON_WORKDIR'] = format_template(template, _session)
+
+    # Update the full session in one go to avoid half updates
+    Session.update(changed)
+
+    # Emit session change
+    emit("currentContextUpdated", changed.copy())
+
+    return changed
+
+
+def format_template(template, session=None):
+    """Return a formatted configuration template with a Session.
+
+    Note: This *cannot* format the templates for published files since the
+        session does not hold the context for a published file. Instead use
+        `get_representation_path` to parse the full path to a published file.
+
+    Args:
+        template (str): The template to format.
+        session (dict, Optional): The Session to use. If not provided use the
+            currently active global Session.
+
+    Returns:
+        str: The fully formatted path.
+
+    """
+    if session is None:
+        session = Session
+
     return template.format(**{
         "root": registered_root(),
-        "project": Session['AVALON_PROJECT'],
-        "silo": Session["AVALON_SILO"],
-        "asset": Session['AVALON_ASSET'],
-        "task": Session["AVALON_TASK"],
-        "app": Session["AVALON_APP"],
-        "user": Session.get("AVALON_USER", getpass.getuser())
+        "project": session['AVALON_PROJECT'],
+        "silo": session["AVALON_SILO"],
+        "asset": session['AVALON_ASSET'],
+        "task": session["AVALON_TASK"],
+        "app": session["AVALON_APP"],
+        "user": session.get("AVALON_USER", getpass.getuser())
     })
 
 

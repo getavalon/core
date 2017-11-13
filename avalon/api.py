@@ -34,7 +34,6 @@ from .pipeline import (
     update,
     remove,
 
-    get_work_directory,
     get_representation_path,
     loaders_from_representation,
 
@@ -80,7 +79,6 @@ __all__ = [
     "update",
     "remove",
 
-    "get_work_directory",
     "get_representation_path",
     "loaders_from_representation",
 
