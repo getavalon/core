@@ -74,8 +74,6 @@ class Window(QtWidgets.QDialog):
         layout.addWidget(body)
         layout.addWidget(footer)
 
-        filters.create_filters()
-
         self.data = {
             "widgets": {"filter": filters},
             "model": {
@@ -101,7 +99,7 @@ class Window(QtWidgets.QDialog):
             }
         }
 
-        filters.checkbox_list.itemChanged.connect(self.on_filter_toggled)
+        filters.selection_changed.connect(self.on_filter_toggled)
         assets.selection_changed.connect(self.on_assetschanged)
         subsets.active_changed.connect(self.on_versionschanged)
 

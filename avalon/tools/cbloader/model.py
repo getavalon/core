@@ -7,7 +7,7 @@ from ...vendor import qtawesome as qta
 
 class SubsetsModel(TreeModel):
     COLUMNS = ["subset",
-               "families",
+               "family",
                "version",
                "time",
                "author",
@@ -72,7 +72,7 @@ class SubsetsModel(TreeModel):
             "version_document": version,
             "author": version_data.get("author", None),
             "time": version_data.get("time", None),
-            "families": version_data.get("families", ["<unknown>"])[0],
+            "family": version_data.get("families", ["<unknown>"])[0],
             "startFrame": start,
             "endFrame": end,
             "duration": duration,
@@ -159,7 +159,7 @@ class FamilyTypeFilterProxyModel(QtCore.QSortFilterProxyModel):
 
         # Get the node data and validate
         node = model.data(index, TreeModel.NodeRole)
-        family = node.get("families", "<unknown>")
+        family = node.get("family", "<unknown>")
 
         if family == "<unknown>":
             return True

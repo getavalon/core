@@ -341,6 +341,8 @@ class VersionWidget(QtWidgets.QWidget):
 
 class FilterWidget(QtWidgets.QGroupBox):
 
+    selection_changed = QtCore.Signal()
+
     def __init__(self, parent=None):
         super(FilterWidget, self).__init__(parent=parent)
 
@@ -353,6 +355,7 @@ class FilterWidget(QtWidgets.QGroupBox):
         checkbox_list = QtWidgets.QListWidget()
         checkbox_list.setSelectionMode(MULTI_SELECT)
         checkbox_list.setAlternatingRowColors(True)
+        checkbox_list.itemChanged.connect(self.selection_changed)
 
         layout.addWidget(checkbox_list)
 
@@ -361,7 +364,7 @@ class FilterWidget(QtWidgets.QGroupBox):
 
         self.setLayout(layout)
 
-    def create_filters(self):
+    def refresh(self):
         """Get all unique families and create a filter widget for them"""
 
         family = io.distinct("data.family")
@@ -378,11 +381,7 @@ class FilterWidget(QtWidgets.QGroupBox):
 
             self.checkbox_list.addItem(checkbox)
 
-    def refresh(self):
-        """Rebuild the family checkboxes to make all families are avaible"""
-
-        self.checkbox_list.clear()
-        self.create_filters()
+        self.selection_changed.emit()
 
     def get_filters(self):
 
