@@ -3,10 +3,12 @@ import sys
 import time
 
 from ..projectmanager.widget import AssetWidget, AssetModel
+
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ... import api, io
 from .. import lib
-from .widgets import SubsetWidget, VersionWidget
+
+from .widgets import SubsetWidget, VersionWidget, FilterWidget
 
 module = sys.modules[__name__]
 module.window = None
@@ -36,36 +38,46 @@ class Window(QtWidgets.QDialog):
         container = QtWidgets.QWidget()
 
         assets = AssetWidget()
+        filters = FilterWidget()
         subsets = SubsetWidget()
         version = VersionWidget()
 
-        layout = QtWidgets.QHBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
+        # Create splitter to show / hide family filters
+        asset_filter_splitter = QtWidgets.QSplitter()
+        asset_filter_splitter.setOrientation(QtCore.Qt.Vertical)
+        asset_filter_splitter.addWidget(assets)
+        asset_filter_splitter.addWidget(filters)
+
+        container_layout = QtWidgets.QHBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
         split = QtWidgets.QSplitter()
-        split.addWidget(assets)
+        split.addWidget(asset_filter_splitter)
         split.addWidget(subsets)
         split.addWidget(version)
         split.setStretchFactor(0, 30)
         split.setStretchFactor(1, 90)
         split.setStretchFactor(2, 30)
-        layout.addWidget(split)
+        container_layout.addWidget(split)
 
-        layout = QtWidgets.QHBoxLayout(body)
-        layout.addWidget(container)
-        layout.setContentsMargins(0, 0, 0, 0)
+        body_layout = QtWidgets.QHBoxLayout(body)
+        body_layout.addWidget(container)
+        body_layout.setContentsMargins(0, 0, 0, 0)
 
         message = QtWidgets.QLabel()
         message.hide()
 
-        layout = QtWidgets.QVBoxLayout(footer)
-        layout.addWidget(message)
-        layout.setContentsMargins(0, 0, 0, 0)
+        footer_layout = QtWidgets.QVBoxLayout(footer)
+        footer_layout.addWidget(message)
+        footer_layout.setContentsMargins(0, 0, 0, 0)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(body)
         layout.addWidget(footer)
 
+        filters.create_filters()
+
         self.data = {
+            "widgets": {"filter": filters},
             "model": {
                 "assets": assets,
                 "subsets": subsets,
@@ -89,11 +101,14 @@ class Window(QtWidgets.QDialog):
             }
         }
 
+        filters.checkbox_list.itemChanged.connect(self.on_filter_toggled)
         assets.selection_changed.connect(self.on_assetschanged)
         subsets.active_changed.connect(self.on_versionschanged)
 
         # Defaults
         self.resize(1200, 600)
+
+        self.on_filter_toggled()
 
     # -------------------------------
     # Delay calling blocking methods
@@ -102,6 +117,12 @@ class Window(QtWidgets.QDialog):
     def refresh(self):
         self.echo("Fetching results..")
         lib.schedule(self._refresh, 100, channel="mongo")
+
+    def on_filter_toggled(self, *args):
+
+        filters = self.data["widgets"]["filter"]
+        subset_widget = self.data['model']['subsets']
+        subset_widget.set_family_filters(filters.get_filters())
 
     def on_assetschanged(self, *args):
         self.echo("Fetching results..")
