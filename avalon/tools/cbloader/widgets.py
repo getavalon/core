@@ -8,7 +8,7 @@ from ... import io
 from ... import api
 from ... import pipeline
 
-from .model import SubsetsModel
+from .model import SubsetsModel, FamiliesFilterProxyModel
 from .delegates import PrettyTimeDelegate, VersionDelegate
 
 
@@ -23,6 +23,8 @@ class SubsetWidget(QtWidgets.QWidget):
 
         model = SubsetsModel()
         proxy = QtCore.QSortFilterProxyModel()
+        family_proxy = FamiliesFilterProxyModel()
+        family_proxy.setSourceModel(proxy)
 
         filter = QtWidgets.QLineEdit()
 
@@ -64,13 +66,14 @@ class SubsetWidget(QtWidgets.QWidget):
         self.model = model
         self.view = view
         self.filter = filter
+        self.family_proxy = family_proxy
 
         # settings and connections
         self.proxy.setSourceModel(self.model)
         self.proxy.setDynamicSortFilter(True)
         self.proxy.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
 
-        self.view.setModel(self.proxy)
+        self.view.setModel(self.family_proxy)
         self.view.customContextMenuRequested.connect(self.on_context_menu)
 
         selection = view.selectionModel()
@@ -79,6 +82,9 @@ class SubsetWidget(QtWidgets.QWidget):
         self.filter.textChanged.connect(self.proxy.setFilterRegExp)
 
         self.model.refresh()
+
+        # Expose this from the widget as a method
+        self.set_family_filters = self.family_proxy.setFamiliesFilter
 
     def on_context_menu(self, point):
 
@@ -198,11 +204,11 @@ class SubsetWidget(QtWidgets.QWidget):
 
 class VersionTextEdit(QtWidgets.QTextEdit):
     """QTextEdit that displays version specific information.
-    
+
     This also overrides the context menu to add actions like copying
     source path to clipboard or copying the raw data of the version
     to clipboard.
-    
+
     """
     def __init__(self, parent=None):
         super(VersionTextEdit, self).__init__(parent=parent)
@@ -302,9 +308,9 @@ class VersionTextEdit(QtWidgets.QTextEdit):
 
     def on_copy_raw(self):
         """Copy raw version data to clipboard
-        
+
         The data is string formatted with `pprint.pformat`.
-        
+
         """
         raw = self.data.get("raw", None)
         if not raw:
@@ -332,3 +338,90 @@ class VersionWidget(QtWidgets.QWidget):
 
     def set_version(self, version_id):
         self.data.set_version(version_id)
+
+
+class FamilyListWidget(QtWidgets.QListWidget):
+    """A Widget that lists all available families"""
+
+    active_changed = QtCore.Signal(list)
+
+    def __init__(self, parent=None):
+        super(FamilyListWidget, self).__init__(parent=parent)
+
+        multi_select = QtWidgets.QAbstractItemView.ExtendedSelection
+        self.setSelectionMode(multi_select)
+        self.setAlternatingRowColors(True)
+        # Enable RMB menu
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.show_right_mouse_menu)
+
+        self.itemChanged.connect(self._on_item_changed)
+
+    def refresh(self):
+        """Refresh the listed families.
+
+        This gets all unique families and adds them as checkable items to
+        the list.
+
+        """
+
+        family = io.distinct("data.family")
+        families = io.distinct("data.families")
+        unique_families = list(set(family + families))
+
+        self.clear()
+        # Rebuild list
+        for family in sorted(unique_families):
+
+            item = QtWidgets.QListWidgetItem(parent=self)
+            item.setText(family)
+            item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
+            item.setCheckState(QtCore.Qt.Checked)
+
+            self.addItem(item)
+
+        self.active_changed.emit(self.get_filters())
+
+    def get_filters(self):
+        """Return the checked family items"""
+
+        items = [self.item(i) for i in
+                 range(self.count())]
+
+        return [item.text() for item in items if
+                item.checkState() is QtCore.Qt.Checked]
+
+    def _on_item_changed(self):
+        print "derp"
+        self.active_changed.emit(self.get_filters())
+
+    def _set_checkstate_all(self, state):
+        _state = QtCore.Qt.Checked if state is True else QtCore.Qt.Unchecked
+        self.blockSignals(True)
+        for i in range(self.count()):
+            item = self.item(i)
+            item.setCheckState(_state)
+        self.blockSignals(False)
+        self.active_changed.emit(self.get_filters())
+
+    def show_right_mouse_menu(self, pos):
+        """Build RMB menu under mouse at current position (within widget)"""
+
+        # Get mouse position
+        globalpos = self.viewport().mapToGlobal(pos)
+
+        menu = QtWidgets.QMenu(self)
+
+        # Add enable all action
+        state_checked = QtWidgets.QAction(menu, text="Enable All")
+        state_checked.triggered.connect(
+            lambda: self._set_checkstate_all(True))
+        # Add disable all action
+        state_unchecked = QtWidgets.QAction(menu, text="Disable All")
+        state_unchecked.triggered.connect(
+            lambda: self._set_checkstate_all(False))
+
+        menu.addAction(state_checked)
+        menu.addAction(state_unchecked)
+
+        menu.exec_(globalpos)

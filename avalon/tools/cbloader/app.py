@@ -3,10 +3,12 @@ import sys
 import time
 
 from ..projectmanager.widget import AssetWidget, AssetModel
+
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ... import api, io
 from .. import lib
-from .widgets import SubsetWidget, VersionWidget
+
+from .widgets import SubsetWidget, VersionWidget, FamilyListWidget
 
 module = sys.modules[__name__]
 module.window = None
@@ -36,36 +38,44 @@ class Window(QtWidgets.QDialog):
         container = QtWidgets.QWidget()
 
         assets = AssetWidget()
+        families = FamilyListWidget()
         subsets = SubsetWidget()
         version = VersionWidget()
 
-        layout = QtWidgets.QHBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
+        # Create splitter to show / hide family filters
+        asset_filter_splitter = QtWidgets.QSplitter()
+        asset_filter_splitter.setOrientation(QtCore.Qt.Vertical)
+        asset_filter_splitter.addWidget(assets)
+        asset_filter_splitter.addWidget(families)
+
+        container_layout = QtWidgets.QHBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
         split = QtWidgets.QSplitter()
-        split.addWidget(assets)
+        split.addWidget(asset_filter_splitter)
         split.addWidget(subsets)
         split.addWidget(version)
         split.setStretchFactor(0, 30)
         split.setStretchFactor(1, 90)
         split.setStretchFactor(2, 30)
-        layout.addWidget(split)
+        container_layout.addWidget(split)
 
-        layout = QtWidgets.QHBoxLayout(body)
-        layout.addWidget(container)
-        layout.setContentsMargins(0, 0, 0, 0)
+        body_layout = QtWidgets.QHBoxLayout(body)
+        body_layout.addWidget(container)
+        body_layout.setContentsMargins(0, 0, 0, 0)
 
         message = QtWidgets.QLabel()
         message.hide()
 
-        layout = QtWidgets.QVBoxLayout(footer)
-        layout.addWidget(message)
-        layout.setContentsMargins(0, 0, 0, 0)
+        footer_layout = QtWidgets.QVBoxLayout(footer)
+        footer_layout.addWidget(message)
+        footer_layout.setContentsMargins(0, 0, 0, 0)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(body)
         layout.addWidget(footer)
 
         self.data = {
+            "widgets": {"families": families},
             "model": {
                 "assets": assets,
                 "subsets": subsets,
@@ -89,6 +99,7 @@ class Window(QtWidgets.QDialog):
             }
         }
 
+        families.active_changed.connect(subsets.set_family_filters)
         assets.selection_changed.connect(self.on_assetschanged)
         subsets.active_changed.connect(self.on_versionschanged)
 
@@ -128,6 +139,9 @@ class Window(QtWidgets.QDialog):
         assets_model = self.data["model"]["assets"]
         assets_model.refresh()
         assets_model.setFocus()
+
+        families = self.data["widgets"]["families"]
+        families.refresh()
 
         # Update state
         state = self.data["state"]
