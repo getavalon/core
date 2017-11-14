@@ -351,6 +351,10 @@ class FamilyListWidget(QtWidgets.QListWidget):
         multi_select = QtWidgets.QAbstractItemView.ExtendedSelection
         self.setSelectionMode(multi_select)
         self.setAlternatingRowColors(True)
+        # Enable RMB menu
+        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        self.customContextMenuRequested.connect(self.show_right_mouse_menu)
+
         self.itemChanged.connect(self._on_item_changed)
 
     def refresh(self):
@@ -388,4 +392,36 @@ class FamilyListWidget(QtWidgets.QListWidget):
                 item.checkState() is QtCore.Qt.Checked]
 
     def _on_item_changed(self):
+        print "derp"
         self.active_changed.emit(self.get_filters())
+
+    def _set_checkstate_all(self, state):
+        _state = QtCore.Qt.Checked if state is True else QtCore.Qt.Unchecked
+        self.blockSignals(True)
+        for i in range(self.count()):
+            item = self.item(i)
+            item.setCheckState(_state)
+        self.blockSignals(False)
+        self.active_changed.emit(self.get_filters())
+
+    def show_right_mouse_menu(self, pos):
+        """Build RMB menu under mouse at current position (within widget)"""
+
+        # Get mouse position
+        globalpos = self.viewport().mapToGlobal(pos)
+
+        menu = QtWidgets.QMenu(self)
+
+        # Add enable all action
+        state_checked = QtWidgets.QAction(menu, text="Enable All")
+        state_checked.triggered.connect(
+            lambda: self._set_checkstate_all(True))
+        # Add disable all action
+        state_unchecked = QtWidgets.QAction(menu, text="Disable All")
+        state_unchecked.triggered.connect(
+            lambda: self._set_checkstate_all(False))
+
+        menu.addAction(state_checked)
+        menu.addAction(state_unchecked)
+
+        menu.exec_(globalpos)
