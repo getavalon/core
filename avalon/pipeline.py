@@ -756,7 +756,7 @@ def update_current_context(context):
     template = project['config']['template']['work']
     _session = Session.copy()
     _session.update(changed)
-    changed['AVALON_WORKDIR'] = format_template(template, _session)
+    changed['AVALON_WORKDIR'] = format_work_template(template, _session)
 
     # Update the full session in one go to avoid half updates
     Session.update(changed)
@@ -767,7 +767,7 @@ def update_current_context(context):
     return changed
 
 
-def format_template(template, session=None):
+def format_work_template(template, session=None):
     """Return a formatted configuration template with a Session.
 
     Note: This *cannot* format the templates for published files since the
