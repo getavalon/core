@@ -746,19 +746,19 @@ def update_current_task(task=None, asset=None, app=None):
 
     # Update silo when asset changed
     if "AVALON_ASSET" in changed:
-        asset_document = io.find_one({"name": changed['AVALON_ASSET'],
+        asset_document = io.find_one({"name": changed["AVALON_ASSET"],
                                       "type": "asset"},
                                      projection={"silo": True})
         assert asset_document, "Asset must exist"
-        changed["AVALON_SILO"] = asset_document['silo']
+        changed["AVALON_SILO"] = asset_document["silo"]
 
     # Compute work directory (with the temporary changed session so far)
     project = io.find_one({"type": "project"},
                           projection={"config.template.work": True})
-    template = project['config']['template']['work']
+    template = project["config"]["template"]["work"]
     _session = Session.copy()
     _session.update(changed)
-    changed['AVALON_WORKDIR'] = _format_work_template(template, _session)
+    changed["AVALON_WORKDIR"] = _format_work_template(template, _session)
 
     # Update the full session in one go to avoid half updates
     Session.update(changed)
@@ -790,9 +790,9 @@ def _format_work_template(template, session=None):
 
     return template.format(**{
         "root": registered_root(),
-        "project": session['AVALON_PROJECT'],
+        "project": session["AVALON_PROJECT"],
         "silo": session["AVALON_SILO"],
-        "asset": session['AVALON_ASSET'],
+        "asset": session["AVALON_ASSET"],
         "task": session["AVALON_TASK"],
         "app": session["AVALON_APP"],
         "user": session.get("AVALON_USER", getpass.getuser())
@@ -846,7 +846,7 @@ def load(Loader, representation, namespace=None, name=None, data=None):
     if not is_compatible_loader(Loader, context):
         raise IncompatibleLoaderError("Loader {} is incompatible with "
                                       "{}".format(Loader.__name__,
-                                                  context['subset']['name']))
+                                                  context["subset"]["name"]))
 
     # Ensure data is a dictionary when no explicit data provided
     if data is None:
@@ -856,10 +856,10 @@ def load(Loader, representation, namespace=None, name=None, data=None):
 
     # Fallback to subset when name is None
     if name is None:
-        name = context['subset']['name']
+        name = context["subset"]["name"]
 
     log.info(
-        "Running '%s' on '%s'" % (Loader.__name__, context['asset']["name"])
+        "Running '%s' on '%s'" % (Loader.__name__, context["asset"]["name"])
     )
 
     loader = Loader(context)
@@ -872,7 +872,7 @@ def load(Loader, representation, namespace=None, name=None, data=None):
 def _get_container_loader(container):
     """Return the Loader corresponding to the container"""
 
-    loader = container['loader']
+    loader = container["loader"]
     for Plugin in discover(Loader):
 
         # TODO: Ensure the loader is valid
@@ -889,7 +889,7 @@ def remove(container):
 
     Loader = _make_backwards_compatible_loader(Loader)
 
-    loader = Loader(get_representation_context(container['representation']))
+    loader = Loader(get_representation_context(container["representation"]))
     return loader.remove(container)
 
 
@@ -933,7 +933,7 @@ def update(container, version=-1):
 
     Loader = _make_backwards_compatible_loader(Loader)
 
-    loader = Loader(get_representation_context(container['representation']))
+    loader = Loader(get_representation_context(container["representation"]))
     return loader.update(container, new_representation)
 
 
@@ -971,8 +971,8 @@ def is_compatible_loader(Loader, context):
     Loader.
 
     """
-    families = context['version']['data']['families']
-    representation = context['representation']
+    families = context["version"]["data"]["families"]
+    representation = context["representation"]
     has_family = ("*" in Loader.families or
                   any(family in Loader.families for family in families))
     has_representation = ("*" in Loader.representations or
