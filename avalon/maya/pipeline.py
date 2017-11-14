@@ -453,9 +453,9 @@ def _register_callbacks():
 
 def _register_events():
 
-    api.on("currentContextUpdated", _on_current_context_updated)
+    api.on("taskChanged", _on_task_changed)
 
-    logger.info("Installed event callback for 'currentContextUpdated'..")
+    logger.info("Installed event callback for 'taskChanged'..")
 
 
 def _on_maya_initialized(*args):
@@ -494,11 +494,10 @@ def _before_scene_save(return_code, client_data):
     api.emit("before_save", [return_code, client_data])
 
 
-def _on_current_context_updated(*args):
-    logger.info("Running _on_current_context_updated()")
-
+def _on_task_changed(*args):
     workdir = api.Session["AVALON_WORKDIR"]
     if os.path.exists(workdir):
+        logger.info("Updating Maya workspace for task change to %s", workdir)
         _set_project()
     else:
         logger.warning("Can't set project for new context because "

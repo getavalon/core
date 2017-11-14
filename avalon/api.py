@@ -34,7 +34,7 @@ from .pipeline import (
     update,
     remove,
 
-    update_current_context,
+    update_current_task,
     get_representation_path,
     loaders_from_representation,
 
@@ -80,7 +80,7 @@ __all__ = [
     "update",
     "remove",
 
-    "update_current_context",
+    "update_current_task",
     "get_representation_path",
     "loaders_from_representation",
 

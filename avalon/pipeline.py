@@ -720,13 +720,15 @@ def get_representation_context(representation):
     return context
 
 
-def update_current_context(context):
-    """Update active Session to new context.
+def update_current_task(task=None, asset=None, app=None):
+    """Update active Session to a new task work area.
 
-    The context can hold `asset`, `task` and `app`, other keys are ignored.
+    This updates the live Session to a different `asset`, `task` or `app`.
 
     Args:
-        context (dict): The context to apply.
+        task (str): The task to set.
+        asset (str): The asset to set.
+        app (str): The app to set.
 
     Returns:
         dict: The changed key, values in the current Session.
@@ -734,9 +736,9 @@ def update_current_context(context):
     """
 
     mapping = {
-        "AVALON_ASSET": context.get("asset", None),
-        "AVALON_TASK": context.get("task", None),
-        "AVALON_APP": context.get("app", None),
+        "AVALON_ASSET": asset,
+        "AVALON_TASK": task,
+        "AVALON_APP": app,
     }
     changed = {key: value for key, value in mapping.items() if value}
     if not changed:
@@ -762,7 +764,7 @@ def update_current_context(context):
     Session.update(changed)
 
     # Emit session change
-    emit("currentContextUpdated", changed.copy())
+    emit("taskChanged", changed.copy())
 
     return changed
 
