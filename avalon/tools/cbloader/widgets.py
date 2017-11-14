@@ -369,7 +369,6 @@ class FilterWidget(QtWidgets.QGroupBox):
         unique_families = list(set(family + families))
 
         # Rebuild list
-        self.checkbox_list.clear()
         for family in sorted(unique_families):
 
             checkbox = QtWidgets.QListWidgetItem(parent=self.checkbox_list)
@@ -378,6 +377,12 @@ class FilterWidget(QtWidgets.QGroupBox):
             checkbox.setCheckState(QtCore.Qt.Checked)
 
             self.checkbox_list.addItem(checkbox)
+
+    def refresh(self):
+        """Rebuild the family checkboxes to make all families are avaible"""
+
+        self.checkbox_list.clear()
+        self.create_filters()
 
     def get_filters(self):
 
