@@ -150,6 +150,9 @@ class Window(QtWidgets.QDialog):
         assets_model.refresh()
         assets_model.setFocus()
 
+        family_filter_widget = self.data["widgets"]["filter"]
+        family_filter_widget.refresh()
+
         # Update state
         state = self.data["state"]
         state["template"] = project["config"]["template"]["publish"]
