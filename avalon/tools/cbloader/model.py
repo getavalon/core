@@ -1,16 +1,13 @@
 from ... import io
-from ..projectmanager.model import (
-    TreeModel,
-    Node
-)
 from ..projectmanager import style
+from ..projectmanager.model import TreeModel, Node
 from ...vendor.Qt import QtCore
 from ...vendor import qtawesome as qta
 
 
 class SubsetsModel(TreeModel):
     COLUMNS = ["subset",
-               "family",
+               "families",
                "version",
                "time",
                "author",
@@ -75,7 +72,7 @@ class SubsetsModel(TreeModel):
             "version_document": version,
             "author": version_data.get("author", None),
             "time": version_data.get("time", None),
-            "family": version_data.get("families", ["<unknown>"])[0],
+            "families": version_data.get("families", ["<unknown>"])[0],
             "startFrame": start,
             "endFrame": end,
             "duration": duration,
@@ -135,3 +132,37 @@ class SubsetsModel(TreeModel):
             flags |= QtCore.Qt.ItemIsEditable
 
         return flags
+
+
+class FamilyTypeFilterProxyModel(QtCore.QSortFilterProxyModel):
+    """Filters to the regex if any of the children matches allow parent"""
+
+    _families = []
+
+    def familyFilter(self):
+        return self._families
+
+    def setFamiliesFilter(self, values):
+        """set the list of """
+        assert isinstance(values, (tuple, list))
+        self._families = set(values)
+        self.invalidateFilter()
+
+    def filterAcceptsRow(self, row=0, parent=QtCore.QModelIndex()):
+
+        model = self.sourceModel()
+        index = model.index(row, 0, parent=parent)
+
+        # Ensure index is valid
+        if not index.isValid() or index is None:
+            return True
+
+        # Get the node data and validate
+        node = model.data(index, TreeModel.NodeRole)
+        family = node.get("families", "<unknown>")
+
+        if family == "<unknown>":
+            return True
+
+        # We want to keep the families which are not in the list
+        return family in self._families
