@@ -106,8 +106,6 @@ class Window(QtWidgets.QDialog):
         # Defaults
         self.resize(1200, 600)
 
-        self.on_filter_toggled()
-
     # -------------------------------
     # Delay calling blocking methods
     # -------------------------------
