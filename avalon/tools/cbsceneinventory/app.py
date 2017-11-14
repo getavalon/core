@@ -7,7 +7,6 @@ from ... import io, api
 from .. import lib as tools_lib
 
 import os
-import subprocess
 
 from .proxy import FilterProxyModel
 from .model import InventoryModel
