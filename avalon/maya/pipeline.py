@@ -68,7 +68,7 @@ def _set_project():
         None
 
     """
-    workdir = api.Session['AVALON_WORKDIR']
+    workdir = api.Session["AVALON_WORKDIR"]
 
     try:
         os.makedirs(workdir)
