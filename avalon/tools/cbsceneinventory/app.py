@@ -1,5 +1,4 @@
 import sys
-import getpass
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ...vendor import qtawesome as qta
@@ -17,35 +16,11 @@ from ..projectmanager.widget import (
     preserve_selection
 )
 from ..cbloader.delegates import VersionDelegate
-from ..cbloader.lib import get_representation_context
 
 DEFAULT_COLOR = "#fb9c15"
 
 module = sys.modules[__name__]
 module.window = None
-
-
-def get_representation_path(representation):
-    """Return full path for a representation in current project."""
-    context = get_representation_context(representation)
-
-    # template data from context
-    data = dict()
-    for key, value in context.items():
-        data[key] = value["name"]
-
-    # additional parameters
-    # see https://getavalon.github.io/2.0/reference/#project-configuration-api
-    data["root"] = api.registered_root()
-    data["silo"] = context["asset"]["silo"]
-    data["user"] = getpass.getuser()
-    data["app"] = os.environ.get("AVALON_APP", "")
-    data["task"] = os.environ.get("AVALON_TASK", "")
-
-    # get project template for published files
-    template = context["project"]["config"]["template"]["publish"]
-
-    return template.format(**data)
 
 
 class View(QtWidgets.QTreeView):

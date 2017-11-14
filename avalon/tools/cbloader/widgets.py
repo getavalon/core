@@ -6,10 +6,10 @@ from ...vendor.Qt import QtWidgets, QtCore
 from ...vendor import qtawesome
 from ... import io
 from ... import api
+from ... import pipeline
 
 from .model import SubsetsModel, FamilyTypeFilterProxyModel
 from .delegates import PrettyTimeDelegate, VersionDelegate
-from . import lib
 
 
 class SubsetWidget(QtWidgets.QWidget):
@@ -93,13 +93,17 @@ class SubsetWidget(QtWidgets.QWidget):
 
         # Get all representation->loader combinations available for the
         # index under the cursor, so we can list the user the options.
+        available_loaders = api.discover(api.Loader)
         loaders = list()
         node = point_index.data(self.model.NodeRole)
         version_id = node['version_document']['_id']
         representations = io.find({"type": "representation",
                                    "parent": version_id})
         for representation in representations:
-            for loader in lib.iter_loaders(representation["_id"]):
+            for loader in api.loaders_from_representation(
+                    available_loaders,
+                    representation['_id']
+            ):
                 loaders.append((representation, loader))
 
         if not loaders:
@@ -187,15 +191,11 @@ class SubsetWidget(QtWidgets.QWidget):
                 ))
                 continue
 
-            # If the representation can be
-            context = lib.get_representation_context(representation["_id"])
-            if not lib.is_compatible_loader(loader, context):
-                self.echo("Loader not compatible with '{}'".format(
-                        node['subset']
-                ))
+            try:
+                api.load(Loader=loader, representation=representation['_id'])
+            except pipeline.IncompatibleLoaderError as exc:
+                self.echo(exc)
                 continue
-
-            lib.run_loader(loader, representation['_id'])
 
     def echo(self, message):
         print(message)
