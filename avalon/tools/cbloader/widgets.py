@@ -376,7 +376,7 @@ class FamilyListWidget(QtWidgets.QListWidget):
 
             self.addItem(item)
 
-        self.selection_changed.emit()
+        self.active_changed.emit(self.get_filters())
 
     def get_filters(self):
         """Return the checked family items"""
@@ -388,4 +388,4 @@ class FamilyListWidget(QtWidgets.QListWidget):
                 item.checkState() is QtCore.Qt.Checked]
 
     def _on_item_changed(self):
-        self.selection_changed.emit(self.get_filters())
+        self.active_changed.emit(self.get_filters())
