@@ -7,7 +7,7 @@ from ...vendor import qtawesome
 from ... import io
 from ... import api
 
-from .model import SubsetsModel
+from .model import SubsetsModel, FamilyTypeFilterProxyModel
 from .delegates import PrettyTimeDelegate, VersionDelegate
 from . import lib
 
@@ -23,6 +23,8 @@ class SubsetWidget(QtWidgets.QWidget):
 
         model = SubsetsModel()
         proxy = QtCore.QSortFilterProxyModel()
+        family_proxy = FamilyTypeFilterProxyModel()
+        family_proxy.setSourceModel(proxy)
 
         filter = QtWidgets.QLineEdit()
 
@@ -64,13 +66,14 @@ class SubsetWidget(QtWidgets.QWidget):
         self.model = model
         self.view = view
         self.filter = filter
+        self.family_proxy = family_proxy
 
         # settings and connections
         self.proxy.setSourceModel(self.model)
         self.proxy.setDynamicSortFilter(True)
         self.proxy.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
 
-        self.view.setModel(self.proxy)
+        self.view.setModel(self.family_proxy)
         self.view.customContextMenuRequested.connect(self.on_context_menu)
 
         selection = view.selectionModel()
@@ -79,6 +82,8 @@ class SubsetWidget(QtWidgets.QWidget):
         self.filter.textChanged.connect(self.proxy.setFilterRegExp)
 
         self.model.refresh()
+
+        self.set_family_filters = self.family_proxy.setFamiliesFilter
 
     def on_context_menu(self, point):
 
@@ -332,3 +337,52 @@ class VersionWidget(QtWidgets.QWidget):
 
     def set_version(self, version_id):
         self.data.set_version(version_id)
+
+
+class FilterWidget(QtWidgets.QGroupBox):
+
+    def __init__(self, parent=None):
+        super(FilterWidget, self).__init__(parent=parent)
+
+        self.setTitle("Families")
+
+        MULTI_SELECT = QtWidgets.QAbstractItemView.ExtendedSelection
+
+        layout = QtWidgets.QVBoxLayout()
+
+        checkbox_list = QtWidgets.QListWidget()
+        checkbox_list.setSelectionMode(MULTI_SELECT)
+        checkbox_list.setAlternatingRowColors(True)
+
+        layout.addWidget(checkbox_list)
+
+        self.checkbox_list = checkbox_list
+        self.mainlayout = layout
+
+        self.setLayout(layout)
+
+    def create_filters(self):
+        """Get all unique families and create a filter widget for them"""
+
+        family = io.distinct("data.family")
+        families = io.distinct("data.families")
+        unique_families = list(set(family + families))
+
+        # Rebuild list
+        self.checkbox_list.clear()
+        for family in sorted(unique_families):
+
+            checkbox = QtWidgets.QListWidgetItem(parent=self.checkbox_list)
+            checkbox.setText(family)
+            checkbox.setFlags(checkbox.flags() | QtCore.Qt.ItemIsUserCheckable)
+            checkbox.setCheckState(QtCore.Qt.Checked)
+
+            self.checkbox_list.addItem(checkbox)
+
+    def get_filters(self):
+
+        items = [self.checkbox_list.item(i) for i in
+                 range(self.checkbox_list.count())]
+
+        return [item.text() for item in items if
+                item.checkState() is QtCore.Qt.Checked]
