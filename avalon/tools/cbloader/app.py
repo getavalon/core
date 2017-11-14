@@ -23,7 +23,7 @@ class Window(QtWidgets.QDialog):
         self.setWindowTitle(
             "Asset Loader 2.0 - %s/%s" % (
                 api.registered_root(),
-                os.getenv("AVALON_PROJECT")))
+                api.Session.get("AVALON_PROJECT")))
 
         # Enable minimize and maximize for app
         self.setWindowFlags(QtCore.Qt.Window)
@@ -183,20 +183,20 @@ class Window(QtWidgets.QDialog):
 
     def _set_context(self, context, refresh=True):
         """Set the selection in the interface using a context.
-        
+
         The context must contain `silo` and `asset` data by name.
-        
+
         Note: Prior to setting context ensure `refresh` is triggered so that
               the "silos" are listed correctly, aside from that setting the
               context will force a refresh further down because it changes
               the active silo and asset.
-        
+
         Args:
             context (dict): The context to apply.
-            
+
         Returns:
             None
-        
+
         """
 
         silo = context.get("silo", None)
@@ -272,6 +272,7 @@ def show(root=None, debug=False, parent=None, use_context=False):
             # Raise and activate the window
             module.window.raise_()             # for MacOS
             module.window.activateWindow()     # for Windows
+            module.window.refresh()
             return
         except RuntimeError as e:
             if not e.message.rstrip().endswith("already deleted."):
@@ -299,8 +300,8 @@ def show(root=None, debug=False, parent=None, use_context=False):
         window.show()
 
         if use_context:
-            context = {"asset": os.environ['AVALON_ASSET'],
-                       "silo": os.environ['AVALON_SILO']}
+            context = {"asset": api.Session['AVALON_ASSET'],
+                       "silo": api.Session['AVALON_SILO']}
             window.set_context(context, refresh=True)
         else:
             window.refresh()

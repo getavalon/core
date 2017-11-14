@@ -316,7 +316,7 @@ def insert_many(items, ordered=True):
         items,
         ordered=ordered)
 
-  
+
 def find(filter, projection=None, sort=None):
     return self._database[Session["AVALON_PROJECT"]].find(
         filter=filter,
