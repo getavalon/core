@@ -138,9 +138,7 @@ class FamiliesFilterProxyModel(QtCore.QSortFilterProxyModel):
     """Filters to specified families"""
 
     def __init__(self, *args, **kwargs):
-        super(FamiliesFilterProxyModel, self).__init__(self,
-                                                       *args,
-                                                       **kwargs)
+        super(FamiliesFilterProxyModel, self).__init__(*args, **kwargs)
         self._families = set()
 
     def familyFilter(self):
