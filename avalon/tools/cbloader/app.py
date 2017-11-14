@@ -8,7 +8,7 @@ from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ... import api, io
 from .. import lib
 
-from .widgets import SubsetWidget, VersionWidget, FilterWidget
+from .widgets import SubsetWidget, VersionWidget, FamilyListWidget
 
 module = sys.modules[__name__]
 module.window = None
@@ -38,7 +38,7 @@ class Window(QtWidgets.QDialog):
         container = QtWidgets.QWidget()
 
         assets = AssetWidget()
-        filters = FilterWidget()
+        families = FamilyListWidget()
         subsets = SubsetWidget()
         version = VersionWidget()
 
@@ -46,7 +46,7 @@ class Window(QtWidgets.QDialog):
         asset_filter_splitter = QtWidgets.QSplitter()
         asset_filter_splitter.setOrientation(QtCore.Qt.Vertical)
         asset_filter_splitter.addWidget(assets)
-        asset_filter_splitter.addWidget(filters)
+        asset_filter_splitter.addWidget(families)
 
         container_layout = QtWidgets.QHBoxLayout(container)
         container_layout.setContentsMargins(0, 0, 0, 0)
@@ -75,7 +75,7 @@ class Window(QtWidgets.QDialog):
         layout.addWidget(footer)
 
         self.data = {
-            "widgets": {"filter": filters},
+            "widgets": {"families": families},
             "model": {
                 "assets": assets,
                 "subsets": subsets,
@@ -99,7 +99,7 @@ class Window(QtWidgets.QDialog):
             }
         }
 
-        filters.selection_changed.connect(self.on_filter_toggled)
+        families.active_changed(subsets.set_family_filters)
         assets.selection_changed.connect(self.on_assetschanged)
         subsets.active_changed.connect(self.on_versionschanged)
 
@@ -115,12 +115,6 @@ class Window(QtWidgets.QDialog):
     def refresh(self):
         self.echo("Fetching results..")
         lib.schedule(self._refresh, 100, channel="mongo")
-
-    def on_filter_toggled(self, *args):
-
-        filters = self.data["widgets"]["filter"]
-        subset_widget = self.data['model']['subsets']
-        subset_widget.set_family_filters(filters.get_filters())
 
     def on_assetschanged(self, *args):
         self.echo("Fetching results..")
@@ -148,8 +142,8 @@ class Window(QtWidgets.QDialog):
         assets_model.refresh()
         assets_model.setFocus()
 
-        family_filter_widget = self.data["widgets"]["filter"]
-        family_filter_widget.refresh()
+        families = self.data["widgets"]["families"]
+        families.refresh()
 
         # Update state
         state = self.data["state"]
@@ -205,20 +199,20 @@ class Window(QtWidgets.QDialog):
 
     def _set_context(self, context, refresh=True):
         """Set the selection in the interface using a context.
-        
+
         The context must contain `silo` and `asset` data by name.
-        
+
         Note: Prior to setting context ensure `refresh` is triggered so that
               the "silos" are listed correctly, aside from that setting the
               context will force a refresh further down because it changes
               the active silo and asset.
-        
+
         Args:
             context (dict): The context to apply.
-            
+
         Returns:
             None
-        
+
         """
 
         silo = context.get("silo", None)

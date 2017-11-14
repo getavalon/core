@@ -41,7 +41,7 @@ class SubsetsModel(TreeModel):
 
     def set_version(self, index, version):
         """Update the version data of the given index.
-        
+
         Arguments:
             version (dict) Version document in the database. """
 
@@ -134,21 +134,28 @@ class SubsetsModel(TreeModel):
         return flags
 
 
-class FamilyTypeFilterProxyModel(QtCore.QSortFilterProxyModel):
-    """Filters to the regex if any of the children matches allow parent"""
+class FamiliesFilterProxyModel(QtCore.QSortFilterProxyModel):
+    """Filters to specified families"""
 
-    _families = []
+    def __init__(self, *args, **kwargs):
+        super(FamiliesFilterProxyModel, self).__init__(self,
+                                                       *args,
+                                                       **kwargs)
+        self._families = set()
 
     def familyFilter(self):
         return self._families
 
     def setFamiliesFilter(self, values):
-        """set the list of """
-        assert isinstance(values, (tuple, list))
+        """Set the families to include"""
+        assert isinstance(values, (tuple, list, set))
         self._families = set(values)
         self.invalidateFilter()
 
     def filterAcceptsRow(self, row=0, parent=QtCore.QModelIndex()):
+
+        if not self._families:
+            return False
 
         model = self.sourceModel()
         index = model.index(row, 0, parent=parent)

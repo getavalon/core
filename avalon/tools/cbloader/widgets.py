@@ -8,7 +8,7 @@ from ... import io
 from ... import api
 from ... import pipeline
 
-from .model import SubsetsModel, FamilyTypeFilterProxyModel
+from .model import SubsetsModel, FamiliesFilterProxyModel
 from .delegates import PrettyTimeDelegate, VersionDelegate
 
 
@@ -23,7 +23,7 @@ class SubsetWidget(QtWidgets.QWidget):
 
         model = SubsetsModel()
         proxy = QtCore.QSortFilterProxyModel()
-        family_proxy = FamilyTypeFilterProxyModel()
+        family_proxy = FamiliesFilterProxyModel()
         family_proxy.setSourceModel(proxy)
 
         filter = QtWidgets.QLineEdit()
@@ -83,6 +83,7 @@ class SubsetWidget(QtWidgets.QWidget):
 
         self.model.refresh()
 
+        # Expose this from the widget as a method
         self.set_family_filters = self.family_proxy.setFamiliesFilter
 
     def on_context_menu(self, point):
@@ -203,11 +204,11 @@ class SubsetWidget(QtWidgets.QWidget):
 
 class VersionTextEdit(QtWidgets.QTextEdit):
     """QTextEdit that displays version specific information.
-    
+
     This also overrides the context menu to add actions like copying
     source path to clipboard or copying the raw data of the version
     to clipboard.
-    
+
     """
     def __init__(self, parent=None):
         super(VersionTextEdit, self).__init__(parent=parent)
@@ -307,9 +308,9 @@ class VersionTextEdit(QtWidgets.QTextEdit):
 
     def on_copy_raw(self):
         """Copy raw version data to clipboard
-        
+
         The data is string formatted with `pprint.pformat`.
-        
+
         """
         raw = self.data.get("raw", None)
         if not raw:
@@ -339,54 +340,52 @@ class VersionWidget(QtWidgets.QWidget):
         self.data.set_version(version_id)
 
 
-class FilterWidget(QtWidgets.QGroupBox):
+class FamilyListWidget(QtWidgets.QListWidget):
+    """A Widget that lists all available families"""
 
-    selection_changed = QtCore.Signal()
+    active_changed = QtCore.Signal(list)
 
     def __init__(self, parent=None):
-        super(FilterWidget, self).__init__(parent=parent)
+        super(FamilyListWidget, self).__init__(parent=parent)
 
-        self.setTitle("Families")
-
-        MULTI_SELECT = QtWidgets.QAbstractItemView.ExtendedSelection
-
-        layout = QtWidgets.QVBoxLayout()
-
-        checkbox_list = QtWidgets.QListWidget()
-        checkbox_list.setSelectionMode(MULTI_SELECT)
-        checkbox_list.setAlternatingRowColors(True)
-        checkbox_list.itemChanged.connect(self.selection_changed)
-
-        layout.addWidget(checkbox_list)
-
-        self.checkbox_list = checkbox_list
-        self.mainlayout = layout
-
-        self.setLayout(layout)
+        multi_select = QtWidgets.QAbstractItemView.ExtendedSelection
+        self.setSelectionMode(multi_select)
+        self.setAlternatingRowColors(True)
+        self.itemChanged.connect(self._on_item_changed)
 
     def refresh(self):
-        """Get all unique families and create a filter widget for them"""
+        """Refresh the listed families.
+
+        This gets all unique families and adds them as checkable items to
+        the list.
+
+        """
 
         family = io.distinct("data.family")
         families = io.distinct("data.families")
         unique_families = list(set(family + families))
 
+        self.clear()
         # Rebuild list
         for family in sorted(unique_families):
 
-            checkbox = QtWidgets.QListWidgetItem(parent=self.checkbox_list)
-            checkbox.setText(family)
-            checkbox.setFlags(checkbox.flags() | QtCore.Qt.ItemIsUserCheckable)
-            checkbox.setCheckState(QtCore.Qt.Checked)
+            item = QtWidgets.QListWidgetItem(parent=self)
+            item.setText(family)
+            item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
+            item.setCheckState(QtCore.Qt.Checked)
 
-            self.checkbox_list.addItem(checkbox)
+            self.addItem(item)
 
         self.selection_changed.emit()
 
     def get_filters(self):
+        """Return the checked family items"""
 
-        items = [self.checkbox_list.item(i) for i in
-                 range(self.checkbox_list.count())]
+        items = [self.item(i) for i in
+                 range(self.count())]
 
         return [item.text() for item in items if
                 item.checkState() is QtCore.Qt.Checked]
+
+    def _on_item_changed(self):
+        self.selection_changed.emit(self.get_filters())
