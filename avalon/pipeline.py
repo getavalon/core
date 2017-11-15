@@ -389,7 +389,7 @@ def emit(event, args=None):
         try:
             callback(*args)
         except Exception:
-            log.debug(traceback.format_exc())
+            log.warning(traceback.format_exc())
 
 
 def register_plugin(superclass, obj):
@@ -720,6 +720,85 @@ def get_representation_context(representation):
     return context
 
 
+def update_current_task(task=None, asset=None, app=None):
+    """Update active Session to a new task work area.
+
+    This updates the live Session to a different `asset`, `task` or `app`.
+
+    Args:
+        task (str): The task to set.
+        asset (str): The asset to set.
+        app (str): The app to set.
+
+    Returns:
+        dict: The changed key, values in the current Session.
+
+    """
+
+    mapping = {
+        "AVALON_ASSET": asset,
+        "AVALON_TASK": task,
+        "AVALON_APP": app,
+    }
+    changed = {key: value for key, value in mapping.items() if value}
+    if not changed:
+        return
+
+    # Update silo when asset changed
+    if "AVALON_ASSET" in changed:
+        asset_document = io.find_one({"name": changed["AVALON_ASSET"],
+                                      "type": "asset"},
+                                     projection={"silo": True})
+        assert asset_document, "Asset must exist"
+        changed["AVALON_SILO"] = asset_document["silo"]
+
+    # Compute work directory (with the temporary changed session so far)
+    project = io.find_one({"type": "project"},
+                          projection={"config.template.work": True})
+    template = project["config"]["template"]["work"]
+    _session = Session.copy()
+    _session.update(changed)
+    changed["AVALON_WORKDIR"] = _format_work_template(template, _session)
+
+    # Update the full session in one go to avoid half updates
+    Session.update(changed)
+
+    # Emit session change
+    emit("taskChanged", changed.copy())
+
+    return changed
+
+
+def _format_work_template(template, session=None):
+    """Return a formatted configuration template with a Session.
+
+    Note: This *cannot* format the templates for published files since the
+        session does not hold the context for a published file. Instead use
+        `get_representation_path` to parse the full path to a published file.
+
+    Args:
+        template (str): The template to format.
+        session (dict, Optional): The Session to use. If not provided use the
+            currently active global Session.
+
+    Returns:
+        str: The fully formatted path.
+
+    """
+    if session is None:
+        session = Session
+
+    return template.format(**{
+        "root": registered_root(),
+        "project": session["AVALON_PROJECT"],
+        "silo": session["AVALON_SILO"],
+        "asset": session["AVALON_ASSET"],
+        "task": session["AVALON_TASK"],
+        "app": session["AVALON_APP"],
+        "user": session.get("AVALON_USER", getpass.getuser())
+    })
+
+
 def _make_backwards_compatible_loader(Loader):
     """Convert a old-style Loaders with `process` method to new-style Loader
 
@@ -767,7 +846,7 @@ def load(Loader, representation, namespace=None, name=None, data=None):
     if not is_compatible_loader(Loader, context):
         raise IncompatibleLoaderError("Loader {} is incompatible with "
                                       "{}".format(Loader.__name__,
-                                                  context['subset']['name']))
+                                                  context["subset"]["name"]))
 
     # Ensure data is a dictionary when no explicit data provided
     if data is None:
@@ -777,10 +856,10 @@ def load(Loader, representation, namespace=None, name=None, data=None):
 
     # Fallback to subset when name is None
     if name is None:
-        name = context['subset']['name']
+        name = context["subset"]["name"]
 
     log.info(
-        "Running '%s' on '%s'" % (Loader.__name__, context['asset']["name"])
+        "Running '%s' on '%s'" % (Loader.__name__, context["asset"]["name"])
     )
 
     loader = Loader(context)
@@ -793,7 +872,7 @@ def load(Loader, representation, namespace=None, name=None, data=None):
 def _get_container_loader(container):
     """Return the Loader corresponding to the container"""
 
-    loader = container['loader']
+    loader = container["loader"]
     for Plugin in discover(Loader):
 
         # TODO: Ensure the loader is valid
@@ -810,7 +889,7 @@ def remove(container):
 
     Loader = _make_backwards_compatible_loader(Loader)
 
-    loader = Loader(get_representation_context(container['representation']))
+    loader = Loader(get_representation_context(container["representation"]))
     return loader.remove(container)
 
 
@@ -854,7 +933,7 @@ def update(container, version=-1):
 
     Loader = _make_backwards_compatible_loader(Loader)
 
-    loader = Loader(get_representation_context(container['representation']))
+    loader = Loader(get_representation_context(container["representation"]))
     return loader.update(container, new_representation)
 
 
@@ -892,8 +971,8 @@ def is_compatible_loader(Loader, context):
     Loader.
 
     """
-    families = context['version']['data']['families']
-    representation = context['representation']
+    families = context["version"]["data"]["families"]
+    representation = context["representation"]
     has_family = ("*" in Loader.families or
                   any(family in Loader.families for family in families))
     has_representation = ("*" in Loader.representations or

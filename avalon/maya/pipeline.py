@@ -39,6 +39,7 @@ def install(config):
     self._menu = api.Session["AVALON_LABEL"] + "menu"
 
     _register_callbacks()
+    _register_events()
     _set_project()
 
     # Check if maya version is compatible else fix it, Maya2018 only
@@ -61,7 +62,13 @@ def install(config):
 
 
 def _set_project():
-    workdir = os.environ["AVALON_WORKDIR"]
+    """Sets the maya project to the current Session's work directory.
+
+    Returns:
+        None
+
+    """
+    workdir = api.Session["AVALON_WORKDIR"]
 
     try:
         os.makedirs(workdir)
@@ -169,7 +176,6 @@ def reload_pipeline(*args):
                    # NOTE(marcus): These have circular depenendencies
                    #               that is preventing reloadability
                    # "avalon.tools.cbloader.delegates",
-                   # "avalon.tools.cbloader.lib",
                    # "avalon.tools.cbloader.model",
                    # "avalon.tools.cbloader.widgets",
                    # "avalon.tools.cbloader.app",
@@ -445,6 +451,13 @@ def _register_callbacks():
     logger.info("Installed event handler _on_scene_open..")
 
 
+def _register_events():
+
+    api.on("taskChanged", _on_task_changed)
+
+    logger.info("Installed event callback for 'taskChanged'..")
+
+
 def _on_maya_initialized(*args):
     api.emit("init", args)
 
@@ -479,3 +492,13 @@ def _before_scene_save(return_code, client_data):
     OpenMaya.MScriptUtil.setBool(return_code, True)
 
     api.emit("before_save", [return_code, client_data])
+
+
+def _on_task_changed(*args):
+    workdir = api.Session["AVALON_WORKDIR"]
+    if os.path.exists(workdir):
+        logger.info("Updating Maya workspace for task change to %s", workdir)
+        _set_project()
+    else:
+        logger.warning("Can't set project for new context because "
+                       "path does not exist: %s", workdir)

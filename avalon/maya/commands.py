@@ -7,16 +7,14 @@ For interactive use, see :mod:`interactive.py`
 
 """
 
-import os
-
 from maya import cmds
 
-from .. import io
+from .. import io, api
 
 
 def reset_frame_range():
     """Set frame range to current asset"""
-    shot = os.environ["AVALON_ASSET"]
+    shot = api.Session["AVALON_ASSET"]
     shot = io.find_one({"name": shot, "type": "asset"})
 
     try:
@@ -36,7 +34,7 @@ def reset_frame_range():
         "48": "show",
         "50": "palf",
         "60": "ntscf"
-    }.get(os.getenv("AVALON_FPS"), "pal")  # Default to "pal"
+    }.get(api.Session.get("AVALON_FPS"), "pal")  # Default to "pal"
 
     cmds.currentUnit(time=fps)
 
