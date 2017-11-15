@@ -102,6 +102,24 @@ def _install_menu():
                   tearOff=True,
                   parent="MayaWindow")
 
+        # Create context menu
+        context_label = "{}, {}".format(api.Session["AVALON_ASSET"],
+                                        api.Session["AVALON_TASK"])
+        context_menu = cmds.menuItem("currentContext",
+                                     label=context_label,
+                                     parent=self._menu,
+                                     subMenu=True)
+
+        cmds.menuItem("setCurrentContext",
+                      label="Set Context",
+                      parent=context_menu,
+                      command="print 'context: {}'".format(context_label))
+
+        cmds.setParent("..", menu=True)
+
+        cmds.menuItem(divider=True)
+
+        # Create default items
         cmds.menuItem("Create...",
                       command=lambda *args: creator.show(parent=self._parent))
 
