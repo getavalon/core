@@ -1,8 +1,14 @@
+import sys
+
 import avalon.api as api
 
 from avalon.vendor.Qt import QtWidgets, QtCore
 from avalon.tools.projectmanager.widget import AssetWidget
 from avalon.tools.projectmanager.app import TasksModel
+
+
+module = sys.modules[__name__]
+module.window = None
 
 
 class App(QtWidgets.QDialog):
@@ -167,9 +173,17 @@ class App(QtWidgets.QDialog):
         self._assets.select_assets([assetname], expand=True)
 
 
-if __name__ == '__main__':
-    import sys
-    app = QtWidgets.QApplication(sys.argv)
-    test = App()
-    test.show()
-    app.exec_()
+def show(parent=None):
+
+    from ...tools import lib
+    try:
+        module.window.close()
+        del module.window
+    except (RuntimeError, AttributeError):
+        pass
+
+    with lib.application():
+        window = App(parent)
+        window.show()
+
+        module.window = window
