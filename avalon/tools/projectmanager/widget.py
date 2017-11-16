@@ -165,8 +165,8 @@ class AssetModel(TreeModel):
     Deprecated = 2
     ObjectId = 3
 
-    DocumentRole = QtCore.Qt.UserRole + 1
-    ObjectIdRole = QtCore.Qt.UserRole + 2
+    DocumentRole = QtCore.Qt.UserRole + 2
+    ObjectIdRole = QtCore.Qt.UserRole + 3
 
     def __init__(self, silo=None, parent=None):
         super(AssetModel, self).__init__(parent=parent)
@@ -237,10 +237,13 @@ class AssetModel(TreeModel):
 
     def data(self, index, role):
 
+        if not index.isValid():
+            return
+
+        node = index.internalPointer()
         if role == QtCore.Qt.DecorationRole:        # icon
 
             column = index.column()
-            node = index.internalPointer()
             if column == self.Name:
 
                 # Allow a custom icon and custom icon color to be defined
@@ -271,17 +274,13 @@ class AssetModel(TreeModel):
                 return
 
         if role == QtCore.Qt.ForegroundRole:        # font color
-
-            node = index.internalPointer()
             if "deprecated" in node.get("tags", []):
                 return QtGui.QColor(style.light).darker(250)
 
         if role == self.ObjectIdRole:
-            node = index.internalPointer()
             return node.get("_id", None)
 
         if role == self.DocumentRole:
-            node = index.internalPointer()
             return node.get("_document", None)
 
         return super(AssetModel, self).data(index, role)

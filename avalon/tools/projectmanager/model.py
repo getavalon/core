@@ -190,8 +190,21 @@ class TasksModel(TreeModel):
         super(TasksModel, self).__init__()
         self._num_assets = 0
         self._icons = {
-            "folder": awesome.icon("fa.folder-o", color=style.default)
+            "__default__": awesome.icon("fa.folder-o", color=style.default)
         }
+
+        self._get_task_icons()
+
+    def _get_task_icons(self):
+        # Get the project configured icons from database
+        project = io.find_one({"type": "project"})
+        tasks = project['config'].get('tasks', [])
+        for task in tasks:
+            icon_name = task.get("icon", None)
+            if icon_name:
+                icon = awesome.icon("fa.{}".format(icon_name),
+                                    color=style.default)
+                self._icons[task["name"]] = icon
 
     def set_assets(self, asset_ids):
         """Set assets to track by their database id
@@ -218,9 +231,11 @@ class TasksModel(TreeModel):
         self.beginResetModel()
 
         for task, count in sorted(tasks.items()):
+            icon = self._icons.get(task, "__default__")
             node = Node({
                 "name": task,
-                "count": count
+                "count": count,
+                "icon": icon
             })
 
             self.add_child(node)
@@ -240,11 +255,13 @@ class TasksModel(TreeModel):
 
     def data(self, index, role):
 
+        if not index.isValid():
+            return
+
         # Add icon to the first column
         if role == QtCore.Qt.DecorationRole:
-            column = index.column()
-            if column == 0:
-                return self._icons["folder"]
+            if index.column() == 0:
+                return index.internalPointer()['icon']
 
         return super(TasksModel, self).data(index, role)
 
