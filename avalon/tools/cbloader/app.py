@@ -25,7 +25,7 @@ class Window(QtWidgets.QDialog):
         self.setWindowTitle(
             "Asset Loader 2.0 - %s/%s" % (
                 api.registered_root(),
-                os.getenv("AVALON_PROJECT")))
+                api.Session.get("AVALON_PROJECT")))
 
         # Enable minimize and maximize for app
         self.setWindowFlags(QtCore.Qt.Window)
@@ -314,8 +314,8 @@ def show(root=None, debug=False, parent=None, use_context=False):
         window.show()
 
         if use_context:
-            context = {"asset": os.environ['AVALON_ASSET'],
-                       "silo": os.environ['AVALON_SILO']}
+            context = {"asset": api.Session['AVALON_ASSET'],
+                       "silo": api.Session['AVALON_SILO']}
             window.set_context(context, refresh=True)
         else:
             window.refresh()
