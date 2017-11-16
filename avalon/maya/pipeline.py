@@ -96,7 +96,8 @@ def _install_menu():
         loader,
         publish,
         cbloader,
-        cbsceneinventory
+        cbsceneinventory,
+        contextmanager
     )
 
     from . import interactive
@@ -120,7 +121,7 @@ def _install_menu():
         cmds.menuItem("setCurrentContext",
                       label="Set Context",
                       parent=context_menu,
-                      command="print 'context: {}'".format(context_label))
+                      command=lambda *args: contextmanager.show(parent=self._parent))
 
         cmds.setParent("..", menu=True)
 
@@ -230,6 +231,19 @@ def _uninstall_menu():
     if menu:
         menu.deleteLater()
         del(menu)
+
+
+def _update_menu_task_label():
+    """Update the task label in Avalon menu to current session"""
+
+    object_name = "{}|currentContext".format(self._menu)
+    if not cmds.menuItem(object_name, query=True, exists=True):
+        logger.warning("Can't find menuItem: {}".format(object_name))
+        return
+
+    label = "{}, {}".format(api.Session["AVALON_ASSET"],
+                            api.Session["AVALON_TASK"])
+    cmds.menuItem(object_name, edit=True, label=label)
 
 
 def lock():
@@ -513,6 +527,9 @@ def _before_scene_save(return_code, client_data):
 
 
 def _on_task_changed(*args):
+
+    _update_menu_task_label()
+
     workdir = api.Session["AVALON_WORKDIR"]
     if os.path.exists(workdir):
         logger.info("Updating Maya workspace for task change to %s", workdir)
