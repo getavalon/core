@@ -283,9 +283,6 @@ class AssetModel(TreeModel):
         if role == self.DocumentRole:
             return node.get("_document", None)
 
-        if role == self.NodeRole:
-            node.get("name", None)
-
         return super(AssetModel, self).data(index, role)
 
 
