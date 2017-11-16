@@ -348,9 +348,9 @@ class SiloTabWidget(QtWidgets.QTabBar):
 
     def clear(self):
         """Removes all tabs.
-        
+
         Implemented similar to `QTabWidget.clear()`
-        
+
         """
         for i in range(self.count()):
             self.removeTab(0)
@@ -463,6 +463,7 @@ class AssetWidget(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
 
         # Header
         header = QtWidgets.QHBoxLayout()
@@ -487,12 +488,12 @@ class AssetWidget(QtWidgets.QWidget):
 
         filter = QtWidgets.QLineEdit()
         filter.textChanged.connect(proxy.setFilterFixedString)
-        filter.setPlaceholderText("Filter")
+        filter.setPlaceholderText("Filter assets..")
 
         # Layout
         layout.addLayout(header)
-        layout.addWidget(view)
         layout.addWidget(filter)
+        layout.addWidget(view)
 
         # Signals/Slots
         selection = view.selectionModel()
@@ -559,14 +560,14 @@ class AssetWidget(QtWidgets.QWidget):
 
     def select_assets(self, assets, expand=True):
         """Select assets by name.
-        
+
         Args:
             assets (list): List of asset names
             expand (bool): Whether to also expand to the asset in the view
-        
+
         Returns:
             None
-        
+
         """
         # TODO: Instead of individual selection optimize for many assets
 
