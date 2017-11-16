@@ -230,8 +230,10 @@ class TasksModel(TreeModel):
         self.clear()
         self.beginResetModel()
 
+        default_icon = self._icons["__default__"]
         for task, count in sorted(tasks.items()):
-            icon = self._icons.get(task, "__default__")
+            icon = self._icons.get(task, default_icon)
+
             node = Node({
                 "name": task,
                 "count": count,
