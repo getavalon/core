@@ -763,6 +763,9 @@ def update_current_task(task=None, asset=None, app=None):
     # Update the full session in one go to avoid half updates
     Session.update(changed)
 
+    # Update the environment
+    os.environ.update(changed)
+
     # Emit session change
     emit("taskChanged", changed.copy())
 
