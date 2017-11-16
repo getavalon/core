@@ -1,4 +1,4 @@
-import avalon
+import avalon.api as api
 
 from avalon.vendor.Qt import QtWidgets, QtCore
 from avalon.tools.projectmanager.widget import AssetWidget
@@ -8,19 +8,19 @@ from avalon.tools.projectmanager.app import TasksModel
 class App(QtWidgets.QDialog):
     """Context manager window"""
 
-    def __init__(self, project=None, parent=None):
+    def __init__(self, parent=None):
         QtWidgets.QDialog.__init__(self, parent)
 
-        _project = avalon.Session.get("AVALON_PROJECT", project)
-        asset = avalon.Session.get("AVALON_ASSET", "Asset")
-        task = avalon.Session.get("AVALON_TASK", "Task")
-
-        self.resize(680, 360)
-        self.setWindowTitle("Context Manager 1.0 - {}".format(_project))
+        self.resize(640, 360)
+        project = api.Session["AVALON_PROJECT"]
+        self.setWindowTitle("Context Manager 1.0 - {}".format(project))
         self.setObjectName("contextManager")
 
-        layout = QtWidgets.QVBoxLayout(self)
+        splitter = QtWidgets.QSplitter(self)
+        main_layout = QtWidgets.QVBoxLayout()
         column_layout = QtWidgets.QHBoxLayout()
+
+        accept_btn = QtWidgets.QPushButton("Accept")
 
         # Asset picker
         assets = AssetWidget()
@@ -34,64 +34,73 @@ class App(QtWidgets.QDialog):
         task_model = TasksModel()
         task_view.setModel(task_model)
         tasks_layout.addWidget(task_view)
+        tasks_layout.addWidget(accept_btn)
+        task_view.setColumnHidden(1, True)
 
         # region results
-        result_widget = QtWidgets.QWidget()
-        result_widget.setFixedWidth(200)
+        result_widget = QtWidgets.QGroupBox("Current Context")
         result_layout = QtWidgets.QVBoxLayout()
         result_widget.setLayout(result_layout)
 
-        project_label = QtWidgets.QLabel("Project")
-        project_value = QtWidgets.QLineEdit(_project)
-        project_value.setReadOnly(True)
-        project_label.setBuddy(project_value)
-
-        asset_label = QtWidgets.QLabel("Asset")
-        asset_value = QtWidgets.QLineEdit(asset)
-        asset_value.setReadOnly(True)
-        asset_label.setBuddy(asset_value)
-
-        task_label = QtWidgets.QLabel("Task")
-        task_value = QtWidgets.QLineEdit(task)
-        task_value.setReadOnly(True)
-        task_label.setBuddy(task_value)
-
-        accept = QtWidgets.QPushButton("Accept")
+        project_label = QtWidgets.QLabel("Project: {}".format(project))
+        asset_label = QtWidgets.QLabel()
+        task_label = QtWidgets.QLabel()
 
         result_layout.addWidget(project_label)
-        result_layout.addWidget(project_value)
         result_layout.addWidget(asset_label)
-        result_layout.addWidget(asset_value)
         result_layout.addWidget(task_label)
-        result_layout.addWidget(task_value)
-        result_layout.insertSpacing(6, 150)
-        result_layout.addWidget(accept)
+        result_layout.addStretch()
         # endregion results
 
+        context_widget = QtWidgets.QWidget()
         column_layout.addWidget(assets)
         column_layout.addWidget(tasks_widgets)
-        column_layout.addWidget(result_widget)
+        context_widget.setLayout(column_layout)
 
-        layout.addLayout(column_layout)
-        task_selection_model = task_view.selectionModel()
+        splitter.addWidget(context_widget)
+        splitter.addWidget(result_widget)
+        splitter.setSizes([1, 0])
 
-        self.data = {
-            "preview": {"asset": asset_value,
-                        "task": task_value},
-            "view": {"tasks": task_view},
-            "model": {
-                "assets": assets,
-                "tasks": task_model,
-            }
-        }
+        main_layout.addWidget(splitter)
+
+        # Enable for other functions
+        self._last_selected_task = None
+        self._task_view = task_view
+        self._task_model = task_model
+        self._assets = assets
+
+        self._context_asset = asset_label
+        self._context_task = task_label
 
         assets.selection_changed.connect(self.on_asset_changed)
-        task_selection_model.selectionChanged.connect(self.preview_result)
+        accept_btn.clicked.connect(self.on_accept_clicked)
         assets.refresh()
 
-        self.setLayout(layout)
+        self.select_asset(api.Session["AVALON_ASSET"])
+        self.select_task(api.Session["AVALON_TASK"])
 
-        accept.clicked.connect(self.on_accept_clicked)
+        self.setLayout(main_layout)
+
+    def refresh_context_view(self):
+        """Refresh the context panel"""
+
+        asset = api.Session.get("AVALON_ASSET", "")
+        task = api.Session.get("AVALON_TASK", "")
+
+        self._context_asset.setText("Asset: {}".format(asset))
+        self._context_task.setText("Task: {}".format(task))
+
+    def _get_selected_task_name(self):
+        task_index = self._task_view.currentIndex()
+        return task_index.data(QtCore.Qt.DisplayRole)
+
+    def _get_selected_asset_name(self):
+        asset_index = self._assets.get_active_index()
+        asset_data = asset_index.data(self._assets.model.NodeRole)
+        if not asset_data or not isinstance(asset_data, dict):
+            return
+
+        return asset_data["name"]
 
     def on_asset_changed(self):
         """Callback on asset selection changed
@@ -99,40 +108,68 @@ class App(QtWidgets.QDialog):
         This updates the task view.
 
         """
+        current_task_data = self._get_selected_task_name()
+        if current_task_data:
+            self._last_selected_task = current_task_data
 
-        model = self.data["model"]["assets"]
-        selected = model.get_selected_assets()
-        self.data['model']['tasks'].set_assets(selected)
+        selected = self._assets.get_selected_assets()
+        self._task_model.set_assets(selected)
 
-    def preview_result(self):
-
-        NodeRole = QtCore.Qt.UserRole + 1
-
-        assets_model = self.data["model"]["assets"]
-        task_view = self.data["view"]["tasks"]
-
-        asset_index = assets_model.view.currentIndex()
-        asset = asset_index.data(NodeRole)
-        task_index = task_view.currentIndex()
-        task = task_index.data(NodeRole)
-
-        asset_name = asset["name"]
-        task_name = task["name"]
-
-        self.data["preview"]["asset"].setText(asset_name)
-        self.data["preview"]["task"].setText(task_name)
+        # Find task with same name
+        if self._last_selected_task:
+            self.select_task(self._last_selected_task)
 
     def on_accept_clicked(self):
+        """Apply the currently selected task to update current task"""
 
-        task = self.data["preview"]["task"].text()
-        asset = self.data["preview"]["asset"].text()
+        asset_name = self._get_selected_asset_name()
+        if not asset_name:
+            return
 
-        print asset, task
+        task_name = self._get_selected_task_name()
+        if not task_name:
+            return
+
+        api.update_current_task(task=task_name, asset=asset_name)
+        self.refresh_context_view()
+
+    def select_task(self, taskname):
+        """Select task by name
+        Args:
+            taskname(str): name of the task to select
+
+        Returns:
+            None
+        """
+
+        parent = QtCore.QModelIndex()
+        model = self._task_view.model()
+        selectionmodel = self._task_view.selectionModel()
+
+        for row in range(model.rowCount(parent)):
+            idx = model.index(row, 0, parent)
+            task = idx.data(QtCore.Qt.DisplayRole)
+            if task == taskname:
+                selectionmodel.select(idx,
+                                      QtCore.QItemSelectionModel.Select)
+                self._task_view.setCurrentIndex(idx)
+                self._last_selected_task = taskname
+                return
+
+    def select_asset(self, assetname):
+        """Select task by name
+        Args:
+            assetname(str): name of the task to select
+
+        Returns:
+            None
+        """
+        self._assets.select_assets([assetname], expand=True)
 
 
 if __name__ == '__main__':
     import sys
     app = QtWidgets.QApplication(sys.argv)
-    test = App("TESTCASE")
+    test = App()
     test.show()
     app.exec_()
