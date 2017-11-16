@@ -245,7 +245,7 @@ class VersionTextEdit(QtWidgets.QTextEdit):
         # Define readable creation timestamp
         created = version["data"]["time"]
         created = datetime.datetime.strptime(created, "%Y%m%dT%H%M%SZ")
-        created = datetime.datetime.strftime(created, "%b %d %Y %I:%M%p")
+        created = datetime.datetime.strftime(created, "%b %d %Y %H:%M")
 
         comment = version['data'].get("comment", None) or "No comment"
 
