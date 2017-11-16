@@ -47,6 +47,8 @@ class Window(QtWidgets.QDialog):
         asset_filter_splitter.setOrientation(QtCore.Qt.Vertical)
         asset_filter_splitter.addWidget(assets)
         asset_filter_splitter.addWidget(families)
+        asset_filter_splitter.setStretchFactor(0, 65)
+        asset_filter_splitter.setStretchFactor(1, 35)
 
         container_layout = QtWidgets.QHBoxLayout(container)
         container_layout.setContentsMargins(0, 0, 0, 0)
@@ -104,7 +106,7 @@ class Window(QtWidgets.QDialog):
         subsets.active_changed.connect(self.on_versionschanged)
 
         # Defaults
-        self.resize(1200, 600)
+        self.resize(1200, 700)
 
     # -------------------------------
     # Delay calling blocking methods
