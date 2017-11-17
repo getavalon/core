@@ -56,9 +56,7 @@ class Window(QtWidgets.QDialog):
         split.addWidget(asset_filter_splitter)
         split.addWidget(subsets)
         split.addWidget(version)
-        split.setStretchFactor(0, 30)
-        split.setStretchFactor(1, 90)
-        split.setStretchFactor(2, 30)
+        split.setSizes([225, 925, 0])
         container_layout.addWidget(split)
 
         body_layout = QtWidgets.QHBoxLayout(body)
@@ -106,7 +104,7 @@ class Window(QtWidgets.QDialog):
         subsets.active_changed.connect(self.on_versionschanged)
 
         # Defaults
-        self.resize(1200, 700)
+        self.resize(1150, 700)
 
     # -------------------------------
     # Delay calling blocking methods
