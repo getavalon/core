@@ -51,9 +51,9 @@ class InventoryModel(TreeModel):
         # Add icons
         if role == QtCore.Qt.DecorationRole:
             if index.column() == 0:
-                if not index.parent().isValid(): # group-item
+                if not index.parent().isValid():  # group-item
                     return qta.icon("fa.folder", color=style.default)
-                if index.column() == 0:
+                else:
                     return qta.icon("fa.folder-o", color=style.default)
 
             if index.column() == 3:
