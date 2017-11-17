@@ -114,20 +114,20 @@ class Window(QtWidgets.QDialog):
 
     def refresh(self):
         self.echo("Fetching results..")
-        lib.schedule(self._refresh, 100, channel="mongo")
+        lib.schedule(self._refresh, 50, channel="mongo")
 
     def on_assetschanged(self, *args):
         self.echo("Fetching results..")
-        lib.schedule(self._assetschanged, 100, channel="mongo")
+        lib.schedule(self._assetschanged, 50, channel="mongo")
 
     def on_versionschanged(self, *args):
         self.echo("Fetching results..")
-        lib.schedule(self._versionschanged, 100, channel="mongo")
+        lib.schedule(self._versionschanged, 50, channel="mongo")
 
     def set_context(self, context, refresh=True):
         self.echo("Setting context: {}".format(context))
         lib.schedule(lambda: self._set_context(context, refresh=refresh),
-                     100, channel="mongo")
+                     50, channel="mongo")
 
     # ------------------------------
 
