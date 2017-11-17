@@ -1,4 +1,5 @@
 import sys
+import logging
 
 import avalon.api as api
 
@@ -9,6 +10,9 @@ from avalon.tools.projectmanager.app import TasksModel
 
 module = sys.modules[__name__]
 module.window = None
+
+
+log = logging.getLogger(__name__)
 
 
 class App(QtWidgets.QDialog):
@@ -133,10 +137,12 @@ class App(QtWidgets.QDialog):
 
         asset_name = self._get_selected_asset_name()
         if not asset_name:
+            log.warning("No asset selected.")
             return
 
         task_name = self._get_selected_task_name()
         if not task_name:
+            log.warning("No task selected.")
             return
 
         api.update_current_task(task=task_name, asset=asset_name)
