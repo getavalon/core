@@ -63,7 +63,11 @@ class SubsetsModel(TreeModel):
         end = version_data.get("endFrame", None)
         handles = version_data.get("handles", None)
         if start is not None and end is not None:
-            frames = "{0}-{1}".format(start, end)
+            # Remove superfluous zeros from numbers (3.0 -> 3) to improve
+            # readability for most frame ranges
+            start_clean = ('%f' % start).rstrip('0').rstrip('.')
+            end_clean = ('%f' % end).rstrip('0').rstrip('.')
+            frames = "{0}-{1}".format(start_clean, end_clean)
             duration = end - start + 1
         else:
             frames = None
