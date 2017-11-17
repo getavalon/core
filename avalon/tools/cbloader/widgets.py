@@ -28,6 +28,7 @@ class SubsetWidget(QtWidgets.QWidget):
         family_proxy.setSourceModel(proxy)
 
         filter = QtWidgets.QLineEdit()
+        filter.setPlaceholderText("Filter subsets..")
 
         view = QtWidgets.QTreeView()
         view.setIndentation(5)
