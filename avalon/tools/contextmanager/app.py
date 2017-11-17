@@ -87,6 +87,9 @@ class App(QtWidgets.QDialog):
 
         self.setLayout(main_layout)
 
+        # Enforce current context to be up-to-date
+        self.refresh_context_view()
+
     def refresh_context_view(self):
         """Refresh the context panel"""
 
