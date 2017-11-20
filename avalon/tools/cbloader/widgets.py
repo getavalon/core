@@ -38,6 +38,7 @@ class SubsetWidget(QtWidgets.QWidget):
                 border: 0px;
             }
         """)
+        view.setAllColumnsShowFocus(True)
 
         # Set view delegates
         version_delegate = VersionDelegate()
