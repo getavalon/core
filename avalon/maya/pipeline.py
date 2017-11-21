@@ -237,6 +237,9 @@ def _uninstall_menu():
 def _update_menu_task_label():
     """Update the task label in Avalon menu to current session"""
 
+    if IS_HEADLESS:
+        return
+
     object_name = "{}|currentContext".format(self._menu)
     if not cmds.menuItem(object_name, query=True, exists=True):
         logger.warning("Can't find menuItem: {}".format(object_name))
