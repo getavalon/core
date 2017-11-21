@@ -55,8 +55,9 @@ def install(config):
 
     try:
         config = importlib.import_module(config.__name__ + ".maya")
-    except ImportError:
-        pass
+    except ImportError as exc:
+        if str(exc) != "No module name {}".format(config.__name__ + ".maya"):
+            raise
     else:
         config.install()
 
