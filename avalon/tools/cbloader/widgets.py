@@ -10,6 +10,7 @@ from ... import pipeline
 
 from .model import SubsetsModel, FamiliesFilterProxyModel
 from .delegates import PrettyTimeDelegate, VersionDelegate
+from . import lib
 
 
 class SubsetWidget(QtWidgets.QWidget):
@@ -27,6 +28,7 @@ class SubsetWidget(QtWidgets.QWidget):
         family_proxy.setSourceModel(proxy)
 
         filter = QtWidgets.QLineEdit()
+        filter.setPlaceholderText("Filter subsets..")
 
         view = QtWidgets.QTreeView()
         view.setIndentation(5)
@@ -36,6 +38,7 @@ class SubsetWidget(QtWidgets.QWidget):
                 border: 0px;
             }
         """)
+        view.setAllColumnsShowFocus(True)
 
         # Set view delegates
         version_delegate = VersionDelegate()
@@ -244,7 +247,7 @@ class VersionTextEdit(QtWidgets.QTextEdit):
         # Define readable creation timestamp
         created = version["data"]["time"]
         created = datetime.datetime.strptime(created, "%Y%m%dT%H%M%SZ")
-        created = datetime.datetime.strftime(created, "%b %d %Y %I:%M%p")
+        created = datetime.datetime.strftime(created, "%b %d %Y %H:%M")
 
         comment = version['data'].get("comment", None) or "No comment"
 
@@ -343,6 +346,7 @@ class VersionWidget(QtWidgets.QWidget):
 class FamilyListWidget(QtWidgets.QListWidget):
     """A Widget that lists all available families"""
 
+    NameRole = QtCore.Qt.UserRole + 1
     active_changed = QtCore.Signal(list)
 
     def __init__(self, parent=None):
@@ -371,12 +375,26 @@ class FamilyListWidget(QtWidgets.QListWidget):
 
         self.clear()
         # Rebuild list
-        for family in sorted(unique_families):
+        for name in sorted(unique_families):
+
+            family = lib.get(lib.FAMILY_CONFIG, name)
+            label = family.get("label", name)
+            icon = family.get("icon", None)
+
+            # TODO: This should be more managable by the artist
+            # Temporarily implement support for a default state in the project
+            # configuration
+            state = family.get("state", True)
+            state = QtCore.Qt.Checked if state else QtCore.Qt.Unchecked
 
             item = QtWidgets.QListWidgetItem(parent=self)
-            item.setText(family)
+            item.setText(label)
             item.setFlags(item.flags() | QtCore.Qt.ItemIsUserCheckable)
-            item.setCheckState(QtCore.Qt.Checked)
+            item.setData(self.NameRole, name)
+            item.setCheckState(state)
+
+            if icon:
+                item.setIcon(icon)
 
             self.addItem(item)
 
@@ -388,11 +406,10 @@ class FamilyListWidget(QtWidgets.QListWidget):
         items = [self.item(i) for i in
                  range(self.count())]
 
-        return [item.text() for item in items if
+        return [item.data(self.NameRole) for item in items if
                 item.checkState() is QtCore.Qt.Checked]
 
     def _on_item_changed(self):
-        print "derp"
         self.active_changed.emit(self.get_filters())
 
     def _set_checkstate_all(self, state):

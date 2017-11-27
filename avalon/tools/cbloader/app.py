@@ -47,6 +47,8 @@ class Window(QtWidgets.QDialog):
         asset_filter_splitter.setOrientation(QtCore.Qt.Vertical)
         asset_filter_splitter.addWidget(assets)
         asset_filter_splitter.addWidget(families)
+        asset_filter_splitter.setStretchFactor(0, 65)
+        asset_filter_splitter.setStretchFactor(1, 35)
 
         container_layout = QtWidgets.QHBoxLayout(container)
         container_layout.setContentsMargins(0, 0, 0, 0)
@@ -54,9 +56,7 @@ class Window(QtWidgets.QDialog):
         split.addWidget(asset_filter_splitter)
         split.addWidget(subsets)
         split.addWidget(version)
-        split.setStretchFactor(0, 30)
-        split.setStretchFactor(1, 90)
-        split.setStretchFactor(2, 30)
+        split.setSizes([225, 925, 0])
         container_layout.addWidget(split)
 
         body_layout = QtWidgets.QHBoxLayout(body)
@@ -104,7 +104,7 @@ class Window(QtWidgets.QDialog):
         subsets.active_changed.connect(self.on_versionschanged)
 
         # Defaults
-        self.resize(1200, 600)
+        self.resize(1150, 700)
 
     # -------------------------------
     # Delay calling blocking methods
@@ -112,20 +112,20 @@ class Window(QtWidgets.QDialog):
 
     def refresh(self):
         self.echo("Fetching results..")
-        lib.schedule(self._refresh, 100, channel="mongo")
+        lib.schedule(self._refresh, 50, channel="mongo")
 
     def on_assetschanged(self, *args):
         self.echo("Fetching results..")
-        lib.schedule(self._assetschanged, 100, channel="mongo")
+        lib.schedule(self._assetschanged, 50, channel="mongo")
 
     def on_versionschanged(self, *args):
         self.echo("Fetching results..")
-        lib.schedule(self._versionschanged, 100, channel="mongo")
+        lib.schedule(self._versionschanged, 50, channel="mongo")
 
     def set_context(self, context, refresh=True):
         self.echo("Setting context: {}".format(context))
         lib.schedule(lambda: self._set_context(context, refresh=refresh),
-                     100, channel="mongo")
+                     50, channel="mongo")
 
     # ------------------------------
 

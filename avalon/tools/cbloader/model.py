@@ -4,6 +4,8 @@ from ..projectmanager.model import TreeModel, Node
 from ...vendor.Qt import QtCore
 from ...vendor import qtawesome as qta
 
+from . import lib
+
 
 class SubsetsModel(TreeModel):
     COLUMNS = ["subset",
@@ -61,18 +63,27 @@ class SubsetsModel(TreeModel):
         end = version_data.get("endFrame", None)
         handles = version_data.get("handles", None)
         if start is not None and end is not None:
-            frames = "{0}-{1}".format(start, end)
+            # Remove superfluous zeros from numbers (3.0 -> 3) to improve
+            # readability for most frame ranges
+            start_clean = ('%f' % start).rstrip('0').rstrip('.')
+            end_clean = ('%f' % end).rstrip('0').rstrip('.')
+            frames = "{0}-{1}".format(start_clean, end_clean)
             duration = end - start + 1
         else:
             frames = None
             duration = None
+
+        family = version_data.get("families", [None])[0]
+        family_config = lib.get(lib.FAMILY_CONFIG, family)
 
         node.update({
             "version": version['name'],
             "version_document": version,
             "author": version_data.get("author", None),
             "time": version_data.get("time", None),
-            "family": version_data.get("families", ["<unknown>"])[0],
+            "family": family,
+            "familyLabel": family_config.get("label", family),
+            "familyIcon": family_config.get('icon', None),
             "startFrame": start,
             "endFrame": end,
             "duration": duration,
@@ -86,6 +97,7 @@ class SubsetsModel(TreeModel):
         self.clear()
         self.beginResetModel()
         if not self._asset_id:
+            self.endResetModel()
             return
 
         row = 0
@@ -117,10 +129,25 @@ class SubsetsModel(TreeModel):
 
     def data(self, index, role):
 
-        # Add icon to subset column
+        if not index.isValid():
+            return
+
+        if role == QtCore.Qt.DisplayRole:
+            if index.column() == 1:
+                # Show familyLabel instead of family
+                node = index.internalPointer()
+                return node.get("familyLabel", None)
+
         if role == QtCore.Qt.DecorationRole:
+
+            # Add icon to subset column
             if index.column() == 0:
                 return self._icons['subset']
+
+            # Add icon to family column
+            if index.column() == 1:
+                node = index.internalPointer()
+                return node.get("familyIcon", None)
 
         return super(SubsetsModel, self).data(index, role)
 
@@ -164,9 +191,9 @@ class FamiliesFilterProxyModel(QtCore.QSortFilterProxyModel):
 
         # Get the node data and validate
         node = model.data(index, TreeModel.NodeRole)
-        family = node.get("family", "<unknown>")
+        family = node.get("family", None)
 
-        if family == "<unknown>":
+        if not family:
             return True
 
         # We want to keep the families which are not in the list

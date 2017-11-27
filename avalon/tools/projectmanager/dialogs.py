@@ -167,6 +167,15 @@ class AssetCreateDialog(QtWidgets.QDialog):
             "visualParent": parent_id
         }
 
+        # For the launcher automatically add a `group` dataa when the asset
+        # is added under a visual parent to look as if it's grouped underneath
+        # parent
+        if parent_id:
+            parent = io.find_one({"_id": io.ObjectId(parent_id)})
+            if parent:
+                group = parent['name']
+                data['group'] = group
+
         lib.create_asset(data)
 
         self.asset_created.emit(data)

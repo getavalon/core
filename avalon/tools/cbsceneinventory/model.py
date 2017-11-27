@@ -4,6 +4,7 @@ from ... import api
 from ... import io
 from ...vendor.Qt import QtCore, QtGui
 from ...vendor import qtawesome as qta
+from ..cbloader import lib as cbloader_lib
 
 # todo(roy): refactor loading from other tools
 from ..projectmanager.model import (
@@ -50,10 +51,14 @@ class InventoryModel(TreeModel):
         # Add icons
         if role == QtCore.Qt.DecorationRole:
             if index.column() == 0:
-                if not index.parent().isValid(): # group-item
+                if not index.parent().isValid():  # group-item
                     return qta.icon("fa.folder", color=style.default)
-                if index.column() == 0:
+                else:
                     return qta.icon("fa.folder-o", color=style.default)
+
+            if index.column() == 3:
+                # Family icon
+                return node.get("familyIcon", None)
 
         if role == self.UniqueRole:
             node = index.internalPointer()
@@ -118,11 +123,17 @@ class InventoryModel(TreeModel):
                 if families:
                     family = families[0]
 
+            # Get the label and icon for the family if in configuration
+            family_config = cbloader_lib.get(cbloader_lib.FAMILY_CONFIG,
+                                             family)
+            family = family_config.get("label", family)
+            family_icon = family_config.get("icon", None)
+
             # Store the highest available version so the model can know
             # whether current version is currently up-to-date.
             highest_version = io.find_one({
                 "type": "version",
-                "parent": subset["_id"]
+                "parent": version["parent"]
             }, sort=[("name", -1)])
 
             # create the group header
@@ -134,7 +145,9 @@ class InventoryModel(TreeModel):
             group_node["version"] = version['name']
             group_node["highest_version"] = highest_version['name']
             group_node["family"] = family
+            group_node["familyIcon"] = family_icon
             group_node["count"] = len(group_items)
+
             self.add_child(group_node)
 
             for item in group_items:
