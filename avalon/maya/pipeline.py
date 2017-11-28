@@ -23,6 +23,7 @@ self._menu = "avalonmaya"  # Unique name of menu
 self._events = dict()  # Registered Maya callbacks
 self._parent = None  # Main Window
 self._ignore_lock = False
+self._host_config = None
 
 AVALON_CONTAINERS = ":AVALON_CONTAINERS"
 IS_HEADLESS = not hasattr(cmds, "about") or cmds.about(batch=True)
@@ -59,6 +60,7 @@ def install(config):
         pass
     else:
         config.install()
+        self._host_config = config
 
 
 def _set_project():
@@ -88,6 +90,11 @@ def uninstall():
     pyblish.deregister_host("mayabatch")
     pyblish.deregister_host("mayapy")
     pyblish.deregister_host("maya")
+
+    try:
+        self._host_config.uninstall()
+    except AttributeError:
+        pass
 
 
 def _install_menu():
