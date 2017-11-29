@@ -27,7 +27,7 @@ def pretty_date(t, now=None, strftime="%b %d %Y %H:%M"):
 
     assert isinstance(t, datetime)
     if now is None:
-        now = datetime.utcnow()
+        now = datetime.now()
     assert isinstance(now, datetime)
     diff = now - t
 
