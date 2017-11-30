@@ -52,6 +52,3 @@ def refresh_family_config():
     FAMILY_CONFIG.update(families)
 
     return families
-
-
-refresh_family_config()
