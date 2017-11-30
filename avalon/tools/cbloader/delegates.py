@@ -78,13 +78,13 @@ def pretty_timestamp(t, now=None):
         try:
             now = time.strptime(now, "%Y%m%dT%H%M%SZ")
             now = datetime.fromtimestamp(time.mktime(now))
-        except ValueError, e:
+        except ValueError as e:
             log.warning("Can't parse 'now' time format: {0} {1}".format(t, e))
             return None
 
     try:
         t = time.strptime(t, "%Y%m%dT%H%M%SZ")
-    except ValueError, e:
+    except ValueError as e:
         log.warning("Can't parse time format: {0} {1}".format(t, e))
         return None
     dt = datetime.fromtimestamp(time.mktime(t))
