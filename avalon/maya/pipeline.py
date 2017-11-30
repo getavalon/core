@@ -23,7 +23,6 @@ self._menu = "avalonmaya"  # Unique name of menu
 self._events = dict()  # Registered Maya callbacks
 self._parent = None  # Main Window
 self._ignore_lock = False
-self._host_config = None
 
 AVALON_CONTAINERS = ":AVALON_CONTAINERS"
 IS_HEADLESS = not hasattr(cmds, "about") or cmds.about(batch=True)
@@ -60,7 +59,6 @@ def install(config):
         pass
     else:
         config.install()
-        self._host_config = config
 
 
 def _set_project():
@@ -84,17 +82,24 @@ def _set_project():
     cmds.workspace(workdir, openWorkspace=True)
 
 
-def uninstall():
+def uninstall(config):
+    """Uninstall Maya-specific functionality of avalon-core.
+
+    This function is called automatically on calling `api.uninstall()`.
+
+    """
+    try:
+        config = importlib.import_module(config.__name__ + ".maya")
+    except ImportError:
+        pass
+    else:
+        config.uninstall()
+
     _uninstall_menu()
 
     pyblish.deregister_host("mayabatch")
     pyblish.deregister_host("mayapy")
     pyblish.deregister_host("maya")
-
-    try:
-        self._host_config.uninstall()
-    except AttributeError:
-        pass
 
 
 def _install_menu():
