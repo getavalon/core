@@ -1,12 +1,16 @@
 """Helper functions"""
 
 import os
+import sys
 import json
 import logging
 import datetime
+import subprocess
 
 from . import schema
 from .vendor import six, toml
+
+PY2 = sys.version_info[0] == 2
 
 log_ = logging.getLogger(__name__)
 
@@ -156,7 +160,7 @@ def get_application(name, environment=None):
         log_.error("%s was invalid." % application_definition)
         raise
 
-    executable = which(name)
+    executable = which(app.get("executable", name))
 
     if executable is None:
         raise ValueError(
@@ -185,13 +189,76 @@ def get_application(name, environment=None):
             # Treat list values as paths, e.g. PYTHONPATH=[]
             environment[key] = os.pathsep.join(value)
 
-        elif isinstance(value, str):
-            environment[key] = value
-
+        elif isinstance(value, six.string_types):
+            if PY2:
+                # Protect against unicode in the environment
+                encoding = sys.getfilesystemencoding()
+                environment[key] = value.encode(encoding)
+            else:
+                environment[key] = value
         else:
             log_.error(
-                "%s: Unsupported environment reference in %s"
-                % (value, name)
+                "%s: Unsupported environment reference in %s for %s"
+                % (value, name, key)
             )
 
     return app
+
+
+def launch(executable, args=None, environment=None, cwd=None):
+    """Launch a new subprocess of `args`
+
+    Arguments:
+        executable (str): Relative or absolute path to executable
+        args (list): Command passed to `subprocess.Popen`
+        environment (dict, optional): Custom environment passed
+            to Popen instance.
+
+    Returns:
+        Popen instance of newly spawned process
+
+    Exceptions:
+        OSError on internal error
+        ValueError on `executable` not found
+
+    """
+
+    CREATE_NO_WINDOW = 0x08000000
+    CREATE_NEW_CONSOLE = 0x00000010
+    IS_WIN32 = sys.platform == "win32"
+    PY2 = sys.version_info[0] == 2
+
+    abspath = executable
+
+    env = (environment or os.environ)
+
+    if PY2:
+        # Protect against unicode, and other unsupported
+        # types amongst environment variables
+        enc = sys.getfilesystemencoding()
+        env = {k.encode(enc): v.encode(enc) for k, v in env.items()}
+
+    kwargs = dict(
+        args=[abspath] + args or list(),
+        env=env,
+        cwd=cwd,
+
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+
+        # Output `str` through stdout on Python 2 and 3
+        universal_newlines=True,
+    )
+
+    if env.get("CREATE_NEW_CONSOLE"):
+        kwargs["creationflags"] = CREATE_NEW_CONSOLE
+        kwargs.pop("stdout")
+        kwargs.pop("stderr")
+    else:
+
+        if IS_WIN32:
+            kwargs["creationflags"] = CREATE_NO_WINDOW
+
+    popen = subprocess.Popen(**kwargs)
+
+    return popen

@@ -60,10 +60,12 @@ class SubsetWidget(QtWidgets.QWidget):
         view.sortByColumn(1, QtCore.Qt.AscendingOrder)
         view.setAlternatingRowColors(True)
 
-        self.data = {"delegates":
-                         {"version": version_delegate,
-                           "time": time_delegate}
-                    }
+        self.data = {
+            "delegates": {
+                "version": version_delegate,
+                "time": time_delegate
+            }
+        }
 
         self.proxy = proxy
         self.model = model
@@ -373,8 +375,9 @@ class FamilyListWidget(QtWidgets.QListWidget):
         families = io.distinct("data.families")
         unique_families = list(set(family + families))
 
-        self.clear()
         # Rebuild list
+        self.blockSignals(True)
+        self.clear()
         for name in sorted(unique_families):
 
             family = lib.get(lib.FAMILY_CONFIG, name)
@@ -397,6 +400,7 @@ class FamilyListWidget(QtWidgets.QListWidget):
                 item.setIcon(icon)
 
             self.addItem(item)
+        self.blockSignals(False)
 
         self.active_changed.emit(self.get_filters())
 
@@ -407,7 +411,7 @@ class FamilyListWidget(QtWidgets.QListWidget):
                  range(self.count())]
 
         return [item.data(self.NameRole) for item in items if
-                item.checkState() is QtCore.Qt.Checked]
+                item.checkState() == QtCore.Qt.Checked]
 
     def _on_item_changed(self):
         self.active_changed.emit(self.get_filters())

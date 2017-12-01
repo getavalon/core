@@ -3,7 +3,9 @@
 import os
 import sys
 import json
+import errno
 import types
+import shutil
 import getpass
 import logging
 import weakref
@@ -225,6 +227,119 @@ class Creator(object):
 
     def process(self):
         pass
+
+
+@lib.log
+class Action(object):
+    """A custom action available"""
+    name = None
+    label = None
+    icon = None
+    color = None
+    order = 0
+
+    def is_compatible(self, session):
+        """Return whether the class is compatible with the Session."""
+        return True
+
+    def process(self, session, **kwargs):
+        pass
+
+
+class Application(Action):
+    """Default application launcher
+
+    This is a convenience application Action that when "config" refers to a
+    loaded application `.toml` this can launch the application.
+
+    """
+
+    config = None
+
+    def is_compatible(self, session):
+        required = ["AVALON_PROJECTS",
+                    "AVALON_PROJECT",
+                    "AVALON_SILO",
+                    "AVALON_ASSET",
+                    "AVALON_TASK"]
+        missing = [x for x in required if x not in session]
+        if missing:
+            self.log.debug("Missing keys: %s" % (missing,))
+            return False
+        return True
+
+    def environ(self, session):
+        """Build application environment"""
+
+        session = session.copy()
+        session["AVALON_APP"] = self.config["application_dir"]
+        session["AVALON_APP_NAME"] = self.name
+
+        # Compute work directory
+        project = io.find_one({"type": "project"})
+        template = project["config"]["template"]["work"]
+        workdir = _format_work_template(template, session)
+        session["AVALON_WORKDIR"] = workdir
+
+        # Build environment
+        env = os.environ.copy()
+        env.update(self.config.get("environment", {}))
+        env.update(session)
+
+        return env
+
+    def initialize(self, environment):
+        """Initialize work directory"""
+        # Create working directory
+        workdir = environment["AVALON_WORKDIR"]
+        workdir_existed = os.path.exists(workdir)
+        if not workdir_existed:
+            os.makedirs(workdir)
+            self.log.info("Creating working directory '%s'" % workdir)
+
+            # Create default directories from app configuration
+            default_dirs = self.config.get("default_dirs", [])
+            if default_dirs:
+                self.log.debug("Creating default directories..")
+                for dirname in default_dirs:
+                    try:
+                        os.makedirs(os.path.join(workdir, dirname))
+                        self.log.debug(" - %s" % dirname)
+                    except OSError as e:
+                        # An already existing default directory is fine.
+                        if e.errno == errno.EEXIST:
+                            pass
+                        else:
+                            raise
+
+        # Perform application copy
+        for src, dst in self.config.get("copy", {}).items():
+            dst = os.path.join(workdir, dst)
+
+            try:
+                self.log.info("Copying %s -> %s" % (src, dst))
+                shutil.copy(src, dst)
+            except OSError as e:
+                self.log.error("Could not copy application file: %s" % e)
+                self.log.error(" - %s -> %s" % (src, dst))
+
+    def launch(self, environment):
+        executable = lib.which(self.config["executable"])
+        return lib.launch(executable=executable,
+                          args=self.config.get("args", []),
+                          environment=environment,
+                          cwd=environment["AVALON_WORKDIR"])
+
+    def process(self, session, **kwargs):
+        """Process the full Application action"""
+
+        environment = self.environ(session)
+
+        if kwargs.get("initialize", True):
+            self.initialize(environment)
+
+        if kwargs.get("launch", True):
+            return self.launch(environment)
 
 
 def discover(superclass):

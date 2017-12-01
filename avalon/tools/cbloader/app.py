@@ -8,6 +8,7 @@ from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ... import api, io
 from .. import lib
 
+from .lib import refresh_family_config
 from .widgets import SubsetWidget, VersionWidget, FamilyListWidget
 
 module = sys.modules[__name__]
@@ -102,6 +103,8 @@ class Window(QtWidgets.QDialog):
         families.active_changed.connect(subsets.set_family_filters)
         assets.selection_changed.connect(self.on_assetschanged)
         subsets.active_changed.connect(self.on_versionschanged)
+
+        refresh_family_config()
 
         # Defaults
         self.resize(1150, 700)
@@ -321,3 +324,18 @@ def show(root=None, debug=False, parent=None, use_context=False):
             window.refresh()
 
         module.window = window
+
+
+def cli(args):
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("project")
+
+    args = parser.parse_args(args)
+    project = args.project
+
+    io.install()
+
+    api.Session["AVALON_PROJECT"] = project
+
+    show()
