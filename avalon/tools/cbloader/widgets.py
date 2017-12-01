@@ -407,7 +407,7 @@ class FamilyListWidget(QtWidgets.QListWidget):
                  range(self.count())]
 
         return [item.data(self.NameRole) for item in items if
-                item.checkState() is QtCore.Qt.Checked]
+                item.checkState() == QtCore.Qt.Checked]
 
     def _on_item_changed(self):
         self.active_changed.emit(self.get_filters())
