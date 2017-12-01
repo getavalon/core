@@ -60,10 +60,12 @@ class SubsetWidget(QtWidgets.QWidget):
         view.sortByColumn(1, QtCore.Qt.AscendingOrder)
         view.setAlternatingRowColors(True)
 
-        self.data = {"delegates":
-                         {"version": version_delegate,
-                           "time": time_delegate}
-                    }
+        self.data = {
+            "delegates": {
+                "version": version_delegate,
+                "time": time_delegate
+            }
+        }
 
         self.proxy = proxy
         self.model = model
