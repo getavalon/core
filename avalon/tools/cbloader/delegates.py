@@ -47,10 +47,10 @@ def pretty_date(t, now=None, strftime="%b %d %Y %H:%M"):
         if second_diff < 120:
             return "a minute ago"
         if second_diff < 3600:
-            return str(second_diff / 60) + " minutes ago"
+            return str(second_diff // 60) + " minutes ago"
         if second_diff < 86400:
-            minutes = (second_diff % 3600) / 60
-            hours = second_diff / 3600
+            minutes = (second_diff % 3600) // 60
+            hours = second_diff // 3600
             return "{0}:{1:02d} hours ago".format(hours, minutes)
 
     return t.strftime(strftime)
