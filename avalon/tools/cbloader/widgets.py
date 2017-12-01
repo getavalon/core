@@ -375,8 +375,9 @@ class FamilyListWidget(QtWidgets.QListWidget):
         families = io.distinct("data.families")
         unique_families = list(set(family + families))
 
-        self.clear()
         # Rebuild list
+        self.blockSignals(True)
+        self.clear()
         for name in sorted(unique_families):
 
             family = lib.get(lib.FAMILY_CONFIG, name)
@@ -399,6 +400,7 @@ class FamilyListWidget(QtWidgets.QListWidget):
                 item.setIcon(icon)
 
             self.addItem(item)
+        self.blockSignals(False)
 
         self.active_changed.emit(self.get_filters())
 
