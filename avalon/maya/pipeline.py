@@ -122,7 +122,9 @@ def _install_menu():
         cmds.menuItem("setCurrentContext",
                       label="Set Context",
                       parent=context_menu,
-                      command=lambda *args: contextmanager.show(parent=self._parent))
+                      command=lambda *args: contextmanager.show(
+                          parent=self._parent
+                      ))
 
         cmds.setParent("..", menu=True)
 
