@@ -3,6 +3,7 @@ import sys
 import contextlib
 
 from ..vendor.Qt import QtWidgets, QtCore, QtGui
+from .. import style
 
 self = sys.modules[__name__]
 self._jobs = dict()
@@ -14,18 +15,6 @@ def resource(*path):
     return path.replace("\\", "/")
 
 
-def install_fonts():
-    database = QtGui.QFontDatabase()
-
-    for font in ("opensans/OpenSans-Regular.ttf",):
-        path = resource("font", font)
-
-        if database.addApplicationFont(path) < 0:
-            sys.stderr.write("Could not install %s\n" % path)
-        else:
-            sys.stdout.write("Installed %s\n" % font)
-
-
 @contextlib.contextmanager
 def application():
     app = QtWidgets.QApplication.instance()
@@ -33,12 +22,11 @@ def application():
     if not app:
         print("Starting new QApplication..")
         app = QtWidgets.QApplication(sys.argv)
-        install_fonts()
+        app.setStyleSheet(style.load_stylesheet())
         yield app
         app.exec_()
     else:
         print("Using existing QApplication..")
-        install_fonts()
         yield app
 
 
