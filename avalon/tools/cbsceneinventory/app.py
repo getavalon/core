@@ -16,6 +16,7 @@ from ..projectmanager.widget import (
     preserve_selection
 )
 from ..cbloader.delegates import VersionDelegate
+from ..cbloader.lib import refresh_family_config
 
 DEFAULT_COLOR = "#fb9c15"
 
@@ -299,6 +300,8 @@ class Window(QtWidgets.QDialog):
         self.view.setColumnWidth(2, 55)  # count
         self.view.setColumnWidth(3, 150)  # family
         self.view.setColumnWidth(4, 100)  # namespace
+        
+        refresh_family_config()
 
     def refresh(self):
         with preserve_expanded_rows(tree_view=self.view,
