@@ -9,6 +9,8 @@ from ..vendor.Qt import (
     __binding__
 )
 
+from . import colors
+
 _log = logging.getLogger("avalon.style")
 
 
