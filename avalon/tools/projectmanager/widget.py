@@ -204,17 +204,19 @@ class AssetModel(TreeModel):
         for asset in assets:
 
             # get label from data, otherwise use name
-            label = asset.get("data", {}).get("label", asset['name'])
+            data = asset.get("data", {})
+            label = data.get("label", asset['name'])
+            tags = data.get("tags", [])
 
             # store for the asset for optimization
-            deprecated = "deprecated" in asset.get("tags", [])
+            deprecated = "deprecated" in data.get("tags", [])
 
             node = Node({
                 "_id": asset['_id'],
                 "name": asset["name"],
                 "label": label,
                 "type": asset['type'],
-                "tags": ", ".join(asset.get("tags", [])),
+                "tags": ", ".join(tags),
                 "deprecated": deprecated,
                 "_document": asset
             })
