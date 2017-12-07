@@ -209,7 +209,7 @@ class AssetModel(TreeModel):
             tags = data.get("tags", [])
 
             # store for the asset for optimization
-            deprecated = "deprecated" in data.get("tags", [])
+            deprecated = "deprecated" in tags
 
             node = Node({
                 "_id": asset['_id'],
