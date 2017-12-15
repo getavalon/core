@@ -1,4 +1,5 @@
 python:
   enabled: true
+  ignore_file: *_rc.py
 
 fail_on_violations: true
