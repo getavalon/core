@@ -38,14 +38,17 @@ def imprint_container(tool,
 
 def parse_container(tool):
     """Returns imprinted container data of a tool
-    
+
     This reads the imprinted data from `imprint_container`.
-    
+
     """
     container = {}
     for key in ['schema', 'id', 'name', 'namespace',
                 'loader', 'representation']:
         value = tool.GetData('avalon.{}'.format(key))
         container[key] = value
+
+    # Store the tool's name
+    container["objectName"] = tool.Name
 
     return container
