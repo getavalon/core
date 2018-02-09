@@ -1,4 +1,7 @@
+import re
+import os
 import contextlib
+
 from . import pipeline
 
 
@@ -14,3 +17,36 @@ def maintained_selection():
         if previous_selection:
             for tool in previous_selection:
                 flow.Select(tool, True)
+
+
+def get_frame_path(path):
+    """Get filename for the Fusion Saver with padded number as '#'
+
+    >>> get_frame_path("C:/test.exr")
+    C:/test####.exr
+
+    >>> get_frame_path("filename.00.tif")
+    filename.##.tif
+
+    Args:
+        path (str): The path to render to.
+
+    Returns:
+        str: The path with the frame number padding as "#"
+
+    """
+    filename, ext = os.path.splitext(path)
+
+    # Find a final number group
+    match = re.match('.*?([0-9]+)$', filename)
+    if match:
+        padding = len(match.group(1))
+        # remove number from end since fusion
+        # will swap it with the frame number
+        filename = filename[:-padding]
+    else:
+        padding = 4  # default Fusion padding
+
+    number = '#' * padding
+
+    return "{}{}{}".format(filename, number, ext)
