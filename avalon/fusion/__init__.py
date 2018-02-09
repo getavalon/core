@@ -18,6 +18,10 @@ from .pipeline import (
 
 )
 
+from .lib import (
+    maintained_selection
+)
+
 __all__ = [
     "install",
 
@@ -27,6 +31,8 @@ __all__ = [
     "parse_container",
 
     "get_current_comp",
-    "comp_lock_and_undo_chunk"
+    "comp_lock_and_undo_chunk",
+    
+    "maintained_selection"
 
 ]
