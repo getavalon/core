@@ -23,16 +23,19 @@ def get_frame_path(path):
     """Get filename for the Fusion Saver with padded number as '#'
 
     >>> get_frame_path("C:/test.exr")
-    C:/test####.exr
+    ("C:/test", 4, ".exr")
 
     >>> get_frame_path("filename.00.tif")
-    filename.##.tif
+    ("filename.", 2, ".tif")
+
+    >>> get_frame_path("foobar35.tif")
+    ("foobar", 2, ".tif")
 
     Args:
         path (str): The path to render to.
 
     Returns:
-        str: The path with the frame number padding as "#"
+        tuple: head, padding, tail (extension)
 
     """
     filename, ext = os.path.splitext(path)
@@ -47,6 +50,4 @@ def get_frame_path(path):
     else:
         padding = 4  # default Fusion padding
 
-    number = '#' * padding
-
-    return "{}{}{}".format(filename, number, ext)
+    return filename, padding, ext
