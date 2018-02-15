@@ -4,4 +4,4 @@ import avalon.tools.cbloader as tool
 
 
 avalon.api.install(avalon.fusion)
-tool.show()
+tool.show(use_context=True)
