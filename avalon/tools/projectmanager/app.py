@@ -1,7 +1,7 @@
 import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import io, schema, api
+from ... import io, schema, api, style
 from .. import lib as parentlib
 from . import widget
 
@@ -225,6 +225,7 @@ def show(root=None, debug=False, parent=None):
 
     with parentlib.application():
         window = Window(parent)
+        window.setStyleSheet(style.load_stylesheet())
         window.show()
         window.refresh()
 

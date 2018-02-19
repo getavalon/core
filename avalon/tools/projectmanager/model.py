@@ -5,7 +5,7 @@ import collections
 from ...vendor.Qt import QtCore, QtWidgets
 from ...vendor import qtawesome as awesome
 from ... import io
-from . import style
+from ... import style
 
 log = logging.getLogger(__name__)
 
@@ -190,7 +190,8 @@ class TasksModel(TreeModel):
         super(TasksModel, self).__init__()
         self._num_assets = 0
         self._icons = {
-            "__default__": awesome.icon("fa.folder-o", color=style.default)
+            "__default__": awesome.icon("fa.folder-o",
+                                        color=style.colors.default)
         }
 
         self._get_task_icons()
@@ -203,7 +204,7 @@ class TasksModel(TreeModel):
             icon_name = task.get("icon", None)
             if icon_name:
                 icon = awesome.icon("fa.{}".format(icon_name),
-                                    color=style.default)
+                                    color=style.colors.default)
                 self._icons[task["name"]] = icon
 
     def set_assets(self, asset_ids):

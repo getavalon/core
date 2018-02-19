@@ -2,7 +2,7 @@ import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ...vendor import qtawesome as qta
-from ... import io, api
+from ... import io, api, style
 from .. import lib as tools_lib
 
 import os
@@ -338,6 +338,7 @@ def show(root=None, debug=False, parent=None):
 
     with tools_lib.application():
         window = Window(parent)
+        window.setStyleSheet(style.load_stylesheet())
         window.show()
         window.refresh()
 
