@@ -5,7 +5,7 @@ import inspect
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ...vendor import qtawesome
 from ...vendor import six
-from ... import api, io
+from ... import api, io, style
 from .. import lib
 
 module = sys.modules[__name__]
@@ -458,6 +458,7 @@ def show(debug=False, parent=None):
 
     with lib.application():
         window = Window(parent)
+        window.setStyleSheet(style.load_stylesheet())
         window.refresh()
         window.show()
 

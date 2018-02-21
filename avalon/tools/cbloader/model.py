@@ -3,9 +3,9 @@ from ..projectmanager.model import (
     TreeModel,
     Node
 )
-from ..projectmanager import style
 from ...vendor.Qt import QtCore
 from ...vendor import qtawesome as qta
+from ... import style
 
 
 class SubsetsModel(TreeModel):
@@ -22,7 +22,8 @@ class SubsetsModel(TreeModel):
     def __init__(self, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
         self._asset_id = None
-        self._icons = {"subset": qta.icon("fa.file-o", color=style.default)}
+        self._icons = {"subset": qta.icon("fa.file-o",
+                                          color=style.colors.default)}
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id
@@ -44,7 +45,7 @@ class SubsetsModel(TreeModel):
 
     def set_version(self, index, version):
         """Update the version data of the given index.
-        
+
         Arguments:
             version (dict) Version document in the database. """
 

@@ -4,8 +4,8 @@ import contextlib
 from ...vendor import qtawesome as awesome
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ... import io
+from ... import style
 
-from . import style
 from .model import (
     TreeModel,
     Node,
@@ -246,7 +246,7 @@ class AssetModel(TreeModel):
                 # Allow a custom icon and custom icon color to be defined
                 data = node["_document"]["data"]
                 icon = data.get("icon", None)
-                color = data.get("color", style.default)
+                color = data.get("color", style.colors.default)
 
                 if icon is None:
                     # Use default icons if no custom one is specified.
@@ -274,7 +274,7 @@ class AssetModel(TreeModel):
 
             node = index.internalPointer()
             if "deprecated" in node.get("tags", []):
-                return QtGui.QColor(style.light).darker(250)
+                return QtGui.QColor(style.colors.light).darker(250)
 
         if role == self.ObjectIdRole:
             node = index.internalPointer()
@@ -349,9 +349,9 @@ class SiloTabWidget(QtWidgets.QTabBar):
 
     def clear(self):
         """Removes all tabs.
-        
+
         Implemented similar to `QTabWidget.clear()`
-        
+
         """
         for i in range(self.count()):
             self.removeTab(0)
@@ -470,7 +470,7 @@ class AssetWidget(QtWidgets.QWidget):
 
         silo = SiloTabWidget()
 
-        icon = awesome.icon("fa.refresh", color=style.light)
+        icon = awesome.icon("fa.refresh", color=style.colors.light)
         refresh = QtWidgets.QPushButton(icon, "")
         refresh.setToolTip("Refresh items")
 
@@ -560,14 +560,14 @@ class AssetWidget(QtWidgets.QWidget):
 
     def select_assets(self, assets, expand=True):
         """Select assets by name.
-        
+
         Args:
             assets (list): List of asset names
             expand (bool): Whether to also expand to the asset in the view
-        
+
         Returns:
             None
-        
+
         """
         # TODO: Instead of individual selection optimize for many assets
 

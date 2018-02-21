@@ -4,7 +4,7 @@ import time
 
 from ..projectmanager.widget import AssetWidget, AssetModel
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
-from ... import api, io
+from ... import api, io, style
 from .. import lib
 from .widgets import SubsetWidget, VersionWidget
 
@@ -297,6 +297,7 @@ def show(root=None, debug=False, parent=None, use_context=False):
 
     with lib.application():
         window = Window(parent)
+        window.setStyleSheet(style.load_stylesheet())
         window.show()
 
         if use_context:
