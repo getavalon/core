@@ -47,6 +47,9 @@ if __name__ == "__main__":
         # We can expect any vendors to
         # be well tested beforehand.
         "--exclude-dir=avalon/vendor",
+
+        # These are vendored and unmodified by Avalon
+        "--exclude-dir=avalon/style",
     ])
 
     nose.main(argv=argv,
