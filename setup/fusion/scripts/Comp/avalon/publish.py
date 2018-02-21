@@ -17,7 +17,21 @@ def _install_fusion():
     if settings.ContextLabel == settings.ContextLabelDefault:
         settings.ContextLabel = "Fusion"
     if settings.WindowTitle == settings.WindowTitleDefault:
-        settings.WindowTitle = "Pyblish (Fusion)"
+        settings.WindowTitle = "Pyblish (Fusion to Deadline)"
+
+
+def _set_current_working_dir():
+    # Set current working directory next to comp
+
+    filename = comp.MapPath(comp.GetAttrs()["COMPS_FileName"])
+    if filename and os.path.exists(filename):
+        cwd = os.path.dirname(filename)
+    else:
+        # Fallback to Avalon projects root
+        # for unsaved files.
+        cwd = os.environ["AVALON_PROJECTS"]
+
+    os.chdir(cwd)
 
 
 print("Starting Pyblish setup..")
@@ -26,7 +40,8 @@ print("Starting Pyblish setup..")
 avalon.api.install(avalon.fusion)
 
 # force current working directory to NON FUSION path
-os.chdir("C:/")
+# os.getcwd will return the binary folder of Fusion in this case
+_set_current_working_dir()
 
 # install fusion title
 _install_fusion()
