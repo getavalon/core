@@ -53,12 +53,8 @@ def install(config):
     pyblish.register_host("mayapy")
     pyblish.register_host("maya")
 
-    try:
-        config = importlib.import_module(config.__name__ + ".maya")
-    except ImportError as exc:
-        if str(exc) != "No module name {}".format(config.__name__ + ".maya"):
-            raise
-    else:
+    config = find_host_config(config)
+    if hasattr(config, "install"):
         config.install()
 
 
@@ -83,7 +79,25 @@ def _set_project():
     cmds.workspace(workdir, openWorkspace=True)
 
 
-def uninstall():
+def find_host_config(config):
+    try:
+        config = importlib.import_module(config.__name__ + ".maya")
+    except ImportError:
+        config = None
+
+    return config
+
+
+def uninstall(config):
+    """Uninstall Maya-specific functionality of avalon-core.
+
+    This function is called automatically on calling `api.uninstall()`.
+
+    """
+    config = find_host_config(config)
+    if hasattr(config, "uninstall"):
+        config.uninstall()
+
     _uninstall_menu()
 
     pyblish.deregister_host("mayabatch")

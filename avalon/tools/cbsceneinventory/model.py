@@ -4,13 +4,13 @@ from ... import api
 from ... import io
 from ...vendor.Qt import QtCore, QtGui
 from ...vendor import qtawesome as qta
+from ... import style
 from ..cbloader import lib as cbloader_lib
 
 # todo(roy): refactor loading from other tools
 from ..projectmanager.model import (
     TreeModel, Node
 )
-from ..projectmanager import style
 
 
 class InventoryModel(TreeModel):
@@ -52,9 +52,9 @@ class InventoryModel(TreeModel):
         if role == QtCore.Qt.DecorationRole:
             if index.column() == 0:
                 if not index.parent().isValid():  # group-item
-                    return qta.icon("fa.folder", color=style.default)
+                    return qta.icon("fa.folder", color=style.colors.default)
                 else:
-                    return qta.icon("fa.folder-o", color=style.default)
+                    return qta.icon("fa.folder-o", color=style.colors.default)
 
             if index.column() == 3:
                 # Family icon

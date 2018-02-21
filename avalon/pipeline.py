@@ -97,13 +97,15 @@ def find_config():
 
 def uninstall():
     """Undo all of what `install()` did"""
+    config = registered_config()
+
     try:
-        registered_host().uninstall()
+        registered_host().uninstall(config)
     except AttributeError:
         pass
 
     try:
-        registered_config().uninstall()
+        config.uninstall()
     except AttributeError:
         pass
 

@@ -1,8 +1,11 @@
 from ... import io
-from ..projectmanager import style
-from ..projectmanager.model import TreeModel, Node
+from ..projectmanager.model import (
+    TreeModel,
+    Node
+)
 from ...vendor.Qt import QtCore
 from ...vendor import qtawesome as qta
+from ... import style
 
 from . import lib
 
@@ -21,7 +24,8 @@ class SubsetsModel(TreeModel):
     def __init__(self, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
         self._asset_id = None
-        self._icons = {"subset": qta.icon("fa.file-o", color=style.default)}
+        self._icons = {"subset": qta.icon("fa.file-o",
+                                          color=style.colors.default)}
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id
