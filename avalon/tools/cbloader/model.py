@@ -1,5 +1,8 @@
 from ... import io
-from ..projectmanager.model import TreeModel, Node
+from ..projectmanager.model import (
+    TreeModel,
+    Node
+)
 from ...vendor.Qt import QtCore
 from ...vendor import qtawesome as qta
 from ... import style

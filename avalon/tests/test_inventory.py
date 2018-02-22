@@ -65,6 +65,15 @@ self._inventory = {
 def setup():
     assert_equals.__self__.maxDiff = None
     os.environ["AVALON_PROJECT"] = PROJECT_NAME
+
+    # Fill in other required keys for the Session schema to avoid warnings
+    # todo: figure out why these are actually required in the schema here
+    for key in ["AVALON_PROJECTS",
+                "AVALON_ASSET",
+                "AVALON_SILO",
+                "AVALON_CONFIG"]:
+        os.environ[key] = "placeholder"
+
     io.install()
     self._tempdir = tempfile.mkdtemp()
 

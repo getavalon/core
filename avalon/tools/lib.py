@@ -3,7 +3,6 @@ import sys
 import contextlib
 
 from ..vendor.Qt import QtWidgets, QtCore, QtGui
-from .. import style
 
 self = sys.modules[__name__]
 self._jobs = dict()
@@ -22,7 +21,6 @@ def application():
     if not app:
         print("Starting new QApplication..")
         app = QtWidgets.QApplication(sys.argv)
-        app.setStyleSheet(style.load_stylesheet())
         yield app
         app.exec_()
     else:

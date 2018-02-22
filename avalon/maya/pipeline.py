@@ -53,12 +53,8 @@ def install(config):
     pyblish.register_host("mayapy")
     pyblish.register_host("maya")
 
-    try:
-        config = importlib.import_module(config.__name__ + ".maya")
-    except ImportError as exc:
-        if str(exc) != "No module name {}".format(config.__name__ + ".maya"):
-            raise
-    else:
+    config = find_host_config(config)
+    if hasattr(config, "install"):
         config.install()
 
 

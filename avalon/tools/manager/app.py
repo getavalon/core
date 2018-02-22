@@ -1,7 +1,7 @@
 import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import api, io
+from ... import api, io, style
 from .. import lib
 
 module = sys.modules[__name__]
@@ -410,6 +410,7 @@ def show(root=None, debug=False, parent=None):
 
     with lib.application():
         window = Window(parent)
+        window.setStyleSheet(style.load_stylesheet())
         window.show()
         window.refresh()
 
