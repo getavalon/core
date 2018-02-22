@@ -14,10 +14,10 @@ class CompLogHandler(logging.Handler):
 
 
 def ls():
-    """List containers from active Maya scene
+    """List containers from active Fusion scene
 
     This is the host-equivalent of api.ls(), but instead of listing
-    assets on disk, it lists assets already loaded in Maya; once loaded
+    assets on disk, it lists assets already loaded in Fusion; once loaded
     they are called 'containers'
 
     """
