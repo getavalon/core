@@ -17,7 +17,7 @@ def _install_fusion():
     if settings.ContextLabel == settings.ContextLabelDefault:
         settings.ContextLabel = "Fusion"
     if settings.WindowTitle == settings.WindowTitleDefault:
-        settings.WindowTitle = "Pyblish (Fusion to Deadline)"
+        settings.WindowTitle = "Pyblish (Fusion)"
 
 
 def _set_current_working_dir():
