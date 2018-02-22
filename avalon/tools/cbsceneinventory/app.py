@@ -300,7 +300,7 @@ class Window(QtWidgets.QDialog):
         self.view.setColumnWidth(2, 55)  # count
         self.view.setColumnWidth(3, 150)  # family
         self.view.setColumnWidth(4, 100)  # namespace
-        
+
         refresh_family_config()
 
     def refresh(self):
