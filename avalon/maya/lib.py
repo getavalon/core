@@ -237,8 +237,7 @@ def maintained_selection():
                         replace=True,
                         noExpand=True)
         else:
-            cmds.select(deselect=True,
-                        noExpand=True)
+            cmds.select(clear=True)
 
 
 @contextlib.contextmanager

@@ -3,10 +3,13 @@ import sys
 import time
 
 from ..projectmanager.widget import AssetWidget, AssetModel
+
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ... import api, io, style
 from .. import lib
-from .widgets import SubsetWidget, VersionWidget
+
+from .lib import refresh_family_config
+from .widgets import SubsetWidget, VersionWidget, FamilyListWidget
 
 module = sys.modules[__name__]
 module.window = None
@@ -36,36 +39,44 @@ class Window(QtWidgets.QDialog):
         container = QtWidgets.QWidget()
 
         assets = AssetWidget()
+        families = FamilyListWidget()
         subsets = SubsetWidget()
         version = VersionWidget()
 
-        layout = QtWidgets.QHBoxLayout(container)
-        layout.setContentsMargins(0, 0, 0, 0)
+        # Create splitter to show / hide family filters
+        asset_filter_splitter = QtWidgets.QSplitter()
+        asset_filter_splitter.setOrientation(QtCore.Qt.Vertical)
+        asset_filter_splitter.addWidget(assets)
+        asset_filter_splitter.addWidget(families)
+        asset_filter_splitter.setStretchFactor(0, 65)
+        asset_filter_splitter.setStretchFactor(1, 35)
+
+        container_layout = QtWidgets.QHBoxLayout(container)
+        container_layout.setContentsMargins(0, 0, 0, 0)
         split = QtWidgets.QSplitter()
-        split.addWidget(assets)
+        split.addWidget(asset_filter_splitter)
         split.addWidget(subsets)
         split.addWidget(version)
-        split.setStretchFactor(0, 30)
-        split.setStretchFactor(1, 90)
-        split.setStretchFactor(2, 30)
-        layout.addWidget(split)
+        split.setSizes([225, 925, 0])
+        container_layout.addWidget(split)
 
-        layout = QtWidgets.QHBoxLayout(body)
-        layout.addWidget(container)
-        layout.setContentsMargins(0, 0, 0, 0)
+        body_layout = QtWidgets.QHBoxLayout(body)
+        body_layout.addWidget(container)
+        body_layout.setContentsMargins(0, 0, 0, 0)
 
         message = QtWidgets.QLabel()
         message.hide()
 
-        layout = QtWidgets.QVBoxLayout(footer)
-        layout.addWidget(message)
-        layout.setContentsMargins(0, 0, 0, 0)
+        footer_layout = QtWidgets.QVBoxLayout(footer)
+        footer_layout.addWidget(message)
+        footer_layout.setContentsMargins(0, 0, 0, 0)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(body)
         layout.addWidget(footer)
 
         self.data = {
+            "widgets": {"families": families},
             "model": {
                 "assets": assets,
                 "subsets": subsets,
@@ -89,11 +100,14 @@ class Window(QtWidgets.QDialog):
             }
         }
 
+        families.active_changed.connect(subsets.set_family_filters)
         assets.selection_changed.connect(self.on_assetschanged)
         subsets.active_changed.connect(self.on_versionschanged)
 
+        refresh_family_config()
+
         # Defaults
-        self.resize(1200, 600)
+        self.resize(1150, 700)
 
     # -------------------------------
     # Delay calling blocking methods
@@ -101,20 +115,20 @@ class Window(QtWidgets.QDialog):
 
     def refresh(self):
         self.echo("Fetching results..")
-        lib.schedule(self._refresh, 100, channel="mongo")
+        lib.schedule(self._refresh, 50, channel="mongo")
 
     def on_assetschanged(self, *args):
         self.echo("Fetching results..")
-        lib.schedule(self._assetschanged, 100, channel="mongo")
+        lib.schedule(self._assetschanged, 50, channel="mongo")
 
     def on_versionschanged(self, *args):
         self.echo("Fetching results..")
-        lib.schedule(self._versionschanged, 100, channel="mongo")
+        lib.schedule(self._versionschanged, 50, channel="mongo")
 
     def set_context(self, context, refresh=True):
         self.echo("Setting context: {}".format(context))
         lib.schedule(lambda: self._set_context(context, refresh=refresh),
-                     100, channel="mongo")
+                     50, channel="mongo")
 
     # ------------------------------
 
@@ -128,6 +142,9 @@ class Window(QtWidgets.QDialog):
         assets_model = self.data["model"]["assets"]
         assets_model.refresh()
         assets_model.setFocus()
+
+        families = self.data["widgets"]["families"]
+        families.refresh()
 
         # Update state
         state = self.data["state"]
@@ -308,3 +325,18 @@ def show(root=None, debug=False, parent=None, use_context=False):
             window.refresh()
 
         module.window = window
+
+
+def cli(args):
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("project")
+
+    args = parser.parse_args(args)
+    project = args.project
+
+    io.install()
+
+    api.Session["AVALON_PROJECT"] = project
+
+    show()
