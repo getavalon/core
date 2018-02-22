@@ -82,7 +82,9 @@ def _set_project():
 def find_host_config(config):
     try:
         config = importlib.import_module(config.__name__ + ".maya")
-    except ImportError:
+    except ImportError as exc:
+        if str(exc) != "No module name {}".format(config.__name__ + ".maya"):
+            raise
         config = None
 
     return config
