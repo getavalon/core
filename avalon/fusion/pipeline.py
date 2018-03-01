@@ -14,10 +14,10 @@ class CompLogHandler(logging.Handler):
 
 
 def ls():
-    """List containers from active Maya scene
+    """List containers from active Fusion scene
 
     This is the host-equivalent of api.ls(), but instead of listing
-    assets on disk, it lists assets already loaded in Maya; once loaded
+    assets on disk, it lists assets already loaded in Fusion; once loaded
     they are called 'containers'
 
     """
@@ -28,7 +28,8 @@ def ls():
         if tool.ID in ["Loader"]:
             from .pipeline import parse_container
             container = parse_container(tool)
-            yield container
+            if container:
+                yield container
 
 
 def install(config):
@@ -109,11 +110,18 @@ def parse_container(tool):
     This reads the imprinted data from `imprint_container`.
 
     """
-    container = {}
-    for key in ['schema', 'id', 'name', 'namespace',
-                'loader', 'representation']:
-        value = tool.GetData('avalon.{}'.format(key))
-        container[key] = value
+
+    data = tool.GetData('avalon')
+    if not isinstance(data, dict):
+        return
+
+    # If not all required data return the empty container
+    required = ['schema', 'id', 'name',
+                'namespace', 'loader', 'representation']
+    if not all(key in data for key in required):
+        return
+
+    container = {key: data[key] for key in required}
 
     # Store the tool's name
     container["objectName"] = tool.Name

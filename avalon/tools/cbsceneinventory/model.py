@@ -1,13 +1,11 @@
 from collections import defaultdict
 
-from ... import api
-from ... import io
+from ... import api, io, style
 from ...vendor.Qt import QtCore, QtGui
 from ...vendor import qtawesome as qta
-from ... import style
-from ..cbloader import lib as cbloader_lib
 
 # todo(roy): refactor loading from other tools
+from ..cbloader import lib as cbloader_lib
 from ..projectmanager.model import (
     TreeModel, Node
 )

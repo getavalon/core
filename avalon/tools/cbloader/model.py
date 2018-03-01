@@ -1,11 +1,11 @@
-from ... import io
+from ... import io, style
+from ...vendor.Qt import QtCore
+from ...vendor import qtawesome as qta
+
 from ..projectmanager.model import (
     TreeModel,
     Node
 )
-from ...vendor.Qt import QtCore
-from ...vendor import qtawesome as qta
-from ... import style
 
 from . import lib
 
