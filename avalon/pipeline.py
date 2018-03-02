@@ -1058,7 +1058,15 @@ def update(container, version=-1):
 
 
 def switch(container, representation):
-    """Switch a container to representation"""
+    """Switch a container to representation
+
+    Args:
+        container (dict): container information
+        representation (dict): representation data from document
+
+    Returns:
+        function call
+    """
 
     # Get the Loader for this container
     Loader = _get_container_loader(container)
@@ -1068,8 +1076,10 @@ def switch(container, representation):
     if not hasattr(Loader, "switch"):
         # Backwards compatibility (classes without switch support
         # might be better to just have "switch" raise NotImplementedError
-        # on the base class of Loader
-        raise RuntimeError("Loader does not support 'switch'")
+        # on the base class of Loader\
+        raise RuntimeError("Loader '{}' does not support 'switch'".format(
+            Loader.label
+        ))
 
     # Get the new representation to switch to
     new_representation = io.find_one({
@@ -1078,10 +1088,12 @@ def switch(container, representation):
     })
 
     new_context = get_representation_context(new_representation)
-    assert is_compatible_loader(Loader, new_context), "Must be compatible Loader"
+    assert is_compatible_loader(Loader, new_context), ("Must be compatible "
+                                                       "Loader")
 
     Loader = _make_backwards_compatible_loader(Loader)
-    loader = Loader(get_representation_context(container["representation"]))
+    loader = Loader(new_context)
+
     return loader.switch(container, new_representation)
 
 
