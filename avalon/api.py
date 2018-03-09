@@ -34,6 +34,7 @@ from .pipeline import (
     create,
     load,
     update,
+    switch,
     remove,
 
     update_current_task,
@@ -82,6 +83,7 @@ __all__ = [
     "create",
     "load",
     "update",
+    "switch",
     "remove",
 
     "update_current_task",
