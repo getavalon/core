@@ -1,19 +1,21 @@
 import os
 import sys
 
-from .model import InventoryModel
-from .proxy import FilterProxyModel
+from ...vendor.Qt import QtWidgets, QtCore
+from ...vendor import qtawesome as qta
+from ... import io, api, style
 from .. import lib as tools_lib
-from ..cbloader.delegates import VersionDelegate
-from ..cbloader.lib import refresh_family_config
+
+from .proxy import FilterProxyModel
+from .model import InventoryModel
+
 # todo(roy): refactor loading from other tools
 from ..projectmanager.widget import (
     preserve_expanded_rows,
     preserve_selection
 )
-from ... import io, api, style
-from ...vendor import qtawesome as qta
-from ...vendor.Qt import QtWidgets, QtCore
+from ..cbloader.delegates import VersionDelegate
+from ..cbloader.lib import refresh_family_config
 
 DEFAULT_COLOR = "#fb9c15"
 
@@ -54,17 +56,11 @@ class View(QtWidgets.QTreeView):
         updatetolatest_action.triggered.connect(
             lambda: _on_update_to_latest(items))
 
-        switch_icon = qta.icon("fa.sitemap", color=DEFAULT_COLOR)
-        switch_subset_action = QtWidgets.QAction(switch_icon,
-                                                 "Switch subset", menu)
-        switch_subset_action.triggered.connect(
-            lambda: self.switch_subset(items))
-
         # set version
         setversion_icon = qta.icon("fa.hashtag", color=DEFAULT_COLOR)
         set_version_action = QtWidgets.QAction(setversion_icon,
-                                              "Set version",
-                                              menu)
+                                               "Set version",
+                                               menu)
         set_version_action.triggered.connect(
             lambda: self.show_version_dialog(items))
 
@@ -85,7 +81,6 @@ class View(QtWidgets.QTreeView):
         # add the actions
         menu.addAction(updatetolatest_action)
         menu.addAction(set_version_action)
-        menu.addAction(switch_subset_action)
 
         menu.addSeparator()
         menu.addAction(remove_action)
@@ -131,11 +126,12 @@ class View(QtWidgets.QTreeView):
         Top-level indices are extended to its children indices. Sub-items
         are kept as is.
 
-        :param indices: The indices to extend.
-        :type indices: list
+        Args:
+            indices (list): The indices to extend.
 
-        :return: The children indices
-        :rtype: list
+        Returns:
+            list: The children indices
+
         """
 
         subitems = set()
