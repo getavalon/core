@@ -26,7 +26,6 @@ def ls():
     tools = comp.GetToolList(False).values()
     for tool in tools:
         if tool.ID in ["Loader"]:
-            from .pipeline import parse_container
             container = parse_container(tool)
             if container:
                 yield container
@@ -135,6 +134,12 @@ def parse_container(tool):
 def get_current_comp():
     """Hack to get current comp in this session"""
     fusion = getattr(sys.modules["__main__"], "fusion", None)
+    if not fusion:
+        try:
+            import BlackmagicFusion as bmf
+            fusion = bmf.scriptapp("Fusion", "localhost")
+        except Exception as e:
+            pass
     return fusion.CurrentComp if fusion else None
 
 
