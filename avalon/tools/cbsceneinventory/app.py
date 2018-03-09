@@ -58,9 +58,10 @@ class View(QtWidgets.QTreeView):
 
         # set version
         setversion_icon = qta.icon("fa.hashtag", color=DEFAULT_COLOR)
-        setversion_action = QtWidgets.QAction(setversion_icon,
-                                              "Set version", menu)
-        setversion_action.triggered.connect(
+        set_version_action = QtWidgets.QAction(setversion_icon,
+                                               "Set version",
+                                               menu)
+        set_version_action.triggered.connect(
             lambda: self.show_version_dialog(items))
 
         # remove
@@ -79,7 +80,7 @@ class View(QtWidgets.QTreeView):
 
         # add the actions
         menu.addAction(updatetolatest_action)
-        menu.addAction(setversion_action)
+        menu.addAction(set_version_action)
 
         menu.addSeparator()
         menu.addAction(remove_action)
@@ -125,11 +126,12 @@ class View(QtWidgets.QTreeView):
         Top-level indices are extended to its children indices. Sub-items
         are kept as is.
 
-        :param indices: The indices to extend.
-        :type indices: list
+        Args:
+            indices (list): The indices to extend.
 
-        :return: The children indices
-        :rtype: list
+        Returns:
+            list: The children indices
+
         """
 
         subitems = set()
