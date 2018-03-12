@@ -23,12 +23,11 @@ def ls():
     """
 
     comp = get_current_comp()
-    tools = comp.GetToolList(False).values()
+    tools = comp.GetToolList(False, "Loader").values()
     for tool in tools:
-        if tool.ID in ["Loader"]:
-            container = parse_container(tool)
-            if container:
-                yield container
+        container = parse_container(tool)
+        if container:
+            yield container
 
 
 def install(config):
