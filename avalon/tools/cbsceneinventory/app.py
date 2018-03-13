@@ -6,9 +6,6 @@ from ...vendor import qtawesome as qta
 from ... import io, api, style
 from .. import lib as tools_lib
 
-from .proxy import FilterProxyModel
-from .model import InventoryModel
-
 # todo(roy): refactor loading from other tools
 from ..projectmanager.widget import (
     preserve_expanded_rows,
@@ -16,6 +13,9 @@ from ..projectmanager.widget import (
 )
 from ..cbloader.delegates import VersionDelegate
 from ..cbloader.lib import refresh_family_config
+
+from .proxy import FilterProxyModel
+from .model import InventoryModel
 
 DEFAULT_COLOR = "#fb9c15"
 
@@ -57,12 +57,20 @@ class View(QtWidgets.QTreeView):
             lambda: _on_update_to_latest(items))
 
         # set version
-        setversion_icon = qta.icon("fa.hashtag", color=DEFAULT_COLOR)
-        set_version_action = QtWidgets.QAction(setversion_icon,
+        set_version_icon = qta.icon("fa.hashtag", color=DEFAULT_COLOR)
+        set_version_action = QtWidgets.QAction(set_version_icon,
                                                "Set version",
                                                menu)
         set_version_action.triggered.connect(
             lambda: self.show_version_dialog(items))
+
+        # switch asset
+        switch_asset_icon = qta.icon("fa.sitemap", color=DEFAULT_COLOR)
+        switch_asset_action = QtWidgets.QAction(switch_asset_icon,
+                                                "Switch Asset",
+                                                menu)
+        switch_asset_action.triggered.connect(
+            lambda: self.show_switch_dialog(items))
 
         # remove
         remove_icon = qta.icon("fa.remove", color=DEFAULT_COLOR)
@@ -81,6 +89,7 @@ class View(QtWidgets.QTreeView):
         # add the actions
         menu.addAction(updatetolatest_action)
         menu.addAction(set_version_action)
+        menu.addAction(switch_asset_action)
 
         menu.addSeparator()
         menu.addAction(remove_action)
@@ -203,6 +212,12 @@ class View(QtWidgets.QTreeView):
             # refresh model when done
             self.data_changed.emit()
 
+    def show_switch_dialog(self, items):
+        """Display Switch dialog"""
+        dialog = SwitchAssetDialog(self, items)
+        dialog.switched.connect(self.data_changed.emit)
+        dialog.show()
+
     def show_remove_warning_dialog(self, items):
         """Prompt a dialog to inform the user the action will remove items"""
 
@@ -222,6 +237,199 @@ class View(QtWidgets.QTreeView):
         for item in items:
             api.remove(item)
         self.data_changed.emit()
+
+
+class SwitchAssetDialog(QtWidgets.QDialog):
+    """Widget to support asset switching"""
+
+    switched = QtCore.Signal()
+
+    def __init__(self, parent=None, items=None):
+        QtWidgets.QDialog.__init__(self, parent)
+
+        self._items = items
+
+        self._assets_box = None
+        self._subsets_box = None
+        self._representations_box = None
+
+        input_layout = QtWidgets.QHBoxLayout()
+        input_layout.setDirection(QtWidgets.QBoxLayout.RightToLeft)
+
+        accept_icon = qta.icon("fa.check-square", color="white")
+        accept_btn = QtWidgets.QPushButton()
+        accept_btn.setIcon(accept_icon)
+        accept_btn.setFixedWidth(24)
+        accept_btn.setFixedHeight(24)
+
+        input_layout.addWidget(accept_btn)
+
+        self._input_layout = input_layout
+        self._accept_btn = accept_btn
+
+        self.setLayout(input_layout)
+        self.setWindowTitle("Switch selected items ...")
+
+        self.connections()
+
+        self.refresh()
+
+    def connections(self):
+        self._accept_btn.clicked.connect(self._on_accept)
+
+    def refresh(self):
+
+        assets = self._get_assets()
+        self._assets_box = self._create_combo_box(assets)
+
+        subsets = self._get_subsets()
+        self._subsets_box = self._create_combo_box(subsets)
+
+        representations = self._get_representations()
+        self._representations_box = self._create_combo_box(representations)
+
+        self._input_layout.addWidget(self._representations_box)
+        self._input_layout.addWidget(self._subsets_box)
+        self._input_layout.addWidget(self._assets_box)
+
+    def _create_combo_box(self, items):
+        """Create a combobox with auto completion, first item will be "----"
+
+        Args:
+            items (iterable): list of document names
+
+        Returns:
+            QtWidgets.QComboBox
+
+        """
+
+        combobox = QtWidgets.QComboBox()
+        completer = QtWidgets.QCompleter(items)
+        combobox.setCompleter(completer)
+        combobox.setEditable(True)
+        combobox.addItem("----")
+        combobox.addItems(items)
+
+        return combobox
+
+    def _get_assets(self):
+        return self._get_documents_by_name("asset")
+
+    def _get_subsets(self):
+        return self._get_documents_by_name("subset")
+
+    def _get_representations(self):
+        return self._get_documents_by_name("representation")
+
+    def _get_documents_by_name(self, document_type, parent=None):
+
+        query = {"type": document_type}
+        if parent:
+            query["parent"] = parent["_id"]
+
+        documents = io.find(query)
+        documents_by_name = set([s["name"] for s in documents])
+
+        return sorted(list(documents_by_name))
+
+    def _get_combo_box_value(self, combo_box):
+
+        idx = combo_box.currentIndex()
+        if idx == 0:
+            return None
+        return combo_box.currentText()
+
+    def _on_accept(self):
+
+        asset = self._get_combo_box_value(self._assets_box)
+        subset = self._get_combo_box_value(self._subsets_box)
+        representation = self._get_combo_box_value(self._representations_box)
+
+        if not any([asset, subset, representation]):
+            print("Nothing selected")
+            return None
+
+        for item in self._items:
+            self.switch_item(item,
+                             asset_name=asset,
+                             subset_name=subset,
+                             representation_name=representation)
+
+        self.switched.emit()
+
+        self.close()
+
+    def switch_item(self,
+                    container,
+                    asset_name=None,
+                    subset_name=None,
+                    representation_name=None):
+        """Switch container asset, subset or representation of a container by name.
+
+        It'll always switch to the latest version - of course a different
+        approach could be implemented.
+
+        Args:
+            container (dict): data of the item to switch with
+            asset_name (str): name of the asset
+            subset_name (str): name of the subset
+            representation_name (str): name of the representation
+
+        Returns:
+            dict
+
+        """
+
+        if all(not x for x in [asset_name, subset_name, representation_name]):
+            raise ValueError(
+                "Must have at least one change provided to switch.")
+
+        # Collect any of current asset, subset and representation if not provided
+        # so we can use the original name from those.
+        if any(not x for x in [asset_name, subset_name, representation_name]):
+            _id = io.ObjectId(container["representation"])
+            representation = io.find_one({"type": "representation", "_id": _id})
+            version, subset, asset, project = io.parenthood(representation)
+
+            if asset_name is None:
+                asset_name = asset["name"]
+
+            if subset_name is None:
+                subset_name = subset["name"]
+
+            if representation_name is None:
+                representation_name = representation["name"]
+
+        # Find the new one
+        asset = io.find_one({"name": asset_name, "type": "asset"})
+        assert asset, ("Could not find asset in the database with the name "
+                       "'%s'" % asset_name)
+
+        subset = io.find_one({"name": subset_name,
+                              "type": "subset",
+                              "parent": asset["_id"]})
+        assert subset, ("Could not find subset in the database with the name "
+                        "'%s'" % subset_name)
+
+        version = io.find_one({"type": "version",
+                               "parent": subset["_id"]},
+                              sort=[('name', -1)])
+
+        assert version, "Could not find a version for {}.{}".format(
+            asset_name, subset_name
+        )
+
+        representation = io.find_one({"name": representation_name,
+                                      "type": "representation",
+                                      "parent": version["_id"]})
+
+        assert representation, (
+                    "Could not find representation in the database with"
+                    " the name '%s'" % representation_name)
+
+        api.switch(container, representation)
+
+        return representation
 
 
 class Window(QtWidgets.QDialog):
