@@ -86,11 +86,11 @@ class InventoryModel(TreeModel):
             group the new items with previously existing item groups of the
             same type.
 
-        :param group_items: the items to be processed as returned by `ls()`
-        :type group_items: list
+        Args:
+            items (list): the items to be processed as returned by `ls()`
 
-        :return: root node which has children added based on the data
-        :rtype: node.Node
+        Returns:
+            node.Node: root node which has children added based on the data
         """
 
         # construct the generator results
@@ -110,9 +110,7 @@ class InventoryModel(TreeModel):
             representation = io.find_one({
                 "_id": io.ObjectId(representation_id)
             })
-            version = io.find_one({"_id": representation["parent"]})
-            subset = io.find_one({"_id": version["parent"]})
-            asset = io.find_one({"_id": subset["parent"]})
+            version, subset, asset, _ = io.parenthood(representation)
 
             # Get the primary family
             family = version['data'].get("family", "")
