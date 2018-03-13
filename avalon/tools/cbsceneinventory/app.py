@@ -7,9 +7,6 @@ from ...vendor import qtawesome as qta
 from ... import io, api, style
 from .. import lib as tools_lib
 
-from .proxy import FilterProxyModel
-from .model import InventoryModel
-
 # todo(roy): refactor loading from other tools
 from ..projectmanager.widget import (
     preserve_expanded_rows,
@@ -17,6 +14,10 @@ from ..projectmanager.widget import (
 )
 from ..cbloader.delegates import VersionDelegate
 from ..cbloader.lib import refresh_family_config
+
+from .proxy import FilterProxyModel
+from .model import InventoryModel
+from .lib import switch_item
 
 DEFAULT_COLOR = "#fb9c15"
 
@@ -57,12 +58,20 @@ class View(QtWidgets.QTreeView):
             lambda: _on_update_to_latest(items))
 
         # set version
-        setversion_icon = qta.icon("fa.hashtag", color=DEFAULT_COLOR)
-        set_version_action = QtWidgets.QAction(setversion_icon,
+        set_version_icon = qta.icon("fa.hashtag", color=DEFAULT_COLOR)
+        set_version_action = QtWidgets.QAction(set_version_icon,
                                                "Set version",
                                                menu)
         set_version_action.triggered.connect(
             lambda: self.show_version_dialog(items))
+
+        # switch asset
+        switch_asset_icon = qta.icon("fa.sitemap", color=DEFAULT_COLOR)
+        switch_asset_action = QtWidgets.QAction(switch_asset_icon,
+                                                "Switch Asset",
+                                                menu)
+        switch_asset_action.triggered.connect(
+            lambda: self.show_switch_dialog(items))
 
         # remove
         remove_icon = qta.icon("fa.remove", color=DEFAULT_COLOR)
@@ -81,6 +90,7 @@ class View(QtWidgets.QTreeView):
         # add the actions
         menu.addAction(updatetolatest_action)
         menu.addAction(set_version_action)
+        menu.addAction(switch_asset_action)
 
         menu.addSeparator()
         menu.addAction(remove_action)
@@ -202,6 +212,12 @@ class View(QtWidgets.QTreeView):
             # refresh model when done
             self.data_changed.emit()
 
+    def show_switch_dialog(self, items):
+        """Display Switch dialog"""
+        dialog = SwitchAssetDialog(self, items)
+        dialog.switched.connect(self.data_changed.emit)
+        dialog.show()
+
     def show_remove_warning_dialog(self, items):
         """Prompt a dialog to inform the user the action will remove items"""
 
@@ -218,7 +234,6 @@ class View(QtWidgets.QTreeView):
         if state != accept:
             return
 
-        host = api.registered_host()
         for item in items:
             api.remove(item)
         self.data_changed.emit()
@@ -296,6 +311,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         input_layout.addWidget(self._assets_box)
         input_layout.addWidget(self._subsets_box)
         input_layout.addWidget(self._representations_box)
+
         input_layout.addWidget(accept_btn)
 
         self._input_layout = input_layout
@@ -368,6 +384,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self.switched.emit()
 
         self.close()
+
 
 class Window(QtWidgets.QDialog):
     """Scene Inventory window"""
