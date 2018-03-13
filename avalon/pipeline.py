@@ -1038,13 +1038,13 @@ def update(container, version=-1):
             "name": version,
         })
 
+    assert new_version is not None, "This is a bug"
+
     new_representation = io.find_one({
         "type": "representation",
         "parent": new_version["_id"],
         "name": current_representation["name"]
     })
-
-    assert new_version is not None, "This is a bug"
 
     # Run update on the Loader for this container
     Loader = _get_container_loader(container)
@@ -1055,6 +1055,46 @@ def update(container, version=-1):
 
     loader = Loader(get_representation_context(container["representation"]))
     return loader.update(container, new_representation)
+
+
+def switch(container, representation):
+    """Switch a container to representation
+
+    Args:
+        container (dict): container information
+        representation (dict): representation data from document
+
+    Returns:
+        function call
+    """
+
+    # Get the Loader for this container
+    Loader = _get_container_loader(container)
+    if not Loader:
+        raise RuntimeError("Can't switch container. See log for details.")
+
+    if not hasattr(Loader, "switch"):
+        # Backwards compatibility (classes without switch support
+        # might be better to just have "switch" raise NotImplementedError
+        # on the base class of Loader\
+        raise RuntimeError("Loader '{}' does not support 'switch'".format(
+            Loader.label
+        ))
+
+    # Get the new representation to switch to
+    new_representation = io.find_one({
+        "type": "representation",
+        "_id": representation["_id"],
+    })
+
+    new_context = get_representation_context(new_representation)
+    assert is_compatible_loader(Loader, new_context), ("Must be compatible "
+                                                       "Loader")
+
+    Loader = _make_backwards_compatible_loader(Loader)
+    loader = Loader(new_context)
+
+    return loader.switch(container, new_representation)
 
 
 def get_representation_path(representation):
