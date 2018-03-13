@@ -110,7 +110,9 @@ class InventoryModel(TreeModel):
             representation = io.find_one({
                 "_id": io.ObjectId(representation_id)
             })
-            version, subset, asset, _ = io.parenthood(representation)
+            version = io.find_one({"_id": representation["parent"]})
+            subset = io.find_one({"_id": version["parent"]})
+            asset = io.find_one({"_id": subset["parent"]})
 
             # Get the primary family
             family = version['data'].get("family", "")
