@@ -307,12 +307,12 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self._input_layout.addWidget(self._subsets_box)
         self._input_layout.addWidget(self._assets_box)
 
-    def _create_combo_box(self, items, initial_item=None):
+    def _create_combo_box(self, items, initial_item):
         """Create a combobox with auto completion, first item will be "----"
 
         Args:
             items (iterable): list of document names
-            initial_item (str, Optional): name of the initial item
+            initial_item (str): name of the initial item
 
         Returns:
             QtWidgets.QComboBox
@@ -321,6 +321,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         combobox = QtWidgets.QComboBox()
         combobox.setEditable(True)
+        combobox.setInsertPolicy(combobox.NoInsert)
 
         # Apply completer settings
         completer = combobox.completer()
@@ -333,7 +334,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
             popup = completer.popup()
             popup.setStyleSheet(module.window.styleSheet())
 
-        combobox.addItem(initial_item or "----")
+        items.insert(0, initial_item)
         combobox.addItems(items)
 
         return combobox
@@ -355,18 +356,21 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         return io.find(query).distinct("name")
 
-    def _get_combo_box_value(self, combo_box):
+    def _validate_combo_box_value(self, combo_box):
 
-        idx = combo_box.currentIndex()
-        if idx == 0:
+        current_text = combo_box.currentText()
+        items = [combo_box.itemText(i) for i in range(combo_box.count())]
+        if current_text not in items:
             return None
-        return combo_box.currentText()
+
+        return current_text
 
     def _on_accept(self):
 
-        asset = self._get_combo_box_value(self._assets_box)
-        subset = self._get_combo_box_value(self._subsets_box)
-        representation = self._get_combo_box_value(self._representations_box)
+        asset = self._validate_combo_box_value(self._assets_box)
+        subset = self._validate_combo_box_value(self._subsets_box)
+        representation = self._validate_combo_box_value(
+            self._representations_box)
 
         if not any([asset, subset, representation]):
             self.log.error("Nothing selected")
