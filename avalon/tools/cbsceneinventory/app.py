@@ -364,9 +364,10 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
     def _on_accept(self):
 
-        asset = self._assets_box.get_valid_value()
-        subset = self._subsets_box.get_valid_value()
-        representation = self._representations_box.get_valid_value()
+        # Use None when not a valid value or when placeholder value
+        asset = self._assets_box.get_valid_value() or None
+        subset = self._subsets_box.get_valid_value() or None
+        representation = self._representations_box.get_valid_value() or None
 
         if not any([asset, subset, representation]):
             self.log.error("Nothing selected")
