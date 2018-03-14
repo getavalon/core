@@ -1,0 +1,130 @@
+From 65ed4e5153b9d567da7d29983d922980ce70be62 Mon Sep 17 00:00:00 2001
+From: wijnand <wikoreman@gmail.com>
+Date: Wed, 14 Mar 2018 11:58:16 +0100
+Subject: [PATCH] Improved comboboxes, set dialog modal, changed ok button
+
+---
+ avalon/tools/cbsceneinventory/app.py | 43 ++++++++++++++++++++++++------------
+ 1 file changed, 29 insertions(+), 14 deletions(-)
+
+diff --git a/avalon/tools/cbsceneinventory/app.py b/avalon/tools/cbsceneinventory/app.py
+index 106e013..4857ac6 100644
+--- a/avalon/tools/cbsceneinventory/app.py
++++ b/avalon/tools/cbsceneinventory/app.py
+@@ -1,5 +1,6 @@
+ import os
+ import sys
++import logging
+ 
+ from ...vendor.Qt import QtWidgets, QtCore
+ from ...vendor import qtawesome as qta
+@@ -249,6 +250,10 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+     def __init__(self, parent=None, items=None):
+         QtWidgets.QDialog.__init__(self, parent)
+ 
++        self.setModal(True)  # Force and keep focus dialog
++
++        self.log = logging.getLogger(self.__class__.__name__)
++
+         self._items = items
+ 
+         self._assets_box = None
+@@ -258,7 +263,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+         input_layout = QtWidgets.QHBoxLayout()
+         input_layout.setDirection(QtWidgets.QBoxLayout.RightToLeft)
+ 
+-        accept_icon = qta.icon("fa.check-square", color="white")
++        accept_icon = qta.icon("fa.check", color="white")
+         accept_btn = QtWidgets.QPushButton()
+         accept_btn.setIcon(accept_icon)
+         accept_btn.setFixedWidth(24)
+@@ -275,25 +280,28 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+         self.connections()
+ 
+         self.build_comboboxes()
+-        # Lock window size
+-        self.setFixedSize(self.sizeHint())
++
++        self.setFixedSize(self.sizeHint())  # Lock window size
++
++        self._assets_box.setFocus()  # Ensure the accept button is not focused
+ 
+     def connections(self):
+         self._accept_btn.clicked.connect(self._on_accept)
+ 
+     def build_comboboxes(self):
++        """Build the need comboboxes with content"""
+ 
+         assets = self._get_assets()
+         self._assets_box = self._create_combo_box(
+-            assets, initial_item="assets")
++            assets, initial_item="<assets>")
+ 
+         subsets = self._get_subsets()
+         self._subsets_box = self._create_combo_box(
+-            subsets, initial_item="subsets")
++            subsets, initial_item="<subsets>")
+ 
+         representations = self._get_representations()
+         self._representations_box = self._create_combo_box(
+-            representations, initial_item="representations")
++            representations, initial_item="<representations>")
+ 
+         self._input_layout.addWidget(self._representations_box)
+         self._input_layout.addWidget(self._subsets_box)
+@@ -304,7 +312,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+ 
+         Args:
+             items (iterable): list of document names
+-            initial_item (str, optional): name of the initial item
++            initial_item (str, Optional): name of the initial item
+ 
+         Returns:
+             QtWidgets.QComboBox
+@@ -312,12 +320,19 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+         """
+ 
+         combobox = QtWidgets.QComboBox()
+-        completer = QtWidgets.QCompleter(items)
+-
+-        combobox.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
+-        combobox.setCompleter(completer)
+         combobox.setEditable(True)
+ 
++        # Apply completer settings
++        completer = combobox.completer()
++        completer.setCompletionMode(completer.PopupCompletion)
++        completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
++
++        # Force style sheet on popup menu
++        # It won't take the parent stylesheet for some reason
++        if module.window:
++            popup = completer.popup()
++            popup.setStyleSheet(module.window.styleSheet())
++
+         combobox.addItem(initial_item or "----")
+         combobox.addItems(items)
+ 
+@@ -354,8 +369,8 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+         representation = self._get_combo_box_value(self._representations_box)
+ 
+         if not any([asset, subset, representation]):
+-            print("Nothing selected")
+-            return None
++            self.log.error("Nothing selected")
++            return
+ 
+         for item in self._items:
+             try:
+@@ -364,7 +379,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+                             subset_name=subset,
+                             representation_name=representation)
+             except Exception as e:
+-                print(e)
++                self.log.warning(e)
+ 
+         self.switched.emit()
+ 
+-- 
+2.16.2.windows.1
+

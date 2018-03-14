@@ -1,0 +1,1053 @@
+From cd389af132e03afaedff6161752b418785c3d7b6 Mon Sep 17 00:00:00 2001
+From: Roy Nieterau <roy_nieterau@hotmail.com>
+Date: Wed, 14 Mar 2018 13:08:15 +0100
+Subject: [PATCH] Refactor search combobox to its own class
+
+- Also fix "tab" cycle focus from left to right.
+- Also sort the names in the combobox
+---
+ avalon/tools/cbsceneinventory/app.py | 128 +++++++++++++++++------------------
+ 1 file changed, 63 insertions(+), 65 deletions(-)
+
+diff --git a/avalon/tools/cbsceneinventory/app.py b/avalon/tools/cbsceneinventory/app.py
+index 3fd2395..0f06b45 100644
+--- a/avalon/tools/cbsceneinventory/app.py
++++ b/avalon/tools/cbsceneinventory/app.py
+@@ -242,6 +242,48 @@ class View(QtWidgets.QTreeView):
+         self.data_changed.emit()
+ 
+ 
++class SearchComboBox(QtWidgets.QComboBox):
++    """Searchable ComboBox with empty placeholder value as first value"""
++
++    def __init__(self, parent=None, placeholder=""):
++        super(SearchComboBox, self).__init__(parent)
++
++        self.setEditable(True)
++        self.setInsertPolicy(self.NoInsert)
++        self.lineEdit().setPlaceholderText(placeholder)
++
++        # Apply completer settings
++        completer = self.completer()
++        completer.setCompletionMode(completer.PopupCompletion)
++        completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
++
++        # Force style sheet on popup menu
++        # It won't take the parent stylesheet for some reason
++        # todo: better fix for completer popup stylesheet
++        if module.window:
++            popup = completer.popup()
++            popup.setStyleSheet(module.window.styleSheet())
++
++    def populate(self, items):
++        self.clear()
++        self.addItems([""])     # ensure first item is placeholder
++        self.addItems(items)
++
++    def get_valid_value(self):
++        """Return the current text if it's a valid value else None
++
++        Note: The empty placeholder value is valid and returns as ""
++
++        """
++
++        text = self.currentText()
++        lookup = set(self.itemText(i) for i in range(self.count()))
++        if text not in lookup:
++            return None
++
++        return text
++
++
+ class SwitchAssetDialog(QtWidgets.QDialog):
+     """Widget to support asset switching"""
+ 
+@@ -256,12 +298,12 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+ 
+         self._items = items
+ 
+-        self._assets_box = None
+-        self._subsets_box = None
+-        self._representations_box = None
++        self._assets_box = SearchComboBox(placeholder="<asset>")
++        self._subsets_box = SearchComboBox(placeholder="<subset>")
++        self._representations_box = SearchComboBox(
++            placeholder="<representation>")
+ 
+         input_layout = QtWidgets.QHBoxLayout()
+-        input_layout.setDirection(QtWidgets.QBoxLayout.RightToLeft)
+ 
+         accept_icon = qta.icon("fa.check", color="white")
+         accept_btn = QtWidgets.QPushButton()
+@@ -269,6 +311,9 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+         accept_btn.setFixedWidth(24)
+         accept_btn.setFixedHeight(24)
+ 
++        input_layout.addWidget(self._assets_box)
++        input_layout.addWidget(self._subsets_box)
++        input_layout.addWidget(self._representations_box)
+         input_layout.addWidget(accept_btn)
+ 
+         self._input_layout = input_layout
+@@ -279,65 +324,28 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+ 
+         self.connections()
+ 
+-        self.build_comboboxes()
++        self.refresh()
+ 
+         self.setFixedSize(self.sizeHint())  # Lock window size
+ 
+-        self._assets_box.setFocus()  # Ensure the accept button is not focused
++        # Set default focus to accept button so you don't directly type in
++        # first asset field, this also allows to see the placeholder value.
++        accept_btn.setFocus()
+ 
+     def connections(self):
+         self._accept_btn.clicked.connect(self._on_accept)
+ 
+-    def build_comboboxes(self):
++    def refresh(self):
+         """Build the need comboboxes with content"""
+ 
+-        assets = self._get_assets()
+-        self._assets_box = self._create_combo_box(
+-            assets, initial_item="<assets>")
+-
+-        subsets = self._get_subsets()
+-        self._subsets_box = self._create_combo_box(
+-            subsets, initial_item="<subsets>")
++        assets = sorted(self._get_assets())
++        self._assets_box.populate(assets)
+ 
+-        representations = self._get_representations()
+-        self._representations_box = self._create_combo_box(
+-            representations, initial_item="<representations>")
++        subsets = sorted(self._get_subsets())
++        self._subsets_box.populate(subsets)
+ 
+-        self._input_layout.addWidget(self._representations_box)
+-        self._input_layout.addWidget(self._subsets_box)
+-        self._input_layout.addWidget(self._assets_box)
+-
+-    def _create_combo_box(self, items, initial_item):
+-        """Create a combobox with auto completion, first item will be "----"
+-
+-        Args:
+-            items (iterable): list of document names
+-            initial_item (str): name of the initial item
+-
+-        Returns:
+-            QtWidgets.QComboBox
+-
+-        """
+-
+-        combobox = QtWidgets.QComboBox()
+-        combobox.setEditable(True)
+-        combobox.setInsertPolicy(combobox.NoInsert)
+-
+-        # Apply completer settings
+-        completer = combobox.completer()
+-        completer.setCompletionMode(completer.PopupCompletion)
+-        completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+-
+-        # Force style sheet on popup menu
+-        # It won't take the parent stylesheet for some reason
+-        if module.window:
+-            popup = completer.popup()
+-            popup.setStyleSheet(module.window.styleSheet())
+-
+-        items.insert(0, initial_item)
+-        combobox.addItems(items)
+-
+-        return combobox
++        representations = sorted(self._get_representations())
++        self._representations_box.populate(representations)
+ 
+     def _get_assets(self):
+         return self._get_document_names("asset")
+@@ -356,21 +364,11 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+ 
+         return io.find(query).distinct("name")
+ 
+-    def _validate_combo_box_value(self, combo_box):
+-
+-        current_text = combo_box.currentText()
+-        items = [combo_box.itemText(i) for i in range(combo_box.count())]
+-        if current_text not in items:
+-            return None
+-
+-        return current_text
+-
+     def _on_accept(self):
+ 
+-        asset = self._validate_combo_box_value(self._assets_box)
+-        subset = self._validate_combo_box_value(self._subsets_box)
+-        representation = self._validate_combo_box_value(
+-            self._representations_box)
++        asset = self._assets_box.get_valid_value()
++        subset = self._subsets_box.get_valid_value()
++        representation = self._representations_box.get_valid_value()
+ 
+         if not any([asset, subset, representation]):
+             self.log.error("Nothing selected")
+-- 
+2.16.2.windows.1
+
+From f4bf1b58bcd7b36e506318cb622cc88c3138468c Mon Sep 17 00:00:00 2001
+From: wijnand <wikoreman@gmail.com>
+Date: Wed, 14 Mar 2018 12:36:04 +0100
+Subject: [PATCH] set NoInsert policy, refactored and changed method
+
+---
+ avalon/tools/cbsceneinventory/app.py | 24 ++++++++++++++----------
+ 1 file changed, 14 insertions(+), 10 deletions(-)
+
+diff --git a/avalon/tools/cbsceneinventory/app.py b/avalon/tools/cbsceneinventory/app.py
+index 4857ac6..3fd2395 100644
+--- a/avalon/tools/cbsceneinventory/app.py
++++ b/avalon/tools/cbsceneinventory/app.py
+@@ -307,12 +307,12 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+         self._input_layout.addWidget(self._subsets_box)
+         self._input_layout.addWidget(self._assets_box)
+ 
+-    def _create_combo_box(self, items, initial_item=None):
++    def _create_combo_box(self, items, initial_item):
+         """Create a combobox with auto completion, first item will be "----"
+ 
+         Args:
+             items (iterable): list of document names
+-            initial_item (str, Optional): name of the initial item
++            initial_item (str): name of the initial item
+ 
+         Returns:
+             QtWidgets.QComboBox
+@@ -321,6 +321,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+ 
+         combobox = QtWidgets.QComboBox()
+         combobox.setEditable(True)
++        combobox.setInsertPolicy(combobox.NoInsert)
+ 
+         # Apply completer settings
+         completer = combobox.completer()
+@@ -333,7 +334,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+             popup = completer.popup()
+             popup.setStyleSheet(module.window.styleSheet())
+ 
+-        combobox.addItem(initial_item or "----")
++        items.insert(0, initial_item)
+         combobox.addItems(items)
+ 
+         return combobox
+@@ -355,18 +356,21 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+ 
+         return io.find(query).distinct("name")
+ 
+-    def _get_combo_box_value(self, combo_box):
++    def _validate_combo_box_value(self, combo_box):
+ 
+-        idx = combo_box.currentIndex()
+-        if idx == 0:
++        current_text = combo_box.currentText()
++        items = [combo_box.itemText(i) for i in range(combo_box.count())]
++        if current_text not in items:
+             return None
+-        return combo_box.currentText()
++
++        return current_text
+ 
+     def _on_accept(self):
+ 
+-        asset = self._get_combo_box_value(self._assets_box)
+-        subset = self._get_combo_box_value(self._subsets_box)
+-        representation = self._get_combo_box_value(self._representations_box)
++        asset = self._validate_combo_box_value(self._assets_box)
++        subset = self._validate_combo_box_value(self._subsets_box)
++        representation = self._validate_combo_box_value(
++            self._representations_box)
+ 
+         if not any([asset, subset, representation]):
+             self.log.error("Nothing selected")
+-- 
+2.16.2.windows.1
+
+From 65ed4e5153b9d567da7d29983d922980ce70be62 Mon Sep 17 00:00:00 2001
+From: wijnand <wikoreman@gmail.com>
+Date: Wed, 14 Mar 2018 11:58:16 +0100
+Subject: [PATCH] Improved comboboxes, set dialog modal, changed ok button
+
+---
+ avalon/tools/cbsceneinventory/app.py | 43 ++++++++++++++++++++++++------------
+ 1 file changed, 29 insertions(+), 14 deletions(-)
+
+diff --git a/avalon/tools/cbsceneinventory/app.py b/avalon/tools/cbsceneinventory/app.py
+index 106e013..4857ac6 100644
+--- a/avalon/tools/cbsceneinventory/app.py
++++ b/avalon/tools/cbsceneinventory/app.py
+@@ -1,5 +1,6 @@
+ import os
+ import sys
++import logging
+ 
+ from ...vendor.Qt import QtWidgets, QtCore
+ from ...vendor import qtawesome as qta
+@@ -249,6 +250,10 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+     def __init__(self, parent=None, items=None):
+         QtWidgets.QDialog.__init__(self, parent)
+ 
++        self.setModal(True)  # Force and keep focus dialog
++
++        self.log = logging.getLogger(self.__class__.__name__)
++
+         self._items = items
+ 
+         self._assets_box = None
+@@ -258,7 +263,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+         input_layout = QtWidgets.QHBoxLayout()
+         input_layout.setDirection(QtWidgets.QBoxLayout.RightToLeft)
+ 
+-        accept_icon = qta.icon("fa.check-square", color="white")
++        accept_icon = qta.icon("fa.check", color="white")
+         accept_btn = QtWidgets.QPushButton()
+         accept_btn.setIcon(accept_icon)
+         accept_btn.setFixedWidth(24)
+@@ -275,25 +280,28 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+         self.connections()
+ 
+         self.build_comboboxes()
+-        # Lock window size
+-        self.setFixedSize(self.sizeHint())
++
++        self.setFixedSize(self.sizeHint())  # Lock window size
++
++        self._assets_box.setFocus()  # Ensure the accept button is not focused
+ 
+     def connections(self):
+         self._accept_btn.clicked.connect(self._on_accept)
+ 
+     def build_comboboxes(self):
++        """Build the need comboboxes with content"""
+ 
+         assets = self._get_assets()
+         self._assets_box = self._create_combo_box(
+-            assets, initial_item="assets")
++            assets, initial_item="<assets>")
+ 
+         subsets = self._get_subsets()
+         self._subsets_box = self._create_combo_box(
+-            subsets, initial_item="subsets")
++            subsets, initial_item="<subsets>")
+ 
+         representations = self._get_representations()
+         self._representations_box = self._create_combo_box(
+-            representations, initial_item="representations")
++            representations, initial_item="<representations>")
+ 
+         self._input_layout.addWidget(self._representations_box)
+         self._input_layout.addWidget(self._subsets_box)
+@@ -304,7 +312,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+ 
+         Args:
+             items (iterable): list of document names
+-            initial_item (str, optional): name of the initial item
++            initial_item (str, Optional): name of the initial item
+ 
+         Returns:
+             QtWidgets.QComboBox
+@@ -312,12 +320,19 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+         """
+ 
+         combobox = QtWidgets.QComboBox()
+-        completer = QtWidgets.QCompleter(items)
+-
+-        combobox.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
+-        combobox.setCompleter(completer)
+         combobox.setEditable(True)
+ 
++        # Apply completer settings
++        completer = combobox.completer()
++        completer.setCompletionMode(completer.PopupCompletion)
++        completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
++
++        # Force style sheet on popup menu
++        # It won't take the parent stylesheet for some reason
++        if module.window:
++            popup = completer.popup()
++            popup.setStyleSheet(module.window.styleSheet())
++
+         combobox.addItem(initial_item or "----")
+         combobox.addItems(items)
+ 
+@@ -354,8 +369,8 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+         representation = self._get_combo_box_value(self._representations_box)
+ 
+         if not any([asset, subset, representation]):
+-            print("Nothing selected")
+-            return None
++            self.log.error("Nothing selected")
++            return
+ 
+         for item in self._items:
+             try:
+@@ -364,7 +379,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+                             subset_name=subset,
+                             representation_name=representation)
+             except Exception as e:
+-                print(e)
++                self.log.warning(e)
+ 
+         self.switched.emit()
+ 
+-- 
+2.16.2.windows.1
+
+From 56b5ee676f95688fce8bd4ae732609507019bbbe Mon Sep 17 00:00:00 2001
+From: wijnand <wikoreman@gmail.com>
+Date: Tue, 13 Mar 2018 16:43:16 +0100
+Subject: [PATCH] Restored origin, faster query result
+
+---
+ avalon/tools/cbsceneinventory/model.py | 4 +++-
+ 1 file changed, 3 insertions(+), 1 deletion(-)
+
+diff --git a/avalon/tools/cbsceneinventory/model.py b/avalon/tools/cbsceneinventory/model.py
+index a3a99f5..84d6698 100644
+--- a/avalon/tools/cbsceneinventory/model.py
++++ b/avalon/tools/cbsceneinventory/model.py
+@@ -110,7 +110,9 @@ class InventoryModel(TreeModel):
+             representation = io.find_one({
+                 "_id": io.ObjectId(representation_id)
+             })
+-            version, subset, asset, _ = io.parenthood(representation)
++            version = io.find_one({"_id": representation["parent"]})
++            subset = io.find_one({"_id": version["parent"]})
++            asset = io.find_one({"_id": subset["parent"]})
+ 
+             # Get the primary family
+             family = version['data'].get("family", "")
+-- 
+2.16.2.windows.1
+
+From 03c50b6cbd200fd5eb0b3ca0f95c27430f7e731f Mon Sep 17 00:00:00 2001
+From: wijnand <wikoreman@gmail.com>
+Date: Tue, 13 Mar 2018 16:42:40 +0100
+Subject: [PATCH] Add lib for switch_item
+
+---
+ avalon/tools/cbsceneinventory/lib.py | 73 ++++++++++++++++++++++++++++++++++++
+ 1 file changed, 73 insertions(+)
+ create mode 100644 avalon/tools/cbsceneinventory/lib.py
+
+diff --git a/avalon/tools/cbsceneinventory/lib.py b/avalon/tools/cbsceneinventory/lib.py
+new file mode 100644
+index 0000000..e7be97c
+--- /dev/null
++++ b/avalon/tools/cbsceneinventory/lib.py
+@@ -0,0 +1,73 @@
++from avalon import io, api
++
++
++def switch_item(container,
++                asset_name=None,
++                subset_name=None,
++                representation_name=None):
++    """Switch container asset, subset or representation of a container by name.
++
++    It'll always switch to the latest version - of course a different
++    approach could be implemented.
++
++    Args:
++        container (dict): data of the item to switch with
++        asset_name (str): name of the asset
++        subset_name (str): name of the subset
++        representation_name (str): name of the representation
++
++    Returns:
++        dict
++
++    """
++
++    if all(not x for x in [asset_name, subset_name, representation_name]):
++        raise ValueError(
++            "Must have at least one change provided to switch.")
++
++    # Collect any of current asset, subset and representation if not provided
++    # so we can use the original name from those.
++    if any(not x for x in [asset_name, subset_name, representation_name]):
++        _id = io.ObjectId(container["representation"])
++        representation = io.find_one({"type": "representation", "_id": _id})
++        version, subset, asset, project = io.parenthood(representation)
++
++        if asset_name is None:
++            asset_name = asset["name"]
++
++        if subset_name is None:
++            subset_name = subset["name"]
++
++        if representation_name is None:
++            representation_name = representation["name"]
++
++    # Find the new one
++    asset = io.find_one({"name": asset_name, "type": "asset"})
++    assert asset, ("Could not find asset in the database with the name "
++                   "'%s'" % asset_name)
++
++    subset = io.find_one({"name": subset_name,
++                          "type": "subset",
++                          "parent": asset["_id"]})
++    assert subset, ("Could not find subset in the database with the name "
++                    "'%s'" % subset_name)
++
++    version = io.find_one({"type": "version",
++                           "parent": subset["_id"]},
++                          sort=[('name', -1)])
++
++    assert version, "Could not find a version for {}.{}".format(
++        asset_name, subset_name
++    )
++
++    representation = io.find_one({"name": representation_name,
++                                  "type": "representation",
++                                  "parent": version["_id"]})
++
++    assert representation, (
++            "Could not find representation in the database with"
++            " the name '%s'" % representation_name)
++
++    api.switch(container, representation)
++
++    return representation
+\ No newline at end of file
+-- 
+2.16.2.windows.1
+
+From 4b55e778b3a95c781634ea5bc4e517c808bd9f36 Mon Sep 17 00:00:00 2001
+From: wijnand <wikoreman@gmail.com>
+Date: Tue, 13 Mar 2018 16:42:18 +0100
+Subject: [PATCH] Improved UI, locks ui, improved query call, moved switch_item
+
+---
+ avalon/tools/cbsceneinventory/app.py | 121 +++++++++--------------------------
+ 1 file changed, 30 insertions(+), 91 deletions(-)
+
+diff --git a/avalon/tools/cbsceneinventory/app.py b/avalon/tools/cbsceneinventory/app.py
+index 6be95af..106e013 100644
+--- a/avalon/tools/cbsceneinventory/app.py
++++ b/avalon/tools/cbsceneinventory/app.py
+@@ -17,6 +17,8 @@ from ..cbloader.lib import refresh_family_config
+ from .proxy import FilterProxyModel
+ from .model import InventoryModel
+ 
++from .lib import switch_item
++
+ DEFAULT_COLOR = "#fb9c15"
+ 
+ module = sys.modules[__name__]
+@@ -272,31 +274,37 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+ 
+         self.connections()
+ 
+-        self.refresh()
++        self.build_comboboxes()
++        # Lock window size
++        self.setFixedSize(self.sizeHint())
+ 
+     def connections(self):
+         self._accept_btn.clicked.connect(self._on_accept)
+ 
+-    def refresh(self):
++    def build_comboboxes(self):
+ 
+         assets = self._get_assets()
+-        self._assets_box = self._create_combo_box(assets)
++        self._assets_box = self._create_combo_box(
++            assets, initial_item="assets")
+ 
+         subsets = self._get_subsets()
+-        self._subsets_box = self._create_combo_box(subsets)
++        self._subsets_box = self._create_combo_box(
++            subsets, initial_item="subsets")
+ 
+         representations = self._get_representations()
+-        self._representations_box = self._create_combo_box(representations)
++        self._representations_box = self._create_combo_box(
++            representations, initial_item="representations")
+ 
+         self._input_layout.addWidget(self._representations_box)
+         self._input_layout.addWidget(self._subsets_box)
+         self._input_layout.addWidget(self._assets_box)
+ 
+-    def _create_combo_box(self, items):
++    def _create_combo_box(self, items, initial_item=None):
+         """Create a combobox with auto completion, first item will be "----"
+ 
+         Args:
+             items (iterable): list of document names
++            initial_item (str, optional): name of the initial item
+ 
+         Returns:
+             QtWidgets.QComboBox
+@@ -305,32 +313,32 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+ 
+         combobox = QtWidgets.QComboBox()
+         completer = QtWidgets.QCompleter(items)
++
++        combobox.setInsertPolicy(QtWidgets.QComboBox.NoInsert)
+         combobox.setCompleter(completer)
+         combobox.setEditable(True)
+-        combobox.addItem("----")
++
++        combobox.addItem(initial_item or "----")
+         combobox.addItems(items)
+ 
+         return combobox
+ 
+     def _get_assets(self):
+-        return self._get_documents_by_name("asset")
++        return self._get_document_names("asset")
+ 
+     def _get_subsets(self):
+-        return self._get_documents_by_name("subset")
++        return self._get_document_names("subset")
+ 
+     def _get_representations(self):
+-        return self._get_documents_by_name("representation")
++        return self._get_document_names("representation")
+ 
+-    def _get_documents_by_name(self, document_type, parent=None):
++    def _get_document_names(self, document_type, parent=None):
+ 
+         query = {"type": document_type}
+         if parent:
+             query["parent"] = parent["_id"]
+ 
+-        documents = io.find(query)
+-        documents_by_name = set([s["name"] for s in documents])
+-
+-        return sorted(list(documents_by_name))
++        return io.find(query).distinct("name")
+ 
+     def _get_combo_box_value(self, combo_box):
+ 
+@@ -350,87 +358,18 @@ class SwitchAssetDialog(QtWidgets.QDialog):
+             return None
+ 
+         for item in self._items:
+-            self.switch_item(item,
+-                             asset_name=asset,
+-                             subset_name=subset,
+-                             representation_name=representation)
++            try:
++                switch_item(item,
++                            asset_name=asset,
++                            subset_name=subset,
++                            representation_name=representation)
++            except Exception as e:
++                print(e)
+ 
+         self.switched.emit()
+ 
+         self.close()
+ 
+-    def switch_item(self,
+-                    container,
+-                    asset_name=None,
+-                    subset_name=None,
+-                    representation_name=None):
+-        """Switch container asset, subset or representation of a container by name.
+-
+-        It'll always switch to the latest version - of course a different
+-        approach could be implemented.
+-
+-        Args:
+-            container (dict): data of the item to switch with
+-            asset_name (str): name of the asset
+-            subset_name (str): name of the subset
+-            representation_name (str): name of the representation
+-
+-        Returns:
+-            dict
+-
+-        """
+-
+-        if all(not x for x in [asset_name, subset_name, representation_name]):
+-            raise ValueError(
+-                "Must have at least one change provided to switch.")
+-
+-        # Collect any of current asset, subset and representation if not provided
+-        # so we can use the original name from those.
+-        if any(not x for x in [asset_name, subset_name, representation_name]):
+-            _id = io.ObjectId(container["representation"])
+-            representation = io.find_one({"type": "representation", "_id": _id})
+-            version, subset, asset, project = io.parenthood(representation)
+-
+-            if asset_name is None:
+-                asset_name = asset["name"]
+-
+-            if subset_name is None:
+-                subset_name = subset["name"]
+-
+-            if representation_name is None:
+-                representation_name = representation["name"]
+-
+-        # Find the new one
+-        asset = io.find_one({"name": asset_name, "type": "asset"})
+-        assert asset, ("Could not find asset in the database with the name "
+-                       "'%s'" % asset_name)
+-
+-        subset = io.find_one({"name": subset_name,
+-                              "type": "subset",
+-                              "parent": asset["_id"]})
+-        assert subset, ("Could not find subset in the database with the name "
+-                        "'%s'" % subset_name)
+-
+-        version = io.find_one({"type": "version",
+-                               "parent": subset["_id"]},
+-                              sort=[('name', -1)])
+-
+-        assert version, "Could not find a version for {}.{}".format(
+-            asset_name, subset_name
+-        )
+-
+-        representation = io.find_one({"name": representation_name,
+-                                      "type": "representation",
+-                                      "parent": version["_id"]})
+-
+-        assert representation, (
+-                    "Could not find representation in the database with"
+-                    " the name '%s'" % representation_name)
+-
+-        api.switch(container, representation)
+-
+-        return representation
+-
+ 
+ class Window(QtWidgets.QDialog):
+     """Scene Inventory window"""
+-- 
+2.16.2.windows.1
+
+From 6c3e1a640ba78b5163a839fa57fd6ae974802cc7 Mon Sep 17 00:00:00 2001
+From: wijnand <wikoreman@gmail.com>
+Date: Tue, 13 Mar 2018 14:17:00 +0100
+Subject: [PATCH] Cosmetics, refactored io queries
+
+---
+ avalon/tools/cbsceneinventory/model.py | 12 +++++-------
+ 1 file changed, 5 insertions(+), 7 deletions(-)
+
+diff --git a/avalon/tools/cbsceneinventory/model.py b/avalon/tools/cbsceneinventory/model.py
+index 9e65026..a3a99f5 100644
+--- a/avalon/tools/cbsceneinventory/model.py
++++ b/avalon/tools/cbsceneinventory/model.py
+@@ -86,11 +86,11 @@ class InventoryModel(TreeModel):
+             group the new items with previously existing item groups of the
+             same type.
+ 
+-        :param group_items: the items to be processed as returned by `ls()`
+-        :type group_items: list
++        Args:
++            items (list): the items to be processed as returned by `ls()`
+ 
+-        :return: root node which has children added based on the data
+-        :rtype: node.Node
++        Returns:
++            node.Node: root node which has children added based on the data
+         """
+ 
+         # construct the generator results
+@@ -110,9 +110,7 @@ class InventoryModel(TreeModel):
+             representation = io.find_one({
+                 "_id": io.ObjectId(representation_id)
+             })
+-            version = io.find_one({"_id": representation["parent"]})
+-            subset = io.find_one({"_id": version["parent"]})
+-            asset = io.find_one({"_id": subset["parent"]})
++            version, subset, asset, _ = io.parenthood(representation)
+ 
+             # Get the primary family
+             family = version['data'].get("family", "")
+-- 
+2.16.2.windows.1
+
+From 4d84af7765a64641e049bbeff85392551c32916d Mon Sep 17 00:00:00 2001
+From: wijnand <wikoreman@gmail.com>
+Date: Tue, 13 Mar 2018 14:15:58 +0100
+Subject: [PATCH] Added switch dialog
+
+---
+ avalon/tools/cbsceneinventory/app.py | 218 ++++++++++++++++++++++++++++++++++-
+ 1 file changed, 213 insertions(+), 5 deletions(-)
+
+diff --git a/avalon/tools/cbsceneinventory/app.py b/avalon/tools/cbsceneinventory/app.py
+index b665435..6be95af 100644
+--- a/avalon/tools/cbsceneinventory/app.py
++++ b/avalon/tools/cbsceneinventory/app.py
+@@ -6,9 +6,6 @@ from ...vendor import qtawesome as qta
+ from ... import io, api, style
+ from .. import lib as tools_lib
+ 
+-from .proxy import FilterProxyModel
+-from .model import InventoryModel
+-
+ # todo(roy): refactor loading from other tools
+ from ..projectmanager.widget import (
+     preserve_expanded_rows,
+@@ -17,6 +14,9 @@ from ..projectmanager.widget import (
+ from ..cbloader.delegates import VersionDelegate
+ from ..cbloader.lib import refresh_family_config
+ 
++from .proxy import FilterProxyModel
++from .model import InventoryModel
++
+ DEFAULT_COLOR = "#fb9c15"
+ 
+ module = sys.modules[__name__]
+@@ -57,13 +57,21 @@ class View(QtWidgets.QTreeView):
+             lambda: _on_update_to_latest(items))
+ 
+         # set version
+-        setversion_icon = qta.icon("fa.hashtag", color=DEFAULT_COLOR)
+-        set_version_action = QtWidgets.QAction(setversion_icon,
++        set_version_icon = qta.icon("fa.hashtag", color=DEFAULT_COLOR)
++        set_version_action = QtWidgets.QAction(set_version_icon,
+                                                "Set version",
+                                                menu)
+         set_version_action.triggered.connect(
+             lambda: self.show_version_dialog(items))
+ 
++        # switch asset
++        switch_asset_icon = qta.icon("fa.sitemap", color=DEFAULT_COLOR)
++        switch_asset_action = QtWidgets.QAction(switch_asset_icon,
++                                                "Switch Asset",
++                                                menu)
++        switch_asset_action.triggered.connect(
++            lambda: self.show_switch_dialog(items))
++
+         # remove
+         remove_icon = qta.icon("fa.remove", color=DEFAULT_COLOR)
+         remove_action = QtWidgets.QAction(remove_icon, "Remove items", menu)
+@@ -81,6 +89,7 @@ class View(QtWidgets.QTreeView):
+         # add the actions
+         menu.addAction(updatetolatest_action)
+         menu.addAction(set_version_action)
++        menu.addAction(switch_asset_action)
+ 
+         menu.addSeparator()
+         menu.addAction(remove_action)
+@@ -203,6 +212,12 @@ class View(QtWidgets.QTreeView):
+             # refresh model when done
+             self.data_changed.emit()
+ 
++    def show_switch_dialog(self, items):
++        """Display Switch dialog"""
++        dialog = SwitchAssetDialog(self, items)
++        dialog.switched.connect(self.data_changed.emit)
++        dialog.show()
++
+     def show_remove_warning_dialog(self, items):
+         """Prompt a dialog to inform the user the action will remove items"""
+ 
+@@ -224,6 +239,199 @@ class View(QtWidgets.QTreeView):
+         self.data_changed.emit()
+ 
+ 
++class SwitchAssetDialog(QtWidgets.QDialog):
++    """Widget to support asset switching"""
++
++    switched = QtCore.Signal()
++
++    def __init__(self, parent=None, items=None):
++        QtWidgets.QDialog.__init__(self, parent)
++
++        self._items = items
++
++        self._assets_box = None
++        self._subsets_box = None
++        self._representations_box = None
++
++        input_layout = QtWidgets.QHBoxLayout()
++        input_layout.setDirection(QtWidgets.QBoxLayout.RightToLeft)
++
++        accept_icon = qta.icon("fa.check-square", color="white")
++        accept_btn = QtWidgets.QPushButton()
++        accept_btn.setIcon(accept_icon)
++        accept_btn.setFixedWidth(24)
++        accept_btn.setFixedHeight(24)
++
++        input_layout.addWidget(accept_btn)
++
++        self._input_layout = input_layout
++        self._accept_btn = accept_btn
++
++        self.setLayout(input_layout)
++        self.setWindowTitle("Switch selected items ...")
++
++        self.connections()
++
++        self.refresh()
++
++    def connections(self):
++        self._accept_btn.clicked.connect(self._on_accept)
++
++    def refresh(self):
++
++        assets = self._get_assets()
++        self._assets_box = self._create_combo_box(assets)
++
++        subsets = self._get_subsets()
++        self._subsets_box = self._create_combo_box(subsets)
++
++        representations = self._get_representations()
++        self._representations_box = self._create_combo_box(representations)
++
++        self._input_layout.addWidget(self._representations_box)
++        self._input_layout.addWidget(self._subsets_box)
++        self._input_layout.addWidget(self._assets_box)
++
++    def _create_combo_box(self, items):
++        """Create a combobox with auto completion, first item will be "----"
++
++        Args:
++            items (iterable): list of document names
++
++        Returns:
++            QtWidgets.QComboBox
++
++        """
++
++        combobox = QtWidgets.QComboBox()
++        completer = QtWidgets.QCompleter(items)
++        combobox.setCompleter(completer)
++        combobox.setEditable(True)
++        combobox.addItem("----")
++        combobox.addItems(items)
++
++        return combobox
++
++    def _get_assets(self):
++        return self._get_documents_by_name("asset")
++
++    def _get_subsets(self):
++        return self._get_documents_by_name("subset")
++
++    def _get_representations(self):
++        return self._get_documents_by_name("representation")
++
++    def _get_documents_by_name(self, document_type, parent=None):
++
++        query = {"type": document_type}
++        if parent:
++            query["parent"] = parent["_id"]
++
++        documents = io.find(query)
++        documents_by_name = set([s["name"] for s in documents])
++
++        return sorted(list(documents_by_name))
++
++    def _get_combo_box_value(self, combo_box):
++
++        idx = combo_box.currentIndex()
++        if idx == 0:
++            return None
++        return combo_box.currentText()
++
++    def _on_accept(self):
++
++        asset = self._get_combo_box_value(self._assets_box)
++        subset = self._get_combo_box_value(self._subsets_box)
++        representation = self._get_combo_box_value(self._representations_box)
++
++        if not any([asset, subset, representation]):
++            print("Nothing selected")
++            return None
++
++        for item in self._items:
++            self.switch_item(item,
++                             asset_name=asset,
++                             subset_name=subset,
++                             representation_name=representation)
++
++        self.switched.emit()
++
++        self.close()
++
++    def switch_item(self,
++                    container,
++                    asset_name=None,
++                    subset_name=None,
++                    representation_name=None):
++        """Switch container asset, subset or representation of a container by name.
++
++        It'll always switch to the latest version - of course a different
++        approach could be implemented.
++
++        Args:
++            container (dict): data of the item to switch with
++            asset_name (str): name of the asset
++            subset_name (str): name of the subset
++            representation_name (str): name of the representation
++
++        Returns:
++            dict
++
++        """
++
++        if all(not x for x in [asset_name, subset_name, representation_name]):
++            raise ValueError(
++                "Must have at least one change provided to switch.")
++
++        # Collect any of current asset, subset and representation if not provided
++        # so we can use the original name from those.
++        if any(not x for x in [asset_name, subset_name, representation_name]):
++            _id = io.ObjectId(container["representation"])
++            representation = io.find_one({"type": "representation", "_id": _id})
++            version, subset, asset, project = io.parenthood(representation)
++
++            if asset_name is None:
++                asset_name = asset["name"]
++
++            if subset_name is None:
++                subset_name = subset["name"]
++
++            if representation_name is None:
++                representation_name = representation["name"]
++
++        # Find the new one
++        asset = io.find_one({"name": asset_name, "type": "asset"})
++        assert asset, ("Could not find asset in the database with the name "
++                       "'%s'" % asset_name)
++
++        subset = io.find_one({"name": subset_name,
++                              "type": "subset",
++                              "parent": asset["_id"]})
++        assert subset, ("Could not find subset in the database with the name "
++                        "'%s'" % subset_name)
++
++        version = io.find_one({"type": "version",
++                               "parent": subset["_id"]},
++                              sort=[('name', -1)])
++
++        assert version, "Could not find a version for {}.{}".format(
++            asset_name, subset_name
++        )
++
++        representation = io.find_one({"name": representation_name,
++                                      "type": "representation",
++                                      "parent": version["_id"]})
++
++        assert representation, (
++                    "Could not find representation in the database with"
++                    " the name '%s'" % representation_name)
++
++        api.switch(container, representation)
++
++        return representation
++
++
+ class Window(QtWidgets.QDialog):
+     """Scene Inventory window"""
+ 
+-- 
+2.16.2.windows.1
+
