@@ -1,14 +1,11 @@
 import sys
+import os
+import logging
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ...vendor import qtawesome as qta
 from ... import io, api, style
 from .. import lib as tools_lib
-
-import os
-
-from .proxy import FilterProxyModel
-from .model import InventoryModel
 
 # todo(roy): refactor loading from other tools
 from ..projectmanager.widget import (
@@ -17,6 +14,10 @@ from ..projectmanager.widget import (
 )
 from ..cbloader.delegates import VersionDelegate
 from ..cbloader.lib import refresh_family_config
+
+from .proxy import FilterProxyModel
+from .model import InventoryModel
+from .lib import switch_item
 
 DEFAULT_COLOR = "#fb9c15"
 
@@ -57,11 +58,20 @@ class View(QtWidgets.QTreeView):
             lambda: _on_update_to_latest(items))
 
         # set version
-        setversion_icon = qta.icon("fa.hashtag", color=DEFAULT_COLOR)
-        setversion_action = QtWidgets.QAction(setversion_icon,
-                                              "Set version", menu)
-        setversion_action.triggered.connect(
+        set_version_icon = qta.icon("fa.hashtag", color=DEFAULT_COLOR)
+        set_version_action = QtWidgets.QAction(set_version_icon,
+                                               "Set version",
+                                               menu)
+        set_version_action.triggered.connect(
             lambda: self.show_version_dialog(items))
+
+        # switch asset
+        switch_asset_icon = qta.icon("fa.sitemap", color=DEFAULT_COLOR)
+        switch_asset_action = QtWidgets.QAction(switch_asset_icon,
+                                                "Switch Asset",
+                                                menu)
+        switch_asset_action.triggered.connect(
+            lambda: self.show_switch_dialog(items))
 
         # remove
         remove_icon = qta.icon("fa.remove", color=DEFAULT_COLOR)
@@ -79,7 +89,8 @@ class View(QtWidgets.QTreeView):
 
         # add the actions
         menu.addAction(updatetolatest_action)
-        menu.addAction(setversion_action)
+        menu.addAction(set_version_action)
+        menu.addAction(switch_asset_action)
 
         menu.addSeparator()
         menu.addAction(remove_action)
@@ -125,11 +136,12 @@ class View(QtWidgets.QTreeView):
         Top-level indices are extended to its children indices. Sub-items
         are kept as is.
 
-        :param indices: The indices to extend.
-        :type indices: list
+        Args:
+            indices (list): The indices to extend.
 
-        :return: The children indices
-        :rtype: list
+        Returns:
+            list: The children indices
+
         """
 
         subitems = set()
@@ -200,6 +212,12 @@ class View(QtWidgets.QTreeView):
             # refresh model when done
             self.data_changed.emit()
 
+    def show_switch_dialog(self, items):
+        """Display Switch dialog"""
+        dialog = SwitchAssetDialog(self, items)
+        dialog.switched.connect(self.data_changed.emit)
+        dialog.show()
+
     def show_remove_warning_dialog(self, items):
         """Prompt a dialog to inform the user the action will remove items"""
 
@@ -216,10 +234,157 @@ class View(QtWidgets.QTreeView):
         if state != accept:
             return
 
-        host = api.registered_host()
         for item in items:
             api.remove(item)
         self.data_changed.emit()
+
+
+class SearchComboBox(QtWidgets.QComboBox):
+    """Searchable ComboBox with empty placeholder value as first value"""
+
+    def __init__(self, parent=None, placeholder=""):
+        super(SearchComboBox, self).__init__(parent)
+
+        self.setEditable(True)
+        self.setInsertPolicy(self.NoInsert)
+        self.lineEdit().setPlaceholderText(placeholder)
+
+        # Apply completer settings
+        completer = self.completer()
+        completer.setCompletionMode(completer.PopupCompletion)
+        completer.setCaseSensitivity(QtCore.Qt.CaseInsensitive)
+
+        # Force style sheet on popup menu
+        # It won't take the parent stylesheet for some reason
+        # todo: better fix for completer popup stylesheet
+        if module.window:
+            popup = completer.popup()
+            popup.setStyleSheet(module.window.styleSheet())
+
+    def populate(self, items):
+        self.clear()
+        self.addItems([""])     # ensure first item is placeholder
+        self.addItems(items)
+
+    def get_valid_value(self):
+        """Return the current text if it's a valid value else None
+
+        Note: The empty placeholder value is valid and returns as ""
+
+        """
+
+        text = self.currentText()
+        lookup = set(self.itemText(i) for i in range(self.count()))
+        if text not in lookup:
+            return None
+
+        return text
+
+
+class SwitchAssetDialog(QtWidgets.QDialog):
+    """Widget to support asset switching"""
+
+    switched = QtCore.Signal()
+
+    def __init__(self, parent=None, items=None):
+        QtWidgets.QDialog.__init__(self, parent)
+
+        self.setModal(True)  # Force and keep focus dialog
+
+        self.log = logging.getLogger(self.__class__.__name__)
+
+        self._items = items
+
+        self._assets_box = SearchComboBox(placeholder="<asset>")
+        self._subsets_box = SearchComboBox(placeholder="<subset>")
+        self._representations_box = SearchComboBox(
+            placeholder="<representation>")
+
+        input_layout = QtWidgets.QHBoxLayout()
+
+        accept_icon = qta.icon("fa.check", color="white")
+        accept_btn = QtWidgets.QPushButton()
+        accept_btn.setIcon(accept_icon)
+        accept_btn.setFixedWidth(24)
+        accept_btn.setFixedHeight(24)
+
+        input_layout.addWidget(self._assets_box)
+        input_layout.addWidget(self._subsets_box)
+        input_layout.addWidget(self._representations_box)
+
+        input_layout.addWidget(accept_btn)
+
+        self._input_layout = input_layout
+        self._accept_btn = accept_btn
+
+        self.setLayout(input_layout)
+        self.setWindowTitle("Switch selected items ...")
+
+        self.connections()
+
+        self.refresh()
+
+        self.setFixedSize(self.sizeHint())  # Lock window size
+
+        # Set default focus to accept button so you don't directly type in
+        # first asset field, this also allows to see the placeholder value.
+        accept_btn.setFocus()
+
+    def connections(self):
+        self._accept_btn.clicked.connect(self._on_accept)
+
+    def refresh(self):
+        """Build the need comboboxes with content"""
+
+        assets = sorted(self._get_assets())
+        self._assets_box.populate(assets)
+
+        subsets = sorted(self._get_subsets())
+        self._subsets_box.populate(subsets)
+
+        representations = sorted(self._get_representations())
+        self._representations_box.populate(representations)
+
+    def _get_assets(self):
+        return self._get_document_names("asset")
+
+    def _get_subsets(self):
+        return self._get_document_names("subset")
+
+    def _get_representations(self):
+        return self._get_document_names("representation")
+
+    def _get_document_names(self, document_type, parent=None):
+
+        query = {"type": document_type}
+        if parent:
+            query["parent"] = parent["_id"]
+
+        return io.find(query).distinct("name")
+
+    def _on_accept(self):
+
+        # Use None when not a valid value or when placeholder value
+        asset = self._assets_box.get_valid_value() or None
+        subset = self._subsets_box.get_valid_value() or None
+        representation = self._representations_box.get_valid_value() or None
+
+        if not any([asset, subset, representation]):
+            self.log.error("Nothing selected")
+            return
+
+        for item in self._items:
+            try:
+                switch_item(item,
+                            asset_name=asset,
+                            subset_name=subset,
+                            representation_name=representation)
+            except Exception as e:
+                self.log.warning(e)
+
+        self.switched.emit()
+
+        self.close()
 
 
 class Window(QtWidgets.QDialog):

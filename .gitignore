@@ -9,3 +9,5 @@ _site
 .idea/
 *.bat
 build
+*.patch
+*.diff
