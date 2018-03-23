@@ -54,8 +54,7 @@ def create_asset(data):
         "type": "asset",
     })
     if asset_doc is not None:
-        raise RuntimeError("Asset named {} already "
-                           "exists.".format(asset['name']))
+        raise RuntimeError("Asset '{}' already exists.".format(asset['name']))
 
     schema.validate(asset)
     io.insert_one(asset)
