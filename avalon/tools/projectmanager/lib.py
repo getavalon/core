@@ -61,6 +61,6 @@ def create_asset(data):
 
 
 def list_project_tasks():
-    """List the projec task types available in the current project"""
+    """List the project task types available in the current project"""
     project = io.find_one({"type": "project"})
     return [task['name'] for task in project['config']['tasks']]
