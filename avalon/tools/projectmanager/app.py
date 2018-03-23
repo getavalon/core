@@ -116,7 +116,13 @@ class Window(QtWidgets.QDialog):
 
         # Get active silo
         silo = model.get_current_silo()
-        assert silo, "Must have a named silo"
+        try:
+            assert silo
+        except AssertionError:
+            QtWidgets.QMessageBox.critical(self, "Missing silo",
+                                           "Please create a silo first.\n"
+                                           "Use the + tab at the top left.")
+            return
 
         dialog = AssetCreateDialog(parent=self)
 
