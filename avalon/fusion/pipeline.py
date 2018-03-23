@@ -144,9 +144,18 @@ def get_current_comp():
 
 
 def set_current_comp(comp):
-    """A work around to fetch an opened comp in a Fusion Console Node
+    """Force the given comp to be used in pipeline as current comp.
 
-    In order to reset to None run the function with comp as `None`
+    This is a workaround to allow the pipeline to do comp related
+    functionality like `ls()` on a specific comp in a standalone
+    Fusion console without interface. This is required because the
+    command line version of Fusion will never internally set an
+    "active" composition - thus the pipeline code can't operate in
+    the current comp. As such we force it so `get_current_comp`
+    returns this forced composition instead.
+
+    In order to reset to default behavior and use fusion's
+    active comp use `set_current_comp(None)`
 
     Args:
         comp (PyObject, None): the comp instance to set as current comp
