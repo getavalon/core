@@ -4,7 +4,9 @@ import importlib
 import logging
 from pyblish import api as pyblish
 
-_FORCED_COMP = {"COMP": None}
+
+self = sys.modules[__name__]
+self._forced_comp = None
 
 
 class CompLogHandler(logging.Handler):
@@ -134,16 +136,26 @@ def parse_container(tool):
 
 def get_current_comp():
     """Hack to get current comp in this session"""
-    if _FORCED_COMP["COMP"] is not None:
-        return _FORCED_COMP["COMP"]
+    if self._forced_comp:
+        return self._forced_comp
 
     fusion = getattr(sys.modules["__main__"], "fusion", None)
     return fusion.CurrentComp if fusion else None
 
 
-def force_current_comp(comp):
-    """A work around to fetch an opened comp in a Fusion Console Node"""
-    _FORCED_COMP["COMP"] = comp
+def set_current_comp(comp):
+    """A work around to fetch an opened comp in a Fusion Console Node
+
+    In order to reset to None run the function with comp as `None`
+
+    Args:
+        comp (PyObject, None): the comp instance to set as current comp
+
+    Returns:
+        None
+    """
+    self._forced_comp = comp
+
 
 
 @contextlib.contextmanager
