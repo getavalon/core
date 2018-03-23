@@ -166,7 +166,6 @@ def set_current_comp(comp):
     self._forced_comp = comp
 
 
-
 @contextlib.contextmanager
 def comp_lock_and_undo_chunk(comp, undo_queue_name="Script CMD"):
     """Lock comp and open an undo chunk during the context"""
