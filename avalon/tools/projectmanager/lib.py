@@ -54,12 +54,11 @@ def create_asset(data):
         "type": "asset",
     })
     if asset_doc is not None:
-        return False
+        raise RuntimeError("Asset named {} already "
+                           "exists.".format(asset['name']))
 
     schema.validate(asset)
     io.insert_one(asset)
-
-    return True
 
 
 def list_project_tasks():
