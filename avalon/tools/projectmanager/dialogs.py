@@ -176,6 +176,13 @@ class AssetCreateDialog(QtWidgets.QDialog):
                 group = parent['name']
                 data['group'] = group
 
-        lib.create_asset(data)
+        result = lib.create_asset(data)
+        if not result:
+            QtWidgets.QMessageBox.critical(self,
+                                           "Action failed!",
+                                           "Asset named '%s' already "
+                                           "exists." % data['name'])
+
+            return
 
         self.asset_created.emit(data)
