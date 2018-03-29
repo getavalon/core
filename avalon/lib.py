@@ -141,6 +141,17 @@ def which_app(app):
 
 
 def get_application(name, environment=None):
+    """
+    Ingest the application environment and retrieve the translated toml
+
+    Args:
+        name (str): name of the application
+        environment (optional):
+
+    Returns:
+        dict
+    """
+
     environment = environment or os.environ
     application_definition = which_app(name)
 
