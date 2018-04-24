@@ -6,13 +6,12 @@ class RecursiveSortFilterProxyModel(QtCore.QSortFilterProxyModel):
     """Filters to the regex if any of the children matches allow parent"""
 
     def filterAcceptsRow(self, row, parent):
+        if not self.filterRegExp().isEmpty():
 
-        regex = self.filterRegExp()
-        if not regex.isEmpty():
-            pattern = regex.pattern()
-            pattern = re.escape(pattern)
+            pattern = re.escape(self.filterRegExp().pattern())
             model = self.sourceModel()
             source_index = model.index(row, self.filterKeyColumn(), parent)
+
             if source_index.isValid():
 
                 # Check current index itself
@@ -20,17 +19,33 @@ class RecursiveSortFilterProxyModel(QtCore.QSortFilterProxyModel):
                 if re.search(pattern, key, re.IGNORECASE):
                     return True
 
-                # Check children
                 rows = model.rowCount(source_index)
-                for i in range(rows):
-                    if self.filterAcceptsRow(i, source_index):
-                        return True
+                if not rows:
+                    return True
 
-                # Otherwise filter it
-                return False
+                return any([self.filterAcceptChildRow(i, source_index, pattern)
+                            for i in range(rows)])
 
         return super(RecursiveSortFilterProxyModel,
                      self).filterAcceptsRow(row, parent)
+
+    def filterAcceptChildRow(self, row, parent, pattern):
+        """
+        Check if child row matches regex
+        Args:
+            row (int): row number in model
+            parent (QtCore.QModelIndex): parent index item
+            pattern (regex.pattern): pattern to check for in key
+
+        Returns:
+            bool
+
+        """
+
+        idx = self.sourceModel().index(row, self.filterKeyColumn(), parent)
+        key = self.sourceModel().data(idx, self.filterRole())
+        if re.search(pattern, key, re.IGNORECASE):
+            return True
 
 
 class FilterProxyModel(RecursiveSortFilterProxyModel):
