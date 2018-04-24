@@ -24,8 +24,8 @@ class RecursiveSortFilterProxyModel(QtCore.QSortFilterProxyModel):
                     # Display item if parent matches
                     return True
 
-                return any([self.filterAcceptChildRow(i, source_index, pattern)
-                            for i in range(rows)])
+                return any(self.filterAcceptChildRow(i, source_index, pattern)
+                           for i in range(rows))
 
         return super(RecursiveSortFilterProxyModel,
                      self).filterAcceptsRow(row, parent)
