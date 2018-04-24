@@ -446,7 +446,7 @@ class Window(QtWidgets.QDialog):
 
         # signals
         text_filter.textChanged.connect(self.proxy.setFilterRegExp)
-        outdated_only.stateChanged.connect(self.proxy.set_filter_enabled)
+        outdated_only.stateChanged.connect(self.proxy.set_filter_outdated)
         refresh_button.clicked.connect(self.refresh)
         view.data_changed.connect(self.refresh)
 
