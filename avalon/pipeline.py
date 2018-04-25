@@ -248,6 +248,21 @@ class Action(object):
         pass
 
 
+class ToolAction(object):
+    """A custom action for tools, e.g: sceneinventory"""
+
+    label = None
+    icon = None
+    color = None
+    order = 0
+    hosts = []
+    tools = []
+
+    def process(self):
+        """Override function in a custom class"""
+        pass
+
+
 class Application(Action):
     """Default application launcher
 
@@ -1138,6 +1153,22 @@ def is_compatible_loader(Loader, context):
     has_representation = ("*" in Loader.representations or
                           representation["name"] in Loader.representations)
     return has_family and has_representation
+
+
+def is_compatible_action(ToolAction, tool):
+    """Return whether an action is compatible within the current host
+
+    Args:
+          ToolAction: ToolAction instance
+
+    Returns:
+          bool
+
+    """
+
+    host = registered_host()
+    host_name = host.__name__.rsplit(".", 1)[-1]
+    return host_name in ToolAction.hosts and tool in ToolAction.tools
 
 
 def loaders_from_representation(loaders, representation):
