@@ -110,7 +110,7 @@ class View(QtWidgets.QTreeView):
 
                 Action = action()
 
-                color = action.color or "white"
+                color = action.color or DEFAULT_COLOR
                 icon = qta.icon("fa.%s" % action.icon, color=color)
                 action_item = QtWidgets.QAction(icon, action.label, submenu)
                 action_item.triggered.connect(lambda: Action.process(items))
