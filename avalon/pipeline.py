@@ -1160,6 +1160,7 @@ def is_compatible_action(ToolAction, tool):
 
     Args:
           ToolAction: ToolAction instance
+          tool (str): name of the tool
 
     Returns:
           bool
