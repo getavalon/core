@@ -4,7 +4,7 @@ import logging
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ...vendor import qtawesome as qta
-from ... import io, api, style
+from ... import io, api, style, pipeline
 from .. import lib as tools_lib
 
 # todo(roy): refactor loading from other tools
@@ -101,7 +101,26 @@ class View(QtWidgets.QTreeView):
         menu.addAction(expandall_action)
         menu.addAction(collapse_action)
 
+        custom_actions = self.get_custom_actions()
+        if custom_actions:
+            menu.addSeparator()
+            for action in custom_actions:
+                Action = action()
+
+                icon = qta.icon("fa.%s" % action.icon, color="white")
+                action_item = QtWidgets.QAction(icon, action.label, menu)
+                action_item.triggered.connect(lambda: Action.process(items))
+
+                menu.addAction(action_item)
+
         return menu
+
+    def get_custom_actions(self):
+
+        # Get current config
+        plugins = api.discover(api.ToolAction)
+        return [p for p in plugins if
+                           pipeline.is_compatible_action(p, "manager")]
 
     def show_right_mouse_menu(self, pos):
         """Display the menu when at the position of the item clicked"""
