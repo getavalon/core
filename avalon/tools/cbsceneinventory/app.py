@@ -104,14 +104,20 @@ class View(QtWidgets.QTreeView):
         custom_actions = self.get_custom_actions()
         if custom_actions:
             menu.addSeparator()
+            submenu = QtWidgets.QMenu("Actions")
+            submenu.setStyleSheet(module.window.styleSheet())
             for action in custom_actions:
+
                 Action = action()
 
-                icon = qta.icon("fa.%s" % action.icon, color="white")
-                action_item = QtWidgets.QAction(icon, action.label, menu)
+                color = action.color or "white"
+                icon = qta.icon("fa.%s" % action.icon, color=color)
+                action_item = QtWidgets.QAction(icon, action.label, submenu)
                 action_item.triggered.connect(lambda: Action.process(items))
 
-                menu.addAction(action_item)
+                submenu.addAction(action_item)
+
+            menu.addMenu(submenu)
 
         return menu
 
