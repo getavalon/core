@@ -248,7 +248,7 @@ class Action(object):
         pass
 
 
-class ToolAction(Action):
+class InventoryAction(Action):
     """A custom action for tools, e.g: sceneinventory"""
 
     label = None

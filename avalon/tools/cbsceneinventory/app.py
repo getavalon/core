@@ -124,7 +124,7 @@ class View(QtWidgets.QTreeView):
     def get_custom_actions(self):
 
         # Get current config
-        plugins = api.discover(api.ToolAction)
+        plugins = api.discover(api.InventoryAction)
         return [p for p in plugins if
                            pipeline.is_compatible_action(p, "manager")]
 
