@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+from functools import partial
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ...vendor import qtawesome as qta
@@ -106,14 +107,13 @@ class View(QtWidgets.QTreeView):
             menu.addSeparator()
             submenu = QtWidgets.QMenu("Actions")
             submenu.setStyleSheet(module.window.styleSheet())
-            for action in custom_actions:
+            for Action in custom_actions:
 
-                Action = action()
-
-                color = action.color or DEFAULT_COLOR
-                icon = qta.icon("fa.%s" % action.icon, color=color)
-                action_item = QtWidgets.QAction(icon, action.label, submenu)
-                action_item.triggered.connect(lambda: Action.process(items))
+                action = Action()
+                color = Action.color or DEFAULT_COLOR
+                icon = qta.icon("fa.%s" % Action.icon, color=color)
+                action_item = QtWidgets.QAction(icon, Action.label, submenu)
+                action_item.triggered.connect(partial(action.process, items))
 
                 submenu.addAction(action_item)
 
