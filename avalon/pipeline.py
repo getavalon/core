@@ -248,7 +248,7 @@ class Action(object):
         pass
 
 
-class ToolAction(object):
+class ToolAction(Action):
     """A custom action for tools, e.g: sceneinventory"""
 
     label = None
@@ -258,7 +258,7 @@ class ToolAction(object):
     hosts = []
     tools = []
 
-    def process(self):
+    def process(self, items, **kwargs):
         """Override function in a custom class"""
         pass
 
