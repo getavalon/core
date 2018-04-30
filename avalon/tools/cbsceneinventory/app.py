@@ -125,8 +125,7 @@ class View(QtWidgets.QTreeView):
 
         # Get current config
         plugins = api.discover(api.InventoryAction)
-        return [p for p in plugins if
-                           pipeline.is_compatible_action(p, "manager")]
+        return [p for p in plugins if pipeline.is_compatible_action(p)]
 
     def show_right_mouse_menu(self, pos):
         """Display the menu when at the position of the item clicked"""
