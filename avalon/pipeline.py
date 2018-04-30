@@ -256,7 +256,6 @@ class InventoryAction(Action):
     color = None
     order = 0
     hosts = []
-    tools = []
 
     def process(self, items, **kwargs):
         """Override function in a custom class"""
@@ -1155,12 +1154,11 @@ def is_compatible_loader(Loader, context):
     return has_family and has_representation
 
 
-def is_compatible_action(ToolAction, tool):
+def is_compatible_action(Action):
     """Return whether an action is compatible within the current host
 
     Args:
-          ToolAction: ToolAction instance
-          tool (str): name of the tool
+          Action: App related action instance
 
     Returns:
           bool
@@ -1169,7 +1167,7 @@ def is_compatible_action(ToolAction, tool):
 
     host = registered_host()
     host_name = host.__name__.rsplit(".", 1)[-1]
-    return host_name in ToolAction.hosts and tool in ToolAction.tools
+    return host_name in Action.hosts
 
 
 def loaders_from_representation(loaders, representation):
