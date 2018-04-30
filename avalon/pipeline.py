@@ -248,7 +248,7 @@ class Action(object):
         pass
 
 
-class InventoryAction(Action):
+class InventoryAction(object):
     """A custom action for tools, e.g: sceneinventory"""
 
     label = None
@@ -256,6 +256,10 @@ class InventoryAction(Action):
     color = None
     order = 0
     hosts = []
+
+    def is_compatible(self, items, **kwargs):
+        """Override function in a custom class"""
+        return True
 
     def process(self, items, **kwargs):
         """Override function in a custom class"""
