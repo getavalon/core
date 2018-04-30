@@ -40,7 +40,6 @@ class View(QtWidgets.QTreeView):
         self.setSelectionMode(self.ExtendedSelection)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_right_mouse_menu)
-        # self.doubleClicked.connect(self.on_double_click)
 
     def build_item_menu(self, items):
         """Create menu for the selected items"""
@@ -102,7 +101,7 @@ class View(QtWidgets.QTreeView):
         menu.addAction(expandall_action)
         menu.addAction(collapse_action)
 
-        custom_actions = self.get_custom_actions()
+        custom_actions = self.get_custom_actions(containers=items)
         if custom_actions:
             menu.addSeparator()
             submenu = QtWidgets.QMenu("Actions")
@@ -121,11 +120,19 @@ class View(QtWidgets.QTreeView):
 
         return menu
 
-    def get_custom_actions(self):
+    def get_custom_actions(self, containers):
+        """Get the registered Inventory Actions"""
+
+        def sorter(value):
+            """Sort based on order"""
+            Plugin = value
+            return Plugin.order
 
         # Get current config
         plugins = api.discover(api.InventoryAction)
-        return [p for p in plugins if pipeline.is_compatible_action(p)]
+        return sorted([p for p in plugins if
+                      pipeline.is_compatible_inventory_action(p, containers)],
+                      key=sorter)
 
     def show_right_mouse_menu(self, pos):
         """Display the menu when at the position of the item clicked"""

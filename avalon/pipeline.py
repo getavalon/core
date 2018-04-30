@@ -257,11 +257,11 @@ class InventoryAction(object):
     order = 0
     hosts = []
 
-    def is_compatible(self, items, **kwargs):
+    def is_compatible(self, containers):
         """Override function in a custom class"""
         return True
 
-    def process(self, items, **kwargs):
+    def process(self, containers, **kwargs):
         """Override function in a custom class"""
         pass
 
@@ -1148,6 +1148,9 @@ def is_compatible_loader(Loader, context):
     This checks the version's families and the representation for the given
     Loader.
 
+    Returns:
+        bool
+
     """
     families = context["version"]["data"]["families"]
     representation = context["representation"]
@@ -1158,20 +1161,19 @@ def is_compatible_loader(Loader, context):
     return has_family and has_representation
 
 
-def is_compatible_action(Action):
+def is_compatible_inventory_action(Action, containers):
     """Return whether an action is compatible within the current host
 
     Args:
           Action: App related action instance
+          containers (list): collection of dictionaries
 
     Returns:
           bool
 
     """
-
-    host = registered_host()
-    host_name = host.__name__.rsplit(".", 1)[-1]
-    return host_name in Action.hosts
+    action = Action()
+    return action.is_compatible(containers)
 
 
 def loaders_from_representation(loaders, representation):
