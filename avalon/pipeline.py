@@ -1162,7 +1162,7 @@ def is_compatible_loader(Loader, context):
 
 
 def is_compatible_inventory_action(Action, containers):
-    """Return whether an action is compatible within the current host
+    """Return whether an action is compatible with the selected containers
 
     Args:
           Action: App related action instance
