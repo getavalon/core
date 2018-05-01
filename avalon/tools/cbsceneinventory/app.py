@@ -123,9 +123,8 @@ class View(QtWidgets.QTreeView):
     def get_custom_actions(self, containers):
         """Get the registered Inventory Actions"""
 
-        def sorter(value):
+        def sorter(Plugin):
             """Sort based on order"""
-            Plugin = value
             return Plugin.order
 
         # Get current config
