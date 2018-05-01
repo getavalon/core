@@ -249,19 +249,23 @@ class Action(object):
 
 
 class InventoryAction(object):
-    """A custom action for tools, e.g: sceneinventory"""
+    """A custom action for the scene inventory tool
+
+    If registered the action will be visible in the Right Mouse Button menu
+    under the submenu "Actions".
+
+    """
 
     label = None
     icon = None
     color = None
     order = 0
-    hosts = []
 
-    def is_compatible(self, containers):
+    def is_compatible(self, container):
         """Override function in a custom class"""
         return True
 
-    def process(self, containers, **kwargs):
+    def process(self, containers):
         """Override function in a custom class"""
         pass
 
@@ -1173,7 +1177,7 @@ def is_compatible_inventory_action(Action, containers):
 
     """
     action = Action()
-    return action.is_compatible(containers)
+    return any(action.is_compatible(c) for c in containers)
 
 
 def loaders_from_representation(loaders, representation):
