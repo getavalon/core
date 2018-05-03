@@ -48,6 +48,7 @@ from .pipeline import (
     register_plugin,
 
     registered_host,
+    registered_config,
     registered_plugin_paths,
     registered_root,
 
@@ -100,6 +101,7 @@ __all__ = [
     "registered_root",
     "registered_plugin_paths",
     "registered_host",
+    "registered_config",
 
     "deregister_plugin",
     "deregister_plugin_path",
