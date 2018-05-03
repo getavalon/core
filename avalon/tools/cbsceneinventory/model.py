@@ -50,7 +50,6 @@ class InventoryModel(TreeModel):
         if role == QtCore.Qt.DecorationRole:
             if index.column() == 0:
                 # Override color
-                node = index.internalPointer()
                 color = node.get("color", style.colors.default)
                 if not index.parent().isValid():  # group-item
                     return qta.icon("fa.folder", color=color)
@@ -62,7 +61,6 @@ class InventoryModel(TreeModel):
                 return node.get("familyIcon", None)
 
         if role == self.UniqueRole:
-            node = index.internalPointer()
             return node['representation'] + node.get("objectName", "<none>")
 
         return super(InventoryModel, self).data(index, role)
