@@ -49,10 +49,13 @@ class InventoryModel(TreeModel):
         # Add icons
         if role == QtCore.Qt.DecorationRole:
             if index.column() == 0:
+                # Override color
+                node = index.internalPointer()
+                color = node.get("color", style.colors.default)
                 if not index.parent().isValid():  # group-item
-                    return qta.icon("fa.folder", color=style.colors.default)
+                    return qta.icon("fa.folder", color=color)
                 else:
-                    return qta.icon("fa.folder-o", color=style.colors.default)
+                    return qta.icon("fa.folder-o", color=color)
 
             if index.column() == 3:
                 # Family icon
@@ -68,7 +71,21 @@ class InventoryModel(TreeModel):
         """Refresh the model"""
 
         host = api.registered_host()
-        items = host.ls()
+        config = api.registered_config()
+
+        items = []
+        containers = host.ls()
+        for container in containers:
+            item = container.copy()
+            # Collect custom data if attribute is present
+            if hasattr(config, "collect_container_metadata"):
+                data = config.collect_container_metadata(container)
+                # Protect the container by merging it into the data
+                data.update(container)
+                item = data
+
+            items.append(item)
+
         self.clear()
         self.add_items(items)
 
@@ -122,8 +139,7 @@ class InventoryModel(TreeModel):
                     family = families[0]
 
             # Get the label and icon for the family if in configuration
-            family_config = cbloader_lib.get(cbloader_lib.FAMILY_CONFIG,
-                                             family)
+            family_config = cbloader_lib.get(cbloader_lib.FAMILY_CONFIG, family)
             family = family_config.get("label", family)
             family_icon = family_config.get("icon", None)
 
