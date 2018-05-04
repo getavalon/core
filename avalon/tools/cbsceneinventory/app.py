@@ -133,10 +133,19 @@ class View(QtWidgets.QTreeView):
                       pipeline.is_compatible_inventory_action(p, containers)],
                       key=sorter)
 
-    def process_custom_action(self, Action, items):
+    def process_custom_action(self, Action, containers):
+        """Run action and if results are returned update the view
+
+        Args:
+            Action (InventoryAction): Inventory Action module
+            containers (list): Data of currently selected items
+
+        Returns:
+            None
+        """
 
         action = Action()
-        result = action.process(items)
+        result = action.process(containers)
         if result:
             self.data_changed.emit()
 
@@ -149,7 +158,7 @@ class View(QtWidgets.QTreeView):
 
         # move index under mouse
         indices = self.get_indices()
-        if not active.parent().isValid():
+        if active not in indices:
             assert active in indices, "No active item found in the selection"
 
             # Push the active one as *last* to selected
