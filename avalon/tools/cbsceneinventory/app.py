@@ -108,11 +108,11 @@ class View(QtWidgets.QTreeView):
             submenu.setStyleSheet(module.window.styleSheet())
             for Action in custom_actions:
 
-                action = Action()
                 color = Action.color or DEFAULT_COLOR
                 icon = qta.icon("fa.%s" % Action.icon, color=color)
                 action_item = QtWidgets.QAction(icon, Action.label, submenu)
-                action_item.triggered.connect(partial(action.process, items))
+                action_item.triggered.connect(
+                    partial(self.process_custom_action, Action, items))
 
                 submenu.addAction(action_item)
 
@@ -132,6 +132,13 @@ class View(QtWidgets.QTreeView):
         return sorted([p for p in plugins if
                       pipeline.is_compatible_inventory_action(p, containers)],
                       key=sorter)
+
+    def process_custom_action(self, Action, items):
+
+        action = Action()
+        result = action.process(items)
+        if result:
+            self.data_changed.emit()
 
     def show_right_mouse_menu(self, pos):
         """Display the menu when at the position of the item clicked"""
