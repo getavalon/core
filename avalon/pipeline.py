@@ -261,13 +261,41 @@ class InventoryAction(object):
     color = None
     order = 0
 
-    def is_compatible(self, container):
-        """Override function in a custom class"""
+    @staticmethod
+    def is_compatible(container):
+        """Override function in a custom class
+
+        This method is specifically used to ensure the action can operate on
+        the container.
+
+        Args:
+            container: dict
+
+        Returns:
+            bool
+        """
         return True
 
     def process(self, containers):
-        """Override function in a custom class"""
-        pass
+        """Override function in a custom class
+
+        This method will receive all containers even those which are
+        incompatible. It is advised to create a small filter along the lines
+        of this example:
+
+        valid_containers = [c for c in containers if "myKey" in c]
+
+        The return value will need to be a True-ish value to trigger
+        the data_changed signal in order to refresh the view.
+
+        Args:
+            containers: collection if dictionaries
+
+        Return:
+            bool
+
+        """
+        return True
 
 
 class Application(Action):
