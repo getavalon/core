@@ -104,8 +104,7 @@ class View(QtWidgets.QTreeView):
         custom_actions = self.get_custom_actions(containers=items)
         if custom_actions:
             menu.addSeparator()
-            submenu = QtWidgets.QMenu("Actions")
-            submenu.setStyleSheet(module.window.styleSheet())
+            submenu = QtWidgets.QMenu("Actions", self)
             for Action in custom_actions:
 
                 color = Action.color or DEFAULT_COLOR
