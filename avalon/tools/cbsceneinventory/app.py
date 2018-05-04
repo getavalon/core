@@ -105,13 +105,13 @@ class View(QtWidgets.QTreeView):
         if custom_actions:
             menu.addSeparator()
             submenu = QtWidgets.QMenu("Actions", self)
-            for Action in custom_actions:
+            for action in custom_actions:
 
-                color = Action.color or DEFAULT_COLOR
-                icon = qta.icon("fa.%s" % Action.icon, color=color)
-                action_item = QtWidgets.QAction(icon, Action.label, submenu)
+                color = action.color or DEFAULT_COLOR
+                icon = qta.icon("fa.%s" % action.icon, color=color)
+                action_item = QtWidgets.QAction(icon, action.label, submenu)
                 action_item.triggered.connect(
-                    partial(self.process_custom_action, Action, items))
+                    partial(self.process_custom_action, action, items))
 
                 submenu.addAction(action_item)
 
@@ -120,30 +120,37 @@ class View(QtWidgets.QTreeView):
         return menu
 
     def get_custom_actions(self, containers):
-        """Get the registered Inventory Actions"""
-
-        def sorter(Plugin):
-            """Sort based on order"""
-            return Plugin.order
-
-        # Get current config
-        plugins = api.discover(api.InventoryAction)
-        return sorted([p for p in plugins if
-                      pipeline.is_compatible_inventory_action(p, containers)],
-                      key=sorter)
-
-    def process_custom_action(self, Action, containers):
-        """Run action and if results are returned update the view
+        """Get the registered Inventory Actions
 
         Args:
-            Action (InventoryAction): Inventory Action module
+            containers(list): collection of containers
+
+        Returns:
+            list: collection of filter and initialized actions
+        """
+
+        def sorter(Plugin):
+            """Sort based on order attribute of the plugin"""
+            return Plugin.order
+
+        # Check which action will be available in the menu
+        Plugins = api.discover(api.InventoryAction)
+        compatible = [p() for p in Plugins if
+                      any(p.is_compatible(c) for c in containers)]
+
+        return sorted(compatible, key=sorter)
+
+    def process_custom_action(self, action, containers):
+        """Run action and if results are returned positive update the view
+
+        Args:
+            action (InventoryAction): Inventory Action instance
             containers (list): Data of currently selected items
 
         Returns:
             None
         """
 
-        action = Action()
         result = action.process(containers)
         if result:
             self.data_changed.emit()

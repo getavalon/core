@@ -1193,21 +1193,6 @@ def is_compatible_loader(Loader, context):
     return has_family and has_representation
 
 
-def is_compatible_inventory_action(Action, containers):
-    """Return whether an action is compatible with the selected containers
-
-    Args:
-          Action: App related action instance
-          containers (list): collection of dictionaries
-
-    Returns:
-          bool
-
-    """
-    action = Action()
-    return any(action.is_compatible(c) for c in containers)
-
-
 def loaders_from_representation(loaders, representation):
     """Return all compatible loaders for a representation."""
 
