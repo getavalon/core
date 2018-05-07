@@ -159,6 +159,10 @@ class View(QtWidgets.QTreeView):
         """Display the menu when at the position of the item clicked"""
 
         active = self.currentIndex()  # index under mouse
+        if not active.isValid():
+            print("No active item found in the selection")
+            return
+
         active = active.sibling(active.row(), 0)  # get first column
         globalpos = self.viewport().mapToGlobal(pos)
 
