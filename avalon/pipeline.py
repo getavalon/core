@@ -283,13 +283,13 @@ class InventoryAction(object):
         incompatible. It is advised to create a small filter along the lines
         of this example:
 
-        valid_containers = [c for c in containers if "myKey" in c]
+        valid_containers = filter(self.is_compatible(c) for c in containers)
 
         The return value will need to be a True-ish value to trigger
         the data_changed signal in order to refresh the view.
 
         Args:
-            containers: collection if dictionaries
+            containers (list): list of dictionaries
 
         Return:
             bool
