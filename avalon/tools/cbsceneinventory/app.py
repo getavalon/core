@@ -168,12 +168,10 @@ class View(QtWidgets.QTreeView):
 
         # move index under mouse
         indices = self.get_indices()
-        if active not in indices:
-            assert active in indices, "No active item found in the selection"
-
-            # Push the active one as *last* to selected
+        if active in indices:
             indices.remove(active)
-            indices.append(active)
+
+        indices.append(active)
 
         # Extend to the sub-items
         all_indices = self.extend_to_children(indices)
