@@ -74,7 +74,7 @@ class InventoryModel(TreeModel):
         items = []
         containers = host.ls()
         for container in containers:
-            item = container.copy()
+            item = container
             # Collect custom data if attribute is present
             if hasattr(config, "collect_container_metadata"):
                 data = config.collect_container_metadata(container)
