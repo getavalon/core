@@ -36,8 +36,7 @@ def refresh_family_config():
     families = {family['name']: family for family in families}
 
     # Check if any family state are being overwritten by the configuration
-    data = pipeline.get_data("family_states") or {}
-    family_states = {family: data.get(family, True) for family in families}
+    family_states = pipeline.get_data("family_states") or {}
 
     # Replace icons with a Qt icon we can use in the user interfaces
     default_icon = qtawesome.icon("fa.folder", color=FAMILY_ICON_COLOR)
@@ -51,7 +50,7 @@ def refresh_family_config():
             family['icon'] = default_icon
 
         # Update state
-        family.update(family_states[name])
+        family["state"] = family_states.get(name, True)
 
     # Default configuration
     families["__default__"] = {"icon": default_icon}
