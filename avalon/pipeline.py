@@ -269,7 +269,7 @@ class InventoryAction(object):
         the container.
 
         Args:
-            container: dict
+            container(dict): the data of a loaded asset, see host.ls()
 
         Returns:
             bool
