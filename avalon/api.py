@@ -41,6 +41,7 @@ from .pipeline import (
     get_representation_path,
     loaders_from_representation,
     get_data,
+    set_data,
 
     register_root,
     register_host,
@@ -91,6 +92,7 @@ __all__ = [
     "get_representation_path",
     "loaders_from_representation",
     "get_data",
+    "set_data",
 
     "register_host",
     "register_plugin_path",
