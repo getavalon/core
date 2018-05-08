@@ -248,6 +248,56 @@ class Action(object):
         pass
 
 
+class InventoryAction(object):
+    """A custom action for the scene inventory tool
+
+    If registered the action will be visible in the Right Mouse Button menu
+    under the submenu "Actions".
+
+    """
+
+    label = None
+    icon = None
+    color = None
+    order = 0
+
+    @staticmethod
+    def is_compatible(container):
+        """Override function in a custom class
+
+        This method is specifically used to ensure the action can operate on
+        the container.
+
+        Args:
+            container(dict): the data of a loaded asset, see host.ls()
+
+        Returns:
+            bool
+        """
+        return True
+
+    def process(self, containers):
+        """Override function in a custom class
+
+        This method will receive all containers even those which are
+        incompatible. It is advised to create a small filter along the lines
+        of this example:
+
+        valid_containers = filter(self.is_compatible(c) for c in containers)
+
+        The return value will need to be a True-ish value to trigger
+        the data_changed signal in order to refresh the view.
+
+        Args:
+            containers (list): list of dictionaries
+
+        Return:
+            bool
+
+        """
+        return True
+
+
 class Application(Action):
     """Default application launcher
 
@@ -1129,6 +1179,9 @@ def is_compatible_loader(Loader, context):
 
     This checks the version's families and the representation for the given
     Loader.
+
+    Returns:
+        bool
 
     """
     families = context["version"]["data"]["families"]
