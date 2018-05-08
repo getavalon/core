@@ -22,7 +22,7 @@ from .pipeline import (
     discover,
     Session,
 
-    # Deprectated
+    # Deprecated
     Session as session,
 
     on,
@@ -40,6 +40,7 @@ from .pipeline import (
     update_current_task,
     get_representation_path,
     loaders_from_representation,
+    get_data,
 
     register_root,
     register_host,
@@ -89,6 +90,7 @@ __all__ = [
     "update_current_task",
     "get_representation_path",
     "loaders_from_representation",
+    "get_data",
 
     "register_host",
     "register_plugin_path",
