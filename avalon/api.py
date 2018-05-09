@@ -37,11 +37,11 @@ from .pipeline import (
     switch,
     remove,
 
+    data,
+
     update_current_task,
     get_representation_path,
     loaders_from_representation,
-    get_data,
-    set_data,
 
     register_root,
     register_host,
@@ -88,11 +88,11 @@ __all__ = [
     "switch",
     "remove",
 
+    "data",
+
     "update_current_task",
     "get_representation_path",
     "loaders_from_representation",
-    "get_data",
-    "set_data",
 
     "register_host",
     "register_plugin_path",

@@ -1,5 +1,5 @@
 from ...vendor import qtawesome
-from ... import io, pipeline
+from ... import io, api
 
 FAMILY_ICON_COLOR = "#0091B2"
 FAMILY_CONFIG = {}
@@ -36,7 +36,7 @@ def refresh_family_config():
     families = {family['name']: family for family in families}
 
     # Check if any family state are being overwritten by the configuration
-    family_states = pipeline.get_data("family_states") or {}
+    family_states = api.data.get("familyStates",  {})
 
     # Replace icons with a Qt icon we can use in the user interfaces
     default_icon = qtawesome.icon("fa.folder", color=FAMILY_ICON_COLOR)

@@ -32,7 +32,7 @@ from .vendor import six
 self = sys.modules[__name__]
 self._is_installed = False
 self._config = None
-self._data = {}
+self.data = {}
 
 log = logging.getLogger(__name__)
 
@@ -612,31 +612,6 @@ def register_config(config):
 
     _validate_signature(config, signatures)
     _registered_config["_"] = config
-
-
-def set_data(key, value):
-    """Set custom data which is accessible through a key word
-
-    Examples:
-        Example for the Loader to override family states
-        set_data("family_states", {"familyA": False, "familyB": False})
-
-    """
-
-    self._data[key] = value
-
-
-def get_data(key):
-    """Retrieve custom data
-
-    Args:
-        key (str): name used to store data under
-
-    Returns:
-        stored data or None
-    """
-
-    return self._data.get(key, None)
 
 
 def _validate_signature(module, signatures):
