@@ -26,6 +26,16 @@ def refresh_family_config():
         }
     }
 
+    It is possible to override the default behavior and set specific families
+    checked. For example we only want the families imagesequense and camera
+    to be visible in the Loader.
+
+    # This will turn every item off
+    api.data["familyStateDefault"] = False
+
+    # Only allow the imagesequence and camera
+    api.data["familyStateToggled"] = ["imagesequence", "camera"]
+
     """
     # Update the icons from the project configuration
     project = io.find_one({"type": "project"},
