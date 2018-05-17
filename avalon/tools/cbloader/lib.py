@@ -27,7 +27,7 @@ def refresh_family_config():
     }
 
     It is possible to override the default behavior and set specific families
-    checked. For example we only want the families imagesequense and camera
+    checked. For example we only want the families imagesequence  and camera
     to be visible in the Loader.
 
     # This will turn every item off
