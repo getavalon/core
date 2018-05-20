@@ -197,8 +197,22 @@ def load(name):
     project = io.find_one({"type": "project"})
 
     if project is None:
-        raise Exception("'%s' not found, try --init "
-                        "to start a new project." % name)
+        msg = "'{0}' not found, try --init to start a new project".format(name)
+
+        projects = ""
+        for project in io.projects():
+            projects += "\n- {0}".format(project["name"])
+
+        if projects:
+            msg += (
+                ", or load a project from the database.\nProjects:{1}".format(
+                    name, projects
+                )
+            )
+        else:
+            msg += "."
+
+        raise Exception(msg)
 
     else:
         config = project["config"]
