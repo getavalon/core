@@ -20,7 +20,7 @@ import sys
 import copy
 import json
 
-from avalon import schema, io, api
+from avalon import schema, io
 from avalon.vendor import toml
 
 self = sys.modules[__name__]
