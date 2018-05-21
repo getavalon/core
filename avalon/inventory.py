@@ -420,6 +420,7 @@ def _cli():
                         help="Save inventory from disk to database")
     parser.add_argument("--load",
                         nargs="?",
+                        default=False,
                         help="Load inventory from database to disk")
     parser.add_argument("--extract",
                         action="store_true",
