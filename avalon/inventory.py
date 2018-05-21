@@ -419,7 +419,7 @@ def _cli():
                         action="store_true",
                         help="Save inventory from disk to database")
     parser.add_argument("--load",
-                        action="store_true",
+                        nargs="?",
                         help="Load inventory from database to disk")
     parser.add_argument("--extract",
                         action="store_true",
@@ -436,9 +436,10 @@ def _cli():
     kwargs = parser.parse_args()
 
     root = kwargs.root or os.getcwd()
-    name = os.path.basename(root)
+    name = kwargs.load or os.path.basename(root)
 
-    if any([kwargs.load, kwargs.save, kwargs.upload, kwargs.init]):
+    if (any([kwargs.load, kwargs.save, kwargs.upload, kwargs.init]) or
+       kwargs.load is None):
         os.environ["AVALON_PROJECT"] = name
         io.install()
 
@@ -448,7 +449,7 @@ def _cli():
         _write(root, "inventory", inventory)
         print("Success!")
 
-    elif kwargs.load:
+    elif kwargs.load or kwargs.load is None:
         config, inventory = load(name)
         _write(root, "config", config)
         _write(root, "inventory", inventory)
