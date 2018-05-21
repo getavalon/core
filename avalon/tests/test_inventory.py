@@ -261,6 +261,31 @@ def test_cli_load_overwrite():
 
 
 @with_setup(clean)
+def test_cli_load_by_name():
+    """Load project by name"""
+
+    inventory.save(
+        name=self._project["name"],
+        config=self._config,
+        inventory=self._inventory
+    )
+
+    return_code = subprocess.call(
+        [
+            sys.executable,
+            "-u",
+            "-m",
+            "avalon.inventory",
+            "--load",
+            self._project["name"]
+        ],
+        cwd=tempfile.mkdtemp(dir=self._tempdir)
+    )
+
+    assert 0 == return_code
+
+
+@with_setup(clean)
 def test_cli_save():
     """Saving uploads inventory to database"""
     with open(os.path.join(self._tempdir, ".inventory.toml"), "w") as f:
