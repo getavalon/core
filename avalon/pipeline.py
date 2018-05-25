@@ -32,6 +32,7 @@ from .vendor import six
 self = sys.modules[__name__]
 self._is_installed = False
 self._config = None
+self.data = {}
 
 log = logging.getLogger(__name__)
 

@@ -23,7 +23,7 @@ from .pipeline import (
     discover,
     Session,
 
-    # Deprectated
+    # Deprecated
     Session as session,
 
     on,
@@ -37,6 +37,8 @@ from .pipeline import (
     update,
     switch,
     remove,
+
+    data,
 
     update_current_task,
     get_representation_path,
@@ -88,6 +90,8 @@ __all__ = [
     "update",
     "switch",
     "remove",
+
+    "data",
 
     "update_current_task",
     "get_representation_path",
