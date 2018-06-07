@@ -252,7 +252,6 @@ def test_list_projects():
     )
 
     assert 0 == return_code
-    assert False
 
 
 @with_setup(clean)
