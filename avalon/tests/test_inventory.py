@@ -231,6 +231,30 @@ def test_save_idempotent():
 
 
 @with_setup(clean)
+def test_list_projects():
+    """Listing projects in database"""
+
+    inventory.save(
+        name=self._project["name"],
+        config=self._config,
+        inventory=self._inventory
+    )
+
+    return_code = subprocess.call(
+        [
+            sys.executable,
+            "-u",
+            "-m",
+            "avalon.inventory",
+            "--ls"
+        ],
+        cwd=tempfile.mkdtemp(dir=self._tempdir)
+    )
+
+    assert 0 == return_code
+
+
+@with_setup(clean)
 def test_cli_load_no_project():
     """Loading a project via CLI that does not exist throws an error"""
 

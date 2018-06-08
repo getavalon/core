@@ -240,6 +240,12 @@ def load(name):
     return config, inventory
 
 
+def ls():
+    """Return a list of project names in database."""
+
+    return [project["name"] for project in io.projects()]
+
+
 def _save_inventory_1_0(project_name, data):
     data.pop("schema")
 
@@ -382,6 +388,9 @@ def _cli():
                         nargs="?",
                         default=False,
                         help="Load inventory from database to disk")
+    parser.add_argument("--ls",
+                        action="store_true",
+                        help="List all projects in database")
     parser.add_argument("--extract",
                         action="store_true",
                         help="Generate config and inventory "
@@ -399,8 +408,11 @@ def _cli():
     root = kwargs.root or os.getcwd()
     name = kwargs.load or os.path.basename(root)
 
-    if (any([kwargs.load, kwargs.save, kwargs.upload, kwargs.init]) or
-       kwargs.load is None):
+    if any([kwargs.load,
+            kwargs.save,
+            kwargs.upload,
+            kwargs.init,
+            kwargs.ls]) or kwargs.load is None:
         os.environ["AVALON_PROJECT"] = name
         io.install()
 
@@ -421,6 +433,12 @@ def _cli():
         config = _read(root, "config")
         save(name, config, inventory)
         print("Successfully saved to %s" % os.getenv("AVALON_MONGO"))
+
+    elif kwargs.ls:
+        msg = "Projects in database:"
+        for name in ls():
+            msg += "\n- {0}".format(name)
+        print(msg)
 
     else:
         print(__doc__)
