@@ -408,12 +408,11 @@ def _cli():
     root = kwargs.root or os.getcwd()
     name = kwargs.load or os.path.basename(root)
 
-    install = False
-    if any([kwargs.load, kwargs.save, kwargs.upload, kwargs.init, kwargs.ls]):
-        install = True
-    if kwargs.load is None:
-        install = True
-    if install:
+    if any([kwargs.load,
+            kwargs.save,
+            kwargs.upload,
+            kwargs.init,
+            kwargs.ls]) or kwargs.load is None:
         os.environ["AVALON_PROJECT"] = name
         io.install()
 
