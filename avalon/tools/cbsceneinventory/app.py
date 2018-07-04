@@ -1,5 +1,5 @@
-import sys
 import os
+import sys
 import logging
 
 from ...vendor.Qt import QtWidgets, QtCore
@@ -53,7 +53,8 @@ class View(QtWidgets.QTreeView):
 
         update_icon = qta.icon("fa.angle-double-up", color=DEFAULT_COLOR)
         updatetolatest_action = QtWidgets.QAction(update_icon,
-                                                  "Update to latest", menu)
+                                                  "Update to latest",
+                                                  menu)
         updatetolatest_action.triggered.connect(
             lambda: _on_update_to_latest(items))
 
@@ -162,10 +163,11 @@ class View(QtWidgets.QTreeView):
     def show_version_dialog(self, items):
         """Create a dialog with the available versions for the selected file
 
-        :param items: list of items to run the "set_version" for
-        :type items: list
+        Args:
+            items (list): list of items to run the "set_version" for
 
-        :returns: None
+        Returns:
+            None
         """
 
         active = items[-1]
@@ -311,7 +313,6 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         input_layout.addWidget(self._assets_box)
         input_layout.addWidget(self._subsets_box)
         input_layout.addWidget(self._representations_box)
-
         input_layout.addWidget(accept_btn)
 
         self._input_layout = input_layout

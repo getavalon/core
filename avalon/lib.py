@@ -98,11 +98,12 @@ def dict_format(original, **kwargs):
         return new_list
 
 
-def which(program):
+def which(program, paths=None):
     """Locate `program` in PATH
 
     Arguments:
         program (str): Name of program, e.g. "python"
+        paths (list): a list of paths
 
     """
 
@@ -111,7 +112,10 @@ def which(program):
             return True
         return False
 
-    for path in os.environ["PATH"].split(os.pathsep):
+    if paths is None:
+        paths = os.environ["PATH"].split(os.pathsep)
+
+    for path in paths:
         for ext in os.getenv("PATHEXT", "").split(os.pathsep):
             fname = program + ext.lower()
             abspath = os.path.join(path.strip('"'), fname)
@@ -141,6 +145,17 @@ def which_app(app):
 
 
 def get_application(name, environment=None):
+    """
+    Ingest the application environment and retrieve the translated toml
+
+    Args:
+        name (str): name of the application
+        environment (optional):
+
+    Returns:
+        dict
+    """
+
     environment = environment or os.environ
     application_definition = which_app(name)
 
