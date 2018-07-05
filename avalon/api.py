@@ -18,11 +18,12 @@ from .pipeline import (
     Loader,
     Creator,
     Action,
+    InventoryAction,
     Application,
     discover,
     Session,
 
-    # Deprectated
+    # Deprecated
     Session as session,
 
     on,
@@ -37,6 +38,8 @@ from .pipeline import (
     switch,
     remove,
 
+    data,
+
     update_current_task,
     get_representation_path,
     loaders_from_representation,
@@ -47,6 +50,7 @@ from .pipeline import (
     register_plugin,
 
     registered_host,
+    registered_config,
     registered_plugin_paths,
     registered_root,
 
@@ -69,6 +73,7 @@ __all__ = [
     "Loader",
     "Creator",
     "Action",
+    "InventoryAction",
     "Application",
     "discover",
     "Session",
@@ -86,6 +91,8 @@ __all__ = [
     "switch",
     "remove",
 
+    "data",
+
     "update_current_task",
     "get_representation_path",
     "loaders_from_representation",
@@ -98,6 +105,7 @@ __all__ = [
     "registered_root",
     "registered_plugin_paths",
     "registered_host",
+    "registered_config",
 
     "deregister_plugin",
     "deregister_plugin_path",

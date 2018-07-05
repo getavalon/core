@@ -156,9 +156,19 @@ class AssetCreateDialog(QtWidgets.QDialog):
         label = self.data['label']['label'].text()
         silo = self.silo
 
-        assert name
-        assert label
-        assert silo
+        if not label:
+            QtWidgets.QMessageBox.warning(self, "Missing required label",
+                                          "Please fill in asset label.")
+            return
+
+        if not silo:
+            QtWidgets.QMessageBox.critical(self, "Missing silo",
+                                           "Please create a silo first.\n"
+                                           "Use the + tab at the top.")
+            return
+
+        # Name is based on label, so if label passes then name should too
+        assert name, "This is a bug"
 
         data = {
             "name": name,
@@ -176,6 +186,11 @@ class AssetCreateDialog(QtWidgets.QDialog):
                 group = parent['name']
                 data['group'] = group
 
-        lib.create_asset(data)
+        try:
+            lib.create_asset(data)
+        except (RuntimeError, AssertionError) as exc:
+            QtWidgets.QMessageBox.critical(self, "Add asset failed",
+                                           str(exc))
+            return
 
         self.asset_created.emit(data)
