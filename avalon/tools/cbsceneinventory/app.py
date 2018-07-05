@@ -5,7 +5,7 @@ from functools import partial
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ...vendor import qtawesome as qta
-from ... import io, api, style, pipeline
+from ... import io, api, style
 from .. import lib as tools_lib
 
 # todo(roy): refactor loading from other tools
@@ -18,7 +18,6 @@ from ..cbloader.lib import refresh_family_config
 
 from .proxy import FilterProxyModel
 from .model import InventoryModel
-
 from .lib import switch_item
 
 DEFAULT_COLOR = "#fb9c15"
