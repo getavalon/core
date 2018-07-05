@@ -22,6 +22,16 @@ def _install_fusion():
 def _set_current_working_dir():
     # Set current working directory next to comp
 
+    try:
+        # Provided by Fusion
+        comp
+    except NameError:
+        comp = None
+
+    if comp is None:
+        raise RuntimeError("Fusion 'comp' variable not set. "
+                           "Are you running this as Comp script?")
+
     filename = comp.MapPath(comp.GetAttrs()["COMPS_FileName"])
     if filename and os.path.exists(filename):
         cwd = os.path.dirname(filename)
