@@ -23,13 +23,13 @@ def get_frame_path(path):
     """Get filename for the Fusion Saver with padded number as '#'
 
     >>> get_frame_path("C:/test.exr")
-    ("C:/test", 4, ".exr")
+    ('C:/test', 4, '.exr')
 
     >>> get_frame_path("filename.00.tif")
-    ("filename.", 2, ".tif")
+    ('filename.', 2, '.tif')
 
     >>> get_frame_path("foobar35.tif")
-    ("foobar", 2, ".tif")
+    ('foobar', 2, '.tif')
 
     Args:
         path (str): The path to render to.
