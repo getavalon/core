@@ -10,7 +10,6 @@ import pyblish_qml
 def _install_fusion():
 
     from pyblish_qml import settings
-    import pyblish_qml.host as host
 
     sys.stdout.write("Setting up Pyblish QML in Fusion\n")
 
