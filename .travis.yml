@@ -22,6 +22,7 @@ before_deploy:
 
 deploy:
   provider: pages
+  local-dir: docs/build
   skip_cleanup: true
   github_token: $GITHUB_TOKEN
   on:

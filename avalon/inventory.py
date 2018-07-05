@@ -200,8 +200,22 @@ def load(name):
     project = io.find_one({"type": "project"})
 
     if project is None:
-        raise Exception("'%s' not found, try --init "
-                        "to start a new project." % name)
+        msg = "'{0}' not found, try --init to start a new project".format(name)
+
+        projects = ""
+        for project in io.projects():
+            projects += "\n- {0}".format(project["name"])
+
+        if projects:
+            msg += (
+                ", or load a project from the database.\nProjects:{1}".format(
+                    name, projects
+                )
+            )
+        else:
+            msg += "."
+
+        raise Exception(msg)
 
     else:
         config = project["config"]
@@ -224,6 +238,12 @@ def load(name):
     )
 
     return config, inventory
+
+
+def ls():
+    """Return a list of project names in database."""
+
+    return [project["name"] for project in io.projects()]
 
 
 def _save_inventory_1_0(project_name, data):
@@ -365,8 +385,12 @@ def _cli():
                         action="store_true",
                         help="Save inventory from disk to database")
     parser.add_argument("--load",
-                        action="store_true",
+                        nargs="?",
+                        default=False,
                         help="Load inventory from database to disk")
+    parser.add_argument("--ls",
+                        action="store_true",
+                        help="List all projects in database")
     parser.add_argument("--extract",
                         action="store_true",
                         help="Generate config and inventory "
@@ -382,9 +406,13 @@ def _cli():
     kwargs = parser.parse_args()
 
     root = kwargs.root or os.getcwd()
-    name = os.path.basename(root)
+    name = kwargs.load or os.path.basename(root)
 
-    if any([kwargs.load, kwargs.save, kwargs.upload, kwargs.init]):
+    if any([kwargs.load,
+            kwargs.save,
+            kwargs.upload,
+            kwargs.init,
+            kwargs.ls]) or kwargs.load is None:
         os.environ["AVALON_PROJECT"] = name
         io.install()
 
@@ -394,7 +422,7 @@ def _cli():
         _write(root, "inventory", inventory)
         print("Success!")
 
-    elif kwargs.load:
+    elif kwargs.load or kwargs.load is None:
         config, inventory = load(name)
         _write(root, "config", config)
         _write(root, "inventory", inventory)
@@ -405,6 +433,12 @@ def _cli():
         config = _read(root, "config")
         save(name, config, inventory)
         print("Successfully saved to %s" % os.getenv("AVALON_MONGO"))
+
+    elif kwargs.ls:
+        msg = "Projects in database:"
+        for name in ls():
+            msg += "\n- {0}".format(name)
+        print(msg)
 
     else:
         print(__doc__)
