@@ -137,7 +137,8 @@ class InventoryModel(TreeModel):
                     family = families[0]
 
             # Get the label and icon for the family if in configuration
-            family_config = cbloader_lib.get(cbloader_lib.FAMILY_CONFIG, family)
+            family_config = cbloader_lib.get(cbloader_lib.FAMILY_CONFIG,
+                                             family)
             family = family_config.get("label", family)
             family_icon = family_config.get("icon", None)
 
