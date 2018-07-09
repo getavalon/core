@@ -1,19 +1,22 @@
 import sys
 import os
+import tempfile
 
 
 from ...vendor.Qt import QtWidgets
 from ... import style
-from .. import lib
 
 
 class Window(QtWidgets.QDialog):
     """Work Files Window"""
 
-    def __init__(self, root, parent):
+    def __init__(self, temp, root, parent):
         super(Window, self).__init__(parent)
         self.setWindowTitle("Work Files")
+        self.tempfile = temp
         self.root = root
+        if root is None:
+            self.root = os.getcwd()
 
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
@@ -36,21 +39,62 @@ class Window(QtWidgets.QDialog):
         buttons_layout.addWidget(self.browse_button)
         self.layout.addLayout(buttons_layout)
 
+        self.browse_button.pressed.connect(self.on_browse_pressed)
+        self.open_button.pressed.connect(self.on_open_pressed)
+
+    def write_data(self):
+        self.tempfile.write(self.work_file.replace("\\", "/"))
+        self.close()
+
+    def on_open_pressed(self):
+        self.work_file = os.path.join(
+            self.root, self.list.currentItem().text()
+        )
+
+        self.write_data()
+
+    def on_browse_pressed(self):
+
+        self.work_file = QtWidgets.QFileDialog.getOpenFileName(
+            caption="Work Files",
+            directory=self.root
+        )[0]
+
+        self.write_data()
+
 
 def show(root=None, parent=None):
     """Show Work Files GUI"""
+    temp = tempfile.TemporaryFile(mode="w+t")
 
-    with lib.application():
-        window = Window(root, parent)
+    app = QtWidgets.QApplication.instance()
+
+    if not app:
+        print("Starting new QApplication..")
+        app = QtWidgets.QApplication(sys.argv)
+        window = Window(temp, root, parent)
         window.setStyleSheet(style.load_stylesheet())
         window.show()
+        app.exec_()
+    else:
+        print("Using existing QApplication..")
+        window = Window(temp, root, parent)
+        window.setStyleSheet(style.load_stylesheet())
+        window.exec_()
+
+    temp.seek(0)
+    work_file = temp.read()
+    temp.close()
+
+    print(work_file)
+    return work_file
 
 
 def cli():
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root", required=True, help="Work directory.")
+    parser.add_argument("--root", help="Work directory.")
 
     kwargs, args = parser.parse_known_args(sys.argv)
 
