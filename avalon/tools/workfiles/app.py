@@ -10,10 +10,11 @@ from ... import style
 class Window(QtWidgets.QDialog):
     """Work Files Window"""
 
-    def __init__(self, temp, root, parent):
+    def __init__(self, temp, root, parent, filter):
         super(Window, self).__init__(parent)
         self.setWindowTitle("Work Files")
         self.tempfile = temp
+        self.filter = filter
         self.root = root
         if root is None:
             self.root = os.getcwd()
@@ -26,6 +27,8 @@ class Window(QtWidgets.QDialog):
         self.items = {}
         count = 0
         for f in os.listdir(self.root):
+            if filter and os.path.splitext(f)[1] not in filter:
+                continue
             self.list.addItem(f)
             self.items[f] = count
             count += 1
@@ -55,15 +58,19 @@ class Window(QtWidgets.QDialog):
 
     def on_browse_pressed(self):
 
+        filter = " *".join(self.filter)
+        filter = "Work File (*{0})".format(filter)
+
         self.work_file = QtWidgets.QFileDialog.getOpenFileName(
             caption="Work Files",
-            directory=self.root
+            directory=self.root,
+            filter=filter
         )[0]
 
         self.write_data()
 
 
-def show(root=None, parent=None):
+def show(root=None, parent=None, filter=[]):
     """Show Work Files GUI"""
     temp = tempfile.TemporaryFile(mode="w+t")
 
@@ -72,13 +79,13 @@ def show(root=None, parent=None):
     if not app:
         print("Starting new QApplication..")
         app = QtWidgets.QApplication(sys.argv)
-        window = Window(temp, root, parent)
+        window = Window(temp, root, parent, filter)
         window.setStyleSheet(style.load_stylesheet())
         window.show()
         app.exec_()
     else:
         print("Using existing QApplication..")
-        window = Window(temp, root, parent)
+        window = Window(temp, root, parent, filter)
         window.setStyleSheet(style.load_stylesheet())
         window.exec_()
 
@@ -94,7 +101,15 @@ def cli():
     import argparse
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--root", help="Work directory.")
+    parser.add_argument(
+        "--root",
+        help="Work directory. Example: --root /path/to/work/directory"
+    )
+    parser.add_argument(
+        "--filter",
+        action="append",
+        help="Filters to show files with. Example: --filter .ma"
+    )
 
     kwargs, args = parser.parse_known_args(sys.argv)
 
