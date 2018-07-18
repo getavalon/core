@@ -28,7 +28,7 @@ def install(config):
 
     """
 
-    _register_callbacks()
+    # _register_callbacks()
 
     if self._has_been_setup:
         teardown()
@@ -194,13 +194,24 @@ class Creator(api.Creator):
         if (self.options or {}).get("useSelection"):
             nodes = hou.selectedNodes()
 
+        # Get the node type and remove it from the data, not needed
+        node_type = self.data.pop("node_type")
+        if node_type is None:
+            node_type = "geometry"
+
         # Get out node
         out = hou.node("out")
-        instance = out.createNode("geometry", node_name=self.name)
-        # TODO: Add support for selected items to be listed in the output
+        instance = out.createNode(node_type, node_name=self.name)
+
+        # TODO(wijnand): Add support for selected items to be listed in the output
         if nodes:
             node = nodes[0]
-            instance.setParm("soppath", node.path())
+            if node_type == "geometry":
+                instance.setParms({"soppath": node.path()})
+
+            elif node_type == "alembic":
+                instance.setParms({"use_sop_path": True,
+                                   "sop_path": node.path()})
 
         lib.imprint(instance, self.data)
 
@@ -208,15 +219,15 @@ class Creator(api.Creator):
 
 
 def _on_scene_open(*args):
-    api.emit("open", args)
+    api.emit("open", *[])
 
 
 def _on_scene_new(*args):
-    api.emit("new", args)
+    api.emit("new", *[])
 
 
 def _on_scene_save(*args):
-    api.emit("save", args)
+    api.emit("save", *[])
 
 
 def on_houdini_initialize():
