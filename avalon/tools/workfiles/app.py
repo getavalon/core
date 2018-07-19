@@ -82,7 +82,9 @@ class NewFileWindow(QtWidgets.QDialog):
         self.work_file += self.extensions[self.application]
 
     def update_label(self):
-        self.label.setText(self.work_file)
+        self.label.setText(
+            "<font color='green'>{0}</font>".format(self.work_file)
+        )
         if os.path.exists(os.path.join(self.root, self.work_file)):
             self.label.setText(
                 "<font color='red'>Cannot create \"{0}\" because file exists!"
