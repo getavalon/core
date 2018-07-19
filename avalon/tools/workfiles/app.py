@@ -2,6 +2,7 @@ import sys
 import os
 import tempfile
 import subprocess
+import getpass
 
 
 from ...vendor.Qt import QtWidgets, QtCore
@@ -141,7 +142,8 @@ class NewFileWindow(QtWidgets.QDialog):
                 "name": os.environ["AVALON_TASK"].lower(),
                 "label": os.environ["AVALON_TASK"]
             },
-            "version": self.version
+            "version": self.version,
+            "user": getpass.getuser()
         }
 
         self.template = "{task[name]}_v{version:0>4}"
