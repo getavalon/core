@@ -10,6 +10,7 @@ from pyblish import api as pyblish
 from . import lib, compat
 from ..lib import logger
 from .. import api, schema
+from ..tools import workfiles
 from ..vendor.Qt import QtCore, QtWidgets
 
 # Backwards compatibility
@@ -170,6 +171,8 @@ def _install_menu():
 
         cmds.menuItem(divider=True)
 
+        cmds.menuItem("Work Files", command=launch_workfiles_app)
+
         cmds.menuItem("System",
                       label="System",
                       tearOff=True,
@@ -187,6 +190,18 @@ def _install_menu():
 
     # Allow time for uninstallation to finish.
     QtCore.QTimer.singleShot(100, deferred)
+
+
+def launch_workfiles_app(*args):
+    work_file = workfiles.show(
+        root=os.path.join(
+            cmds.workspace(query=True, rootDirectory=True),
+            cmds.workspace(fileRuleEntry="scene")
+        ),
+        executable=sys.executable
+    )
+    if work_file:
+        cmds.file(work_file, open=True)
 
 
 def reload_pipeline(*args):
