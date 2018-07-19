@@ -10,6 +10,38 @@ from ... import style
 from avalon import io
 
 
+def determine_application(executable):
+        # Determine executable
+        application = None
+
+        if "maya" in os.path.basename(executable).lower():
+            application = "maya"
+            # Need Mayapy for generating work files. Assuming maya and mayapy
+            # executable are in the same directory.
+            executable = os.path.join(
+                os.path.dirname(executable),
+                os.path.basename(executable).replace("maya", "mayapy")
+            )
+            if not os.path.exists(executable):
+                raise ValueError(
+                    "Could not find Mayapy executable in \"{0}\"".format(
+                        os.path.dirname(executable)
+                    )
+                )
+
+        if "nuke" in os.path.basename(executable).lower():
+            application = "nuke"
+
+        if application is None:
+            raise ValueError(
+                "Could not determine executable: \"{0}\"".format(
+                    executable
+                )
+            )
+
+        return application
+
+
 class NewFileWindow(QtWidgets.QDialog):
     """Work Files Window"""
 
@@ -102,33 +134,7 @@ class NewFileWindow(QtWidgets.QDialog):
         self.close()
 
     def setup(self):
-        # Determine executable
-        self.application = None
-
-        if "maya" in os.path.basename(self.executable).lower():
-            self.application = "maya"
-            # Need Mayapy for generating work files. Assuming maya and mayapy
-            # executable are in the same directory.
-            self.executable = os.path.join(
-                os.path.dirname(self.executable),
-                os.path.basename(self.executable).replace("maya", "mayapy")
-            )
-            if not os.path.exists(self.executable):
-                raise ValueError(
-                    "Could not find Mayapy executable in \"{0}\"".format(
-                        os.path.dirname(self.executable)
-                    )
-                )
-
-        if "nuke" in os.path.basename(self.executable).lower():
-            self.application = "nuke"
-
-        if self.application is None:
-            raise ValueError(
-                "Could not determine executable: \"{0}\"".format(
-                    self.executable
-                )
-            )
+        self.application = determine_application(self.executable)
 
         # Get work file name
         self.version = 1
@@ -161,16 +167,21 @@ class Window(QtWidgets.QDialog):
     def __init__(self, *args, **kwargs):
         super(Window, self).__init__(kwargs["parent"])
         self.setWindowTitle("Work Files")
+
         self.work_file = None
-
         self.tempfile = kwargs["tempfile"]
-        self.filter = kwargs["filter"]
-
         self.executable = kwargs["executable"]
 
         self.root = kwargs["root"]
         if self.root is None:
             self.root = os.getcwd()
+
+        filters = {
+            "maya": [".ma", ".mb"],
+            "nuke": [".nk"]
+        }
+        application = determine_application(self.executable)
+        self.filter = filters[application]
 
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
@@ -205,6 +216,8 @@ class Window(QtWidgets.QDialog):
             self.list.addItem(f)
             self.items[f] = count
             count += 1
+
+        self.list.setMinimumWidth(self.list.sizeHintForColumn(0) + 30)
 
     def write_data(self):
         self.tempfile.write(self.work_file.replace("\\", "/"))
@@ -255,9 +268,6 @@ def show(parent=None, **kwargs):
     if "root" not in kwargs:
         kwargs["root"] = None
 
-    if "filter" not in kwargs:
-        kwargs["filter"] = []
-
     if "executable" not in kwargs:
         kwargs["executable"] = None
 
@@ -288,11 +298,6 @@ def cli():
     parser.add_argument(
         "--root",
         help="Work directory. Example: --root /path/to/work/directory"
-    )
-    parser.add_argument(
-        "--filter",
-        action="append",
-        help="Filters to show files with. Example: --filter .ma"
     )
     parser.add_argument(
         "--executable",
