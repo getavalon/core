@@ -278,7 +278,6 @@ def show(parent=None, **kwargs):
     work_file = temp.read()
     temp.close()
 
-    print(work_file)
     return work_file
 
 
