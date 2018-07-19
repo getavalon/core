@@ -16,27 +16,14 @@ def determine_application(executable):
 
         if "maya" in os.path.basename(executable).lower():
             application = "maya"
-            # Need Mayapy for generating work files. Assuming maya and mayapy
-            # executable are in the same directory.
-            executable = os.path.join(
-                os.path.dirname(executable),
-                os.path.basename(executable).replace("maya", "mayapy")
-            )
-            if not os.path.exists(executable):
-                raise ValueError(
-                    "Could not find Mayapy executable in \"{0}\"".format(
-                        os.path.dirname(executable)
-                    )
-                )
 
         if "nuke" in os.path.basename(executable).lower():
             application = "nuke"
 
         if application is None:
             raise ValueError(
-                "Could not determine executable: \"{0}\"".format(
-                    executable
-                )
+                "Could not determine application from executable:"
+                " \"{0}\"".format(executable)
             )
 
         return application
@@ -50,9 +37,7 @@ class NewFileWindow(QtWidgets.QDialog):
         self.setWindowTitle("New File")
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
 
-        self.executable = executable
-        self.root = root
-        self.setup()
+        self.setup(root, executable)
         self.update_work_file()
 
         self.layout = QtWidgets.QGridLayout()
@@ -133,8 +118,24 @@ class NewFileWindow(QtWidgets.QDialog):
     def on_cancel_pressed(self):
         self.close()
 
-    def setup(self):
-        self.application = determine_application(self.executable)
+    def setup(self, root, executable):
+        self.executable = executable
+        self.root = root
+        self.application = determine_application(executable)
+
+        # Need Mayapy for generating work files. Assuming maya and mayapy
+        # executable are in the same directory.
+        if self.application == "maya":
+            self.executable = os.path.join(
+                os.path.dirname(executable),
+                os.path.basename(executable).replace("maya", "mayapy")
+            )
+            if not os.path.exists(executable):
+                raise ValueError(
+                    "Could not find Mayapy executable in \"{0}\"".format(
+                        os.path.dirname(executable)
+                    )
+                )
 
         # Get work file name
         self.version = 1
