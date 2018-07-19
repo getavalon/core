@@ -6,7 +6,7 @@ import subprocess
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import style
-from avalon import io, lib
+from avalon import io
 
 
 class NewFileWindow(QtWidgets.QDialog):
