@@ -30,6 +30,7 @@ class NewFileWindow(QtWidgets.QDialog):
         self.layout.addWidget(label, 0, 0)
         self.spinbox = QtWidgets.QSpinBox()
         self.spinbox.setMinimum(1)
+        self.spinbox.setMaximum(9999)
         self.layout.addWidget(self.spinbox, 0, 1)
 
         self.label = QtWidgets.QLabel("File name")
