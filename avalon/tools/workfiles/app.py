@@ -3,6 +3,7 @@ import os
 import tempfile
 import subprocess
 import getpass
+import re
 
 
 from ...vendor.Qt import QtWidgets, QtCore
@@ -49,24 +50,43 @@ class NewFileWindow(QtWidgets.QDialog):
 
         label = QtWidgets.QLabel("Version:")
         self.layout.addWidget(label, 0, 0)
-        self.spinbox = QtWidgets.QSpinBox()
-        self.spinbox.setMinimum(1)
-        self.spinbox.setMaximum(9999)
-        self.layout.addWidget(self.spinbox, 0, 1)
+        self.version_spinbox = QtWidgets.QSpinBox()
+        self.version_spinbox.setMinimum(1)
+        self.version_spinbox.setMaximum(9999)
+        # Since the version can be padded with "{version:0>4}" we only search
+        # for "{version".
+        if "{version" not in self.template:
+            label.setVisible(False)
+            self.version_spinbox.setVisible(False)
+        self.layout.addWidget(self.version_spinbox, 0, 1)
+
+        label = QtWidgets.QLabel("Comment:")
+        self.layout.addWidget(label, 1, 0)
+        self.comment_lineedit = QtWidgets.QLineEdit()
+        if "{comment}" not in self.template:
+            label.setVisible(False)
+            self.comment_lineedit.setVisible(False)
+        self.layout.addWidget(self.comment_lineedit, 1, 1)
 
         self.label = QtWidgets.QLabel("File name")
-        self.layout.addWidget(self.label, 1, 0)
+        self.layout.addWidget(self.label, 2, 0)
         self.update_label()
 
         self.create_button = QtWidgets.QPushButton("Create")
-        self.layout.addWidget(self.create_button, 2, 0)
+        self.layout.addWidget(self.create_button, 3, 0)
 
         self.cancel_button = QtWidgets.QPushButton("Cancel")
-        self.layout.addWidget(self.cancel_button, 2, 1)
+        self.layout.addWidget(self.cancel_button, 3, 1)
 
-        self.spinbox.valueChanged.connect(self.on_spinbox_valuechange)
+        self.version_spinbox.valueChanged.connect(self.on_version_changed)
+        self.comment_lineedit.textChanged.connect(self.on_comment_changed)
         self.create_button.pressed.connect(self.on_create_pressed)
         self.cancel_button.pressed.connect(self.on_cancel_pressed)
+
+    def on_comment_changed(self, text):
+        self.data["comment"] = text
+        self.update_work_file()
+        self.update_label()
 
     def on_create_pressed(self):
         file_path = os.path.join(self.root, self.work_file)
@@ -99,10 +119,42 @@ class NewFileWindow(QtWidgets.QDialog):
 
         self.close()
 
+    def get_missing_keys(self, string, dictionary):
+        missing_keys = []
+
+        class temp(dict):
+
+            def __missing__(self, key):
+                missing_keys.append(key)
+
+        string.format_map(temp(**dictionary))
+
+        return missing_keys
+
     def update_work_file(self):
-        self.data["version"] = self.version
-        self.work_file = self.template.format(**self.data)
-        self.work_file += self.extensions[self.application]
+        data = self.data.copy()
+        template = self.template
+
+        if not data["comment"]:
+            data.pop("comment", None)
+
+        # Remove optional missing keys
+        pattern = re.compile(r"<.*?>")
+        invalid_optionals = []
+        for group in pattern.findall(template):
+            if self.get_missing_keys(group, data):
+                invalid_optionals.append(group)
+
+        for group in invalid_optionals:
+            template = template.replace(group, "")
+
+        work_file = template.format(**data)
+
+        # Remove optional symbols
+        work_file = work_file.replace("<", "")
+        work_file = work_file.replace(">", "")
+
+        self.work_file = work_file + self.extensions[self.application]
 
     def update_label(self):
         self.label.setText(
@@ -114,8 +166,8 @@ class NewFileWindow(QtWidgets.QDialog):
                 "</font>".format(self.work_file)
             )
 
-    def on_spinbox_valuechange(self, value):
-        self.version = value
+    def on_version_changed(self, value):
+        self.data["version"] = value
         self.update_work_file()
         self.update_label()
 
@@ -142,7 +194,6 @@ class NewFileWindow(QtWidgets.QDialog):
                 )
 
         # Get work file name
-        self.version = 1
         self.data = {
             "project": io.find_one(
                 {"name": os.environ["AVALON_PROJECT"], "type": "project"}
@@ -154,11 +205,12 @@ class NewFileWindow(QtWidgets.QDialog):
                 "name": os.environ["AVALON_TASK"].lower(),
                 "label": os.environ["AVALON_TASK"]
             },
-            "version": self.version,
-            "user": getpass.getuser()
+            "version": 1,
+            "user": getpass.getuser(),
+            "comment": ""
         }
 
-        self.template = "{task[name]}_v{version:0>4}"
+        self.template = "{task[name]}_v{version:0>4}<_{comment}>"
         templates = self.data["project"]["config"]["template"]
         if "workfile" in templates:
             self.template = templates["workfile"]
