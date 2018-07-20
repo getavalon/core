@@ -14,11 +14,16 @@ def determine_application(executable):
         # Determine executable
         application = None
 
-        if "maya" in os.path.basename(executable).lower():
+        basename = os.path.basename(executable).lower()
+
+        if "maya" in basename:
             application = "maya"
 
-        if "nuke" in os.path.basename(executable).lower():
+        if "nuke" in basename:
             application = "nuke"
+
+        if "python" in basename:
+            application = "python"
 
         if application is None:
             raise ValueError(
@@ -30,11 +35,10 @@ def determine_application(executable):
 
 
 class NewFileWindow(QtWidgets.QDialog):
-    """Work Files Window"""
+    """New File Window"""
 
     def __init__(self, executable, root):
         super(NewFileWindow, self).__init__()
-        self.setWindowTitle("New File")
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
 
         self.setup(root, executable)
@@ -162,6 +166,38 @@ class NewFileWindow(QtWidgets.QDialog):
         self.extensions = {"maya": ".ma", "nuke": ".nk"}
 
 
+class SaveFileWindow(NewFileWindow):
+    """Save File Window"""
+
+    def __init__(self, root, executable):
+        super(SaveFileWindow, self).__init__(root, executable)
+
+        self.create_button.setVisible(False)
+
+        self.save_button = QtWidgets.QPushButton("Save")
+        self.layout.addWidget(self.save_button, 2, 0)
+
+        self.save_button.pressed.connect(self.on_save_pressed)
+
+    def on_save_pressed(self):
+        save = {"maya": self.save_maya}
+        application = determine_application(sys.executable)
+        if application not in save:
+            raise ValueError(
+                "Could not find a save method for this application."
+            )
+
+        file_path = os.path.join(self.root, self.work_file)
+        save[application](file_path)
+
+        self.close()
+
+    def save_maya(self, file_path):
+        from maya import cmds
+        cmds.file(rename=file_path)
+        cmds.file(save=True, type="mayaAscii")
+
+
 class Window(QtWidgets.QDialog):
     """Work Files Window"""
 
@@ -194,13 +230,22 @@ class Window(QtWidgets.QDialog):
         buttons_layout = QtWidgets.QHBoxLayout()
         self.new_button = QtWidgets.QPushButton("New")
         buttons_layout.addWidget(self.new_button)
+        self.save_button = QtWidgets.QPushButton("Save")
+        self.save_button.setVisible(False)
+        buttons_layout.addWidget(self.save_button)
         self.open_button = QtWidgets.QPushButton("Open")
         buttons_layout.addWidget(self.open_button)
         self.browse_button = QtWidgets.QPushButton("Browse")
         buttons_layout.addWidget(self.browse_button)
         self.layout.addLayout(buttons_layout)
 
+        # If within a host we need "Save" instead of "New"
+        if determine_application(sys.executable) != "python":
+            self.new_button.setVisible(False)
+            self.save_button.setVisible(True)
+
         self.new_button.pressed.connect(self.on_new_pressed)
+        self.save_button.pressed.connect(self.on_save_pressed)
         self.browse_button.pressed.connect(self.on_browse_pressed)
         self.open_button.pressed.connect(self.on_open_pressed)
 
@@ -241,6 +286,13 @@ class Window(QtWidgets.QDialog):
         window.exec_()
 
         self.refresh_list()
+
+    def on_save_pressed(self):
+        window = SaveFileWindow(self.executable, self.root)
+        window.setStyleSheet(style.load_stylesheet())
+        window.exec_()
+
+        self.close()
 
     def on_open_pressed(self):
         self.work_file = os.path.join(
