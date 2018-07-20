@@ -204,7 +204,7 @@ class Window(QtWidgets.QDialog):
         self.browse_button.pressed.connect(self.on_browse_pressed)
         self.open_button.pressed.connect(self.on_open_pressed)
 
-        self.open_button.setFocus(True)
+        self.open_button.setFocus()
 
     def refresh_list(self):
         self.list.clear()
