@@ -206,8 +206,8 @@ class Window(QtWidgets.QDialog):
 
     def refresh_list(self):
         self.list.clear()
-        self.items = {}
-        count = 0
+        items = []
+        modified = []
         for f in os.listdir(self.root):
             if os.path.isdir(os.path.join(self.root, f)):
                 continue
@@ -215,8 +215,12 @@ class Window(QtWidgets.QDialog):
             if self.filter and os.path.splitext(f)[1] not in self.filter:
                 continue
             self.list.addItem(f)
-            self.items[f] = count
-            count += 1
+            items.append(self.list.findItems(f, QtCore.Qt.MatchExactly)[0])
+            modified.append(os.path.getmtime(os.path.join(self.root, f)))
+
+        # Select last modified file
+        if items:
+            items[modified.index(max(modified))].setSelected(True)
 
         self.list.setMinimumWidth(self.list.sizeHintForColumn(0) + 30)
 
@@ -238,7 +242,7 @@ class Window(QtWidgets.QDialog):
 
     def on_open_pressed(self):
         self.work_file = os.path.join(
-            self.root, self.list.currentItem().text()
+            self.root, self.list.selectedItems()[0].text()
         )
 
         self.write_data()
