@@ -40,11 +40,11 @@ work_file = workfiles.show(root=cwd, executable=executable)
 
 Workfiles app enables user to easily create new work files, without having to launch a GUI host.
 
-The user is presented with a single parameter; ```version```. The name of the work file is determined from a template.
+The user is presented with a two parameters; ```version``` and ```comment```. The name of the work file is determined from a template.
 
 ## Templates
 
-The default template for work files is ```{task[name]}_v{version:0>4}```. Launching Maya on an animation task and creating a version 1 will result in ```animation_v0001.ma```.
+The default template for work files is ```{task[name]}_v{version:0>4}<_{comment}>```. Launching Maya on an animation task and creating a version 1 will result in ```animation_v0001.ma```. Adding "blocking" to the optional comment input will result in ```animation_v0001_blocking.ma```.
 
 This template can be customized per project with the ```workfile``` template.
 
@@ -58,11 +58,18 @@ There are other variables to customize the template with:
         "label": label,  # Label of task chosen.
         "name": name  # Sanitize version of the label.
     },
+    "user": user,  # Name of the user on the machine.
     "version": version,  # Chosen version of the user.
-    "user": user  # Name of the user on the machine.
+    "comment": comment,  # Chosen comment of the user.
 }
 ```
+
+### Optional template groups
+
+The default template contains an optional template group ```<_{comment}>```. If any template group (```{comment}```) within angle bracket ```<>``` does not exist, the whole optional group is discarded.
 
 ## Hosts
 
 Workfiles is available inside hosts via. the ```Avalon > Work Files``` menu.
+
+Here you can save the currently opened work file.
