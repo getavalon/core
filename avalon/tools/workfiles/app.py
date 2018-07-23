@@ -217,7 +217,7 @@ class SaveFileWindow(NewFileWindow):
         self.create_button.setVisible(False)
 
         self.save_button = QtWidgets.QPushButton("Save")
-        self.layout.addWidget(self.save_button, 2, 0)
+        self.layout.addWidget(self.save_button, 3, 0)
 
         self.save_button.pressed.connect(self.on_save_pressed)
 
