@@ -119,18 +119,6 @@ class NewFileWindow(QtWidgets.QDialog):
 
         self.close()
 
-    def get_missing_keys(self, string, dictionary):
-        missing_keys = []
-
-        class temp(dict):
-
-            def __missing__(self, key):
-                missing_keys.append(key)
-
-        string.format_map(temp(**dictionary))
-
-        return missing_keys
-
     def update_work_file(self):
         data = self.data.copy()
         template = self.template
@@ -142,7 +130,9 @@ class NewFileWindow(QtWidgets.QDialog):
         pattern = re.compile(r"<.*?>")
         invalid_optionals = []
         for group in pattern.findall(template):
-            if self.get_missing_keys(group, data):
+            try:
+                group.format(**data)
+            except KeyError:
                 invalid_optionals.append(group)
 
         for group in invalid_optionals:
