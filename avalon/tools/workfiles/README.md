@@ -72,4 +72,4 @@ The default template contains an optional template group ```<_{comment}>```. If 
 
 Workfiles is available inside hosts via. the ```Avalon > Work Files``` menu.
 
-Here you can save the currently opened work file.
+Here you can save the currently opened work file instead of creating new files.
