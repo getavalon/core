@@ -13,6 +13,8 @@ import inspect
 import traceback
 import importlib
 
+from collections import OrderedDict
+
 from . import (
     io,
     lib,
@@ -220,13 +222,14 @@ class Creator(object):
         self.options = options
 
         # Default data
-        self.data = dict({
-            "id": "pyblish.avalon.instance",
-            "family": self.family,
-            "asset": asset,
-            "subset": name,
-            "active": True
-        }, **(data or {}))
+        self.data = OrderedDict()
+        self.data["id"] = "pyblish.avalon.instance"
+        self.data["family"] = self.family
+        self.data["asset"] = asset
+        self.data["subset"] = name
+        self.data["active"] = True
+
+        self.data.update(data or {})
 
     def process(self):
         pass
