@@ -195,6 +195,10 @@ def imprint(node, data):
         elif isinstance(value, float):
             add_type = {"attributeType": "double"}
             set_type = {"keyable": False, "channelBox": True}
+        elif isinstance(value, (list, tuple)):
+            add_type = {"attributeType": "enum", "enumName": ":".join(value)}
+            set_type = {"keyable": False, "channelBox": True}
+            value = 0  # enum default
         else:
             raise TypeError("Unsupported type: %r" % type(value))
 
