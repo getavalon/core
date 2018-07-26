@@ -82,7 +82,7 @@ def read(node):
 
     for attr in cmds.listAttr(node, userDefined=True) or list():
         try:
-            value = cmds.getAttr(node + "." + attr)
+            value = cmds.getAttr(node + "." + attr, asString=True)
         except ValueError:
             # Some attributes cannot be read directly,
             # such as mesh and color attributes. These
