@@ -403,39 +403,7 @@ def discover(superclass):
 
     # Include plug-ins from registered paths
     for path in _registered_plugin_paths.get(superclass, list()):
-        path = os.path.normpath(path)
-
-        assert os.path.isdir(path), "%s is not a directory" % path
-
-        for fname in os.listdir(path):
-            # Ignore files which start with underscore
-            if fname.startswith("_"):
-                continue
-
-            mod_name, mod_ext = os.path.splitext(fname)
-            if not mod_ext == ".py":
-                continue
-
-            abspath = os.path.join(path, fname)
-            if not os.path.isfile(abspath):
-                continue
-
-            module = types.ModuleType(mod_name)
-            module.__file__ = abspath
-
-            try:
-                with open(abspath) as f:
-                    six.exec_(f.read(), module.__dict__)
-
-                # Store reference to original module, to avoid
-                # garbage collection from collecting it's global
-                # imports, such as `import os`.
-                sys.modules[mod_name] = module
-
-            except Exception as err:
-                print("Skipped: \"%s\" (%s)", mod_name, err)
-                continue
-
+        for module in lib.modules_from_path(path):
             for plugin in plugin_from_module(superclass, module):
                 if plugin.__name__ in plugins:
                     print("Duplicate plug-in found: %s", plugin)
