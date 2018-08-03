@@ -19,11 +19,13 @@ def main(path):
 
 
 if __name__ == "__main__":
+    # Called initially
     if len(sys.argv) == 3:
         executable_path = sys.argv[1].replace("\\", "/").lower()
         file_path = sys.argv[2].replace("\\", "/").lower()
         subprocess.call([executable_path, __file__, file_path])
 
+    # Called from above subprocess
     if len(sys.argv) == 2:
         file_path = sys.argv[1]
         main(file_path)
