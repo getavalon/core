@@ -42,32 +42,39 @@ class NameWindow(QtWidgets.QDialog):
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
 
-        layout = QtWidgets.QGridLayout()
+        grid_layout = QtWidgets.QGridLayout()
+
         label = QtWidgets.QLabel("Version:")
-        layout.addWidget(label, 0, 0)
+        grid_layout.addWidget(label, 0, 0)
         self.version_spinbox = QtWidgets.QSpinBox()
         self.version_spinbox.setMinimum(1)
         self.version_spinbox.setMaximum(9999)
+        self.version_checkbox = QtWidgets.QCheckBox("Next Available Version")
+        self.version_checkbox.setCheckState(QtCore.Qt.CheckState(2))
+        layout = QtWidgets.QHBoxLayout()
+        layout.addWidget(self.version_spinbox)
+        layout.addWidget(self.version_checkbox)
+        grid_layout.addLayout(layout, 0, 1)
         # Since the version can be padded with "{version:0>4}" we only search
         # for "{version".
         if "{version" not in self.template:
             label.setVisible(False)
             self.version_spinbox.setVisible(False)
-        layout.addWidget(self.version_spinbox, 0, 1)
+            self.version_checkbox.setVisible(False)
 
         label = QtWidgets.QLabel("Comment:")
-        layout.addWidget(label, 1, 0)
+        grid_layout.addWidget(label, 1, 0)
         self.comment_lineedit = QtWidgets.QLineEdit()
         if "{comment}" not in self.template:
             label.setVisible(False)
             self.comment_lineedit.setVisible(False)
-        layout.addWidget(self.comment_lineedit, 1, 1)
+        grid_layout.addWidget(self.comment_lineedit, 1, 1)
 
-        layout.addWidget(QtWidgets.QLabel("Preview:"), 2, 0)
+        grid_layout.addWidget(QtWidgets.QLabel("Preview:"), 2, 0)
         self.label = QtWidgets.QLabel("File name")
-        layout.addWidget(self.label, 2, 1)
+        grid_layout.addWidget(self.label, 2, 1)
 
-        self.layout.addLayout(layout)
+        self.layout.addLayout(grid_layout)
 
         layout = QtWidgets.QHBoxLayout()
         self.ok_button = QtWidgets.QPushButton("Ok")
@@ -76,15 +83,23 @@ class NameWindow(QtWidgets.QDialog):
         layout.addWidget(self.cancel_button)
         self.layout.addLayout(layout)
 
-        self.version_spinbox.valueChanged.connect(self.on_version_changed)
+        self.version_spinbox.valueChanged.connect(
+            self.on_version_spinbox_changed
+        )
+        self.version_checkbox.stateChanged.connect(
+            self.on_version_checkbox_changed
+        )
         self.comment_lineedit.textChanged.connect(self.on_comment_changed)
         self.ok_button.pressed.connect(self.on_ok_pressed)
         self.cancel_button.pressed.connect(self.on_cancel_pressed)
 
         self.refresh()
 
-    def on_version_changed(self, value):
+    def on_version_spinbox_changed(self, value):
         self.data["version"] = value
+        self.refresh()
+
+    def on_version_checkbox_changed(self, value):
         self.refresh()
 
     def on_comment_changed(self, text):
@@ -102,7 +117,7 @@ class NameWindow(QtWidgets.QDialog):
         self.temp_file.write(self.work_file.replace("\\", "/"))
         self.close()
 
-    def refresh(self):
+    def get_work_file(self):
         data = self.data.copy()
         template = self.template
 
@@ -127,7 +142,25 @@ class NameWindow(QtWidgets.QDialog):
         work_file = work_file.replace("<", "")
         work_file = work_file.replace(">", "")
 
-        self.work_file = work_file + self.extensions[self.application]
+        work_file = work_file + self.extensions[self.application]
+
+        return work_file
+
+    def refresh(self):
+        if self.version_checkbox.isChecked():
+            self.version_spinbox.setEnabled(False)
+
+            for i in range(1, 9999):
+                self.data["version"] = i
+                self.work_file = self.get_work_file()
+                path = os.path.join(self.root, self.work_file)
+                if not os.path.exists(path):
+                    break
+        else:
+            self.version_spinbox.setEnabled(True)
+            self.data["version"] = self.version_spinbox.value()
+
+        self.work_file = self.get_work_file()
 
         self.label.setText(
             "<font color='green'>{0}</font>".format(self.work_file)
