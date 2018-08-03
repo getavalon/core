@@ -1,45 +1,36 @@
 # Workfiles App
 
-The Workfiles app facilitates easy creation and launching of work files.
+The Workfiles app facilitates easy saving, creation and launching of work files.
 
 The current supported hosts are:
 
 - Maya
 
+The app is available inside hosts via. the ```Avalon > Work Files``` menu.
+
 ## Enabling Workfiles on launch
 
-By default the Workfiles app will not launch, so it has to be explicitly enabled.
-
-### ```.toml``` Applications
-
-```toml
-workfiles_app = true
-workfiles_dir = "scenes"
-```
-
-| Variable | Description
-| --- | ---
-| workfiles_app | Boolean value to enable the Workfiles app on launch.
-| workfiles_dir | Initially the Workfiles app search and present work files from the ```application_dir```. Some applications like Maya has a subdirectory where work files are stored. ```workfiles_dir``` facilitates adding to ```application_dir```.
-
-
-### Action Applications
+By default the Workfiles app will not launch on startup, so it has to be explicitly enabled in a config.
 
 ```python
-from avalon.tools import workfiles
-work_file = workfiles.show(root=cwd, executable=executable)
+workfiles.show(
+    root=os.path.join(
+        cmds.workspace(query=True, rootDirectory=True),
+        cmds.workspace(fileRuleEntry="scene")
+    ),
+    executable=sys.executable
+)
 ```
 
-| Argument | Description
-| --- | ---
-| root | The directory to search and present work files from.
-| executable | The application executable to create work files from.
+## Naming Files
 
-## New Work Files
-
-Workfiles app enables user to easily create new work files, without having to launch a GUI host.
+Workfiles app enables user to easily save and create new work files.
 
 The user is presented with a two parameters; ```version``` and ```comment```. The name of the work file is determined from a template.
+
+### ```Next Available Version```
+
+Will search for the next version number that is not in use.
 
 ## Templates
 
@@ -68,7 +59,3 @@ There are other variables to customize the template with:
 The default template contains an optional template group ```<_{comment}>```. If any template group (```{comment}```) within angle bracket ```<>``` does not exist, the whole optional group is discarded.
 
 ## Hosts
-
-Workfiles is available inside hosts via. the ```Avalon > Work Files``` menu.
-
-Here you can save the currently opened work file instead of creating new files.
