@@ -131,7 +131,7 @@ class Window(QtWidgets.QDialog):
         self.stateChanged.connect(self._on_state_changed)
 
         # Defaults
-        self.resize(300, 400)
+        self.resize(300, 500)
         name.setFocus()
         create_btn.setEnabled(False)
 

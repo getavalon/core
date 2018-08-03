@@ -49,17 +49,18 @@ class InventoryModel(TreeModel):
         # Add icons
         if role == QtCore.Qt.DecorationRole:
             if index.column() == 0:
+                # Override color
+                color = node.get("color", style.colors.default)
                 if not index.parent().isValid():  # group-item
-                    return qta.icon("fa.folder", color=style.colors.default)
+                    return qta.icon("fa.folder", color=color)
                 else:
-                    return qta.icon("fa.folder-o", color=style.colors.default)
+                    return qta.icon("fa.folder-o", color=color)
 
             if index.column() == 3:
                 # Family icon
                 return node.get("familyIcon", None)
 
         if role == self.UniqueRole:
-            node = index.internalPointer()
             return node['representation'] + node.get("objectName", "<none>")
 
         return super(InventoryModel, self).data(index, role)
@@ -68,7 +69,21 @@ class InventoryModel(TreeModel):
         """Refresh the model"""
 
         host = api.registered_host()
-        items = host.ls()
+        config = api.registered_config()
+
+        items = []
+        containers = host.ls()
+        for container in containers:
+            item = container
+            # Collect custom data if attribute is present
+            if hasattr(config, "collect_container_metadata"):
+                data = config.collect_container_metadata(container)
+                # Protect the container by merging it into the data
+                data.update(container)
+                item = data
+
+            items.append(item)
+
         self.clear()
         self.add_items(items)
 
@@ -86,11 +101,11 @@ class InventoryModel(TreeModel):
             group the new items with previously existing item groups of the
             same type.
 
-        :param group_items: the items to be processed as returned by `ls()`
-        :type group_items: list
+        Args:
+            items (list): the items to be processed as returned by `ls()`
 
-        :return: root node which has children added based on the data
-        :rtype: node.Node
+        Returns:
+            node.Node: root node which has children added based on the data
         """
 
         # construct the generator results

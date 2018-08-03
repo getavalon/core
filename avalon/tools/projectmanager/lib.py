@@ -54,14 +54,13 @@ def create_asset(data):
         "type": "asset",
     })
     if asset_doc is not None:
-        raise RuntimeError("Asset named {} already "
-                           "exists.".format(asset['name']))
+        raise RuntimeError("Asset '{}' already exists.".format(asset['name']))
 
     schema.validate(asset)
     io.insert_one(asset)
 
 
 def list_project_tasks():
-    """List the projec task types available in the current project"""
+    """List the project task types available in the current project"""
     project = io.find_one({"type": "project"})
     return [task['name'] for task in project['config']['tasks']]

@@ -2,66 +2,62 @@ import re
 from ...vendor.Qt import QtCore
 
 
-class RecursiveSortFilterProxyModel(QtCore.QSortFilterProxyModel):
-    """Filters to the regex if any of the children matches allow parent"""
-
-    def filterAcceptsRow(self, row, parent):
-
-        regex = self.filterRegExp()
-        if not regex.isEmpty():
-            pattern = regex.pattern()
-            pattern = re.escape(pattern)
-            model = self.sourceModel()
-            source_index = model.index(row, self.filterKeyColumn(), parent)
-            if source_index.isValid():
-
-                # Check current index itself
-                key = model.data(source_index, self.filterRole())
-                if re.search(pattern, key, re.IGNORECASE):
-                    return True
-
-                # Check children
-                rows = model.rowCount(source_index)
-                for i in range(rows):
-                    if self.filterAcceptsRow(i, source_index):
-                        return True
-
-                # Otherwise filter it
-                return False
-
-        return super(RecursiveSortFilterProxyModel,
-                     self).filterAcceptsRow(row, parent)
-
-
-class FilterProxyModel(RecursiveSortFilterProxyModel):
+class FilterProxyModel(QtCore.QSortFilterProxyModel):
     """Filter model to where key column's value is in the filtered tags"""
 
     def __init__(self, *args, **kwargs):
         super(FilterProxyModel, self).__init__(*args, **kwargs)
-        self._enabled = False
+        self._filter_outdated = False
 
-    def set_filter_enabled(self, state):
-        state = bool(state)
-
-        if state != self._enabled:
-            self._enabled = bool(state)
-            self.invalidateFilter()
-
-    def filterAcceptsRow(self, source_row, source_parent):
-
-        state = super(FilterProxyModel, self).filterAcceptsRow(source_row,
-                                                               source_parent)
-        # If not allowed by parent class then disallow it, otherwise
-        # continue filtering
-        if not state:
-            return False
-
-        if not self._enabled:
-            return True
+    def filterAcceptsRow(self, row, parent):
 
         model = self.sourceModel()
-        column = self.filterKeyColumn()
-        index = model.index(source_row, column, source_parent)
+        source_index = model.index(row,
+                                   self.filterKeyColumn(),
+                                   parent)
+
+        # Always allow bottom entries (individual containers), since their
+        # parent group hidden if it wouldn't have been validated.
+        rows = model.rowCount(source_index)
+        if not rows:
+            return True
+
+        # Filter by regex
+        if not self.filterRegExp().isEmpty():
+            pattern = re.escape(self.filterRegExp().pattern())
+
+            if not self._matches(row, parent, pattern):
+                # Also allow if any of the children matches
+                if not any(self._matches(i, source_index, pattern)
+                           for i in range(rows)):
+                    return False
+
+        if self._filter_outdated:
+            # When filtering to outdated we filter the up to date entries
+            # thus we "allow" them when they are outdated
+            if not self._is_outdated(row, parent):
+                return False
+
+        return True
+
+    def set_filter_outdated(self, state):
+        """Set whether to show the outdated entries only."""
+        state = bool(state)
+
+        if state != self._filter_outdated:
+            self._filter_outdated = bool(state)
+            self.invalidateFilter()
+
+    def _is_outdated(self, row, parent):
+        """Return whether row is outdated.
+
+        A row is considered outdated if it has "version" and "highest_version"
+        data and in the internal data structure, and they are not of an
+        equal value.
+
+        """
+
+        index = self.sourceModel().index(row, self.filterKeyColumn(), parent)
 
         # The scene contents are grouped by "representation", e.g. the same
         # "representation" loaded twice is grouped under the same header.
@@ -86,3 +82,21 @@ class FilterProxyModel(RecursiveSortFilterProxyModel):
             return False
 
         return version != highest
+
+    def _matches(self, row, parent, pattern):
+        """Return whether row matches regex pattern.
+
+        Args:
+            row (int): row number in model
+            parent (QtCore.QModelIndex): parent index
+            pattern (regex.pattern): pattern to check for in key
+
+        Returns:
+            bool
+
+        """
+
+        index = self.sourceModel().index(row, self.filterKeyColumn(), parent)
+        key = self.sourceModel().data(index, self.filterRole())
+        if re.search(pattern, key, re.IGNORECASE):
+            return True

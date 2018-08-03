@@ -1,6 +1,7 @@
-import sys
 import os
+import sys
 import logging
+from functools import partial
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ...vendor import qtawesome as qta
@@ -38,7 +39,6 @@ class View(QtWidgets.QTreeView):
         self.setSelectionMode(self.ExtendedSelection)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_right_mouse_menu)
-        # self.doubleClicked.connect(self.on_double_click)
 
     def build_item_menu(self, items):
         """Create menu for the selected items"""
@@ -53,7 +53,8 @@ class View(QtWidgets.QTreeView):
 
         update_icon = qta.icon("fa.angle-double-up", color=DEFAULT_COLOR)
         updatetolatest_action = QtWidgets.QAction(update_icon,
-                                                  "Update to latest", menu)
+                                                  "Update to latest",
+                                                  menu)
         updatetolatest_action.triggered.connect(
             lambda: _on_update_to_latest(items))
 
@@ -99,23 +100,77 @@ class View(QtWidgets.QTreeView):
         menu.addAction(expandall_action)
         menu.addAction(collapse_action)
 
+        custom_actions = self.get_custom_actions(containers=items)
+        if custom_actions:
+            menu.addSeparator()
+            submenu = QtWidgets.QMenu("Actions", self)
+            for action in custom_actions:
+
+                color = action.color or DEFAULT_COLOR
+                icon = qta.icon("fa.%s" % action.icon, color=color)
+                action_item = QtWidgets.QAction(icon, action.label, submenu)
+                action_item.triggered.connect(
+                    partial(self.process_custom_action, action, items))
+
+                submenu.addAction(action_item)
+
+            menu.addMenu(submenu)
+
         return menu
+
+    def get_custom_actions(self, containers):
+        """Get the registered Inventory Actions
+
+        Args:
+            containers(list): collection of containers
+
+        Returns:
+            list: collection of filter and initialized actions
+        """
+
+        def sorter(Plugin):
+            """Sort based on order attribute of the plugin"""
+            return Plugin.order
+
+        # Check which action will be available in the menu
+        Plugins = api.discover(api.InventoryAction)
+        compatible = [p() for p in Plugins if
+                      any(p.is_compatible(c) for c in containers)]
+
+        return sorted(compatible, key=sorter)
+
+    def process_custom_action(self, action, containers):
+        """Run action and if results are returned positive update the view
+
+        Args:
+            action (InventoryAction): Inventory Action instance
+            containers (list): Data of currently selected items
+
+        Returns:
+            None
+        """
+
+        result = action.process(containers)
+        if result:
+            self.data_changed.emit()
 
     def show_right_mouse_menu(self, pos):
         """Display the menu when at the position of the item clicked"""
 
         active = self.currentIndex()  # index under mouse
+        if not active.isValid():
+            print("No active item found in the selection")
+            return
+
         active = active.sibling(active.row(), 0)  # get first column
         globalpos = self.viewport().mapToGlobal(pos)
 
         # move index under mouse
         indices = self.get_indices()
-        if not active.parent().isValid():
-            assert active in indices, "No active item found in the selection"
-
-            # Push the active one as *last* to selected
+        if active in indices:
             indices.remove(active)
-            indices.append(active)
+
+        indices.append(active)
 
         # Extend to the sub-items
         all_indices = self.extend_to_children(indices)
@@ -162,10 +217,11 @@ class View(QtWidgets.QTreeView):
     def show_version_dialog(self, items):
         """Create a dialog with the available versions for the selected file
 
-        :param items: list of items to run the "set_version" for
-        :type items: list
+        Args:
+            items (list): list of items to run the "set_version" for
 
-        :returns: None
+        Returns:
+            None
         """
 
         active = items[-1]
@@ -311,7 +367,6 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         input_layout.addWidget(self._assets_box)
         input_layout.addWidget(self._subsets_box)
         input_layout.addWidget(self._representations_box)
-
         input_layout.addWidget(accept_btn)
 
         self._input_layout = input_layout
@@ -444,7 +499,7 @@ class Window(QtWidgets.QDialog):
 
         # signals
         text_filter.textChanged.connect(self.proxy.setFilterRegExp)
-        outdated_only.stateChanged.connect(self.proxy.set_filter_enabled)
+        outdated_only.stateChanged.connect(self.proxy.set_filter_outdated)
         refresh_button.clicked.connect(self.refresh)
         view.data_changed.connect(self.refresh)
 

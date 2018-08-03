@@ -33,6 +33,7 @@ from .tools import workfiles
 self = sys.modules[__name__]
 self._is_installed = False
 self._config = None
+self.data = {}
 
 log = logging.getLogger(__name__)
 
@@ -249,6 +250,56 @@ class Action(object):
         pass
 
 
+class InventoryAction(object):
+    """A custom action for the scene inventory tool
+
+    If registered the action will be visible in the Right Mouse Button menu
+    under the submenu "Actions".
+
+    """
+
+    label = None
+    icon = None
+    color = None
+    order = 0
+
+    @staticmethod
+    def is_compatible(container):
+        """Override function in a custom class
+
+        This method is specifically used to ensure the action can operate on
+        the container.
+
+        Args:
+            container(dict): the data of a loaded asset, see host.ls()
+
+        Returns:
+            bool
+        """
+        return True
+
+    def process(self, containers):
+        """Override function in a custom class
+
+        This method will receive all containers even those which are
+        incompatible. It is advised to create a small filter along the lines
+        of this example:
+
+        valid_containers = filter(self.is_compatible(c) for c in containers)
+
+        The return value will need to be a True-ish value to trigger
+        the data_changed signal in order to refresh the view.
+
+        Args:
+            containers (list): list of dictionaries
+
+        Return:
+            bool
+
+        """
+        return True
+
+
 class Application(Action):
     """Default application launcher
 
@@ -370,39 +421,7 @@ def discover(superclass):
 
     # Include plug-ins from registered paths
     for path in _registered_plugin_paths.get(superclass, list()):
-        path = os.path.normpath(path)
-
-        assert os.path.isdir(path), "%s is not a directory" % path
-
-        for fname in os.listdir(path):
-            # Ignore files which start with underscore
-            if fname.startswith("_"):
-                continue
-
-            mod_name, mod_ext = os.path.splitext(fname)
-            if not mod_ext == ".py":
-                continue
-
-            abspath = os.path.join(path, fname)
-            if not os.path.isfile(abspath):
-                continue
-
-            module = types.ModuleType(mod_name)
-            module.__file__ = abspath
-
-            try:
-                with open(abspath) as f:
-                    six.exec_(f.read(), module.__dict__)
-
-                # Store reference to original module, to avoid
-                # garbage collection from collecting it's global
-                # imports, such as `import os`.
-                sys.modules[mod_name] = module
-
-            except Exception as err:
-                print("Skipped: \"%s\" (%s)", mod_name, err)
-                continue
-
+        for module in lib.modules_from_path(path):
             for plugin in plugin_from_module(superclass, module):
                 if plugin.__name__ in plugins:
                     print("Duplicate plug-in found: %s", plugin)
@@ -1077,9 +1096,11 @@ def update(container, version=-1):
 
 def switch(container, representation):
     """Switch a container to representation
+
     Args:
         container (dict): container information
         representation (dict): representation data from document
+
     Returns:
         function call
     """
@@ -1145,6 +1166,9 @@ def is_compatible_loader(Loader, context):
 
     This checks the version's families and the representation for the given
     Loader.
+
+    Returns:
+        bool
 
     """
     families = context["version"]["data"]["families"]
