@@ -378,10 +378,9 @@ class Window(QtWidgets.QDialog):
 
         filter = " *".join(self.filter)
         filter = "Work File (*{0})".format(filter)
-
         work_file = QtWidgets.QFileDialog.getOpenFileName(
             caption="Work Files",
-            directory=self.root,
+            dir=self.root,
             filter=filter
         )[0]
 
