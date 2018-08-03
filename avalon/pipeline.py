@@ -28,7 +28,6 @@ from . import (
 )
 
 from .vendor import six
-from .tools import workfiles
 
 self = sys.modules[__name__]
 self._is_installed = False
@@ -380,20 +379,6 @@ class Application(Action):
     def launch(self, environment):
         executable = lib.which(self.config["executable"])
         args = self.config.get("args", [])
-
-        if self.config.get("workfiles_app", False):
-            cwd = environment["AVALON_WORKDIR"]
-
-            if self.config.get("workfiles_dir", ""):
-                cwd = os.path.join(cwd, self.config["workfiles_dir"])
-
-            environ = os.environ.copy()
-            os.environ.update(environment)
-            work_file = workfiles.show(root=cwd, executable=executable)
-            if work_file:
-                args = [work_file] + args
-            os.environ.update(environ)
-
         return lib.launch(
             executable=executable,
             args=args,

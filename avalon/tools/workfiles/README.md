@@ -5,7 +5,6 @@ The Workfiles app facilitates easy creation and launching of work files.
 The current supported hosts are:
 
 - Maya
-- Nuke
 
 ## Enabling Workfiles on launch
 

@@ -1,9 +1,9 @@
 import sys
 import os
 import tempfile
-import subprocess
 import getpass
 import re
+import shutil
 
 
 from ...vendor.Qt import QtWidgets, QtCore
@@ -20,12 +20,6 @@ def determine_application(executable):
         if "maya" in basename:
             application = "maya"
 
-        if "nuke" in basename:
-            application = "nuke"
-
-        if "python" in basename:
-            application = "python"
-
         if application is None:
             raise ValueError(
                 "Could not determine application from executable:"
@@ -35,21 +29,22 @@ def determine_application(executable):
         return application
 
 
-class NewFileWindow(QtWidgets.QDialog):
-    """New File Window"""
+class NameWindow(QtWidgets.QDialog):
+    """Name Window"""
 
-    def __init__(self, executable, root):
-        super(NewFileWindow, self).__init__()
+    def __init__(self, executable, root, temp_file):
+        super(NameWindow, self).__init__()
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
 
         self.setup(root, executable)
-        self.update_work_file()
+        self.temp_file = temp_file
 
-        self.layout = QtWidgets.QGridLayout()
+        self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
 
+        layout = QtWidgets.QGridLayout()
         label = QtWidgets.QLabel("Version:")
-        self.layout.addWidget(label, 0, 0)
+        layout.addWidget(label, 0, 0)
         self.version_spinbox = QtWidgets.QSpinBox()
         self.version_spinbox.setMinimum(1)
         self.version_spinbox.setMaximum(9999)
@@ -58,68 +53,56 @@ class NewFileWindow(QtWidgets.QDialog):
         if "{version" not in self.template:
             label.setVisible(False)
             self.version_spinbox.setVisible(False)
-        self.layout.addWidget(self.version_spinbox, 0, 1)
+        layout.addWidget(self.version_spinbox, 0, 1)
 
         label = QtWidgets.QLabel("Comment:")
-        self.layout.addWidget(label, 1, 0)
+        layout.addWidget(label, 1, 0)
         self.comment_lineedit = QtWidgets.QLineEdit()
         if "{comment}" not in self.template:
             label.setVisible(False)
             self.comment_lineedit.setVisible(False)
-        self.layout.addWidget(self.comment_lineedit, 1, 1)
+        layout.addWidget(self.comment_lineedit, 1, 1)
 
+        layout.addWidget(QtWidgets.QLabel("Preview:"), 2, 0)
         self.label = QtWidgets.QLabel("File name")
-        self.layout.addWidget(self.label, 2, 0)
-        self.update_label()
+        layout.addWidget(self.label, 2, 1)
 
-        self.create_button = QtWidgets.QPushButton("Create")
-        self.layout.addWidget(self.create_button, 3, 0)
+        self.layout.addLayout(layout)
 
+        layout = QtWidgets.QHBoxLayout()
+        self.ok_button = QtWidgets.QPushButton("Ok")
+        layout.addWidget(self.ok_button)
         self.cancel_button = QtWidgets.QPushButton("Cancel")
-        self.layout.addWidget(self.cancel_button, 3, 1)
+        layout.addWidget(self.cancel_button)
+        self.layout.addLayout(layout)
 
         self.version_spinbox.valueChanged.connect(self.on_version_changed)
         self.comment_lineedit.textChanged.connect(self.on_comment_changed)
-        self.create_button.pressed.connect(self.on_create_pressed)
+        self.ok_button.pressed.connect(self.on_ok_pressed)
         self.cancel_button.pressed.connect(self.on_cancel_pressed)
+
+        self.refresh()
+
+    def on_version_changed(self, value):
+        self.data["version"] = value
+        self.refresh()
 
     def on_comment_changed(self, text):
         self.data["comment"] = text
-        self.update_work_file()
-        self.update_label()
+        self.refresh()
 
-    def on_create_pressed(self):
-        file_path = os.path.join(self.root, self.work_file)
-
-        if os.path.exists(file_path):
-            raise ValueError(
-                "File already exists at: \"{0}\"".format(file_path)
-            )
-
-        scripts = {
-            "maya": os.path.abspath(
-                os.path.join(__file__, "..", "maya_workfile.py")
-            ),
-            "nuke": os.path.abspath(
-                os.path.join(__file__, "..", "nuke_workfile.py")
-            )
-        }
-
-        # For some reason Nuke does not block when using subprocess.call so the
-        # work files list updates before the new file is created.
-        # subprocess.check_output seems to fix this issue.
-        subprocess.check_output(
-            [
-                "python",
-                scripts[self.application],
-                self.executable,
-                file_path
-            ]
-        )
-
+    def on_ok_pressed(self):
+        self.write_data()
         self.close()
 
-    def update_work_file(self):
+    def on_cancel_pressed(self):
+        self.close()
+
+    def write_data(self):
+        self.temp_file.write(self.work_file.replace("\\", "/"))
+        self.close()
+
+    def refresh(self):
         data = self.data.copy()
         template = self.template
 
@@ -146,7 +129,6 @@ class NewFileWindow(QtWidgets.QDialog):
 
         self.work_file = work_file + self.extensions[self.application]
 
-    def update_label(self):
         self.label.setText(
             "<font color='green'>{0}</font>".format(self.work_file)
         )
@@ -155,14 +137,9 @@ class NewFileWindow(QtWidgets.QDialog):
                 "<font color='red'>Cannot create \"{0}\" because file exists!"
                 "</font>".format(self.work_file)
             )
-
-    def on_version_changed(self, value):
-        self.data["version"] = value
-        self.update_work_file()
-        self.update_label()
-
-    def on_cancel_pressed(self):
-        self.close()
+            self.ok_button.setEnabled(False)
+        else:
+            self.ok_button.setEnabled(True)
 
     def setup(self, root, executable):
         self.executable = executable
@@ -205,95 +182,100 @@ class NewFileWindow(QtWidgets.QDialog):
         if "workfile" in templates:
             self.template = templates["workfile"]
 
-        self.extensions = {"maya": ".ma", "nuke": ".nk"}
-
-
-class SaveFileWindow(NewFileWindow):
-    """Save File Window"""
-
-    def __init__(self, root, executable):
-        super(SaveFileWindow, self).__init__(root, executable)
-
-        self.create_button.setVisible(False)
-
-        self.save_button = QtWidgets.QPushButton("Save")
-        self.layout.addWidget(self.save_button, 3, 0)
-
-        self.save_button.pressed.connect(self.on_save_pressed)
-
-    def on_save_pressed(self):
-        save = {"maya": self.save_maya}
-        application = determine_application(sys.executable)
-        if application not in save:
-            raise ValueError(
-                "Could not find a save method for this application."
-            )
-
-        file_path = os.path.join(self.root, self.work_file)
-        save[application](file_path)
-
-        self.close()
-
-    def save_maya(self, file_path):
-        from maya import cmds
-        cmds.file(rename=file_path)
-        cmds.file(save=True, type="mayaAscii")
+        self.extensions = {"maya": ".ma"}
 
 
 class Window(QtWidgets.QDialog):
     """Work Files Window"""
 
-    def __init__(self, *args, **kwargs):
-        super(Window, self).__init__(kwargs["parent"])
+    def __init__(self, root=None, executable=None):
+        super(Window, self).__init__()
         self.setWindowTitle("Work Files")
+        self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
 
-        self.work_file = None
-        self.tempfile = kwargs["tempfile"]
-        self.executable = kwargs["executable"]
+        self.executable = executable
 
-        self.root = kwargs["root"]
+        self.root = root
         if self.root is None:
             self.root = os.getcwd()
 
         filters = {
-            "maya": [".ma", ".mb"],
-            "nuke": [".nk"]
+            "maya": [".ma", ".mb"]
         }
-        application = determine_application(self.executable)
-        self.filter = filters[application]
+        self.application = determine_application(self.executable)
+        self.filter = filters[self.application]
 
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
 
         self.list = QtWidgets.QListWidget()
         self.layout.addWidget(self.list)
-        self.refresh_list()
 
         buttons_layout = QtWidgets.QHBoxLayout()
-        self.new_button = QtWidgets.QPushButton("New")
-        buttons_layout.addWidget(self.new_button)
-        self.save_button = QtWidgets.QPushButton("Save")
-        self.save_button.setVisible(False)
-        buttons_layout.addWidget(self.save_button)
+        self.duplicate_button = QtWidgets.QPushButton("Duplicate")
+        buttons_layout.addWidget(self.duplicate_button)
         self.open_button = QtWidgets.QPushButton("Open")
         buttons_layout.addWidget(self.open_button)
         self.browse_button = QtWidgets.QPushButton("Browse")
         buttons_layout.addWidget(self.browse_button)
         self.layout.addLayout(buttons_layout)
 
-        # If within a host we need "Save" instead of "New"
-        if determine_application(sys.executable) != "python":
-            self.new_button.setVisible(False)
-            self.save_button.setVisible(True)
+        separator = QtWidgets.QFrame()
+        separator.setFrameShape(QtWidgets.QFrame.HLine)
+        separator.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.layout.addWidget(separator)
 
-        self.new_button.pressed.connect(self.on_new_pressed)
-        self.save_button.pressed.connect(self.on_save_pressed)
-        self.browse_button.pressed.connect(self.on_browse_pressed)
+        current_file_label = QtWidgets.QLabel(
+            "Current File: " + self.current_file()
+        )
+        self.layout.addWidget(current_file_label)
+
+        buttons_layout = QtWidgets.QHBoxLayout()
+        self.save_as_button = QtWidgets.QPushButton("Save As")
+        buttons_layout.addWidget(self.save_as_button)
+        self.layout.addLayout(buttons_layout)
+
+        self.duplicate_button.pressed.connect(self.on_duplicate_pressed)
         self.open_button.pressed.connect(self.on_open_pressed)
+        self.browse_button.pressed.connect(self.on_browse_pressed)
+        self.save_as_button.pressed.connect(self.on_save_as_pressed)
 
         self.open_button.setFocus()
 
-    def refresh_list(self):
+        self.refresh()
+
+    def get_name(self):
+        temp = tempfile.TemporaryFile(mode="w+t")
+
+        window = NameWindow(self.executable, self.root, temp)
+        window.setStyleSheet(style.load_stylesheet())
+        window.exec_()
+
+        temp.seek(0)
+        name = temp.read()
+        temp.close()
+        return name
+
+    def current_file(self):
+        func = {"maya": self.current_file_maya}
+        return func[self.application]()
+
+    def current_file_maya(self):
+        import os
+        from maya import cmds
+
+        current_file = cmds.file(sceneName=True, query=True)
+
+        # Maya returns forward-slashes by default
+        normalised = os.path.basename(os.path.normpath(current_file))
+
+        # Unsaved current file
+        if normalised == ".":
+            return "NOT SAVED"
+
+        return normalised
+
+    def refresh(self):
         self.list.clear()
         items = []
         modified = []
@@ -310,102 +292,96 @@ class Window(QtWidgets.QDialog):
         # Select last modified file
         if items:
             items[modified.index(max(modified))].setSelected(True)
+            self.duplicate_button.setEnabled(True)
+        else:
+            self.duplicate_button.setEnabled(False)
 
         self.list.setMinimumWidth(self.list.sizeHintForColumn(0) + 30)
 
-    def write_data(self):
-        self.tempfile.write(self.work_file.replace("\\", "/"))
-        self.close()
+    def save_as_maya(self, file_path):
+        from maya import cmds
+        cmds.file(rename=file_path)
+        cmds.file(save=True, type="mayaAscii")
 
-    def on_new_pressed(self):
-        if not self.executable:
-            raise ValueError(
-                "No executable specified for work file creation."
-            )
+    def open_maya(self, file_path):
+        from maya import cmds
+        cmds.file(file_path, open=True)
 
-        window = NewFileWindow(self.executable, self.root)
-        window.setStyleSheet(style.load_stylesheet())
-        window.exec_()
+    def open(self, file_path):
+        func = {"maya": self.open_maya}
 
-        self.refresh_list()
-
-    def on_save_pressed(self):
-        window = SaveFileWindow(self.executable, self.root)
-        window.setStyleSheet(style.load_stylesheet())
-        window.exec_()
-
-        self.close()
-
-    def on_open_pressed(self):
-        self.work_file = os.path.join(
+        work_file = os.path.join(
             self.root, self.list.selectedItems()[0].text()
         )
 
-        self.write_data()
+        func[self.application](work_file)
+
+    def on_duplicate_pressed(self):
+        work_file = self.get_name()
+
+        if not work_file:
+            return
+
+        src = os.path.join(
+            self.root, self.list.selectedItems()[0].text()
+        )
+        dst = os.path.join(
+            self.root, work_file
+        )
+        shutil.copy(src, dst)
+
+        self.refresh()
+
+    def on_open_pressed(self):
+        work_file = os.path.join(
+            self.root, self.list.selectedItems()[0].text()
+        )
+
+        self.open(work_file)
+
+        self.close()
 
     def on_browse_pressed(self):
 
         filter = " *".join(self.filter)
         filter = "Work File (*{0})".format(filter)
 
-        self.work_file = QtWidgets.QFileDialog.getOpenFileName(
+        work_file = QtWidgets.QFileDialog.getOpenFileName(
             caption="Work Files",
             directory=self.root,
             filter=filter
         )[0]
 
-        self.write_data()
+        if not work_file:
+            self.refresh()
+            return
+
+        self.open(work_file)
+
+        self.close()
+
+    def on_save_as_pressed(self):
+        work_file = self.get_name()
+
+        if not work_file:
+            return
+
+        save_as = {"maya": self.save_as_maya}
+        application = determine_application(sys.executable)
+        if application not in save_as:
+            raise ValueError(
+                "Could not find a save as method for this application."
+            )
+
+        file_path = os.path.join(self.root, work_file)
+
+        save_as[application](file_path)
+
+        self.close()
 
 
-def show(parent=None, **kwargs):
+def show(root, executable):
     """Show Work Files GUI"""
-    temp = tempfile.TemporaryFile(mode="w+t")
-
-    app = QtWidgets.QApplication.instance()
-
-    kwargs["parent"] = parent
-    kwargs["tempfile"] = temp
-
-    if "root" not in kwargs:
-        kwargs["root"] = None
-
-    if "executable" not in kwargs:
-        kwargs["executable"] = None
-
-    if not app:
-        print("Starting new QApplication..")
-        app = QtWidgets.QApplication(sys.argv)
-        window = Window(**kwargs)
-        window.setStyleSheet(style.load_stylesheet())
-        window.show()
-        app.exec_()
-    else:
-        print("Using existing QApplication..")
-        window = Window(**kwargs)
-        window.setStyleSheet(style.load_stylesheet())
-        window.exec_()
-
-    temp.seek(0)
-    work_file = temp.read()
-    temp.close()
-
-    return work_file
-
-
-def cli():
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--root",
-        help="Work directory. Example: --root /path/to/work/directory"
-    )
-    parser.add_argument(
-        "--executable",
-        help="Executable to create new files from. "
-        "Example: --executable /path/to/maya"
-    )
-
-    kwargs, args = parser.parse_known_args(sys.argv)
-
-    show(**vars(kwargs))
+    window = Window(root, executable)
+    window.setStyleSheet(style.load_stylesheet())
+    window.exec_()

@@ -1,9 +1,7 @@
 from .app import (
-    show,
-    cli
+    show
 )
 
 __all__ = [
-    "show",
-    "cli",
+    "show"
 ]
