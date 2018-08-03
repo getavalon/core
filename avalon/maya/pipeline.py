@@ -193,15 +193,13 @@ def _install_menu():
 
 
 def launch_workfiles_app(*args):
-    work_file = workfiles.show(
+    workfiles.show(
         root=os.path.join(
             cmds.workspace(query=True, rootDirectory=True),
             cmds.workspace(fileRuleEntry="scene")
         ),
         executable=sys.executable
     )
-    if work_file:
-        cmds.file(work_file, open=True)
 
 
 def reload_pipeline(*args):
