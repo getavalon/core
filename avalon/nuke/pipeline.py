@@ -1,6 +1,7 @@
 import nuke
 
 from .. import api, io
+import pyblish.api
 
 
 def containerise():
@@ -25,6 +26,8 @@ def install(config):
     """
     _install_menu()
     _register_events()
+
+    pyblish.api.register_host("nuke")
 
 
 def _uninstall_menu():
@@ -133,6 +136,8 @@ def uninstall():
 
     """
     _uninstall_menu()
+
+    pyblish.api.deregister_host("nuke")
 
 
 def ls():
