@@ -24,6 +24,7 @@ def install(config):
 
     """
     _install_menu()
+    _register_events()
 
 
 def _uninstall_menu():
@@ -39,8 +40,6 @@ def _install_menu():
         cbsceneinventory,
         contextmanager
     )
-
-    _uninstall_menu()
 
     # Create menu
     menubar = nuke.menu("Nuke")
@@ -155,3 +154,16 @@ def publish():
     """Shorthand to publish from within host"""
     import pyblish.util
     return pyblish.util.publish()
+
+
+def _register_events():
+
+    api.on("taskChanged", _on_task_changed)
+    print("Installed event callback for 'taskChanged'..")
+
+
+def _on_task_changed(*args):
+
+    # Update menu
+    _uninstall_menu()
+    _install_menu()
