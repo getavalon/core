@@ -1,19 +1,18 @@
-"""Pipeline functionality specifically for Nuke
+import nuke
 
-Hi Arvid!
-
-I've pre-filled this module with the functions you'll need to
-implement in order to get the Creator, Loader and Manager
-running in Nuke.
-
-Have a look at the docstring for each function, and refer back
-to the Maya implementation which resides in a similar file but
-under the `maya/` directory.
-
-"""
+from .. import api, io
 
 
-def install():
+def containerise():
+    """Bundle `nodes` into an assembly and imprint it with metadata
+
+    Containerisation enables a tracking of version, author and origin
+    for loaded assets.
+    """
+    pass
+
+
+def install(config):
     """Install Nuke-specific functionality of avalon-core.
 
     This is where you install menus and register families, data
@@ -24,6 +23,103 @@ def install():
     See the Maya equivalent for inspiration on how to implement this.
 
     """
+    _install_menu()
+
+
+def _uninstall_menu():
+    menubar = nuke.menu("Nuke")
+    menubar.removeItem(api.Session["AVALON_LABEL"])
+
+
+def _install_menu():
+    from ..tools import (
+        creator,
+        publish,
+        cbloader,
+        cbsceneinventory,
+        contextmanager
+    )
+
+    _uninstall_menu()
+
+    # Create menu
+    menubar = nuke.menu("Nuke")
+    menu = menubar.addMenu(api.Session["AVALON_LABEL"])
+
+    label = "{0}, {1}".format(
+        api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"]
+    )
+    context_menu = menu.addMenu(label)
+    context_menu.addCommand("Set Context", contextmanager.show)
+
+    menu.addSeparator()
+
+    menu.addCommand("Create...", creator.show)
+    menu.addCommand("Load...", cbloader.show)
+    menu.addCommand("Publish...", publish.show)
+    menu.addCommand("Manage...", cbsceneinventory.show)
+
+    menu.addSeparator()
+
+    menu.addCommand("Reset Frame Range", reset_frame_range)
+    menu.addCommand("Reset Resolution", reset_resolution)
+
+
+def reset_frame_range():
+    """Set frame range to current asset"""
+    fps = float(api.Session.get("AVALON_FPS", 25))
+
+    nuke.root()["fps"].setValue(fps)
+
+    asset = api.Session["AVALON_ASSET"]
+    asset = io.find_one({"name": asset, "type": "asset"})
+
+    try:
+        edit_in = asset["data"]["edit_in"]
+        edit_out = asset["data"]["edit_out"]
+    except KeyError:
+        print(
+            "Frame range not set! No edit information found for "
+            "\"{0}\".".format(asset["name"])
+        )
+        return
+
+    nuke.root()["first_frame"].setValue(edit_in)
+    nuke.root()["last_frame"].setValue(edit_out)
+
+
+def reset_resolution():
+    """Set resolution to project resolution."""
+    project = io.find_one({"type": "project"})
+
+    try:
+        width = project["data"].get("resolution_width", 1920)
+        height = project["data"].get("resolution_height", 1080)
+    except KeyError:
+        print(
+            "No resolution information found for \"{0}\".".format(
+                project["name"]
+            )
+        )
+        return
+
+    current_width = nuke.root()["format"].value().width()
+    current_height = nuke.root()["format"].value().height()
+
+    if width != current_width or height != current_height:
+
+        fmt = None
+        for f in nuke.formats():
+            if f.width() == width and f.height() == height:
+                fmt = f.name()
+
+        if not fmt:
+            nuke.addFormat(
+                "{0} {1} {2}".format(int(width), int(height), project["name"])
+            )
+            fmt = project["name"]
+
+        nuke.root()["format"].setValue(fmt)
 
 
 def uninstall():
@@ -37,6 +133,7 @@ def uninstall():
     modifying the menu or registered families.
 
     """
+    _uninstall_menu()
 
 
 def ls():
@@ -54,59 +151,7 @@ def ls():
     yield {}
 
 
-def load(asset, subset, version=-1, representation=None):
-    """Load data into Maya
-
-    This function takes an asset from the Loader GUI and
-    imports it into Nuke.
-
-    The function takes `asset`, which is a dictionary following the
-    `asset.json` schema, a `subset` of the `subset.json` schema and
-    an integer version number and a representation.
-
-    Again, on terminology, see the Terminology chapter in the
-    documentation, it'll have info on these for you.
-
-    """
-
-    return ""
-
-
-def create(name, family, options=None):
-    """Create new instance
-
-    This function is called when a user has finished using the
-    Creator GUI. It is given a (str) name, a (str) family and
-    an optional dictionary of options. You can safely ignore
-    the options for a first run and come back to it once
-    everything works well.
-
-    """
-
-    return ""
-
-
-def update(container, version=-1):
-    """Update an existing `container` to `version`
-
-    From the Container Manager, once a user chooses to
-    update from one version to another, this function is
-    called.
-
-    It takes a `container`, which is a dictionary of the
-    `container.json` schema, and an integer version.
-
-    """
-
-
-def remove(container):
-    """Remove an existing `container` from Nuke scene
-
-    In the Container Manager, when a user chooses to remove
-    a container they've previously imported, this function is
-    called.
-
-    You'll need to ensure all nodes that cale along with the
-    loaded asset is removed here.
-
-    """
+def publish():
+    """Shorthand to publish from within host"""
+    import pyblish.util
+    return pyblish.util.publish()

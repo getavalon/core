@@ -1,17 +1,23 @@
+"""Public API
+
+Anything that isn't defined here is INTERNAL and unreliable for external use.
+
+"""
 
 from .pipeline import (
-    load,
-    create,
+    install,
+    uninstall,
+
     ls,
-    update,
-    remove,
+    publish,
+    containerise,
 )
 
-
 __all__ = [
-    "load",
-    "create",
+    "install",
+    "uninstall",
+
     "ls",
-    "update",
-    "remove",
+    "publish",
+    "containerise",
 ]
