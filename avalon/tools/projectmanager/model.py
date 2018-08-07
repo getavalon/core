@@ -228,6 +228,13 @@ class TasksModel(TreeModel):
             asset_tasks = asset.get("data", {}).get("tasks", [])
             tasks.update(asset_tasks)
 
+        # If no asset tasks are defined, use the project tasks.
+        if assets and not tasks:
+            project = io.parenthood(assets[0])[0]
+            tasks.update(
+                [task["name"] for task in project["config"].get("tasks", [])]
+            )
+
         self.clear()
         self.beginResetModel()
 
