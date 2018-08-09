@@ -230,7 +230,7 @@ class TasksModel(TreeModel):
 
         # If no asset tasks are defined, use the project tasks.
         if assets and not tasks:
-            project = io.parenthood(assets[0])[0]
+            project = io.find_one({"type": "project"})
             tasks.update(
                 [task["name"] for task in project["config"].get("tasks", [])]
             )
