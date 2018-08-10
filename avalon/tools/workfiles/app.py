@@ -319,9 +319,45 @@ class Window(QtWidgets.QDialog):
         cmds.file(rename=file_path)
         cmds.file(save=True, type="mayaAscii")
 
+    def save_changes_prompt(self):
+        messagebox = QtWidgets.QMessageBox()
+        messagebox.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        messagebox.setIcon(messagebox.Warning)
+        messagebox.setWindowTitle("Unsaved Changes!")
+        messagebox.setText(
+            "There are unsaved changes to the current file."
+            "\nDo you want to save the changes?"
+        )
+        messagebox.setStandardButtons(
+            messagebox.Yes | messagebox.No | messagebox.Cancel
+        )
+        result = messagebox.exec_()
+
+        if result == messagebox.Yes:
+            return True
+        elif result == messagebox.No:
+            return False
+        else:
+            return None
+
     def open_maya(self, file_path):
         from maya import cmds
-        cmds.file(file_path, open=True)
+
+        force = False
+        if cmds.file(q=True, modified=True):
+            result = self.save_changes_prompt()
+
+            if result is None:
+                return False
+
+            if result:
+                cmds.file(save=True, type="mayaAscii")
+            else:
+                force = True
+
+        cmds.file(file_path, open=True, force=force)
+
+        return True
 
     def open(self, file_path):
         func = {"maya": self.open_maya}
@@ -330,7 +366,7 @@ class Window(QtWidgets.QDialog):
             self.root, self.list.selectedItems()[0].text()
         )
 
-        func[self.application](work_file)
+        return func[self.application](work_file)
 
     def on_duplicate_pressed(self):
         work_file = self.get_name()
@@ -353,9 +389,10 @@ class Window(QtWidgets.QDialog):
             self.root, self.list.selectedItems()[0].text()
         )
 
-        self.open(work_file)
+        result = self.open(work_file)
 
-        self.close()
+        if result:
+            self.close()
 
     def on_browse_pressed(self):
 
