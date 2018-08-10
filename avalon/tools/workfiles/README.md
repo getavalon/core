@@ -14,11 +14,10 @@ By default the Workfiles app will not launch on startup, so it has to be explici
 
 ```python
 workfiles.show(
-    root=os.path.join(
+    os.path.join(
         cmds.workspace(query=True, rootDirectory=True),
         cmds.workspace(fileRuleEntry="scene")
-    ),
-    executable=sys.executable
+    )
 )
 ```
 
@@ -57,5 +56,3 @@ There are other variables to customize the template with:
 ### Optional template groups
 
 The default template contains an optional template group ```<_{comment}>```. If any template group (```{comment}```) within angle bracket ```<>``` does not exist, the whole optional group is discarded.
-
-## Hosts

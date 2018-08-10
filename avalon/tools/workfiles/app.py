@@ -11,11 +11,11 @@ from ... import style
 from avalon import io
 
 
-def determine_application(executable):
+def determine_application():
         # Determine executable
         application = None
 
-        basename = os.path.basename(executable).lower()
+        basename = os.path.basename(sys.executable).lower()
 
         if "maya" in basename:
             application = "maya"
@@ -23,7 +23,7 @@ def determine_application(executable):
         if application is None:
             raise ValueError(
                 "Could not determine application from executable:"
-                " \"{0}\"".format(executable)
+                " \"{0}\"".format(sys.executable)
             )
 
         return application
@@ -32,11 +32,11 @@ def determine_application(executable):
 class NameWindow(QtWidgets.QDialog):
     """Name Window"""
 
-    def __init__(self, executable, root, temp_file):
+    def __init__(self, root, temp_file):
         super(NameWindow, self).__init__()
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
 
-        self.setup(root, executable)
+        self.setup(root)
         self.temp_file = temp_file
 
         self.layout = QtWidgets.QVBoxLayout()
@@ -174,24 +174,9 @@ class NameWindow(QtWidgets.QDialog):
         else:
             self.ok_button.setEnabled(True)
 
-    def setup(self, root, executable):
-        self.executable = executable
+    def setup(self, root):
         self.root = root
-        self.application = determine_application(executable)
-
-        # Need Mayapy for generating work files. Assuming maya and mayapy
-        # executable are in the same directory.
-        if self.application == "maya":
-            self.executable = os.path.join(
-                os.path.dirname(executable),
-                os.path.basename(executable).replace("maya", "mayapy")
-            )
-            if not os.path.exists(executable):
-                raise ValueError(
-                    "Could not find Mayapy executable in \"{0}\"".format(
-                        os.path.dirname(executable)
-                    )
-                )
+        self.application = determine_application()
 
         # Get work file name
         self.data = {
@@ -221,12 +206,10 @@ class NameWindow(QtWidgets.QDialog):
 class Window(QtWidgets.QDialog):
     """Work Files Window"""
 
-    def __init__(self, root=None, executable=None):
+    def __init__(self, root=None):
         super(Window, self).__init__()
         self.setWindowTitle("Work Files")
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
-
-        self.executable = executable
 
         self.root = root
         if self.root is None:
@@ -235,7 +218,7 @@ class Window(QtWidgets.QDialog):
         filters = {
             "maya": [".ma", ".mb"]
         }
-        self.application = determine_application(self.executable)
+        self.application = determine_application()
         self.filter = filters[self.application]
 
         self.layout = QtWidgets.QVBoxLayout()
@@ -280,7 +263,7 @@ class Window(QtWidgets.QDialog):
     def get_name(self):
         temp = tempfile.TemporaryFile(mode="w+t")
 
-        window = NameWindow(self.executable, self.root, temp)
+        window = NameWindow(self.root, temp)
         window.setStyleSheet(style.load_stylesheet())
         window.exec_()
 
@@ -399,7 +382,7 @@ class Window(QtWidgets.QDialog):
             return
 
         save_as = {"maya": self.save_as_maya}
-        application = determine_application(sys.executable)
+        application = determine_application()
         if application not in save_as:
             raise ValueError(
                 "Could not find a save as method for this application."
@@ -412,8 +395,8 @@ class Window(QtWidgets.QDialog):
         self.close()
 
 
-def show(root, executable):
+def show(root):
     """Show Work Files GUI"""
-    window = Window(root, executable)
+    window = Window(root)
     window.setStyleSheet(style.load_stylesheet())
     window.exec_()

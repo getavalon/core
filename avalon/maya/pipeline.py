@@ -194,11 +194,10 @@ def _install_menu():
 
 def launch_workfiles_app(*args):
     workfiles.show(
-        root=os.path.join(
+        os.path.join(
             cmds.workspace(query=True, rootDirectory=True),
             cmds.workspace(fileRuleEntry="scene")
-        ),
-        executable=sys.executable
+        )
     )
 
 
