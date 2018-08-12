@@ -378,10 +378,13 @@ class Application(Action):
 
     def launch(self, environment):
         executable = lib.which(self.config["executable"])
-        return lib.launch(executable=executable,
-                          args=self.config.get("args", []),
-                          environment=environment,
-                          cwd=environment["AVALON_WORKDIR"])
+        args = self.config.get("args", [])
+        return lib.launch(
+            executable=executable,
+            args=args,
+            environment=environment,
+            cwd=environment["AVALON_WORKDIR"]
+        )
 
     def process(self, session, **kwargs):
         """Process the full Application action"""
