@@ -327,15 +327,34 @@ def show(root=None, debug=False, parent=None, use_context=False):
 
 
 def cli(args):
+
     import argparse
+
     parser = argparse.ArgumentParser()
-    parser.add_argument("project")
+    parser.add_argument("-project")
+    parser.add_argument("-config", required=False, type=str)
 
     args = parser.parse_args(args)
     project = args.project
+    config = args.config
 
     io.install()
 
+    # Store settings
     api.Session["AVALON_PROJECT"] = project
+
+    if config:
+
+        from ... import pipeline
+
+        api.Session["AVALON_CONFIG"] = config
+
+        # Find the set config
+        _config = pipeline.find_config()
+        if hasattr(_config, "install"):
+            _config.install()
+        else:
+            print("Config `%s` has no function `install`" %
+                  config.__name__)
 
     show()
