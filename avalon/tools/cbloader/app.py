@@ -23,7 +23,7 @@ class Window(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
         self.setWindowTitle(
-            "Asset Loader 2.0 - %s/%s" % (
+            "Asset Loader 2.1 - %s/%s" % (
                 api.registered_root(),
                 api.Session.get("AVALON_PROJECT")))
 
