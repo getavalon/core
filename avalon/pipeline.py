@@ -970,7 +970,8 @@ def load(Loader, representation, namespace=None, name=None, data=None):
 
     Args:
         Loader (Loader): The loader class to trigger.
-        representation (str or io.ObjectId): The representation id.
+        representation (str or io.ObjectId or dict): The representation id
+            or full representation as returned by the database.
         namespace (str, Optional): The namespace to assign. Defaults to None.
         name (str, Optional): The name to assign. Defaults to subset name.
         data (dict, Optional): Additional custom data to pass on to the loader.
