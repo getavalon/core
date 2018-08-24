@@ -4,7 +4,7 @@ import errno
 import importlib
 import contextlib
 
-from maya import cmds, OpenMaya
+from maya import cmds, mel, OpenMaya
 from pyblish import api as pyblish
 
 from . import lib, compat
@@ -568,6 +568,27 @@ def _on_task_changed(*args):
     if os.path.exists(workdir):
         logger.info("Updating Maya workspace for task change to %s", workdir)
         _set_project()
+
+        # Update file dialog starting dir
+        # (NOTE) using `mel.eval` because this `workspace` Python cmd failed
+        #   in Maya 2017 +
+        frule_scene = mel.eval("workspace -q -fileRuleEntry \"scene\"")
+
+        cmds.optionVar(stringValue=("browserLocationmayaBinaryscene",
+                                    workdir + "/" + frule_scene))
+
     else:
         logger.warning("Can't set project for new context because "
                        "path does not exist: %s", workdir)
+
+        asset = api.Session["AVALON_ASSET"]
+        task = api.Session["AVALON_TASK"]
+        cmds.confirmDialog(
+            title="Context Manager - Context Not Exists",
+            icon="warning",
+            messageAlign="center",
+            message=("Can't set project for new context because the workspace "
+                     "of context <{asset} - {task}> not exists yet.\nPlease "
+                     "use Avalon Launcher to enter."
+                     "".format(asset=asset, task=task)),
+        )
