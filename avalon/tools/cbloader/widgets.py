@@ -197,8 +197,11 @@ class SubsetWidget(QtWidgets.QWidget):
                 ))
                 continue
 
+            data = representation.get("data", None)
             try:
-                api.load(Loader=loader, representation=representation)
+                api.load(Loader=loader,
+                         representation=representation,
+                         data=data)
             except pipeline.IncompatibleLoaderError as exc:
                 self.echo(exc)
                 continue
