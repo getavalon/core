@@ -82,7 +82,7 @@ def read(node):
 
     for attr in cmds.listAttr(node, userDefined=True) or list():
         try:
-            value = cmds.getAttr(node + "." + attr)
+            value = cmds.getAttr(node + "." + attr, asString=True)
         except ValueError:
             # Some attributes cannot be read directly,
             # such as mesh and color attributes. These
@@ -195,6 +195,10 @@ def imprint(node, data):
         elif isinstance(value, float):
             add_type = {"attributeType": "double"}
             set_type = {"keyable": False, "channelBox": True}
+        elif isinstance(value, (list, tuple)):
+            add_type = {"attributeType": "enum", "enumName": ":".join(value)}
+            set_type = {"keyable": False, "channelBox": True}
+            value = 0  # enum default
         else:
             raise TypeError("Unsupported type: %r" % type(value))
 
