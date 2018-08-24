@@ -192,9 +192,9 @@ class SubsetWidget(QtWidgets.QWidget):
                                           "parent": version_id})
             if not representation:
                 self.echo("Subset '{}' has no representation '{}'".format(
-                        node['subset'],
-                        representation_name
-                ))
+                          node['subset'],
+                          representation_name
+                          ))
                 continue
 
             data = representation.get("data", None)
