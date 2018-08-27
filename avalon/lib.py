@@ -6,6 +6,7 @@ import json
 import logging
 import datetime
 import subprocess
+import types
 
 from . import schema
 from .vendor import six, toml
@@ -262,3 +263,52 @@ def launch(executable, args=None, environment=None, cwd=None):
     popen = subprocess.Popen(**kwargs)
 
     return popen
+
+
+def modules_from_path(path):
+    """Get python scripts as modules from a path.
+
+    Arguments:
+        path (str): Path to python scrips.
+
+    Returns:
+        List of modules.
+    """
+
+    path = os.path.normpath(path)
+
+    assert os.path.isdir(path), "%s is not a directory" % path
+
+    modules = []
+    for fname in os.listdir(path):
+        # Ignore files which start with underscore
+        if fname.startswith("_"):
+            continue
+
+        mod_name, mod_ext = os.path.splitext(fname)
+        if not mod_ext == ".py":
+            continue
+
+        abspath = os.path.join(path, fname)
+        if not os.path.isfile(abspath):
+            continue
+
+        module = types.ModuleType(mod_name)
+        module.__file__ = abspath
+
+        try:
+            with open(abspath) as f:
+                six.exec_(f.read(), module.__dict__)
+
+            # Store reference to original module, to avoid
+            # garbage collection from collecting it's global
+            # imports, such as `import os`.
+            sys.modules[mod_name] = module
+
+        except Exception as err:
+            print("Skipped: \"%s\" (%s)", mod_name, err)
+            continue
+
+        modules.append(module)
+
+    return modules

@@ -363,9 +363,9 @@ class FamilyDescriptionWidget(QtWidgets.QWidget):
         icon.setSizePolicy(QtWidgets.QSizePolicy.Maximum,
                            QtWidgets.QSizePolicy.Maximum)
 
-        # Add 2 pixel padding to avoid icon being cut off
-        icon.setFixedWidth(self.SIZE + 2)
-        icon.setFixedHeight(self.SIZE + 2)
+        # Add 4 pixel padding to avoid icon being cut off
+        icon.setFixedWidth(self.SIZE + 4)
+        icon.setFixedHeight(self.SIZE + 4)
         icon.setStyleSheet("""
         QLabel {
             padding-right: 5px;
