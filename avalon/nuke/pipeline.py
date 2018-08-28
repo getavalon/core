@@ -10,7 +10,9 @@ def containerise():
     Containerisation enables a tracking of version, author and origin
     for loaded assets.
     """
-    pass
+    raise NotImplementedError(
+        "\"containerise()\" has not been implemented for Nuke."
+    )
 
 
 def install(config):
@@ -151,8 +153,9 @@ def ls():
     and the Maya equivalent, which is in `avalon.maya.pipeline`
 
     """
-
-    yield {}
+    raise NotImplementedError(
+        "\"ls()\" has not been implemented for Nuke."
+    )
 
 
 def publish():
