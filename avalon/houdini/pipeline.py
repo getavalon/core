@@ -203,15 +203,18 @@ class Creator(api.Creator):
         out = hou.node("out")
         instance = out.createNode(node_type, node_name=self.name)
 
-        # TODO(wijnand): Add support for selected items to be listed in the output
         if nodes:
             node = nodes[0]
+            # Get output node
             if node_type == "geometry":
                 instance.setParms({"soppath": node.path()})
 
             elif node_type == "alembic":
+                # Ensure the graph's output node is used
+                out_node = "%s/OUT" % node.path()
                 instance.setParms({"use_sop_path": True,
-                                   "sop_path": node.path()})
+                                   "sop_path": out_node,
+                                   "filename": "$HIP/%s.abc" % self.name})
 
         lib.imprint(instance, self.data)
 
