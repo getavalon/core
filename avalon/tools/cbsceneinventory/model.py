@@ -102,7 +102,7 @@ class InventoryModel(TreeModel):
             same type.
 
         Args:
-            items (list): the items to be processed as returned by `ls()`
+            items (generator): the items to be processed as returned by `ls()`
 
         Returns:
             node.Node: root node which has children added based on the data
