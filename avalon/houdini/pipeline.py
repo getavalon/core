@@ -187,33 +187,60 @@ def ls():
 
 
 class Creator(api.Creator):
+    """Creator plugin to create instances in Houdini
+
+    To support the wide range of node types for render output (Alembic, VDB,
+    Mantra) the Creator needs a node type to create the correct instance
+
+    By default, if none is given, is `geometry`. An example of accepted node
+    types: geometry, alembic, ifd (mantra)
+
+    Please check the Houdini documentation for more node types.
+
+    Tip: to find the exact node type to create press the `i` left of the node
+    when hovering over a node. The information is visible under the name of
+    the node.
+
+    """
+
+    nodes = list()
 
     def process(self):
-        nodes = list()
+        """This is the base functionality to create instances in Houdini
+
+        The selected nodes are stored in self to be used in an override method.
+        This is currently necessary in order to support the multiple output
+        types in Houdini which can only be rendered through their own node.
+
+        Default node type if none is given is `geometry`
+
+        It also makes it easier to apply custom settings per instance type
+
+        Example of override method for Alembic:
+
+            def process(self):
+                instance =  super(CreateEpicNode, self, process()
+                # Set paramaters for Alembic node
+                instance.setParms(
+                    {"sop_path": "$HIP/%s.abc" % self.nodes[0]}
+                )
+
+        Returns:
+            hou.Node
+
+        """
 
         if (self.options or {}).get("useSelection"):
-            nodes = hou.selectedNodes()
+            self.nodes = hou.selectedNodes()
 
         # Get the node type and remove it from the data, not needed
-        node_type = self.data.pop("node_type")
+        node_type = self.data.pop("node_type", None)
         if node_type is None:
             node_type = "geometry"
 
         # Get out node
         out = hou.node("out")
         instance = out.createNode(node_type, node_name=self.name)
-
-        if nodes:
-            node = nodes[0]
-            # Get output node
-            if node_type == "geometry":
-                instance.setParms({"soppath": node.path()})
-
-            elif node_type == "alembic":
-                # Ensure the graph's output node is used
-                instance.setParms({"use_sop_path": True,
-                                   "sop_path": "%s/OUT" % node.path(),
-                                   "filename": "$HIP/%s.abc" % self.name})
 
         lib.imprint(instance, self.data)
 
