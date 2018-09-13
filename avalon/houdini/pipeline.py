@@ -211,9 +211,8 @@ class Creator(api.Creator):
 
             elif node_type == "alembic":
                 # Ensure the graph's output node is used
-                out_node = "%s/OUT" % node.path()
                 instance.setParms({"use_sop_path": True,
-                                   "sop_path": out_node,
+                                   "sop_path": "%s/OUT" % node.path(),
                                    "filename": "$HIP/%s.abc" % self.name})
 
         lib.imprint(instance, self.data)
