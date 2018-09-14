@@ -999,7 +999,7 @@ def load(Loader, representation, namespace=None, name=None, options=None,
     if options is None:
         options = kwargs.get("data", dict())  # "data" for backward compat
 
-    assert isinstance(options, dict), "Data must be a dictionary"
+    assert isinstance(options, dict), "Options must be a dictionary"
 
     # Fallback to subset when name is None
     if name is None:
