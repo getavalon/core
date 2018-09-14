@@ -997,7 +997,7 @@ def load(Loader, representation, namespace=None, name=None, options=None,
 
     # Ensure options is a dictionary when no explicit options provided
     if options is None:
-        options = kwargs.get("data", dict())  # "data" for backward compact
+        options = kwargs.get("data", dict())  # "data" for backward compat
 
     assert isinstance(options, dict), "Data must be a dictionary"
 
