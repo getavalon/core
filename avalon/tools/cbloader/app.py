@@ -3,7 +3,7 @@ import time
 
 from ..projectmanager.widget import AssetWidget, AssetModel
 
-from ...vendor.Qt import QtWidgets, QtCore, QtGui
+from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io, style
 from .. import lib
 
