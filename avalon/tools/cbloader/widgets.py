@@ -268,7 +268,7 @@ class VersionTextEdit(QtWidgets.QTextEdit):
             "source": source_label
         }
 
-        self.setHtml("""
+        self.setHtml(u"""
 <h3>{subset} v{version:03d}</h3>
 <b>Comment</b><br>
 {comment}<br>
