@@ -240,6 +240,8 @@ class VersionTextEdit(QtWidgets.QTextEdit):
 
         self.setEnabled(True)
 
+        print("Querying..")
+
         version = io.find_one({"_id": version_id, "type": "version"})
         assert version, "Not a valid version id"
 
