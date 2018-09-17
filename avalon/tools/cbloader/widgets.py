@@ -84,6 +84,8 @@ class SubsetWidget(QtWidgets.QWidget):
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.active_changed)
 
+        version_delegate.version_changed.connect(self.version_changed)
+
         self.filter.textChanged.connect(self.proxy.setFilterRegExp)
 
         self.model.refresh()
