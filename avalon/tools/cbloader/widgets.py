@@ -186,13 +186,13 @@ class SubsetWidget(QtWidgets.QWidget):
         # Trigger
         for row in rows:
             node = row.data(self.model.NodeRole)
-            version_id = node['version_document']['_id']
+            version_id = node["version_document"]["_id"]
             representation = io.find_one({"type": "representation",
                                           "name": representation_name,
                                           "parent": version_id})
             if not representation:
                 self.echo("Subset '{}' has no representation '{}'".format(
-                          node['subset'],
+                          node["subset"],
                           representation_name
                           ))
                 continue
