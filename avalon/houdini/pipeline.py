@@ -243,6 +243,7 @@ class Creator(api.Creator):
         # Get out node
         out = hou.node("out")
         instance = out.createNode(node_type, node_name=self.name)
+        instance.moveToGoodPosition()
 
         lib.imprint(instance, self.data)
 
