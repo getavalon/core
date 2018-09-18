@@ -69,12 +69,10 @@ def lsattrs(attrs):
     """Return nodes matching `key` and `value`
 
     Arguments:
-        attr (str): Name of Maya attribute
-        value (object, optional): Value of attribute. If none
-            is provided, return all nodes with this attribute.
+        attrs (dict): collection of attribute: value
 
     Example:
-        >> lsattr("id", "myId")
+        >> lsattrs({"id": "myId"})
         ["myNode"]
         >> lsattr("id")
         ["myNode", "myOtherNode"]
@@ -89,7 +87,7 @@ def lsattrs(attrs):
         for attr in attrs:
             if not node.parm(attr):
                 continue
-            elif node.parm(attr).eval() != attrs[attr]:
+            elif node.evalParm(attr) != attrs[attr]:
                 continue
             else:
                 matches.add(node)
