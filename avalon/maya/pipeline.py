@@ -577,15 +577,3 @@ def _on_task_changed(*args):
     else:
         logger.warning("Can't set project for new context because "
                        "path does not exist: %s", workdir)
-
-        asset = api.Session["AVALON_ASSET"]
-        task = api.Session["AVALON_TASK"]
-        cmds.confirmDialog(
-            title="Context Manager - Context Not Exists",
-            icon="warning",
-            messageAlign="center",
-            message=("Can't set project for new context because the workspace "
-                     "of context <{asset} - {task}> not exists yet.\nPlease "
-                     "use Avalon Launcher to enter."
-                     "".format(asset=asset, task=task)),
-        )
