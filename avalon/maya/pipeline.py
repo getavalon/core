@@ -4,7 +4,7 @@ import errno
 import importlib
 import contextlib
 
-from maya import cmds, mel, OpenMaya
+from maya import cmds, OpenMaya
 from pyblish import api as pyblish
 
 from . import lib, compat
@@ -567,13 +567,10 @@ def _on_task_changed(*args):
     workdir = api.Session["AVALON_WORKDIR"]
     if os.path.exists(workdir):
         logger.info("Updating Maya workspace for task change to %s", workdir)
+
         _set_project()
 
-        # Update file dialog starting dir
-        # (NOTE) using `mel.eval` because this `workspace` Python cmd failed
-        #   in Maya 2017 +
-        frule_scene = mel.eval("workspace -q -fileRuleEntry \"scene\"")
-
+        frule_scene = cmds.workspace(fileRuleEntry="scene")
         cmds.optionVar(stringValue=("browserLocationmayaBinaryscene",
                                     workdir + "/" + frule_scene))
 
