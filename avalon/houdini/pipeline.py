@@ -203,7 +203,9 @@ class Creator(api.Creator):
 
     """
 
-    nodes = list()
+    def __init__(self, *args, **kwargs):
+        api.Creator.__init__(self, *args, **kwargs)
+        self.nodes = list()
 
     def process(self):
         """This is the base functionality to create instances in Houdini
