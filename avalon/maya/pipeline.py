@@ -570,6 +570,7 @@ def _on_task_changed(*args):
 
         _set_project()
 
+        # Set Maya fileDialog's start-dir to /scenes
         frule_scene = cmds.workspace(fileRuleEntry="scene")
         cmds.optionVar(stringValue=("browserLocationmayaBinaryscene",
                                     workdir + "/" + frule_scene))
