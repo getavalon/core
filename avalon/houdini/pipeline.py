@@ -1,5 +1,4 @@
 # Standard library
-import os
 import sys
 import importlib
 import contextlib
@@ -28,7 +27,7 @@ def install(config):
 
     """
 
-    # _register_callbacks()
+    _register_callbacks()
 
     if self._has_been_setup:
         teardown()
