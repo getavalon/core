@@ -84,6 +84,8 @@ class SubsetWidget(QtWidgets.QWidget):
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.active_changed)
 
+        version_delegate.version_changed.connect(self.version_changed)
+
         self.filter.textChanged.connect(self.proxy.setFilterRegExp)
 
         self.model.refresh()
@@ -240,6 +242,8 @@ class VersionTextEdit(QtWidgets.QTextEdit):
 
         self.setEnabled(True)
 
+        print("Querying..")
+
         version = io.find_one({"_id": version_id, "type": "version"})
         assert version, "Not a valid version id"
 
@@ -268,7 +272,7 @@ class VersionTextEdit(QtWidgets.QTextEdit):
             "source": source_label
         }
 
-        self.setHtml("""
+        self.setHtml(u"""
 <h3>{subset} v{version:03d}</h3>
 <b>Comment</b><br>
 {comment}<br>
