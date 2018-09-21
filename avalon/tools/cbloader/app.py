@@ -57,6 +57,10 @@ class Window(QtWidgets.QDialog):
         split.addWidget(subsets)
         split.addWidget(version)
         split.setSizes([180, 950, 200])
+
+        # Remove QSplitter border
+        split.setStyleSheet("QSplitter { border: 0px; }")
+
         container_layout.addWidget(split)
 
         body_layout = QtWidgets.QHBoxLayout(body)
