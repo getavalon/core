@@ -5,7 +5,8 @@
             <label>Avalon</label>
             <subMenu id="avalon_context">
                 <labelExpression><![CDATA[
-import os; return "%s - %s" % (os.environ["AVALON_ASSET"], os.environ["AVALON_TASK"])
+from avalon import api
+return "%s - %s" % (api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"])
 ]]></labelExpression>
                 <scriptItem id="avalon_context_switch">
                     <label>Set Context</label>
@@ -26,7 +27,7 @@ creator.show()
                 <label>Load ..</label>
                 <scriptCode><![CDATA[
 from avalon.tools import cbloader
-cbloader.show()
+cbloader.show(use_context=True)
 ]]></scriptCode>
             </scriptItem>
 
@@ -43,7 +44,6 @@ cbsceneinventory.show()
                 <scriptCode><![CDATA[
 import hou
 from avalon.tools import publish
-
 parent = hou.qt.mainWindow()
 publish.show(parent)
                 ]]></scriptCode>
@@ -51,11 +51,15 @@ publish.show(parent)
 
             <separatorItem/>
 
-            <scriptItem id="pipeline_system">
+            <subMenu id="avalon_reload_pipeline">
                 <label>System</label>
-                <scriptPath>$HOME/scripts/generic_script.py</scriptPath>
-                <scriptArgs>-q -n light</scriptArgs>
-            </scriptItem>
+                <scriptItem>
+                    <label>Reload Pipeline (unstable)</label>
+                    <scriptCode><![CDATA[
+from avalon.houdini import pipeline
+pipeline.reload_pipeline()]]></scriptCode>
+                </scriptItem>
+            </subMenu>
         </subMenu>
     </menuBar>
 </mainMenu>
