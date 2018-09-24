@@ -20,6 +20,8 @@ self._has_been_setup = False
 self._parent = None
 self._events = dict()
 
+IS_HEADLESS = not hasattr(hou, "ui")
+
 
 def install(config):
     """Setup integration
@@ -28,9 +30,6 @@ def install(config):
     """
 
     _register_callbacks()
-
-    if self._has_been_setup:
-        teardown()
 
     pyblish.api.register_host("houdini")
     pyblish.api.register_host("hython")
@@ -43,12 +42,23 @@ def install(config):
         config.install()
 
 
-def uninstall():
+def uninstall(config):
+    """Uninstall Houdini-specific functionality of avalon-core.
 
+    This function is called automatically on calling `api.uninstall()`.
+
+    Args:
+        config: configuration module
+
+    """
+
+    config = find_host_config(config)
+    if hasattr(config, "uninstall"):
+        config.uninstall()
+
+    pyblish.api.deregister_host("hython")
     pyblish.api.deregister_host("hpython")
     pyblish.api.deregister_host("houdini")
-
-    pass
 
 
 def find_host_config(config):
@@ -61,6 +71,55 @@ def find_host_config(config):
         config = None
 
     return config
+
+
+def reload_pipeline(*args):
+    """Attempt to reload pipeline at run-time.
+
+    CAUTION: This is primarily for development and debugging purposes.
+
+    """
+
+    import importlib
+
+    api.uninstall()
+
+    for module in ("avalon.io",
+                   "avalon.lib",
+                   "avalon.pipeline",
+
+                   "avalon.houdini.pipeline",
+                   "avalon.houdini.lib",
+                   "avalon.tools.loader.app",
+                   "avalon.tools.creator.app",
+                   "avalon.tools.manager.app",
+
+                   # NOTE(marcus): These have circular depenendencies
+                   #               that is preventing reloadability
+                   # "avalon.tools.cbloader.delegates",
+                   # "avalon.tools.cbloader.model",
+                   # "avalon.tools.cbloader.widgets",
+                   # "avalon.tools.cbloader.app",
+                   # "avalon.tools.cbsceneinventory.model",
+                   # "avalon.tools.cbsceneinventory.proxy",
+                   # "avalon.tools.cbsceneinventory.app",
+                   # "avalon.tools.projectmanager.dialogs",
+                   # "avalon.tools.projectmanager.lib",
+                   # "avalon.tools.projectmanager.model",
+                   # "avalon.tools.projectmanager.style",
+                   # "avalon.tools.projectmanager.widget",
+                   # "avalon.tools.projectmanager.app",
+
+                   "avalon.api",
+                   "avalon.tools",
+                   "avalon.houdini"):
+        module = importlib.import_module(module)
+        reload(module)
+
+    self._parent = {hou.ui.mainQtWindow().objectName(): hou.ui.mainQtWindow()}
+
+    import avalon.houdini
+    api.install(avalon.houdini)
 
 
 def _discover_gui():
