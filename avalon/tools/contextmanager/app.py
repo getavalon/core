@@ -184,6 +184,7 @@ class App(QtWidgets.QDialog):
 
 def show(parent=None):
 
+    from avalon import style
     from ...tools import lib
     try:
         module.window.close()
@@ -193,6 +194,7 @@ def show(parent=None):
 
     with lib.application():
         window = App(parent)
+        window.setStyleSheet(style.load_stylesheet())
         window.show()
 
         module.window = window

@@ -265,7 +265,7 @@ class Window(QtWidgets.QDialog):
         return super(Window, self).closeEvent(event)
 
 
-def show(root=None, debug=False, parent=None, use_context=False):
+def show(debug=False, parent=None, use_context=False):
     """Display Loader GUI
 
     Arguments:
