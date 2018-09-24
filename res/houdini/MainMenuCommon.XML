@@ -3,7 +3,17 @@
     <menuBar>
         <subMenu id="avalon_menu">
             <label>Avalon</label>
-
+            <subMenu id="avalon_context">
+                <labelExpression><![CDATA[
+import os; return "%s - %s" % (os.environ["AVALON_ASSET"], os.environ["AVALON_TASK"])
+]]></labelExpression>
+                <scriptItem id="avalon_context_switch">
+                    <label>Set Context</label>
+                    <scriptCode><![CDATA[
+from avalon.tools import contextmanager; contextmanager.show()
+]]></scriptCode>
+                </scriptItem>
+            </subMenu>
             <scriptItem id="avalon_create">
                 <label>Create ..</label>
                 <scriptCode><![CDATA[
