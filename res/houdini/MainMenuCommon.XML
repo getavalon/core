@@ -15,6 +15,9 @@ from avalon.tools import contextmanager; contextmanager.show()
 ]]></scriptCode>
                 </scriptItem>
             </subMenu>
+
+            <separatorItem/>
+
             <scriptItem id="avalon_create">
                 <label>Create ..</label>
                 <scriptCode><![CDATA[
