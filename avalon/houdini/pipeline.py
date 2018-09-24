@@ -205,6 +205,8 @@ def containerise(name,
 
     lib.imprint(container, data)
 
+    container.moveToGoodPosition()
+
     return container
 
 
