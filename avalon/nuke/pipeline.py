@@ -1,65 +1,119 @@
-import nuke
-import logging
+import sys
+import importlib
 from .. import api, io
+import contextlib
 from pyblish import api as pyblish
+from ..vendor import toml
+from ..vendor.cgLogging import getLogger as nLogger
 
-MSG_FORMAT  = "%(asctime)s %(name)s %(levelname)s : %(message)s"
-DATE_FORMAT = "%Y-%m-%d %H:%M:%S"
+log = nLogger('NukeLogger', level=10)
 
-# Levels - same as logging module
-CRITICAL = 50
-FATAL    = CRITICAL
-ERROR    = 40
-WARNING  = 30
-WARN     = WARNING
-INFO     = 20
-DEBUG    = 10
-NOTSET   = 0
+# TODO: covert completery fusion pipeline into nuke
+# TODO: go to config.nuke.__init__ and again convert fusion to Nuke
+# TODO: config.nuke.pipeline convert from fusion
 
-def containerise():
+
+def containerise(node,
+                 name,
+                 namespace,
+                 context,
+                 node_name=None):
     """Bundle `nodes` into an assembly and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
     for loaded assets.
+
+    Arguments:
+        node (object): The node in Nuke to imprint as container,
+        usually a Reader.
+        name (str): Name of resulting assembly
+        namespace (str): Namespace under which to host container
+        context (dict): Asset information
+        node_name (str, optional): Name of node used to produce this container.
+
+    Returns:
+        None
+
     """
-    raise NotImplementedError(
-        "\"containerise()\" has not been implemented for Nuke."
-    )
+    import nuke
+    data = [
+        ("schema", "avalon-core:container-2.0"),
+        ("id", "pyblish.avalon.container"),
+        ("name", str(name)),
+        ("namespace", str(namespace)),
+        ("node_name", str(node_name)),
+        ("representation", str(context["representation"]["_id"])),
+    ]
 
-class NukeHandler(logging.Handler):
     '''
-    Nuke Handler - emits logs into nuke's script editor.
-    warning will emit nuke.warning()
-    critical and fatal would popup msg dialog to alert of the error.
+    schema = "avalon-core:container-2.0"
+    id = "pyblish.avalon.container"
+    name =  str(name)),
+    namespace = "namespace"
+    node_name = "Read1"
+    representation = "context"
     '''
-    def __init__(self):
-        logging.Handler.__init__(self)
+    try:
+        avalon = node['avalon'].value()
+    except ValueError as error:
+        tab = nuke.Tab_Knob("Avalon")
+        uk = nuke.Text_Knob('avalon', '')
+        node.addKnob(tab)
+        node.addKnob(uk)
+        log.info("created new user knob avalon")
 
-    def emit(self, record):
-    # Formated message:
-        msg = self.format(record)
+    node['avalon'].setValue(toml.dumps(data))
 
-    if record.funcName == "warning":
-        nuke.warning(msg)
 
-    elif record.funcName in [ "critical", "fatal" ]:
-        nuke.error(msg)
-        nuke.message(record.message)
+def parse_container(node):
+    """Returns imprinted container data of a node
 
-    else:
-        sys.stdout.write(msg)
+    This reads the imprinted data from `imprint_container`.
 
-def getLogger( name, shell=True, file=None, level=INFO ):
-	'''
-	Get logger - mimicing the usage of logging.getLogger()
-		name(str) : logger name
-		shell(bol): output to shell
-		maya(bol) : output to maya editor
-		nuke(bol) : output to nuke editor
-		file(str) : output to given filename
-		level(int): logger level
-	'''
-	return Logger( name, shell, file, level )
+    """
+
+    raw_text_data = node['avalon'].value()
+    data = toml.loads(raw_text_data, _dict=dict)
+
+    if not isinstance(data, dict):
+        return
+
+    # If not all required data return the empty container
+    required = ['schema', 'id', 'name',
+                'namespace', 'node_name', 'representation']
+    if not all(key in data for key in required):
+        return
+
+    container = {key: data[key] for key in required}
+
+    # Store the node's name
+    container["objectName"] = node["name"].value()
+
+    # Store reference to the node object
+    container["_tool"] = node
+
+    return container
+
+
+def ls():
+    """List available containers.
+
+    This function is used by the Container Manager in Nuke. You'll
+    need to implement a for-loop that then *yields* one Container at
+    a time.
+
+    See the `container.json` schema for details on how it should look,
+    and the Maya equivalent, which is in `avalon.maya.pipeline`
+    """
+    import nuke
+    all_nodes = nuke.allNodes(recurseGroups=True)
+    reads = [n for n in all_nodes if n.Class() == 'Read']
+
+    for r in reads:
+        container = parse_container(r)
+        if container:
+            yield container
+
 
 def install(config):
     """Install Nuke-specific functionality of avalon-core.
@@ -72,41 +126,26 @@ def install(config):
     See the Maya equivalent for inspiration on how to implement this.
 
     """
+
     _install_menu()
     _register_events()
 
     pyblish.register_host("nuke")
-
-    # Remove all handlers associated with the root logger object, because
-    # that one sometimes logs as "warnings" incorrectly.
-    for handler in logging.root.handlers[:]:
-        logging.root.removeHandler(handler)
-
-    # Attach default logging handler that prints to active comp
-    logger = logging.getLogger()
-    formatter = logging.Formatter(fmt="%(message)s\n")
-    handler = CompLogHandler()
-    handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(logging.DEBUG)
-
-    __logger = logging.getLogger("logger_name")
-    nuke_hdlr = NukeHandler()
-    nuke_hdlr.setFormatter( logging.Formatter( MSG_FORMAT, DATE_FORMAT ) )
-    __logger.addHandler( nuke_hdlr )
-
-    # Trigger install on the config's "fusion" package
+    import config
+    # Trigger install on the config's "nuke" package
     try:
         config = importlib.import_module(config.__name__ + ".nuke")
-    except ImportError:
+    except ImportError as error:
+        log.critical("cannot acces config.nuke: {}".format(error))
         pass
     else:
         if hasattr(config, "install"):
             config.install()
-
+            log.info("config.nuke installed")
 
 
 def _uninstall_menu():
+    import nuke
     menubar = nuke.menu("Nuke")
     menubar.removeItem(api.Session["AVALON_LABEL"])
 
@@ -119,6 +158,8 @@ def _install_menu():
         cbsceneinventory,
         contextmanager
     )
+    import nuke
+    # for now we are using `lite` version
     import pyblish_lite as publish
 
     # Create menu
@@ -146,6 +187,7 @@ def _install_menu():
 
 def reset_frame_range():
     """Set frame range to current asset"""
+    import nuke
     fps = float(api.Session.get("AVALON_FPS", 25))
 
     nuke.root()["fps"].setValue(fps)
@@ -169,6 +211,7 @@ def reset_frame_range():
 
 def reset_resolution():
     """Set resolution to project resolution."""
+    import nuke
     project = io.find_one({"type": "project"})
 
     try:
@@ -217,22 +260,6 @@ def uninstall():
     pyblish.deregister_host("nuke")
 
 
-def ls():
-    """List available containers.
-
-    This function is used by the Container Manager in Nuke. You'll
-    need to implement a for-loop that then *yields* one Container at
-    a time.
-
-    See the `container.json` schema for details on how it should look,
-    and the Maya equivalent, which is in `avalon.maya.pipeline`
-
-    """
-    raise NotImplementedError(
-        "\"ls()\" has not been implemented for Nuke."
-    )
-
-
 def publish():
     """Shorthand to publish from within host"""
     import pyblish.util
@@ -242,7 +269,7 @@ def publish():
 def _register_events():
 
     api.on("taskChanged", _on_task_changed)
-    print("Installed event callback for 'taskChanged'..")
+    log.info("Installed event callback for 'taskChanged'..")
 
 
 def _on_task_changed(*args):
@@ -250,3 +277,26 @@ def _on_task_changed(*args):
     # Update menu
     _uninstall_menu()
     _install_menu()
+
+
+def get_current_script(nuke=None):
+    """Hack to get current script content in this session"""
+    return (nuke.Root(), nuke.allNodes()) if nuke else None
+
+
+@contextlib.contextmanager
+def viewer_update_and_undo_stop(nuke):
+    """Lock viewer from updating and stop recording undo steps"""
+    try:
+        # nuke = getattr(sys.modules["__main__"], "nuke", None)
+        # lock all connections between nodes
+        # nuke.Root().knob('lock_connections').setValue(1)
+
+        # stop active viewer to update any change
+        nuke.activeViewer().stop()
+        nuke.Undo.disable()
+        yield
+    finally:
+        # nuke.Root().knob('lock_connections').setValue(0)
+        # nuke.activeViewer().start()
+        nuke.Undo.enable()

@@ -820,7 +820,6 @@ def create(name, asset, family, options=None, data=None):
         except Exception as e:
             log.warning(e)
             continue
-
         plugins.append(plugin)
 
     assert plugins, "No Creator plug-ins were run, this is a bug"
