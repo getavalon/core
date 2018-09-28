@@ -13,6 +13,8 @@ def imprint(node, data):
     template. Houdini uses a template per type, see the docs for more
     information.
 
+    http://www.sidefx.com/docs/houdini/hom/hou/ParmTemplate.html
+
     Args:
         node(hou.Node): node object from Houdini
         data(dict): collection of attributes and their value
@@ -34,15 +36,15 @@ def imprint(node, data):
                                          label=key.title(),
                                          num_components=1,
                                          default_value=(value,))
+        elif isinstance(value, bool):
+            parm = hou.ToggleParmTemplate(name=key,
+                                          label=key.title(),
+                                          default_value=value)
         elif isinstance(value, int):
             parm = hou.IntParmTemplate(name=key,
                                        label=key.title(),
                                        num_components=1,
                                        default_value=(value,))
-        elif isinstance(value, bool):
-            parm = hou.ToggleParmTemplate(name=key,
-                                          label=key.title(),
-                                          default_value=(value,))
         elif isinstance(value, six.string_types):
             parm = hou.StringParmTemplate(name=key,
                                           label=key.title(),
