@@ -20,6 +20,7 @@ self._has_been_setup = False
 self._parent = None
 self._events = dict()
 
+main_container = "/obj/AVALON_CONTAINERS"
 IS_HEADLESS = not hasattr(hou, "ui")
 
 
@@ -179,6 +180,10 @@ def containerise(name,
     Containerisation enables a tracking of version, author and origin
     for loaded assets.
 
+    In Houdini it is not possible to next goemetry nodes in geometry nodes
+    directly. To counter this we place a Object Network node calles ROOT
+    in the HOUDINI_CONTAINERS node.
+
     Arguments:
         name (str): Name of resulting assembly
         namespace (str): Namespace under which to host container
@@ -192,8 +197,20 @@ def containerise(name,
 
     """
 
-    # Get the node which is a direct child of the root, hou.node("/obj")
-    container = next(n for n in nodes if n.parent() == hou.node("/obj"))
+    # Check if the AVALON_CONTAINERS exists
+    geo = hou.node(main_container)
+    if geo is None:
+        obj_network = hou.node("/obj")
+        geo = obj_network.createNode("geo", node_name="AVALON_CONTAINERS")
+        # Delete file node
+        geo.node("file1").destroy()
+
+    # Check if root Object Network exists
+    container_network = hou.node("{}/ROOT".format(main_container))
+    if container_network is None:
+        container_network = geo.createNode("objnet", node_name="ROOT")
+
+    container = hou.node("/obj/{}".format(name))
     data = {
         "schema": "avalon-core:container-2.0",
         "id": "pyblish.avalon.container",
@@ -205,7 +222,11 @@ def containerise(name,
 
     lib.imprint(container, data)
 
-    container.moveToGoodPosition()
+    # "Parent" the container under the container network
+    hou.copyNodesTo([container], container_network)
+
+    # Get the container and set good position
+    container_network.node(name).moveToGoodPosition()
 
     return container
 
