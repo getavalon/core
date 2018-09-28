@@ -33,21 +33,21 @@ def imprint(node, data):
 
         if isinstance(value, float):
             parm = hou.FloatParmTemplate(name=key,
-                                         label=key.title(),
+                                         label=key,
                                          num_components=1,
                                          default_value=(value,))
         elif isinstance(value, bool):
             parm = hou.ToggleParmTemplate(name=key,
-                                          label=key.title(),
+                                          label=key,
                                           default_value=value)
         elif isinstance(value, int):
             parm = hou.IntParmTemplate(name=key,
-                                       label=key.title(),
+                                       label=key,
                                        num_components=1,
                                        default_value=(value,))
         elif isinstance(value, six.string_types):
             parm = hou.StringParmTemplate(name=key,
-                                          label=key.title(),
+                                          label=key,
                                           num_components=1,
                                           default_value=(value,))
         else:
