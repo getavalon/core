@@ -169,14 +169,14 @@ class Loader(list):
         fname = template.format(**data)
         self.fname = fname
 
-    def load(self, context, name=None, namespace=None, data=None):
+    def load(self, context, name=None, namespace=None, options=None):
         """Load asset via database
 
         Arguments:
             context (dict): Full parenthood of representation to load
             name (str, optional): Use pre-defined name
             namespace (str, optional): Use pre-defined namespace
-            data (dict, optional): Additional settings dictionary
+            options (dict, optional): Additional settings dictionary
 
         """
         raise NotImplementedError("Loader.load() must be "
@@ -965,15 +965,17 @@ def _make_backwards_compatible_loader(Loader):
     return type(Loader.__name__, (BackwardsCompatibleLoader, Loader), {})
 
 
-def load(Loader, representation, namespace=None, name=None, data=None):
+def load(Loader, representation, namespace=None, name=None, options=None,
+         **kwargs):
     """Use Loader to load a representation.
 
     Args:
         Loader (Loader): The loader class to trigger.
-        representation (str or io.ObjectId): The representation id.
+        representation (str or io.ObjectId or dict): The representation id
+            or full representation as returned by the database.
         namespace (str, Optional): The namespace to assign. Defaults to None.
         name (str, Optional): The name to assign. Defaults to subset name.
-        data (dict, Optional): Additional custom data to pass on to the loader.
+        options (dict, Optional): Additional options to pass on to the loader.
 
     Returns:
         The return of the `loader.load()` method.
@@ -993,11 +995,11 @@ def load(Loader, representation, namespace=None, name=None, data=None):
                                       "{}".format(Loader.__name__,
                                                   context["subset"]["name"]))
 
-    # Ensure data is a dictionary when no explicit data provided
-    if data is None:
-        data = dict()
+    # Ensure options is a dictionary when no explicit options provided
+    if options is None:
+        options = kwargs.get("data", dict())  # "data" for backward compat
 
-    assert isinstance(data, dict), "Data must be a dictionary"
+    assert isinstance(options, dict), "Options must be a dictionary"
 
     # Fallback to subset when name is None
     if name is None:
@@ -1008,10 +1010,7 @@ def load(Loader, representation, namespace=None, name=None, data=None):
     )
 
     loader = Loader(context)
-    return loader.load(context=context,
-                       name=name,
-                       namespace=namespace,
-                       data=data)
+    return loader.load(context, name, namespace, options)
 
 
 def _get_container_loader(container):
