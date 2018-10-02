@@ -84,7 +84,7 @@ def lsattrs(attrs):
     """
 
     matches = set()
-    nodes = hou.node("/obj").children()
+    nodes = list(hou.node("/obj").allNodes())  # returns generator object
     for node in nodes:
         for attr in attrs:
             if not node.parm(attr):
