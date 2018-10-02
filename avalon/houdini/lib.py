@@ -13,6 +13,8 @@ def imprint(node, data):
     template. Houdini uses a template per type, see the docs for more
     information.
 
+    http://www.sidefx.com/docs/houdini/hom/hou/ParmTemplate.html
+
     Args:
         node(hou.Node): node object from Houdini
         data(dict): collection of attributes and their value
@@ -31,21 +33,21 @@ def imprint(node, data):
 
         if isinstance(value, float):
             parm = hou.FloatParmTemplate(name=key,
-                                         label=key.title(),
+                                         label=key,
                                          num_components=1,
                                          default_value=(value,))
-        elif isinstance(value, int):
-            parm = hou.IntParmTemplate(name=key,
-                                       label=key.title(),
-                                       num_components=1,
-                                       default_value=(value,))
         elif isinstance(value, bool):
             parm = hou.ToggleParmTemplate(name=key,
-                                          label=key.title(),
-                                          default_value=(value,))
+                                          label=key,
+                                          default_value=value)
+        elif isinstance(value, int):
+            parm = hou.IntParmTemplate(name=key,
+                                       label=key,
+                                       num_components=1,
+                                       default_value=(value,))
         elif isinstance(value, six.string_types):
             parm = hou.StringParmTemplate(name=key,
-                                          label=key.title(),
+                                          label=key,
                                           num_components=1,
                                           default_value=(value,))
         else:
@@ -82,7 +84,7 @@ def lsattrs(attrs):
     """
 
     matches = set()
-    nodes = hou.node("/obj").children()
+    nodes = list(hou.node("/obj").allNodes())  # returns generator object
     for node in nodes:
         for attr in attrs:
             if not node.parm(attr):
