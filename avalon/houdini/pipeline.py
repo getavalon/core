@@ -223,7 +223,7 @@ def containerise(name,
     lib.imprint(container, data)
 
     # "Parent" the container under the container network
-    hou.copyNodesTo([container], container_network)
+    hou.moveNodesTo([container], container_network)
 
     # Get the container and set good position
     container_network.node(name).moveToGoodPosition()
