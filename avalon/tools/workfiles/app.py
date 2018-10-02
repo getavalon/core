@@ -12,21 +12,24 @@ from avalon import io
 
 
 def determine_application():
-        # Determine executable
-        application = None
+    # Determine executable
+    application = None
 
-        basename = os.path.basename(sys.executable).lower()
+    basename = os.path.basename(sys.executable).lower()
 
-        if "maya" in basename:
-            application = "maya"
+    if "maya" in basename:
+        application = "maya"
 
-        if application is None:
-            raise ValueError(
-                "Could not determine application from executable:"
-                " \"{0}\"".format(sys.executable)
-            )
+    if "nuke" in basename:
+        application = "nuke"
 
-        return application
+    if application is None:
+        raise ValueError(
+            "Could not determine application from executable:"
+            " \"{0}\"".format(sys.executable)
+        )
+
+    return application
 
 
 class NameWindow(QtWidgets.QDialog):
@@ -195,12 +198,16 @@ class NameWindow(QtWidgets.QDialog):
             "comment": ""
         }
 
-        self.template = "{task[name]}_v{version:0>4}<_{comment}>"
-        templates = self.data["project"]["config"]["template"]
-        if "workfile" in templates:
-            self.template = templates["workfile"]
+        try:
+            self.template = os.environ["AVALON_WORKFILE_TEMPLATE"].replace("\"", "")
 
-        self.extensions = {"maya": ".ma"}
+        except KeyError:
+            self.template = "{task[name]}_v{version:0>4}<_{comment}>"
+            templates = self.data["project"]["config"]["template"]
+            if "workfile" in templates:
+                self.template = templates["workfile"]
+
+        self.extensions = {"maya": ".ma", "nuke": ".nk"}
 
 
 class Window(QtWidgets.QDialog):
@@ -212,11 +219,13 @@ class Window(QtWidgets.QDialog):
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
 
         self.root = root
+
         if self.root is None:
             self.root = os.getcwd()
 
         filters = {
-            "maya": [".ma", ".mb"]
+            "maya": [".ma", ".mb"],
+            "nuke": [".nk", ".nknc"]
         }
         self.application = determine_application()
         self.filter = filters[self.application]
@@ -273,7 +282,10 @@ class Window(QtWidgets.QDialog):
         return name
 
     def current_file(self):
-        func = {"maya": self.current_file_maya}
+        func = {
+            "maya": self.current_file_maya,
+            "nuke": self.current_file_nuke
+        }
         return func[self.application]()
 
     def current_file_maya(self):
@@ -291,10 +303,25 @@ class Window(QtWidgets.QDialog):
 
         return normalised
 
+    def current_file_nuke(self):
+        import os
+        import nuke
+
+        current_file = nuke.root().name()
+        normalised = os.path.normpath(current_file)
+
+        # Unsaved current file
+        if nuke.Root().name() == 'Root':
+            return "NOT SAVED"
+
+        return normalised
+
     def refresh(self):
         self.list.clear()
         items = []
         modified = []
+        if not os.path.exists(self.root):
+            os.makedirs(self.root)
         for f in os.listdir(self.root):
             if os.path.isdir(os.path.join(self.root, f)):
                 continue
@@ -318,6 +345,10 @@ class Window(QtWidgets.QDialog):
         from maya import cmds
         cmds.file(rename=file_path)
         cmds.file(save=True, type="mayaAscii")
+
+    def save_as_nuke(self, file_path):
+        import nuke
+        nuke.scriptSaveAs(file_path)
 
     def save_changes_prompt(self):
         messagebox = QtWidgets.QMessageBox()
@@ -359,8 +390,29 @@ class Window(QtWidgets.QDialog):
 
         return True
 
+    def open_nuke(self, file_path):
+        import nuke
+
+        if nuke.Root().modified():
+            result = self.save_changes_prompt()
+
+            if result is None:
+                return False
+
+            if result:
+                nuke.scriptSave()
+            else:
+                nuke.scriptClear()
+
+        nuke.scriptOpen(file_path)
+
+        return True
+
     def open(self, file_path):
-        func = {"maya": self.open_maya}
+        func = {
+            "maya": self.open_maya,
+            "nuke": self.open_nuke
+        }
 
         work_file = os.path.join(
             self.root, self.list.selectedItems()[0].text()
@@ -418,7 +470,10 @@ class Window(QtWidgets.QDialog):
         if not work_file:
             return
 
-        save_as = {"maya": self.save_as_maya}
+        save_as = {
+            "maya": self.save_as_maya,
+            "nuke": self.save_as_nuke
+        }
         application = determine_application()
         if application not in save_as:
             raise ValueError(

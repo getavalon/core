@@ -1,9 +1,11 @@
-import sys
+import os
 import importlib
 from .. import api, io
 import contextlib
 from pyblish import api as pyblish
 from ..vendor import toml
+import nuke
+
 from ..vendor.cgLogging import getLogger as nLogger
 
 log = nLogger('NukeLogger', level=10)
@@ -35,7 +37,7 @@ def containerise(node,
         None
 
     """
-    import nuke
+
     data = [
         ("schema", "avalon-core:container-2.0"),
         ("id", "pyblish.avalon.container"),
@@ -45,14 +47,6 @@ def containerise(node,
         ("representation", str(context["representation"]["_id"])),
     ]
 
-    '''
-    schema = "avalon-core:container-2.0"
-    id = "pyblish.avalon.container"
-    name =  str(name)),
-    namespace = "namespace"
-    node_name = "Read1"
-    representation = "context"
-    '''
     try:
         avalon = node['avalon'].value()
     except ValueError as error:
@@ -66,9 +60,9 @@ def containerise(node,
 
 
 def parse_container(node):
-    """Returns imprinted container data of a node
+    """Returns containerised data of a node
 
-    This reads the imprinted data from `imprint_container`.
+    This reads the imprinted data from `containerise`.
 
     """
 
@@ -95,6 +89,43 @@ def parse_container(node):
     return container
 
 
+def update_container(node, keys={}):
+    """Returns node with updateted containder data
+
+    Arguments:
+        node (object): The node in Nuke to imprint as container,
+        keys (dict): data which should be updated
+
+    Returns:
+        node (object): nuke node with updated container data
+    """
+
+    raw_text_data = node['avalon'].value()
+    data = toml.loads(raw_text_data, _dict=dict)
+
+    if not isinstance(data, dict):
+        return
+
+    # If not all required data return the empty container
+    required = ['schema', 'id', 'name',
+                'namespace', 'node_name', 'representation']
+    if not all(key in data for key in required):
+        return
+
+    container = {key: data[key] for key in required}
+
+    for key, value in container.items():
+        try:
+            container[key] = keys[key]
+        except KeyError:
+            pass
+
+    node['avalon'].setValue('')
+    node['avalon'].setValue(toml.dumps(container))
+
+    return node
+
+
 def ls():
     """List available containers.
 
@@ -105,8 +136,9 @@ def ls():
     See the `container.json` schema for details on how it should look,
     and the Maya equivalent, which is in `avalon.maya.pipeline`
     """
-    import nuke
     all_nodes = nuke.allNodes(recurseGroups=True)
+
+    # TODO: add readgeo, readcamera, readimage
     reads = [n for n in all_nodes if n.Class() == 'Read']
 
     for r in reads:
@@ -131,7 +163,6 @@ def install(config):
     _register_events()
 
     pyblish.register_host("nuke")
-    import config
     # Trigger install on the config's "nuke" package
     try:
         config = importlib.import_module(config.__name__ + ".nuke")
@@ -145,7 +176,6 @@ def install(config):
 
 
 def _uninstall_menu():
-    import nuke
     menubar = nuke.menu("Nuke")
     menubar.removeItem(api.Session["AVALON_LABEL"])
 
@@ -154,11 +184,11 @@ def _install_menu():
     from ..tools import (
         creator,
         # publish,
+        workfiles,
         cbloader,
         cbsceneinventory,
         contextmanager
     )
-    import nuke
     # for now we are using `lite` version
     import pyblish_lite as publish
 
@@ -173,7 +203,12 @@ def _install_menu():
     context_menu.addCommand("Set Context", contextmanager.show)
 
     menu.addSeparator()
-
+    menu.addCommand("Work Files...",
+                    lambda: workfiles.show(
+                        os.environ["AVALON_WORKDIR"]
+                    )
+                    )
+    menu.addSeparator()
     menu.addCommand("Create...", creator.show)
     menu.addCommand("Load...", cbloader.show)
     menu.addCommand("Publish...", publish.show)
@@ -187,7 +222,6 @@ def _install_menu():
 
 def reset_frame_range():
     """Set frame range to current asset"""
-    import nuke
     fps = float(api.Session.get("AVALON_FPS", 25))
 
     nuke.root()["fps"].setValue(fps)
@@ -211,7 +245,6 @@ def reset_frame_range():
 
 def reset_resolution():
     """Set resolution to project resolution."""
-    import nuke
     project = io.find_one({"type": "project"})
 
     try:
@@ -279,13 +312,13 @@ def _on_task_changed(*args):
     _install_menu()
 
 
-def get_current_script(nuke=None):
+def get_current_script():
     """Hack to get current script content in this session"""
     return (nuke.Root(), nuke.allNodes()) if nuke else None
 
 
 @contextlib.contextmanager
-def viewer_update_and_undo_stop(nuke):
+def viewer_update_and_undo_stop():
     """Lock viewer from updating and stop recording undo steps"""
     try:
         # nuke = getattr(sys.modules["__main__"], "nuke", None)

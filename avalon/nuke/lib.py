@@ -2,14 +2,15 @@ import re
 import os
 import sys
 import contextlib
+import nuke
 
 from .pipeline import get_current_script
 
 
 @contextlib.contextmanager
 def maintained_selection():
-    nuke = getattr(sys.modules["__main__"], "nuke", None)
-    root, nodes = get_current_script(nuke)
+    # nuke = getattr(sys.modules["__main__"], "nuke", None)
+    root, nodes = get_current_script()
     previous_selection = [n.name()
                           for n in nodes
                           if n['selected'].value() is True]
@@ -25,38 +26,74 @@ def maintained_selection():
              if n.name() in previous_selection]
 
 
-def get_frame_path(path):
-    """Get filename for the Fusion Saver with padded number as '#'
+def ls_img_sequence(dirPath, one=None):
+    excluding_patterns = ['_broken_', '._', '/.', '/_']
+    result = {}
+    sortedList = []
+    files = os.listdir(dirPath)
+    for file in files:
+        # print file
+        for ex in excluding_patterns:
+            file_path = os.path.join(dirPath, file).replace('\\', '/')
+            if ex in file_path:
+                continue
+        try:
+            prefix, frame, suffix = file.split('.')
 
-    >>> get_frame_path("C:/test.exr")
-    ('C:/test', 4, '.exr')
+            # build a dictionary of the sequences as {name: frames, suffix}
+            #
+            # eg beauty.01.tif ... beauty.99.tif  will convert to
+            # { beauty : [01,02,...,98,99], tif }
 
-    >>> get_frame_path("filename.00.tif")
-    ('filename.', 2, '.tif')
+            try:
+                result[prefix][0].append(frame)
+            except KeyError:
+                # we have a new file sequence, so create a new key:value pair
+                result[prefix] = [[frame], suffix]
+        except ValueError:
+            # the file isn't in a sequence, add a dummy key:value pair
+            result[file] = file
 
-    >>> get_frame_path("foobar35.tif")
-    ('foobar', 2, '.tif')
+    for prefix in result:
+        if result[prefix] != prefix:
+            frames = result[prefix][0]
+            frames.sort()
 
-    Args:
-        path (str): The path to render to.
+            # find gaps in sequence
+            startFrame = int(frames[0])
+            endFrame = int(frames[-1])
+            pad = len(frames[0])
+            pad_print = '#' * pad
+            idealRange = set(range(startFrame, endFrame))
+            realFrames = set([int(x) for x in frames])
+            # sets can't be sorted, so cast to a list here
+            missingFrames = list(idealRange - realFrames)
+            missingFrames.sort()
 
-    Returns:
-        tuple: head, padding, tail (extension)
+            # calculate fancy ranges
+            subRanges = []
+            for gap in missingFrames:
+                if startFrame != gap:
+                    rangeStart = startFrame
+                    rangeEnd = gap - 1
+                    subRanges.append([rangeStart, rangeEnd])
+                startFrame = gap + 1
 
-    """
-    filename, ext = os.path.splitext(path)
-
-    # Find a final number group
-    match = re.match('.*?([0-9]+)$', filename)
-    if match:
-        padding = len(match.group(1))
-        # remove number from end since fusion
-        # will swap it with the frame number
-        filename = filename[:-padding]
+            subRanges.append([startFrame, endFrame])
+            suffix = result[prefix][1]
+            sortedList.append({
+                'path':
+                os.path.join(dirPath, '.'.join([prefix, pad_print,
+                                                suffix])).replace('\\', '/'),
+                'frames':
+                subRanges
+            })
+        else:
+            sortedList.append(prefix)
+    if one:
+        return sortedList[0]
     else:
-        padding = 4  # default Fusion padding
-
-    return filename, padding, ext
+        return sortedList
 
 
 def add_publish_knob(node):

@@ -335,7 +335,7 @@ class Application(Action):
         project = io.find_one({"type": "project"})
         template = project["config"]["template"]["work"]
         workdir = _format_work_template(template, session)
-        session["AVALON_WORKDIR"] = workdir
+        session["AVALON_WORKDIR"] = os.path.normpath(workdir)
 
         # Build environment
         env = os.environ.copy()
