@@ -62,8 +62,7 @@ def imprint(node, data):
 
 
 def lsattr(attr, value=None):
-
-    nodes = hou.node("/obj").children()
+    nodes = list(hou.node("/obj").allNodes())
     if value is None:
         return [n for n in nodes if n.parm(attr)]
     return lsattrs({attr: value})
