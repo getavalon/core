@@ -24,12 +24,14 @@ from .lib import (
 __all__ = [
     "install",
     "uninstall",
+    
+    "Creator",
 
     "ls",
     "containerise",
 
     # Utility functions
-    # "maintained_selection"
+    "maintained_selection"
 
     "lsattr",
     "lsattrs",
