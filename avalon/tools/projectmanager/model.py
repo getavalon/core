@@ -113,7 +113,8 @@ class TreeModel(QtCore.QAbstractItemModel):
                 key = self.COLUMNS[column]
                 node[key] = value
 
-                self.dataChanged.emit(index, index)
+                # passing `list()` for PyQt5 (see PYSIDE-462)
+                self.dataChanged.emit(index, index, list())
 
                 # must return true if successful
                 return True

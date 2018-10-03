@@ -23,7 +23,7 @@ class Window(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
         self.setWindowTitle(
-            "Asset Loader 2.0 - %s/%s" % (
+            "Asset Loader 2.1 - %s/%s" % (
                 api.registered_root(),
                 api.Session.get("AVALON_PROJECT")))
 
@@ -270,7 +270,7 @@ class Window(QtWidgets.QDialog):
         return super(Window, self).closeEvent(event)
 
 
-def show(root=None, debug=False, parent=None, use_context=False):
+def show(debug=False, parent=None, use_context=False):
     """Display Loader GUI
 
     Arguments:
@@ -332,7 +332,9 @@ def show(root=None, debug=False, parent=None, use_context=False):
 
 
 def cli(args):
+
     import argparse
+
     parser = argparse.ArgumentParser()
     parser.add_argument("project")
 
@@ -341,6 +343,17 @@ def cli(args):
 
     io.install()
 
+    # Store settings
     api.Session["AVALON_PROJECT"] = project
+
+    from avalon import pipeline
+
+    # Find the set config
+    _config = pipeline.find_config()
+    if hasattr(_config, "install"):
+        _config.install()
+    else:
+        print("Config `%s` has no function `install`" %
+              _config.__name__)
 
     show()
