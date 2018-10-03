@@ -31,7 +31,7 @@ __all__ = [
     "containerise",
 
     # Utility functions
-    "maintained_selection"
+    "maintained_selection",
 
     "lsattr",
     "lsattrs",
