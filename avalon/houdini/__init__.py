@@ -24,7 +24,7 @@ from .lib import (
 __all__ = [
     "install",
     "uninstall",
-    
+
     "Creator",
 
     "ls",
