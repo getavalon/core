@@ -1,3 +1,5 @@
+import contextlib
+
 import hou
 from ..vendor import six
 
@@ -159,5 +161,23 @@ def unique_name(name, format="%03d", namespace="", prefix="", suffix="",
     return unique
 
 
+@contextlib.contextmanager
 def maintained_selection():
-    pass
+    """Maintain selection during context
+    Example:
+        >>> with maintained_selection():
+        ...     # Modify selection
+        ...     node.setSelected(on=False, clear_all_selected=True)
+        >>> # Selection restored
+    """
+
+    previous_selection = hou.selectedNodes()
+    try:
+        yield
+    finally:
+        if previous_selection:
+            for node in previous_selection:
+                node.setSelected(on=True)
+        else:
+            for node in previous_selection:
+                node.setSelected(on=False)

@@ -1,7 +1,6 @@
 # Standard library
 import sys
 import importlib
-import contextlib
 
 # Pyblish libraries
 import pyblish.api
@@ -147,28 +146,6 @@ def teardown():
     print("pyblish: Integration torn down successfully")
 
 
-@contextlib.contextmanager
-def maintained_selection():
-    """Maintain selection during context
-    Example:
-        >>> with maintained_selection():
-        ...     # Modify selection
-        ...     node.setSelected(on=False, clear_all_selected=True)
-        >>> # Selection restored
-    """
-
-    previous_selection = hou.selectedNodes()
-    try:
-        yield
-    finally:
-        if previous_selection:
-            for node in previous_selection:
-                node.setSelected(on=True)
-        else:
-            for node in previous_selection:
-                node.setSelected(on=False)
-
-
 def containerise(name,
                  namespace,
                  nodes,
@@ -235,7 +212,7 @@ def parse_container(container, validate=True):
     """Return the container node's full container data.
 
     Args:
-        container (str): A container node name.
+        container (hou.Node): A container node name.
 
     Returns:
         dict: The container schema data for this container node.
