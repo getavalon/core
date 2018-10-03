@@ -19,7 +19,7 @@ self._has_been_setup = False
 self._parent = None
 self._events = dict()
 
-main_container = "/obj/AVALON_CONTAINERS"
+AVALON_CONTAINERS = "AVALON_CONTAINERS"
 IS_HEADLESS = not hasattr(hou, "ui")
 
 
@@ -174,24 +174,16 @@ def containerise(name,
 
     """
 
+    # Get main object network node
+    obj_network = hou.node("/obj")
+
     # Check if the AVALON_CONTAINERS exists
-    geo = hou.node(main_container)
-    if geo is None:
-        obj_network = hou.node("/obj")
-        geo = obj_network.createNode("geo", node_name="AVALON_CONTAINERS")
-        # Delete file node
-        # With Houdini 17 they have dropped the file node in the geo node
-        # so we now check if the node exists
-        file_node = geo.node("file1")
-        if file_node:
-            geo.node("file1").destroy()
+    main_container = obj_network.node(AVALON_CONTAINERS)
+    if main_container is None:
+        main_container = obj_network.createNode("subnet",
+                                                node_name="AVALON_CONTAINERS")
 
-    # Check if root Object Network exists
-    container_network = hou.node("{}/ROOT".format(main_container))
-    if container_network is None:
-        container_network = geo.createNode("objnet", node_name="ROOT")
-
-    container = hou.node("/obj/{}".format(name))
+    container = obj_network.node(name)
     data = {
         "schema": "avalon-core:container-2.0",
         "id": "pyblish.avalon.container",
@@ -204,10 +196,10 @@ def containerise(name,
     lib.imprint(container, data)
 
     # "Parent" the container under the container network
-    hou.moveNodesTo([container], container_network)
+    hou.moveNodesTo([container], main_container)
 
     # Get the container and set good position
-    container_network.node(name).moveToGoodPosition()
+    main_container.node(name).moveToGoodPosition()
 
     return container
 
@@ -217,6 +209,7 @@ def parse_container(container, validate=True):
 
     Args:
         container (hou.Node): A container node name.
+        validate(bool): turn the validation for the container on or off
 
     Returns:
         dict: The container schema data for this container node.
