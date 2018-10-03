@@ -7,8 +7,6 @@ from .pipeline import (
     ls,
     containerise,
 
-    # Utility functions
-    maintained_selection
 )
 
 from .lib import (
@@ -16,7 +14,7 @@ from .lib import (
     lsattrs,
     read,
 
-    # maintained_selection,
+    maintained_selection,
     unique_name
 )
 
