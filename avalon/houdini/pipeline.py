@@ -180,7 +180,11 @@ def containerise(name,
         obj_network = hou.node("/obj")
         geo = obj_network.createNode("geo", node_name="AVALON_CONTAINERS")
         # Delete file node
-        geo.node("file1").destroy()
+        # With Houdini 17 they have dropped the file node in the geo node
+        # so we now check if the node exists
+        file_node = geo.node("file1")
+        if file_node:
+            geo.node("file1").destroy()
 
     # Check if root Object Network exists
     container_network = hou.node("{}/ROOT".format(main_container))
