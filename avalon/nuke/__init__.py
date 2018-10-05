@@ -21,7 +21,6 @@ from .pipeline import (
     update_container,
 
     viewer_update_and_undo_stop,
-    get_current_script,
 
     log
 )
@@ -41,7 +40,6 @@ __all__ = [
 
     "add_publish_knob",
     "ls_img_sequence",
-    "get_current_script",
     "maintained_selection",
 
     "log"

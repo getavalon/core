@@ -89,7 +89,7 @@ def parse_container(node):
     return container
 
 
-def update_container(node, keys={}):
+def update_container(node, keys=dict()):
     """Returns node with updateted containder data
 
     Arguments:
@@ -190,6 +190,7 @@ def _install_menu():
         contextmanager
     )
     # for now we are using `lite` version
+    # TODO: just for now untill qml in Nuke will be fixed (pyblish-qml#301)
     import pyblish_lite as publish
 
     # Create menu
@@ -250,6 +251,7 @@ def reset_resolution():
     try:
         width = project["data"].get("resolution_width", 1920)
         height = project["data"].get("resolution_height", 1080)
+        pixel_aspect = project["data"].get("pixel_aspect", 1)
     except KeyError:
         print(
             "No resolution information found for \"{0}\".".format(
@@ -260,17 +262,25 @@ def reset_resolution():
 
     current_width = nuke.root()["format"].value().width()
     current_height = nuke.root()["format"].value().height()
+    current_pixel_aspect = nuke.root()["format"].value().pixelAspect()
 
-    if width != current_width or height != current_height:
+    if width != current_width or height != current_height or current_pixel_aspect != pixel_aspect:
 
         fmt = None
         for f in nuke.formats():
-            if f.width() == width and f.height() == height:
+            if f.width() == width \
+                and f.height() == height \
+                    and f.pixelAspect() == pixel_aspect:
                 fmt = f.name()
 
         if not fmt:
             nuke.addFormat(
-                "{0} {1} {2}".format(int(width), int(height), project["name"])
+                "{0} {1} 0 0 {0} {1} {2} {3}".format(
+                    int(width),
+                    int(height),
+                    int(pixel_aspect),
+                    project["name"]
+                )
             )
             fmt = project["name"]
 
@@ -310,11 +320,6 @@ def _on_task_changed(*args):
     # Update menu
     _uninstall_menu()
     _install_menu()
-
-
-def get_current_script():
-    """Hack to get current script content in this session"""
-    return (nuke.Root(), nuke.allNodes()) if nuke else None
 
 
 @contextlib.contextmanager

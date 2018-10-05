@@ -4,13 +4,11 @@ import sys
 import contextlib
 import nuke
 
-from .pipeline import get_current_script
-
 
 @contextlib.contextmanager
 def maintained_selection():
     # nuke = getattr(sys.modules["__main__"], "nuke", None)
-    root, nodes = get_current_script()
+    nodes = nuke.allNodes()
     previous_selection = [n.name()
                           for n in nodes
                           if n['selected'].value() is True]
