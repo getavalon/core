@@ -199,7 +199,8 @@ class NameWindow(QtWidgets.QDialog):
         }
 
         try:
-            self.template = os.environ["AVALON_WORKFILE_TEMPLATE"].replace("\"", "")
+            self.template = os.environ["AVALON_WORKFILE_TEMPLATE"]\
+                .replace("\"", "")
 
         except KeyError:
             self.template = "{task[name]}_v{version:0>4}<_{comment}>"

@@ -1,6 +1,4 @@
-import re
 import os
-import sys
 import contextlib
 import nuke
 

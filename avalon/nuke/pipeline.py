@@ -264,7 +264,9 @@ def reset_resolution():
     current_height = nuke.root()["format"].value().height()
     current_pixel_aspect = nuke.root()["format"].value().pixelAspect()
 
-    if width != current_width or height != current_height or current_pixel_aspect != pixel_aspect:
+    if width != current_width \
+            or height != current_height \
+            or current_pixel_aspect != pixel_aspect:
 
         fmt = None
         for f in nuke.formats():
