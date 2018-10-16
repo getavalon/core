@@ -39,6 +39,12 @@
             "pattern": "^[a-zA-Z0-9_.]*$",
             "example": "hulk"
         },
+        "code": {
+            "description": "Project name abbreviation",
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_.]{0,3}$",
+            "example": "hlk"
+        },
         "data": {
             "description": "Document metadata",
             "type": "object",
