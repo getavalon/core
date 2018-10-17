@@ -199,19 +199,16 @@ def containerise(name,
     """
 
     # Check if the AVALON_CONTAINERS exists
-    geo = hou.node(main_container)
-    if geo is None:
+    subnet = hou.node(main_container)
+    if subnet is None:
         obj_network = hou.node("/obj")
-        geo = obj_network.createNode("geo", node_name="AVALON_CONTAINERS")
-        # Delete file node
-        geo.node("file1").destroy()
+        subnet = obj_network.createNode("subnet", node_name="AVALON_CONTAINERS")
 
-    # Check if root Object Network exists
-    container_network = hou.node("{}/ROOT".format(main_container))
-    if container_network is None:
-        container_network = geo.createNode("objnet", node_name="ROOT")
-
+    # Create proper container name
+    container_name = "{}_{}".format(name, suffix or "CON")
     container = hou.node("/obj/{}".format(name))
+    container.setName(container_name)
+
     data = {
         "schema": "avalon-core:container-2.0",
         "id": "pyblish.avalon.container",
@@ -224,10 +221,9 @@ def containerise(name,
     lib.imprint(container, data)
 
     # "Parent" the container under the container network
-    hou.moveNodesTo([container], container_network)
+    hou.moveNodesTo([container], subnet)
 
-    # Get the container and set good position
-    container_network.node(name).moveToGoodPosition()
+    subnet.node(container_name).moveToGoodPosition()
 
     return container
 
