@@ -429,12 +429,13 @@ def lsattrs(attrs):
         attrs (dict): Name and value pairs of expected matches
 
     Example:
-        >> lsattr("age")  # Return nodes with attribute `age`
-        >> lsattr({"age": 5})  # Return nodes with an `age` of 5
-        >> # Return nodes with both `age` and `color` of 5 and blue
-        >> lsattr({"age": 5, "color": "blue"})
+        >> # Return nodes with an `age` of five.
+        >> lsattr({"age": "five"})
+        >> # Return nodes with both `age` and `color` of five and blue.
+        >> lsattr({"age": "five", "color": "blue"})
 
-    Returns a list.
+    Return:
+         list: matching nodes.
 
     """
 
