@@ -418,7 +418,7 @@ def lsattr(attr, value=None):
     """
 
     if value is None:
-        return cmds.ls("*.%s" % attr)
+        return cmds.ls("*.%s" % attr, recursive=True)
     return lsattrs({attr: value})
 
 
