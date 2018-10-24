@@ -137,7 +137,8 @@ def preserve_selection(tree_view,
                 selection_model.select(index, flags)
 
             if current_index_value and value == current_index_value:
-                tree_view.setCurrentIndex(index)
+                selection_model.setCurrentIndex(index,
+                                                selection_model.NoUpdate)
 
 
 def _list_project_silos():

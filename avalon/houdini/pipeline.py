@@ -29,6 +29,7 @@ def install(config):
 
     """
 
+    print("Registering callbacks")
     _register_callbacks()
 
     pyblish.api.register_host("houdini")
@@ -178,12 +179,16 @@ def containerise(name,
     obj_network = hou.node("/obj")
 
     # Check if the AVALON_CONTAINERS exists
-    main_container = obj_network.node(AVALON_CONTAINERS)
-    if main_container is None:
-        main_container = obj_network.createNode("subnet",
-                                                node_name="AVALON_CONTAINERS")
+    subnet = hou.node(main_container)
+    if subnet is None:
+        obj_network = hou.node("/obj")
+        subnet = obj_network.createNode("subnet", node_name="AVALON_CONTAINERS")
 
-    container = obj_network.node(name)
+    # Create proper container name
+    container_name = "{}_{}".format(name, suffix or "CON")
+    container = hou.node("/obj/{}".format(name))
+    container.setName(container_name)
+
     data = {
         "schema": "avalon-core:container-2.0",
         "id": "pyblish.avalon.container",
@@ -196,10 +201,9 @@ def containerise(name,
     lib.imprint(container, data)
 
     # "Parent" the container under the container network
-    hou.moveNodesTo([container], main_container)
+    hou.moveNodesTo([container], subnet)
 
-    # Get the container and set good position
-    main_container.node(name).moveToGoodPosition()
+    subnet.node(container_name).moveToGoodPosition()
 
     return container
 
@@ -305,16 +309,15 @@ class Creator(api.Creator):
         return instance
 
 
-def _on_scene_open(*args):
-    api.emit("open", *[])
-
-
-def _on_scene_new(*args):
-    api.emit("new", *[])
-
-
-def _on_scene_save(*args):
-    api.emit("save", *[])
+def on_file_event_callback(event):
+    if event == hou.hipFileEventType.AfterLoad:
+        api.emit("open", [event])
+    elif event == hou.hipFileEventType.AfterSave:
+        api.emit("save", [event])
+    elif event == hou.hipFileEventType.BeforeSave:
+        api.emit("before_save", [event])
+    elif event == hou.hipFileEventType.AfterClear:
+        api.emit("new", [event])
 
 
 def on_houdini_initialize():
@@ -334,8 +337,6 @@ def _register_callbacks():
         except RuntimeError as e:
             logger.info(e)
 
-    self._events[_on_scene_save] = hou.hipFile.addEventCallback(_on_scene_save)
-
-    self._events[_on_scene_new] = hou.hipFile.addEventCallback(_on_scene_new)
-
-    self._events[_on_scene_open] = hou.hipFile.addEventCallback(_on_scene_open)
+    self._events[on_file_event_callback] = hou.hipFile.addEventCallback(
+        on_file_event_callback
+    )

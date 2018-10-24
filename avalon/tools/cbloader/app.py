@@ -3,7 +3,7 @@ import time
 
 from ..projectmanager.widget import AssetWidget, AssetModel
 
-from ...vendor.Qt import QtWidgets, QtCore, QtGui
+from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io, style
 from .. import lib
 
@@ -56,7 +56,11 @@ class Window(QtWidgets.QDialog):
         split.addWidget(asset_filter_splitter)
         split.addWidget(subsets)
         split.addWidget(version)
-        split.setSizes([225, 925, 0])
+        split.setSizes([180, 950, 200])
+
+        # Remove QSplitter border
+        split.setStyleSheet("QSplitter { border: 0px; }")
+
         container_layout.addWidget(split)
 
         body_layout = QtWidgets.QHBoxLayout(body)
@@ -101,12 +105,13 @@ class Window(QtWidgets.QDialog):
 
         families.active_changed.connect(subsets.set_family_filters)
         assets.selection_changed.connect(self.on_assetschanged)
-        subsets.active_changed.connect(self.on_versionschanged)
+        subsets.active_changed.connect(self.on_subsetschanged)
+        subsets.version_changed.connect(self.on_versionschanged)
 
         refresh_family_config()
 
         # Defaults
-        self.resize(1150, 700)
+        self.resize(1330, 700)
 
     # -------------------------------
     # Delay calling blocking methods
@@ -117,12 +122,16 @@ class Window(QtWidgets.QDialog):
         lib.schedule(self._refresh, 50, channel="mongo")
 
     def on_assetschanged(self, *args):
-        self.echo("Fetching results..")
+        self.echo("Fetching asset..")
         lib.schedule(self._assetschanged, 50, channel="mongo")
 
-    def on_versionschanged(self, *args):
-        self.echo("Fetching results..")
+    def on_subsetschanged(self, *args):
+        self.echo("Fetching subset..")
         lib.schedule(self._versionschanged, 50, channel="mongo")
+
+    def on_versionschanged(self, *args):
+        self.echo("Fetching version..")
+        lib.schedule(self._versionschanged, 150, channel="mongo")
 
     def set_context(self, context, refresh=True):
         self.echo("Setting context: {}".format(context))
