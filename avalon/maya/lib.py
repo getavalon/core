@@ -105,11 +105,19 @@ def export_alembic(nodes,
 
     Arguments:
         nodes (list): Long names of nodes to cache
+
         file (str): Absolute path to output destination
+
         frame_range (tuple, optional): Start- and end-frame of cache,
             default to current animation range.
-        uv_write (bool, optional): Whether or not to include UVs,
+
+        write_uv (bool, optional): Whether or not to include UVs,
             default to True
+
+        write_visibility (bool, optional): Turn on to store the visibility
+        state of objects in the Alembic file. Otherwise, all objects are
+        considered visible, default to True
+
         attribute_prefix (str, optional): Include all user-defined
             attributes with this prefix.
 
