@@ -154,6 +154,17 @@ def export_alembic(nodes,
     return mel.eval(mel_cmd)
 
 
+@contextlib.contextmanager
+def undo_chunk():
+    """Open a undo chunk during context."""
+
+    try:
+        cmds.undoInfo(openChunk=True)
+        yield
+    finally:
+        cmds.undoInfo(closeChunk=True)
+
+
 def imprint(node, data):
     """Write `data` to `node` as userDefined attributes
 
