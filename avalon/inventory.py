@@ -144,6 +144,17 @@ def save(name, config, inventory):
     if "inventory" not in inventory.get("schema", ""):
         raise schema.SchemaError("Missing schema for inventory")
 
+    for key, value in inventory.items():
+        if not isinstance(value, list):
+            continue
+
+        for data in inventory[key]:
+            parent_name = data.get("visualParent")
+            if parent_name:
+                parent = io.find_one({"type": "asset", "name": parent_name},
+                                     {"_id": True})
+                data["visualParent"] = parent["_id"]
+
     handlers = {
         "avalon-core:inventory-1.0": _save_inventory_1_0,
         "avalon-core:config-1.0": _save_config_1_0
@@ -223,6 +234,14 @@ def load(name):
         for asset in io.find({"type": "asset", "parent": project["_id"]}):
             silo = asset["silo"]
             data = asset["data"]
+
+            if "visualParent" in data:
+                parent_id = data["visualParent"]
+                parent = io.find_one({"_id": parent_id}, {"name": True})
+                if parent:
+                    data["visualParent"] = parent["name"]
+                else:
+                    raise Exception("Visual parent not found.")
 
             if silo not in inventory:
                 inventory[silo] = list()
