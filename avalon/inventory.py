@@ -224,6 +224,8 @@ def load(name):
             silo = asset["silo"]
             data = asset["data"]
 
+            data.pop("visualParent", None)  # Hide from manual editing
+
             if silo not in inventory:
                 inventory[silo] = list()
 
