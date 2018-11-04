@@ -454,11 +454,12 @@ class Creator(api.Creator):
     def process(self):
         nodes = list()
 
-        if (self.options or {}).get("useSelection"):
-            nodes = cmds.ls(selection=True)
+        with lib.undo_chunk():
+            if (self.options or {}).get("useSelection"):
+                nodes = cmds.ls(selection=True)
 
-        instance = cmds.sets(nodes, name=self.name)
-        lib.imprint(instance, self.data)
+            instance = cmds.sets(nodes, name=self.name)
+            lib.imprint(instance, self.data)
 
         return instance
 
@@ -567,7 +568,14 @@ def _on_task_changed(*args):
     workdir = api.Session["AVALON_WORKDIR"]
     if os.path.exists(workdir):
         logger.info("Updating Maya workspace for task change to %s", workdir)
+
         _set_project()
+
+        # Set Maya fileDialog's start-dir to /scenes
+        frule_scene = cmds.workspace(fileRuleEntry="scene")
+        cmds.optionVar(stringValue=("browserLocationmayaBinaryscene",
+                                    workdir + "/" + frule_scene))
+
     else:
         logger.warning("Can't set project for new context because "
                        "path does not exist: %s", workdir)
