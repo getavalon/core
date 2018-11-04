@@ -32,12 +32,12 @@ def determine_application():
 class NameWindow(QtWidgets.QDialog):
     """Name Window"""
 
-    def __init__(self, root, temp_file):
+    def __init__(self, root):
         super(NameWindow, self).__init__()
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
 
+        self.result = None
         self.setup(root)
-        self.temp_file = temp_file
 
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
@@ -107,15 +107,14 @@ class NameWindow(QtWidgets.QDialog):
         self.refresh()
 
     def on_ok_pressed(self):
-        self.write_data()
+        self.result = self.work_file.replace("\\", "/")
         self.close()
 
     def on_cancel_pressed(self):
         self.close()
 
-    def write_data(self):
-        self.temp_file.write(self.work_file.replace("\\", "/"))
-        self.close()
+    def get_result(self):
+        return self.result
 
     def get_work_file(self):
         data = self.data.copy()
@@ -261,16 +260,12 @@ class Window(QtWidgets.QDialog):
         self.refresh()
 
     def get_name(self):
-        temp = tempfile.TemporaryFile(mode="w+t")
 
-        window = NameWindow(self.root, temp)
+        window = NameWindow(self.root)
         window.setStyleSheet(style.load_stylesheet())
         window.exec_()
 
-        temp.seek(0)
-        name = temp.read()
-        temp.close()
-        return name
+        return window.get_result()
 
     def current_file(self):
         func = {"maya": self.current_file_maya}
