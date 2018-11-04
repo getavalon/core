@@ -293,21 +293,23 @@ class Window(QtWidgets.QDialog):
 
     def refresh(self):
         self.list.clear()
-        items = []
+
         modified = []
         for f in sorted(os.listdir(self.root)):
-            if os.path.isdir(os.path.join(self.root, f)):
+            path = os.path.join(self.root, f)
+            if os.path.isdir(path):
                 continue
 
             if self.filter and os.path.splitext(f)[1] not in self.filter:
                 continue
+
             self.list.addItem(f)
-            items.append(self.list.findItems(f, QtCore.Qt.MatchExactly)[0])
-            modified.append(os.path.getmtime(os.path.join(self.root, f)))
+            modified.append(os.path.getmtime(path))
 
         # Select last modified file
-        if items:
-            items[modified.index(max(modified))].setSelected(True)
+        if self.list.count():
+            item = self.list.item(modified.index(max(modified)))
+            item.setSelected(True)
             self.duplicate_button.setEnabled(True)
         else:
             self.duplicate_button.setEnabled(False)
