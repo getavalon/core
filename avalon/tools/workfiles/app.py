@@ -295,7 +295,7 @@ class Window(QtWidgets.QDialog):
         self.list.clear()
         items = []
         modified = []
-        for f in os.listdir(self.root):
+        for f in sorted(os.listdir(self.root)):
             if os.path.isdir(os.path.join(self.root, f)):
                 continue
 
