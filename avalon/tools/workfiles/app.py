@@ -257,6 +257,7 @@ class Window(QtWidgets.QDialog):
         self.open_button.setFocus()
 
         self.refresh()
+        self.resize(400, 550)
 
     def get_name(self):
 
