@@ -251,6 +251,7 @@ class Window(QtWidgets.QDialog):
 
         self.duplicate_button.pressed.connect(self.on_duplicate_pressed)
         self.open_button.pressed.connect(self.on_open_pressed)
+        self.list.doubleClicked.connect(self.on_open_pressed)
         self.browse_button.pressed.connect(self.on_browse_pressed)
         self.save_as_button.pressed.connect(self.on_save_as_pressed)
 
