@@ -306,6 +306,10 @@ class Window(QtWidgets.QDialog):
         if self.list.count():
             item = self.list.item(modified.index(max(modified)))
             item.setSelected(True)
+
+            # Scroll list so item is visible
+            QtCore.QTimer.singleShot(100, lambda: self.list.scrollToItem(item))
+
             self.duplicate_button.setEnabled(True)
         else:
             self.duplicate_button.setEnabled(False)
