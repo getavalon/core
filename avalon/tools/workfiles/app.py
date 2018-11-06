@@ -1,6 +1,5 @@
 import sys
 import os
-import tempfile
 import getpass
 import re
 import shutil
@@ -8,7 +7,7 @@ import shutil
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import style
-from avalon import io
+from ... import io, api
 
 
 def determine_application():
@@ -180,14 +179,14 @@ class NameWindow(QtWidgets.QDialog):
         # Get work file name
         self.data = {
             "project": io.find_one(
-                {"name": os.environ["AVALON_PROJECT"], "type": "project"}
+                {"name": api.Session["AVALON_PROJECT"], "type": "project"}
             ),
             "asset": io.find_one(
-                {"name": os.environ["AVALON_ASSET"], "type": "asset"}
+                {"name": api.Session["AVALON_ASSET"], "type": "asset"}
             ),
             "task": {
-                "name": os.environ["AVALON_TASK"].lower(),
-                "label": os.environ["AVALON_TASK"]
+                "name": api.Session["AVALON_TASK"].lower(),
+                "label": api.Session["AVALON_TASK"]
             },
             "version": 1,
             "user": getpass.getuser(),
