@@ -252,6 +252,21 @@ class Window(QtWidgets.QDialog):
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
 
+        # Display current context
+        # todo: context should update on update task
+        label = u"<b>Asset</b> {0} \u25B6 <b>Task</b> {1}".format(
+            api.Session["AVALON_ASSET"],
+            api.Session["AVALON_TASK"]
+        )
+        self.context_label = QtWidgets.QLabel(label)
+        self.context_label.setStyleSheet("QLabel{ font-size: 12pt; }")
+        self.layout.addWidget(self.context_label)
+
+        separator = QtWidgets.QFrame()
+        separator.setFrameShape(QtWidgets.QFrame.HLine)
+        separator.setFrameShadow(QtWidgets.QFrame.Plain)
+        self.layout.addWidget(separator)
+
         self.list = QtWidgets.QListWidget()
         self.layout.addWidget(self.list)
 
