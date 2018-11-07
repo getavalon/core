@@ -1,6 +1,5 @@
 import sys
 import os
-import tempfile
 import getpass
 import re
 import shutil
@@ -8,7 +7,7 @@ import shutil
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import style
-from avalon import io
+from ... import io, api
 
 
 def determine_application():
@@ -32,12 +31,12 @@ def determine_application():
 class NameWindow(QtWidgets.QDialog):
     """Name Window"""
 
-    def __init__(self, root, temp_file):
+    def __init__(self, root):
         super(NameWindow, self).__init__()
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
 
+        self.result = None
         self.setup(root)
-        self.temp_file = temp_file
 
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
@@ -107,19 +106,18 @@ class NameWindow(QtWidgets.QDialog):
         self.refresh()
 
     def on_ok_pressed(self):
-        self.write_data()
+        self.result = self.work_file.replace("\\", "/")
         self.close()
 
     def on_cancel_pressed(self):
         self.close()
 
-    def write_data(self):
-        self.temp_file.write(self.work_file.replace("\\", "/"))
-        self.close()
+    def get_result(self):
+        return self.result
 
-    def get_work_file(self):
+    def get_work_file(self, template=None):
         data = self.data.copy()
-        template = self.template
+        template = template or self.template
 
         if not data["comment"]:
             data.pop("comment", None)
@@ -150,12 +148,42 @@ class NameWindow(QtWidgets.QDialog):
         if self.version_checkbox.isChecked():
             self.version_spinbox.setEnabled(False)
 
-            for i in range(1, 9999):
-                self.data["version"] = i
-                self.work_file = self.get_work_file()
-                path = os.path.join(self.root, self.work_file)
-                if not os.path.exists(path):
-                    break
+            # Find matching files
+            files = os.listdir(self.root)
+
+            # Fast match on extension
+            ext = self.extensions[self.application]
+            files = [f for f in files if f.endswith(ext)]
+
+            # Build template without optionals, version to digits only regex
+            # and comment to any definable value.
+            # Note: with auto-increment the `version` key may not be optional.
+            template = self.template
+            template = re.sub("<.*?>", ".*?", template)
+            template = re.sub("{version.*}", "([0-9]+)", template)
+            template = re.sub("{comment.*?}", ".+?", template)
+            template = self.get_work_file(template)
+            template = "^" + template + "$"           # match beginning to end
+
+            # Get highest version among existing matching files
+            version = 1
+            for file in sorted(files):
+                match = re.match(template, file)
+                if not match:
+                    continue
+
+                file_version = int(match.group(1))
+
+                if file_version >= version:
+                    version = file_version + 1
+
+            self.data["version"] = version
+
+            # safety check
+            path = os.path.join(self.root, self.get_work_file())
+            assert not os.path.exists(path), \
+                "This is a bug, file exists: %s" % path
+
         else:
             self.version_spinbox.setEnabled(True)
             self.data["version"] = self.version_spinbox.value()
@@ -181,14 +209,14 @@ class NameWindow(QtWidgets.QDialog):
         # Get work file name
         self.data = {
             "project": io.find_one(
-                {"name": os.environ["AVALON_PROJECT"], "type": "project"}
+                {"name": api.Session["AVALON_PROJECT"], "type": "project"}
             ),
             "asset": io.find_one(
-                {"name": os.environ["AVALON_ASSET"], "type": "asset"}
+                {"name": api.Session["AVALON_ASSET"], "type": "asset"}
             ),
             "task": {
-                "name": os.environ["AVALON_TASK"].lower(),
-                "label": os.environ["AVALON_TASK"]
+                "name": api.Session["AVALON_TASK"].lower(),
+                "label": api.Session["AVALON_TASK"]
             },
             "version": 1,
             "user": getpass.getuser(),
@@ -224,6 +252,21 @@ class Window(QtWidgets.QDialog):
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
 
+        # Display current context
+        # todo: context should update on update task
+        label = u"<b>Asset</b> {0} \u25B6 <b>Task</b> {1}".format(
+            api.Session["AVALON_ASSET"],
+            api.Session["AVALON_TASK"]
+        )
+        self.context_label = QtWidgets.QLabel(label)
+        self.context_label.setStyleSheet("QLabel{ font-size: 12pt; }")
+        self.layout.addWidget(self.context_label)
+
+        separator = QtWidgets.QFrame()
+        separator.setFrameShape(QtWidgets.QFrame.HLine)
+        separator.setFrameShadow(QtWidgets.QFrame.Plain)
+        self.layout.addWidget(separator)
+
         self.list = QtWidgets.QListWidget()
         self.layout.addWidget(self.list)
 
@@ -253,24 +296,22 @@ class Window(QtWidgets.QDialog):
 
         self.duplicate_button.pressed.connect(self.on_duplicate_pressed)
         self.open_button.pressed.connect(self.on_open_pressed)
+        self.list.doubleClicked.connect(self.on_open_pressed)
         self.browse_button.pressed.connect(self.on_browse_pressed)
         self.save_as_button.pressed.connect(self.on_save_as_pressed)
 
         self.open_button.setFocus()
 
         self.refresh()
+        self.resize(400, 550)
 
     def get_name(self):
-        temp = tempfile.TemporaryFile(mode="w+t")
 
-        window = NameWindow(self.root, temp)
+        window = NameWindow(self.root)
         window.setStyleSheet(style.load_stylesheet())
         window.exec_()
 
-        temp.seek(0)
-        name = temp.read()
-        temp.close()
-        return name
+        return window.get_result()
 
     def current_file(self):
         func = {"maya": self.current_file_maya}
@@ -293,21 +334,27 @@ class Window(QtWidgets.QDialog):
 
     def refresh(self):
         self.list.clear()
-        items = []
+
         modified = []
-        for f in os.listdir(self.root):
-            if os.path.isdir(os.path.join(self.root, f)):
+        for f in sorted(os.listdir(self.root)):
+            path = os.path.join(self.root, f)
+            if os.path.isdir(path):
                 continue
 
             if self.filter and os.path.splitext(f)[1] not in self.filter:
                 continue
+
             self.list.addItem(f)
-            items.append(self.list.findItems(f, QtCore.Qt.MatchExactly)[0])
-            modified.append(os.path.getmtime(os.path.join(self.root, f)))
+            modified.append(os.path.getmtime(path))
 
         # Select last modified file
-        if items:
-            items[modified.index(max(modified))].setSelected(True)
+        if self.list.count():
+            item = self.list.item(modified.index(max(modified)))
+            item.setSelected(True)
+
+            # Scroll list so item is visible
+            QtCore.QTimer.singleShot(100, lambda: self.list.scrollToItem(item))
+
             self.duplicate_button.setEnabled(True)
         else:
             self.duplicate_button.setEnabled(False)
