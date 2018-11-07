@@ -115,9 +115,9 @@ class NameWindow(QtWidgets.QDialog):
     def get_result(self):
         return self.result
 
-    def get_work_file(self):
+    def get_work_file(self, template=None):
         data = self.data.copy()
-        template = self.template
+        template = template or self.template
 
         if not data["comment"]:
             data.pop("comment", None)
@@ -148,12 +148,42 @@ class NameWindow(QtWidgets.QDialog):
         if self.version_checkbox.isChecked():
             self.version_spinbox.setEnabled(False)
 
-            for i in range(1, 9999):
-                self.data["version"] = i
-                self.work_file = self.get_work_file()
-                path = os.path.join(self.root, self.work_file)
-                if not os.path.exists(path):
-                    break
+            # Find matching files
+            files = os.listdir(self.root)
+
+            # Fast match on extension
+            ext = self.extensions[self.application]
+            files = [f for f in files if f.endswith(ext)]
+
+            # Build template without optionals, version to digits only regex
+            # and comment to any definable value.
+            # Note: with auto-increment the `version` key may not be optional.
+            template = self.template
+            template = re.sub("<.*?>", ".*?", template)
+            template = re.sub("{version.*}", "([0-9]+)", template)
+            template = re.sub("{comment.*?}", ".+?", template)
+            template = self.get_work_file(template)
+            template = "^" + template + "$"           # match beginning to end
+
+            # Get highest version among existing matching files
+            version = 1
+            for file in sorted(files):
+                match = re.match(template, file)
+                if not match:
+                    continue
+
+                file_version = int(match.group(1))
+
+                if file_version >= version:
+                    version = file_version + 1
+
+            self.data["version"] = version
+
+            # safety check
+            path = os.path.join(self.root, self.get_work_file())
+            assert not os.path.exists(path), \
+                "This is a bug, file exists: %s" % path
+
         else:
             self.version_spinbox.setEnabled(True)
             self.data["version"] = self.version_spinbox.value()
