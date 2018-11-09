@@ -20,6 +20,10 @@ class InventoryModel(TreeModel):
 
     UniqueRole = QtCore.Qt.UserRole + 2     # unique label role
 
+    def __init__(self, parent=None):
+        super(InventoryModel, self).__init__(parent)
+        self._hierarchy_view = False
+
     def data(self, index, role):
 
         if not index.isValid():
@@ -65,11 +69,23 @@ class InventoryModel(TreeModel):
 
         return super(InventoryModel, self).data(index, role)
 
+    def set_hierarchy_view(self, state):
+        """Set whether to display subsets in hierarchy view."""
+        state = bool(state)
+
+        if state != self._hierarchy_view:
+            self._hierarchy_view = state
+            self.refresh()
+
     def refresh(self):
         """Refresh the model"""
 
         host = api.registered_host()
         config = api.registered_config()
+
+        # host should have `pipeline`
+        if hasattr(host.pipeline, "find_host_config"):
+            config = host.pipeline.find_host_config(config)
 
         items = []
         containers = host.ls()
@@ -85,9 +101,44 @@ class InventoryModel(TreeModel):
             items.append(item)
 
         self.clear()
-        self.add_items(items)
 
-    def add_items(self, items):
+        if self._hierarchy_view:
+            relationships = {None: []}  # Create a {parent: children} map
+            has_parent = list()
+            for item in items:
+                children = item.get("children", [])
+                relationships[item["namespace"]] = children
+                has_parent += [child["namespace"] for child in children]
+
+            for item in items:
+                if item["namespace"] not in has_parent:
+                    relationships[None].append(item)
+
+            parents = [None]
+            process_count = 0
+            total_items = len(items)
+            while process_count < total_items:
+                _parents = list()
+
+                for parent in parents:
+                    if parent is None:
+                        items = relationships[None]
+                    else:
+                        items = relationships[parent["namespace"]]
+
+                    root_node = self.add_items(items, parent)
+
+                    for group_node in root_node.children():
+                        _parents += group_node.children()
+
+                    process_count += len(items)
+
+                parents[:] = _parents
+
+        else:
+            self.add_items(items)
+
+    def add_items(self, items, parent=None):
         """Add the items to the model.
 
         The items should be formatted similar to `api.ls()` returns, an item
@@ -161,7 +212,7 @@ class InventoryModel(TreeModel):
             group_node["familyIcon"] = family_icon
             group_node["count"] = len(group_items)
 
-            self.add_child(group_node)
+            self.add_child(group_node, parent=parent)
 
             for item in group_items:
                 item_node = Node()

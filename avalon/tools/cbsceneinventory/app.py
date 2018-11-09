@@ -475,6 +475,14 @@ class Window(QtWidgets.QDialog):
         control_layout.addWidget(text_filter)
         control_layout.addWidget(outdated_only)
         control_layout.addWidget(refresh_button)
+
+        option_layout = QtWidgets.QHBoxLayout()
+        hierarchy_view = QtWidgets.QCheckBox("Hierarchy View")
+        hierarchy_view.setToolTip("Display subsets hierarchy.")
+        hierarchy_view.setChecked(False)
+
+        option_layout.addWidget(hierarchy_view)
+
         # endregion control
 
         model = InventoryModel()
@@ -488,10 +496,12 @@ class Window(QtWidgets.QDialog):
         view.setItemDelegateForColumn(column, version_delegate)
 
         layout.addLayout(control_layout)
+        layout.addLayout(option_layout)
         layout.addWidget(view)
 
         self.filter = text_filter
         self.outdated_only = outdated_only
+        self.hierarchy_view = hierarchy_view
         self.view = view
         self.refresh_button = refresh_button
         self.model = model
@@ -500,6 +510,7 @@ class Window(QtWidgets.QDialog):
         # signals
         text_filter.textChanged.connect(self.proxy.setFilterRegExp)
         outdated_only.stateChanged.connect(self.proxy.set_filter_outdated)
+        hierarchy_view.stateChanged.connect(self.model.set_hierarchy_view)
         refresh_button.clicked.connect(self.refresh)
         view.data_changed.connect(self.refresh)
 
