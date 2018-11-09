@@ -65,8 +65,8 @@ def switch_item(container,
                                   "parent": version["_id"]})
 
     assert representation, (
-            "Could not find representation in the database with"
-            " the name '%s'" % representation_name)
+        "Could not find representation in the database with"
+        " the name '%s'" % representation_name)
 
     api.switch(container, representation)
 
