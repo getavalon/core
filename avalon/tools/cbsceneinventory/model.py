@@ -167,10 +167,6 @@ class InventoryModel(TreeModel):
                 item_node = Node()
                 item_node.update(item)
 
-                # set name from namespace (unique identifier for the `item`
-                # todo(marcus): should this remapping be necessary?
-                item_node["name"] = item["namespace"]
-
                 # store the current version on the item
                 item_node["version"] = version['name']
 
