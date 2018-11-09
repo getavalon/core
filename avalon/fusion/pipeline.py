@@ -4,6 +4,8 @@ import importlib
 import logging
 from pyblish import api as pyblish
 
+from ..pipeline import AVALON_CONTAINER_ID
+
 
 class CompLogHandler(logging.Handler):
     def emit(self, record):
@@ -91,7 +93,7 @@ def imprint_container(tool,
 
     data = [
         ("schema", "avalon-core:container-2.0"),
-        ("id", "pyblish.avalon.container"),
+        ("id", AVALON_CONTAINER_ID),
         ("name", str(name)),
         ("namespace", str(namespace)),
         ("loader", str(loader)),

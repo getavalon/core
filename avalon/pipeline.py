@@ -39,6 +39,9 @@ self.data = {}
 log = logging.getLogger(__name__)
 
 
+AVALON_CONTAINER_ID = "pyblish.avalon.container"
+
+
 class IncompatibleLoaderError(ValueError):
     """Error when Loader is incompatible with a representation."""
     pass

@@ -13,6 +13,7 @@ from . import lib
 from ..lib import logger
 from avalon import api, schema
 
+from ..pipeline import AVALON_CONTAINER_ID
 
 self = sys.modules[__name__]
 self._has_been_setup = False
@@ -186,7 +187,7 @@ def containerise(name,
     container = obj_network.node(name)
     data = {
         "schema": "avalon-core:container-2.0",
-        "id": "pyblish.avalon.container",
+        "id": AVALON_CONTAINER_ID,
         "name": name,
         "namespace": namespace,
         "loader": str(loader),
@@ -232,7 +233,7 @@ def parse_container(container, validate=True):
 
 def ls():
     containers = []
-    for identifier in ("pyblish.avalon.container",
+    for identifier in (AVALON_CONTAINER_ID,
                        "pyblish.mindbender.container"):
         containers += lib.lsattr("id", identifier)
 
