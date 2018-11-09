@@ -226,7 +226,7 @@ class Creator(object):
         self.data["id"] = "pyblish.avalon.instance"
         self.data["family"] = self.family
         self.data["asset"] = asset
-        self.data["subset"] = name
+        self.data["subset"] = self.name
         self.data["active"] = True
 
         self.data.update(data or {})
@@ -806,6 +806,12 @@ def create(name, asset, family, options=None, data=None):
 
         if not has_family:
             continue
+
+        if not name:
+            name = Plugin.name
+            Plugin.log.info(
+                "Using default name '%s' from '%s'" % (name, Plugin.__name__)
+            )
 
         Plugin.log.info(
             "Creating '%s' with '%s'" % (name, Plugin.__name__)
