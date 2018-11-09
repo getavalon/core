@@ -412,7 +412,7 @@ def discover(superclass):
         for module in lib.modules_from_path(path):
             for plugin in plugin_from_module(superclass, module):
                 if plugin.__name__ in plugins:
-                    print("Duplicate plug-in found: %s", plugin)
+                    print("Duplicate plug-in found: %s" % plugin)
                     continue
 
                 plugins[plugin.__name__] = plugin
