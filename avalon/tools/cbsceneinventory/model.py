@@ -103,35 +103,26 @@ class InventoryModel(TreeModel):
         self.clear()
 
         if self._hierarchy_view:
-            relationships = {None: []}  # Create a {parent: children} map
-            has_parent = list()
-            for item in items:
-                children = item.get("children", [])
-                relationships[item["namespace"]] = children
-                has_parent += [child["namespace"] for child in children]
+            parents = [self._root_node]
 
-            for item in items:
-                if item["namespace"] not in has_parent:
-                    relationships[None].append(item)
-
-            parents = [None]
-            process_count = 0
-            total_items = len(items)
-            while process_count < total_items:
+            while items:
                 _parents = list()
 
                 for parent in parents:
-                    if parent is None:
-                        items = relationships[None]
-                    else:
-                        items = relationships[parent["namespace"]]
+                    _unparented = list()
 
-                    root_node = self.add_items(items, parent)
+                    def _children():
+                        for item in items:
+                            if item.get("parent") == parent.get("objectName"):
+                                yield item
+                            else:
+                                _unparented.append(item)
+
+                    root_node = self.add_items(_children(), parent)
+                    items[:] = _unparented
 
                     for group_node in root_node.children():
                         _parents += group_node.children()
-
-                    process_count += len(items)
 
                 parents[:] = _parents
 
