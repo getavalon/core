@@ -447,6 +447,14 @@ def ls():
 
     for container in sorted(containers):
         data = parse_container(container)
+
+        # Hierarchical container support
+        parent = cmds.listSets(object=container) or []
+        for node in parent:
+            if node in containers:
+                data["parent"] = node
+                break
+
         yield data
 
 
