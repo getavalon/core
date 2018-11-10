@@ -58,7 +58,7 @@ class InventoryModel(TreeModel):
                 if node.get("isGroupNode"):  # group-item
                     return qta.icon("fa.folder", color=color)
                 else:
-                    return qta.icon("fa.folder-o", color=color)
+                    return qta.icon("fa.file-o", color=color)
 
             if index.column() == 3:
                 # Family icon
