@@ -239,6 +239,13 @@ def ls():
 
     for container in sorted(containers):
         data = parse_container(container)
+
+        # Collect custom data if attribute is present
+        config = find_host_config(api.registered_config())
+        if hasattr(config, "collect_container_metadata"):
+            metadata = config.collect_container_metadata(container)
+            data.update(metadata)
+
         yield data
 
 

@@ -69,20 +69,11 @@ class InventoryModel(TreeModel):
         """Refresh the model"""
 
         host = api.registered_host()
-        config = api.registered_config()
 
         items = []
         containers = host.ls()
         for container in containers:
-            item = container
-            # Collect custom data if attribute is present
-            if hasattr(config, "collect_container_metadata"):
-                data = config.collect_container_metadata(container)
-                # Protect the container by merging it into the data
-                data.update(container)
-                item = data
-
-            items.append(item)
+            items.append(container)
 
         self.clear()
         self.add_items(items)
