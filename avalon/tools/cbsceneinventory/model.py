@@ -55,7 +55,7 @@ class InventoryModel(TreeModel):
             if index.column() == 0:
                 # Override color
                 color = node.get("color", style.colors.default)
-                if not index.parent().isValid():  # group-item
+                if node.get("isGroupNode"):  # group-item
                     return qta.icon("fa.folder", color=color)
                 else:
                     return qta.icon("fa.folder-o", color=color)
@@ -202,6 +202,7 @@ class InventoryModel(TreeModel):
             group_node["family"] = family
             group_node["familyIcon"] = family_icon
             group_node["count"] = len(group_items)
+            group_node["isGroupNode"] = True
 
             self.add_child(group_node, parent=parent)
 
