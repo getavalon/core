@@ -888,10 +888,10 @@ def update_current_task(task=None, asset=None, app=None):
     # Update silo when asset changed
     if "AVALON_ASSET" in changed:
         asset_document = io.find_one({"name": changed["AVALON_ASSET"],
-                                      "type": "asset"},
-                                     projection={"silo": True})
+                                      "type": "asset"})
         assert asset_document, "Asset must exist"
         changed["AVALON_SILO"] = asset_document["silo"]
+        changed['AVALON_HIERARCHY'] = os.path.sep.join(asset_document['data']['parents'])
 
     # Compute work directory (with the temporary changed session so far)
     project = io.find_one({"type": "project"},
@@ -936,6 +936,7 @@ def _format_work_template(template, session=None):
         "root": registered_root(),
         "project": session["AVALON_PROJECT"],
         "silo": session["AVALON_SILO"],
+        "hierarchy": session['AVALON_HIERARCHY'],
         "asset": session["AVALON_ASSET"],
         "task": session["AVALON_TASK"],
         "app": session["AVALON_APP"],
