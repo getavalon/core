@@ -156,17 +156,17 @@ class Loader(list):
     order = 0
 
     def __init__(self, context):
-        template = context["project"]["config"]["template"]["publish"]
 
-        data = {
-            key: value["name"]
-            for key, value in context.items()
-        }
 
-        data["root"] = registered_root()
-        data["silo"] = context["asset"]["silo"]
+        try:
+            fname = context['representation']['data']['path']
+        except KeyError:
+            template = context["project"]["config"]["template"]["publish"]
+            data = context['representation']['context']
+            data["root"] = registered_root()
+            data["silo"] = context["asset"]["silo"]
+            fname = template.format(**data)
 
-        fname = template.format(**data)
         self.fname = fname
 
     def load(self, context, name=None, namespace=None, data=None):
@@ -1134,18 +1134,25 @@ def get_representation_path(representation):
 
     version_, subset, asset, project = io.parenthood(representation)
     template_publish = project["config"]["template"]["publish"]
-    return template_publish.format(**{
-        "root": registered_root(),
-        "project": project["name"],
-        "asset": asset["name"],
-        "silo": asset["silo"],
-        "subset": subset["name"],
-        "version": version_["name"],
-        "representation": representation["name"],
-        "user": Session.get("AVALON_USER", getpass.getuser()),
-        "app": Session.get("AVALON_APP", ""),
-        "task": Session.get("AVALON_TASK", "")
-    })
+
+    try:
+        return representation['data']['path']
+    except KeyError:
+        if representation['context']:
+            return template_publish.format(**representation['context'])
+        else:
+            return template_publish.format(**{
+                "root": registered_root(),
+                "project": project["name"],
+                "asset": asset["name"],
+                "silo": asset["silo"],
+                "subset": subset["name"],
+                "version": version_["name"],
+                "representation": representation["name"],
+                "user": Session.get("AVALON_USER", getpass.getuser()),
+                "app": Session.get("AVALON_APP", ""),
+                "task": Session.get("AVALON_TASK", "")
+            })
 
 
 def is_compatible_loader(Loader, context):
