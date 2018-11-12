@@ -82,10 +82,6 @@ class InventoryModel(TreeModel):
 
         host = api.registered_host()
 
-        # host should have `pipeline`
-        if hasattr(host.pipeline, "find_host_config"):
-            config = host.pipeline.find_host_config(config)
-
         items = []
         containers = host.ls()
         for container in containers:
