@@ -13,6 +13,8 @@ from .. import api, schema
 from ..tools import workfiles
 from ..vendor.Qt import QtCore, QtWidgets
 
+from ..pipeline import AVALON_CONTAINER_ID
+
 # Backwards compatibility
 load = compat.load
 update = compat.update
@@ -377,7 +379,7 @@ def containerise(name,
 
     data = [
         ("schema", "avalon-core:container-2.0"),
-        ("id", "pyblish.avalon.container"),
+        ("id", AVALON_CONTAINER_ID),
         ("name", name),
         ("namespace", namespace),
         ("loader", str(loader)),
@@ -441,7 +443,7 @@ def ls():
     """
 
     containers = list()
-    for identifier in ("pyblish.avalon.container",
+    for identifier in (AVALON_CONTAINER_ID,
                        "pyblish.mindbender.container"):
         containers += lib.lsattr("id", identifier)
 
@@ -454,6 +456,12 @@ def ls():
             if node in containers:
                 data["parent"] = node
                 break
+
+        # Collect custom data if attribute is present
+        config = find_host_config(api.registered_config())
+        if hasattr(config, "collect_container_metadata"):
+            metadata = config.collect_container_metadata(container)
+            data.update(metadata)
 
         yield data
 
