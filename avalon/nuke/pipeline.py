@@ -4,15 +4,16 @@ from .. import api, io
 import contextlib
 from pyblish import api as pyblish
 from ..vendor import toml
+
+from avalon.nuke.logger import nuke_logger
+
 import nuke
-
-from ..vendor.cgLogging import getLogger as nLogger
-
-log = nLogger('NukeLogger', level=10)
 
 # TODO: covert completery fusion pipeline into nuke
 # TODO: go to config.nuke.__init__ and again convert fusion to Nuke
 # TODO: config.nuke.pipeline convert from fusion
+
+log = nuke_logger(__name__)
 
 
 def containerise(node,

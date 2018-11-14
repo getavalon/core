@@ -21,9 +21,9 @@ from .pipeline import (
     update_container,
 
     viewer_update_and_undo_stop,
-
-    log
 )
+
+from .logger import nuke_logger
 
 __all__ = [
     "install",
@@ -42,5 +42,5 @@ __all__ = [
     "ls_img_sequence",
     "maintained_selection",
 
-    "log"
+    "nuke_logger"
 ]
