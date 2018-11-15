@@ -1,3 +1,4 @@
+
 import sys
 import os
 import tempfile
@@ -198,15 +199,12 @@ class NameWindow(QtWidgets.QDialog):
             "comment": ""
         }
 
-        try:
-            self.template = os.environ["AVALON_WORKFILE_TEMPLATE"]\
-                .replace("\"", "")
+        self.template = "{task[name]}_v{version:0>4}<_{comment}>"
 
-        except KeyError:
-            self.template = "{task[name]}_v{version:0>4}<_{comment}>"
-            templates = self.data["project"]["config"]["template"]
-            if "workfile" in templates:
-                self.template = templates["workfile"]
+        templates = self.data["project"]["config"]["template"]
+
+        if "workfile" in templates:
+            self.template = templates["workfile"]
 
         self.extensions = {"maya": ".ma", "nuke": ".nk"}
 
@@ -399,12 +397,10 @@ class Window(QtWidgets.QDialog):
 
             if result is None:
                 return False
-
             if result:
                 nuke.scriptSave()
-            else:
-                nuke.scriptClear()
 
+        nuke.scriptClear()
         nuke.scriptOpen(file_path)
 
         return True
