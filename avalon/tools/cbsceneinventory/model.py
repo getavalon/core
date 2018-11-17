@@ -81,17 +81,14 @@ class InventoryModel(TreeModel):
         """Refresh the model"""
 
         host = api.registered_host()
-
-        items = []
-        containers = host.ls()
-        for container in containers:
-            items.append(container)
+        items = host.ls()
 
         self.clear()
 
         if self._hierarchy_view:
-            parents = [self._root_node]
 
+            items = list(items)  # construct the generator results
+            parents = [self._root_node]
             while items:
                 _parents = list()
 
@@ -99,16 +96,20 @@ class InventoryModel(TreeModel):
                     _unparented = list()
 
                     def _children():
+                        """Child item provider"""
                         for item in items:
                             if item.get("parent") == parent.get("objectName"):
                                 yield item
                             else:
+                                # Not current parent's child, try next
                                 _unparented.append(item)
 
-                    root_node = self.add_items(_children(), parent)
+                    self.add_items(_children(), parent)
+
                     items[:] = _unparented
 
-                    for group_node in root_node.children():
+                    # Parents of next level
+                    for group_node in parent.children():
                         _parents += group_node.children()
 
                 parents[:] = _parents
@@ -136,9 +137,6 @@ class InventoryModel(TreeModel):
         Returns:
             node.Node: root node which has children added based on the data
         """
-
-        # construct the generator results
-        items = list(items)
 
         self.beginResetModel()
 
