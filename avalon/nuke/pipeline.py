@@ -1,4 +1,5 @@
 import os
+import sys
 import importlib
 from .. import api, io
 import contextlib
@@ -14,6 +15,45 @@ import nuke
 # TODO: config.nuke.pipeline convert from fusion
 
 log = nuke_logger(__name__)
+
+self = sys.modules[__name__]
+self._parent = None
+
+
+def reload_pipeline():
+    """Attempt to reload pipeline at run-time.
+
+    CAUTION: This is primarily for development and debugging purposes.
+
+    """
+
+    import importlib
+
+    # api.uninstall()
+    _uninstall_menu()
+
+    for module in ("avalon.io",
+                   "avalon.lib",
+                   "avalon.pipeline",
+                   "avalon.nuke.logger",
+                   "avalon.nuke.pipeline",
+                   "avalon.nuke.lib",
+                   "avalon.tools.loader.app",
+                   "avalon.tools.creator.app",
+                   "avalon.tools.manager.app",
+
+                   "avalon.api",
+                   "avalon.tools",
+                   "avalon.nuke"):
+
+        module = importlib.import_module(module)
+        reload(module)
+
+    import avalon.nuke
+    api.install(avalon.nuke)
+
+    _install_menu()
+    _register_events()
 
 
 def containerise(node,
@@ -179,6 +219,7 @@ def install(config):
 def _uninstall_menu():
     menubar = nuke.menu("Nuke")
     menubar.removeItem(api.Session["AVALON_LABEL"])
+    self._parent = None
 
 
 def _install_menu():
@@ -220,6 +261,11 @@ def _install_menu():
 
     menu.addCommand("Reset Frame Range", reset_frame_range)
     menu.addCommand("Reset Resolution", reset_resolution)
+
+    menu.addSeparator()
+    menu.addCommand("Reload Pipeline", reload_pipeline)
+
+    self._parent = menu
 
 
 def reset_frame_range():

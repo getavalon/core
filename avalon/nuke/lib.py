@@ -1,6 +1,7 @@
 import os
 import contextlib
 import nuke
+import re
 
 
 @contextlib.contextmanager
@@ -98,3 +99,50 @@ def add_publish_knob(node):
         knob.setValue(False)
         node.addKnob(knob)
     return node
+
+
+def get_node_path(path, padding=4):
+    """Get filename for the Nuke write with padded number as '#'
+
+    >>> get_frame_path("test.exr")
+    ('test', 4, '.exr')
+
+    >>> get_frame_path("filename.#####.tif")
+    ('filename.', 5, '.tif')
+
+    >>> get_frame_path("foobar##.tif")
+    ('foobar', 2, '.tif')
+
+    >>> get_frame_path("foobar_%08d.tif")
+    ('foobar_', 8, '.tif')
+
+    Args:
+        path (str): The path to render to.
+
+    Returns:
+        tuple: head, padding, tail (extension)
+
+    """
+    filename, ext = os.path.splitext(path)
+    print(filename)
+    print(filename, ext)
+    # Find a final number group
+    if '%' in filename:
+        print("I am here")
+        match = re.match('.*?(%[0-9]+d)$', filename)
+        print(match)
+        if match:
+            padding = int(match.group(1).replace('%', '').replace('d', ''))
+            # remove number from end since fusion
+            # will swap it with the frame number
+            filename = filename.replace(match.group(1), '')
+    elif '#' in filename:
+        match = re.match('.*?(#+)$', filename)
+
+        if match:
+            padding = len(match.group(1))
+            # remove number from end since fusion
+            # will swap it with the frame number
+            filename = filename.replace(match.group(1), '')
+
+    return filename, padding, ext
