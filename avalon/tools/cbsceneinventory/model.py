@@ -1,3 +1,6 @@
+
+import logging
+
 from collections import defaultdict
 
 from ... import api, io, style
@@ -22,6 +25,8 @@ class InventoryModel(TreeModel):
 
     def __init__(self, parent=None):
         super(InventoryModel, self).__init__(parent)
+        self.log = logging.getLogger(self.__class__.__name__)
+
         self._hierarchy_view = False
 
     def data(self, index, role):
@@ -89,9 +94,19 @@ class InventoryModel(TreeModel):
 
             items = list(items)  # construct the generator results
             parents = [self._root_node]
-            while items:
-                _parents = list()
 
+            # The length of `items` array is the maximum depth that a
+            # hierarchy could be.
+            # Take this as an easiest way to prevent looping forever.
+            maximum_loop = len(items)
+            count = 0
+            while items:
+                if count > maximum_loop:
+                    self.log.warning("Maximum loop count reached, possible "
+                                     "missing parent node.")
+                    break
+
+                _parents = list()
                 for parent in parents:
                     _unparented = list()
 
@@ -99,6 +114,11 @@ class InventoryModel(TreeModel):
                         """Child item provider"""
                         for item in items:
                             if item.get("parent") == parent.get("objectName"):
+                                # (NOTE)
+                                # Since `self._root_node` has no "objectName"
+                                # entry, it will be paired with root item if
+                                # the value of key "parent" is None, or not
+                                # having the key.
                                 yield item
                             else:
                                 # Not current parent's child, try next
@@ -113,6 +133,7 @@ class InventoryModel(TreeModel):
                         _parents += group_node.children()
 
                 parents[:] = _parents
+                count += 1
 
         else:
             self.add_items(items)
