@@ -96,17 +96,6 @@ class View(QtWidgets.QTreeView):
         collapse_action.triggered.connect(self.collapseAll)
 
         # add the actions
-        menu.addAction(updatetolatest_action)
-        menu.addAction(set_version_action)
-        menu.addAction(switch_asset_action)
-
-        menu.addSeparator()
-        menu.addAction(remove_action)
-
-        menu.addSeparator()
-        menu.addAction(expandall_action)
-        menu.addAction(collapse_action)
-
         custom_actions = self.get_custom_actions(containers=items)
         if custom_actions:
             menu.addSeparator()
@@ -122,6 +111,17 @@ class View(QtWidgets.QTreeView):
                 submenu.addAction(action_item)
 
             menu.addMenu(submenu)
+
+        menu.addAction(updatetolatest_action)
+        menu.addAction(set_version_action)
+        menu.addAction(switch_asset_action)
+
+        menu.addSeparator()
+        menu.addAction(remove_action)
+
+        menu.addSeparator()
+        menu.addAction(expandall_action)
+        menu.addAction(collapse_action)
 
         return menu
 
