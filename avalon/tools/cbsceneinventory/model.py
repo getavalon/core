@@ -73,6 +73,9 @@ class InventoryModel(TreeModel):
 
                     return self.GRAYOUT_COLOR
 
+            if key == "name" and not node.get("isGroupNode"):
+                return self.GRAYOUT_COLOR
+
         # Add icons
         if role == QtCore.Qt.DecorationRole:
             if index.column() == 0:
