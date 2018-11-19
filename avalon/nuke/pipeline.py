@@ -6,6 +6,8 @@ import contextlib
 from pyblish import api as pyblish
 from ..vendor import toml
 
+from pprint import pprint
+
 from avalon.nuke.logger import nuke_logger
 
 import nuke
@@ -29,7 +31,7 @@ def reload_pipeline():
 
     import importlib
 
-    # api.uninstall()
+    api.uninstall()
     _uninstall_menu()
 
     for module in ("avalon.io",
@@ -270,18 +272,19 @@ def _install_menu():
 
 def reset_frame_range():
     """Set frame range to current asset"""
+
     fps = float(api.Session.get("AVALON_FPS", 25))
 
     nuke.root()["fps"].setValue(fps)
-
+    log.info(fps)
     asset = api.Session["AVALON_ASSET"]
     asset = io.find_one({"name": asset, "type": "asset"})
-
+    log.info(asset)
     try:
-        edit_in = asset["data"]["edit_in"]
-        edit_out = asset["data"]["edit_out"]
+        edit_in = asset["data"]["fstart"]
+        edit_out = asset["data"]["fend"]
     except KeyError:
-        print(
+        log.warning(
             "Frame range not set! No edit information found for "
             "\"{0}\".".format(asset["name"])
         )
@@ -294,13 +297,20 @@ def reset_frame_range():
 def reset_resolution():
     """Set resolution to project resolution."""
     project = io.find_one({"type": "project"})
+    asset = api.Session["AVALON_ASSET"]
+    asset = io.find_one({"name": asset, "type": "asset"})
 
     try:
-        width = project["data"].get("resolution_width", 1920)
-        height = project["data"].get("resolution_height", 1080)
-        pixel_aspect = project["data"].get("pixel_aspect", 1)
+        width = asset["data"].get("resolution_width", 1920)
+        height = asset["data"].get("resolution_height", 1080)
+        pixel_aspect = asset["data"].get("pixel_aspect", 1)
+
+        bbox = asset["data"].get("crop", "0.0.1920.1080")
+        if "0.0.1920.1080" in bbox:
+            bbox = None
+
     except KeyError:
-        print(
+        log.warning(
             "No resolution information found for \"{0}\".".format(
                 project["name"]
             )
@@ -317,23 +327,40 @@ def reset_resolution():
 
         fmt = None
         for f in nuke.formats():
-            if f.width() == width \
-                and f.height() == height \
-                    and f.pixelAspect() == pixel_aspect:
-                fmt = f.name()
+            if f.name() in project["name"]:
+                fmt = f
 
-        if not fmt:
-            nuke.addFormat(
-                "{0} {1} 0 0 {0} {1} {2} {3}".format(
-                    int(width),
-                    int(height),
-                    int(pixel_aspect),
-                    project["name"]
-                )
-            )
-            fmt = project["name"]
+        make_format(
+            format=fmt,
+            width=int(width),
+            height=int(height),
+            pixel_aspect=float(pixel_aspect),
+            project_name=project["name"]
+        )
 
-        nuke.root()["format"].setValue(fmt)
+
+def make_format(**args):
+    if not args["format"]:
+        nuke.addFormat(
+            "{width} "
+            "{height} "
+            "0 "
+            "0 "
+            "{width} "
+            "{height} "
+            "{pixel_aspect} "
+            "{project_name}".format(**args)
+        )
+        nuke.root()["format"].setValue("{project_name}".format(**args))
+    else:
+        args["format"].setWidth(args["width"])
+        args["format"].setHeight(args["height"])
+        args["format"].setX(30)
+        args["format"].setY(30)
+        args["format"].setR(50)
+        args["format"].setT(500)
+        args["format"].setPixelAspect(args["pixel_aspect"])
+        log.critical("Format `{}` was updated".format(args["format"].name()))
 
 
 def uninstall():
