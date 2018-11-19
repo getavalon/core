@@ -181,6 +181,8 @@ class View(QtWidgets.QTreeView):
             None
 
         """
+        options = options or dict()
+
         if options.get("clear", True):
             self.clearSelection()
 
