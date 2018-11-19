@@ -6,6 +6,7 @@ from collections import defaultdict
 from ... import api, io, style
 from ...vendor.Qt import QtCore, QtGui
 from ...vendor import qtawesome as qta
+from .lib import walk_hierarchy
 
 # todo(roy): refactor loading from other tools
 from ..cbloader import lib as cbloader_lib
@@ -20,6 +21,8 @@ class InventoryModel(TreeModel):
     COLUMNS = ["name", "version", "count", "family", "objectName"]
 
     OUTDATED_COLOR = QtGui.QColor(235, 30, 30)
+    CHILD_OUTDATED_COLOR = QtGui.QColor(200, 160, 30)
+    GRAYOUT_COLOR = QtGui.QColor(100, 100, 100)
 
     UniqueRole = QtCore.Qt.UserRole + 2     # unique label role
 
@@ -34,26 +37,41 @@ class InventoryModel(TreeModel):
         if not index.isValid():
             return
 
+        node = index.internalPointer()
+
         if role == QtCore.Qt.FontRole:
             # Make top-level entries bold
-            parent = index.parent()
-            if not parent.isValid():
+            if node.get("isGroupNode"):  # group-item
                 font = QtGui.QFont()
                 font.setBold(True)
                 return font
 
-        node = index.internalPointer()
         if role == QtCore.Qt.ForegroundRole:
             # Set the text color to the OUTDATED_COLOR when the
             # collected version is not the same as the highest version
-            parent = index.parent()
-            if not parent.isValid():
-                key = self.COLUMNS[index.column()]
-                if key == "version":  # version
-                    version = node.get("version", None)
-                    highest = node.get("highest_version", None)
-                    if version != highest:
+            key = self.COLUMNS[index.column()]
+            outdated = (lambda n: n.get("version") != n.get("highest_version"))
+            if key == "version":  # version
+                if node.get("isGroupNode"):  # group-item
+                    if outdated(node):
                         return self.OUTDATED_COLOR
+
+                    if self._hierarchy_view:
+                        # If current group is not outdated, check if any
+                        # outdated children.
+                        for _node in walk_hierarchy(node):
+                            if outdated(_node):
+                                return self.CHILD_OUTDATED_COLOR
+                else:
+
+                    if self._hierarchy_view:
+                        # Although this is not a group item, we still need
+                        # to distinguish which one contain outdated child.
+                        for _node in walk_hierarchy(node):
+                            if outdated(_node):
+                                return self.CHILD_OUTDATED_COLOR.darker(150)
+
+                    return self.GRAYOUT_COLOR
 
         # Add icons
         if role == QtCore.Qt.DecorationRole:
