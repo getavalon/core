@@ -217,9 +217,9 @@ class InventoryModel(TreeModel):
 
             # create the group header
             group_node = Node()
-            group_node["name"] = "%s_%s: (%s)" % (asset['name'],
-                                                  subset['name'],
-                                                  representation["name"])
+            group_node["name"] = "%s . %s: (%s)" % (asset['name'],
+                                                    subset['name'],
+                                                    representation["name"])
             group_node["representation"] = representation_id
             group_node["version"] = version['name']
             group_node["highest_version"] = highest_version['name']
