@@ -564,10 +564,10 @@ class Window(QtWidgets.QDialog):
 
 
 def show(root=None, debug=False, parent=None):
-    """Display Loader GUI
+    """Display Scene Inventory GUI
 
     Arguments:
-        debug (bool, optional): Run loader in debug-mode,
+        debug (bool, optional): Run in debug-mode,
             defaults to False
 
     """
