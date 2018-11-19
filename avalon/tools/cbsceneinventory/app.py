@@ -149,6 +149,8 @@ class View(QtWidgets.QTreeView):
     def process_custom_action(self, action, containers):
         """Run action and if results are returned positive update the view
 
+        If the result is list or dict, will select view items by the result.
+
         Args:
             action (InventoryAction): Inventory Action instance
             containers (list): Data of currently selected items
@@ -160,6 +162,59 @@ class View(QtWidgets.QTreeView):
         result = action.process(containers)
         if result:
             self.data_changed.emit()
+
+            if isinstance(result, list):
+                self.select_items_by_action(result)
+
+            if isinstance(result, dict):
+                self.select_items_by_action(result["objectNames"],
+                                            result["options"])
+
+    def select_items_by_action(self, object_names, options=None):
+        """Select view items by the result of action
+
+        Args:
+            object_names (list): A list of container object name
+            options (dict): GUI operation options.
+
+        Returns:
+            None
+
+        """
+        if options.get("clear", True):
+            self.clearSelection()
+
+        model = self.model()
+        selection_model = self.selectionModel()
+
+        select_mode = {
+            "select": selection_model.Select,
+            "deselect": selection_model.Deselect,
+            "toggle": selection_model.Toggle,
+        }[options.get("mode", "select")]
+
+        def walk_items(i=QtCore.QModelIndex()):
+            rows = model.rowCount(i)
+            for row in range(rows):
+                child = model.index(row, 0, parent=i)
+                yield child
+
+                for c in walk_items(child):
+                    yield c
+
+        for item in walk_items():
+            node = item.data(InventoryModel.NodeRole)
+            if node.get("isGroupNode"):
+                continue
+
+            name = node.get("objectName")
+            if name in object_names:
+                self.scrollTo(item)  # Ensure item is visible
+                selection_model.select(item, select_mode)
+                object_names.remove(name)
+
+            if len(object_names) == 0:
+                break
 
     def show_right_mouse_menu(self, pos):
         """Display the menu when at the position of the item clicked"""
