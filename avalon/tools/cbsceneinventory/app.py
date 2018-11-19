@@ -530,6 +530,7 @@ class Window(QtWidgets.QDialog):
         text_filter.textChanged.connect(self.proxy.setFilterRegExp)
         outdated_only.stateChanged.connect(self.proxy.set_filter_outdated)
         hierarchy_view.stateChanged.connect(self.model.set_hierarchy_view)
+        hierarchy_view.stateChanged.connect(self.proxy.set_hierarchy_view)
         hierarchy_view.stateChanged.connect(self.view.set_hierarchy_view)
         refresh_button.clicked.connect(self.refresh)
         view.data_changed.connect(self.refresh)

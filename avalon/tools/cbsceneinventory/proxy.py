@@ -1,5 +1,6 @@
 import re
 from ...vendor.Qt import QtCore
+from .lib import walk_hierarchy
 
 
 class FilterProxyModel(QtCore.QSortFilterProxyModel):
@@ -8,6 +9,7 @@ class FilterProxyModel(QtCore.QSortFilterProxyModel):
     def __init__(self, *args, **kwargs):
         super(FilterProxyModel, self).__init__(*args, **kwargs)
         self._filter_outdated = False
+        self._hierarchy_view = False
 
     def filterAcceptsRow(self, row, parent):
 
@@ -27,10 +29,7 @@ class FilterProxyModel(QtCore.QSortFilterProxyModel):
             pattern = re.escape(self.filterRegExp().pattern())
 
             if not self._matches(row, parent, pattern):
-                # Also allow if any of the children matches
-                if not any(self._matches(i, source_index, pattern)
-                           for i in range(rows)):
-                    return False
+                return False
 
         if self._filter_outdated:
             # When filtering to outdated we filter the up to date entries
@@ -48,6 +47,12 @@ class FilterProxyModel(QtCore.QSortFilterProxyModel):
             self._filter_outdated = bool(state)
             self.invalidateFilter()
 
+    def set_hierarchy_view(self, state):
+        state = bool(state)
+
+        if state != self._hierarchy_view:
+            self._hierarchy_view = state
+
     def _is_outdated(self, row, parent):
         """Return whether row is outdated.
 
@@ -56,6 +61,20 @@ class FilterProxyModel(QtCore.QSortFilterProxyModel):
         equal value.
 
         """
+        def outdated(node):
+            version = node.get("version", None)
+            highest = node.get("highest_version", None)
+
+            # Always allow indices that have no version data at all
+            if version is None and highest is None:
+                return True
+
+            # If either a version or highest is present but not the other
+            # consider the item invalid
+            if version is None or highest is None:
+                return False
+
+            return version != highest
 
         index = self.sourceModel().index(row, self.filterKeyColumn(), parent)
 
@@ -64,24 +83,23 @@ class FilterProxyModel(QtCore.QSortFilterProxyModel):
         # Since the version check filters these parent groups we skip that
         # check for the individual children.
         has_parent = index.parent().isValid()
-        if has_parent:
+        if has_parent and not self._hierarchy_view:
             return True
 
         # Filter to those that have the different version numbers
         node = index.internalPointer()
-        version = node.get("version", None)
-        highest = node.get("highest_version", None)
+        is_outdated = outdated(node)
 
-        # Always allow indices that have no version data at all
-        if version is None and highest is None:
+        if is_outdated:
             return True
 
-        # If either a version or highest is present but not the other
-        # consider the item invalid
-        if version is None or highest is None:
+        elif self._hierarchy_view:
+            for _node in walk_hierarchy(node):
+                if outdated(_node):
+                    return True
             return False
-
-        return version != highest
+        else:
+            return False
 
     def _matches(self, row, parent, pattern):
         """Return whether row matches regex pattern.
@@ -95,8 +113,32 @@ class FilterProxyModel(QtCore.QSortFilterProxyModel):
             bool
 
         """
+        model = self.sourceModel()
+        column = self.filterKeyColumn()
+        role = self.filterRole()
 
-        index = self.sourceModel().index(row, self.filterKeyColumn(), parent)
-        key = self.sourceModel().data(index, self.filterRole())
-        if re.search(pattern, key, re.IGNORECASE):
-            return True
+        def matches(row, parent, pattern):
+            index = model.index(row, column, parent)
+            key = model.data(index, role)
+            if re.search(pattern, key, re.IGNORECASE):
+                return True
+
+        if not matches(row, parent, pattern):
+            # Also allow if any of the children matches
+            source_index = model.index(row, column, parent)
+            rows = model.rowCount(source_index)
+
+            if not any(matches(i, source_index, pattern)
+                       for i in range(rows)):
+
+                if self._hierarchy_view:
+                    for i in range(rows):
+                        child_i = model.index(i, column, source_index)
+                        child_rows = model.rowCount(child_i)
+                        return any(self._matches(ch_i, child_i, pattern)
+                                   for ch_i in range(child_rows))
+
+                else:
+                    return False
+
+        return True
