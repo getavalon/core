@@ -18,7 +18,7 @@ from ..projectmanager.model import (
 class InventoryModel(TreeModel):
     """The model for the inventory"""
 
-    COLUMNS = ["name", "version", "count", "family", "objectName"]
+    COLUMNS = ["Name", "version", "count", "family", "objectName"]
 
     OUTDATED_COLOR = QtGui.QColor(235, 30, 30)
     CHILD_OUTDATED_COLOR = QtGui.QColor(200, 160, 30)
@@ -73,7 +73,7 @@ class InventoryModel(TreeModel):
 
                     return self.GRAYOUT_COLOR
 
-            if key == "name" and not node.get("isGroupNode"):
+            if key == "Name" and not node.get("isGroupNode"):
                 return self.GRAYOUT_COLOR
 
         # Add icons
@@ -220,7 +220,7 @@ class InventoryModel(TreeModel):
 
             # create the group header
             group_node = Node()
-            group_node["name"] = "%s . %s: (%s)" % (asset['name'],
+            group_node["Name"] = "%s . %s: (%s)" % (asset['name'],
                                                     subset['name'],
                                                     representation["name"])
             group_node["representation"] = representation_id
@@ -239,6 +239,11 @@ class InventoryModel(TreeModel):
 
                 # store the current version on the item
                 item_node["version"] = version['name']
+
+                # Remapping namespace to item name.
+                # Noted that the name key is capital "N", by doing this, we
+                # can view namespace in GUI without changing container data.
+                item_node["Name"] = item["namespace"]
 
                 self.add_child(item_node, parent=group_node)
 
