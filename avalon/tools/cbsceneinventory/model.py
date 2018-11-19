@@ -22,7 +22,7 @@ class InventoryModel(TreeModel):
 
     OUTDATED_COLOR = QtGui.QColor(235, 30, 30)
     CHILD_OUTDATED_COLOR = QtGui.QColor(200, 160, 30)
-    GRAYOUT_COLOR = QtGui.QColor(100, 100, 100)
+    GRAYOUT_COLOR = QtGui.QColor(120, 120, 120)
 
     UniqueRole = QtCore.Qt.UserRole + 2     # unique label role
 
