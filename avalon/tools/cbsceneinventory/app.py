@@ -39,6 +39,13 @@ class View(QtWidgets.QTreeView):
         self.setSelectionMode(self.ExtendedSelection)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_right_mouse_menu)
+        self._hierarchy_view = False
+
+    def set_hierarchy_view(self, state):
+        state = bool(state)
+
+        if state != self._hierarchy_view:
+            self._hierarchy_view = state
 
     def build_item_menu(self, items):
         """Create menu for the selected items"""
@@ -177,6 +184,10 @@ class View(QtWidgets.QTreeView):
         nodes = [dict(i.data(InventoryModel.NodeRole)) for i in all_indices
                  if i.parent().isValid()]
 
+        if self._hierarchy_view:
+            # Ensure no group node
+            nodes = [n for n in nodes if not n.get("isGroupNode")]
+
         menu = self.build_item_menu(nodes)
         menu.exec_(globalpos)
 
@@ -198,18 +209,26 @@ class View(QtWidgets.QTreeView):
             list: The children indices
 
         """
+        def get_children(i):
+            model = i.model()
+            rows = model.rowCount(parent=i)
+            for row in range(rows):
+                child = model.index(row, 0, parent=i)
+                yield child
 
         subitems = set()
         for i in indices:
             valid_parent = i.parent().isValid()
             if valid_parent and i not in subitems:
                 subitems.add(i)
+
+                if self._hierarchy_view:
+                    # Assume this is a group node
+                    for child in get_children(i):
+                        subitems.add(child)
             else:
                 # is top level node
-                model = i.model()
-                rows = model.rowCount(parent=i)
-                for row in range(rows):
-                    child = model.index(row, 0, parent=i)
+                for child in get_children(i):
                     subitems.add(child)
 
         return list(subitems)
@@ -511,6 +530,7 @@ class Window(QtWidgets.QDialog):
         text_filter.textChanged.connect(self.proxy.setFilterRegExp)
         outdated_only.stateChanged.connect(self.proxy.set_filter_outdated)
         hierarchy_view.stateChanged.connect(self.model.set_hierarchy_view)
+        hierarchy_view.stateChanged.connect(self.view.set_hierarchy_view)
         refresh_button.clicked.connect(self.refresh)
         view.data_changed.connect(self.refresh)
 
