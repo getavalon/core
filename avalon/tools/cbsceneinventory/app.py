@@ -126,6 +126,8 @@ class View(QtWidgets.QTreeView):
         collapse_action.triggered.connect(self.collapseAll)
 
         # add the actions
+        has_selection = len(items)
+
         custom_actions = self.get_custom_actions(containers=items)
         if custom_actions:
             menu.addSeparator()
@@ -142,18 +144,22 @@ class View(QtWidgets.QTreeView):
 
             menu.addMenu(submenu)
 
-        menu.addAction(updatetolatest_action)
-        menu.addAction(set_version_action)
-        menu.addAction(switch_asset_action)
+        if has_selection:
+            menu.addAction(updatetolatest_action)
+            menu.addAction(set_version_action)
+            menu.addAction(switch_asset_action)
 
-        menu.addSeparator()
-        menu.addAction(remove_action)
+            menu.addSeparator()
+            menu.addAction(remove_action)
 
-        menu.addSeparator()
+            menu.addSeparator()
+
+        # These two actions should be able to work without selection
         menu.addAction(expandall_action)
         menu.addAction(collapse_action)
 
-        menu.addAction(enter_hierarchy_action)
+        if has_selection:
+            menu.addAction(enter_hierarchy_action)
 
         if self._hierarchy_view:
             menu.addAction(back_to_flat_action)
@@ -256,13 +262,17 @@ class View(QtWidgets.QTreeView):
     def show_right_mouse_menu(self, pos):
         """Display the menu when at the position of the item clicked"""
 
-        active = self.currentIndex()  # index under mouse
-        if not active.isValid():
-            print("No active item found in the selection")
+        globalpos = self.viewport().mapToGlobal(pos)
+
+        if not self.selectionModel().hasSelection():
+            print("No selection")
+            # Build menu without selection, feed an empty list
+            menu = self.build_item_menu([])
+            menu.exec_(globalpos)
             return
 
+        active = self.currentIndex()  # index under mouse
         active = active.sibling(active.row(), 0)  # get first column
-        globalpos = self.viewport().mapToGlobal(pos)
 
         # move index under mouse
         indices = self.get_indices()
