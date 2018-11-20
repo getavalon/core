@@ -11,7 +11,8 @@ from .. import lib as tools_lib
 # todo(roy): refactor loading from other tools
 from ..projectmanager.widget import (
     preserve_expanded_rows,
-    preserve_selection
+    preserve_selection,
+    _iter_model_rows,
 )
 from ..cbloader.delegates import VersionDelegate
 from ..cbloader.lib import refresh_family_config
@@ -236,16 +237,7 @@ class View(QtWidgets.QTreeView):
             "toggle": selection_model.Toggle,
         }[options.get("mode", "select")]
 
-        def walk_items(i=QtCore.QModelIndex()):
-            rows = model.rowCount(i)
-            for row in range(rows):
-                child = model.index(row, 0, parent=i)
-                yield child
-
-                for c in walk_items(child):
-                    yield c
-
-        for item in walk_items():
+        for item in _iter_model_rows(model, 0):
             node = item.data(InventoryModel.NodeRole)
             if node.get("isGroupNode"):
                 continue
