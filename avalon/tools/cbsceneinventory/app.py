@@ -28,6 +28,7 @@ module.window = None
 
 class View(QtWidgets.QTreeView):
     data_changed = QtCore.Signal()
+    hierarchy_view = QtCore.Signal(bool)
 
     def __init__(self, parent=None):
         super(View, self).__init__(parent=parent)
@@ -40,12 +41,25 @@ class View(QtWidgets.QTreeView):
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_right_mouse_menu)
         self._hierarchy_view = False
+        self._selected = None
 
-    def set_hierarchy_view(self, state):
-        state = bool(state)
+    def enter_hierarchy(self, items):
+        self._selected = set(i["objectName"] for i in items)
+        self._hierarchy_view = True
+        self.hierarchy_view.emit(True)
+        self.data_changed.emit()
+        self.expandToDepth(1)
+        self.setStyleSheet("""
+        QTreeView {
+             border-color: #f9d04d;
+        }
+        """)
 
-        if state != self._hierarchy_view:
-            self._hierarchy_view = state
+    def leave_hierarchy(self):
+        self.hierarchy_view.emit(False)
+        self.data_changed.emit()
+        self._hierarchy_view = False
+        self.setStyleSheet("QTreeView {}")
 
     def build_item_menu(self, items):
         """Create menu for the selected items"""
@@ -87,6 +101,22 @@ class View(QtWidgets.QTreeView):
         remove_action.triggered.connect(
             lambda: self.show_remove_warning_dialog(items))
 
+        # go back to flat view
+        if self._hierarchy_view:
+            back_to_flat_icon = qta.icon("fa.list", color="#f9d04d")
+            back_to_flat_action = QtWidgets.QAction(back_to_flat_icon,
+                                                    "Back to Full-View",
+                                                    menu)
+            back_to_flat_action.triggered.connect(self.leave_hierarchy)
+
+        # send items to hierarchy view
+        enter_hierarchy_icon = qta.icon("fa.indent", color="#f9d04d")
+        enter_hierarchy_action = QtWidgets.QAction(enter_hierarchy_icon,
+                                                   "Cherry-Pick (Hierarchy)",
+                                                   menu)
+        enter_hierarchy_action.triggered.connect(
+            lambda: self.enter_hierarchy(items))
+
         # expand all items
         expandall_action = QtWidgets.QAction(menu, text="Expand all items")
         expandall_action.triggered.connect(self.expandAll)
@@ -122,6 +152,11 @@ class View(QtWidgets.QTreeView):
         menu.addSeparator()
         menu.addAction(expandall_action)
         menu.addAction(collapse_action)
+
+        menu.addAction(enter_hierarchy_action)
+
+        if self._hierarchy_view:
+            menu.addAction(back_to_flat_action)
 
         return menu
 
@@ -552,13 +587,6 @@ class Window(QtWidgets.QDialog):
         control_layout.addWidget(outdated_only)
         control_layout.addWidget(refresh_button)
 
-        option_layout = QtWidgets.QHBoxLayout()
-        hierarchy_view = QtWidgets.QCheckBox("Hierarchy View")
-        hierarchy_view.setToolTip("Display subsets hierarchy.")
-        hierarchy_view.setChecked(False)
-
-        option_layout.addWidget(hierarchy_view)
-
         # endregion control
 
         model = InventoryModel()
@@ -572,12 +600,10 @@ class Window(QtWidgets.QDialog):
         view.setItemDelegateForColumn(column, version_delegate)
 
         layout.addLayout(control_layout)
-        layout.addLayout(option_layout)
         layout.addWidget(view)
 
         self.filter = text_filter
         self.outdated_only = outdated_only
-        self.hierarchy_view = hierarchy_view
         self.view = view
         self.refresh_button = refresh_button
         self.model = model
@@ -586,11 +612,10 @@ class Window(QtWidgets.QDialog):
         # signals
         text_filter.textChanged.connect(self.proxy.setFilterRegExp)
         outdated_only.stateChanged.connect(self.proxy.set_filter_outdated)
-        hierarchy_view.stateChanged.connect(self.model.set_hierarchy_view)
-        hierarchy_view.stateChanged.connect(self.proxy.set_hierarchy_view)
-        hierarchy_view.stateChanged.connect(self.view.set_hierarchy_view)
         refresh_button.clicked.connect(self.refresh)
         view.data_changed.connect(self.refresh)
+        view.hierarchy_view.connect(self.model.set_hierarchy_view)
+        view.hierarchy_view.connect(self.proxy.set_hierarchy_view)
 
         # proxy settings
         proxy.setSourceModel(self.model)
@@ -616,8 +641,12 @@ class Window(QtWidgets.QDialog):
         with preserve_expanded_rows(tree_view=self.view,
                                     role=self.model.UniqueRole):
             with preserve_selection(tree_view=self.view,
-                                    role=self.model.UniqueRole):
-                self.model.refresh()
+                                    role=self.model.UniqueRole,
+                                    current_index=False):
+                if self.view._hierarchy_view:
+                    self.model.refresh(selected=self.view._selected)
+                else:
+                    self.model.refresh()
 
 
 def show(root=None, debug=False, parent=None):

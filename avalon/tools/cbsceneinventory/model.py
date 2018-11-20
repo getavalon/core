@@ -101,9 +101,8 @@ class InventoryModel(TreeModel):
 
         if state != self._hierarchy_view:
             self._hierarchy_view = state
-            self.refresh()
 
-    def refresh(self):
+    def refresh(self, selected=None):
         """Refresh the model"""
 
         host = api.registered_host()
@@ -111,9 +110,38 @@ class InventoryModel(TreeModel):
 
         self.clear()
 
-        if self._hierarchy_view:
+        if self._hierarchy_view and selected:
 
-            items = list(items)  # construct the generator results
+            if not hasattr(host.pipeline, "update_hierarchy"):
+                # If host doesn't support hierarchical containers, then
+                # cherry-pick only.
+                self.add_items((item for item in items
+                                if item["objectName"] in selected))
+
+            # Update hierarchy info for all containers
+            items_by_name = {item["objectName"]: item
+                             for item in host.pipeline.update_hierarchy(items)}
+
+            selected_items = set()
+
+            def walk_children(names):
+                """Select containers and extend to chlid containers"""
+                for name in [n for n in names if n not in selected_items]:
+                    selected_items.add(name)
+                    item = items_by_name[name]
+                    yield item
+
+                    for child in walk_children(item["children"]):
+                        yield child
+
+            items = list(walk_children(selected))  # Cherry-picked and extended
+
+            # Cut unselected upstream containers
+            for item in items:
+                if not item.get("parent") in selected_items:
+                    # Parent not in selection, this is root item.
+                    item["parent"] = None
+
             parents = [self._root_node]
 
             # The length of `items` array is the maximum depth that a
