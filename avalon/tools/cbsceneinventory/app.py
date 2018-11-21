@@ -131,7 +131,6 @@ class View(QtWidgets.QTreeView):
 
         custom_actions = self.get_custom_actions(containers=items)
         if custom_actions:
-            menu.addSeparator()
             submenu = QtWidgets.QMenu("Actions", self)
             for action in custom_actions:
 
