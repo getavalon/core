@@ -281,7 +281,7 @@ class InventoryAction(object):
         Returns:
             bool
         """
-        return True
+        return bool(container.get("objectName"))
 
     def process(self, containers):
         """Override function in a custom class
