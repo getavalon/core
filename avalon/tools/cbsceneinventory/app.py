@@ -180,6 +180,11 @@ class View(QtWidgets.QTreeView):
             """Sort based on order attribute of the plugin"""
             return Plugin.order
 
+        # Fedd an empty dict if no selection, this will ensure the compat
+        # lookup always work, so plugin can interact with Scene Inventory
+        # reversely.
+        containers = containers or [dict()]
+
         # Check which action will be available in the menu
         Plugins = api.discover(api.InventoryAction)
         compatible = [p() for p in Plugins if
