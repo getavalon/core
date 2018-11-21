@@ -52,7 +52,7 @@ class View(QtWidgets.QTreeView):
         self.expandToDepth(1)
         self.setStyleSheet("""
         QTreeView {
-             border-color: #f9d04d;
+             border-color: #fb9c15;
         }
         """)
 
@@ -104,14 +104,14 @@ class View(QtWidgets.QTreeView):
 
         # go back to flat view
         if self._hierarchy_view:
-            back_to_flat_icon = qta.icon("fa.list", color="#f9d04d")
+            back_to_flat_icon = qta.icon("fa.list", color=DEFAULT_COLOR)
             back_to_flat_action = QtWidgets.QAction(back_to_flat_icon,
                                                     "Back to Full-View",
                                                     menu)
             back_to_flat_action.triggered.connect(self.leave_hierarchy)
 
         # send items to hierarchy view
-        enter_hierarchy_icon = qta.icon("fa.indent", color="#f9d04d")
+        enter_hierarchy_icon = qta.icon("fa.indent", color="#d8d8d8")
         enter_hierarchy_action = QtWidgets.QAction(enter_hierarchy_icon,
                                                    "Cherry-Pick (Hierarchy)",
                                                    menu)
