@@ -39,6 +39,9 @@ self.data = {}
 log = logging.getLogger(__name__)
 
 
+AVALON_CONTAINER_ID = "pyblish.avalon.container"
+
+
 class IncompatibleLoaderError(ValueError):
     """Error when Loader is incompatible with a representation."""
     pass
@@ -226,7 +229,7 @@ class Creator(object):
         self.data["id"] = "pyblish.avalon.instance"
         self.data["family"] = self.family
         self.data["asset"] = asset
-        self.data["subset"] = name
+        self.data["subset"] = self.name
         self.data["active"] = True
 
         self.data.update(data or {})
@@ -412,7 +415,7 @@ def discover(superclass):
         for module in lib.modules_from_path(path):
             for plugin in plugin_from_module(superclass, module):
                 if plugin.__name__ in plugins:
-                    print("Duplicate plug-in found: %s", plugin)
+                    print("Duplicate plug-in found: %s" % plugin)
                     continue
 
                 plugins[plugin.__name__] = plugin
@@ -806,6 +809,12 @@ def create(name, asset, family, options=None, data=None):
 
         if not has_family:
             continue
+
+        if not name:
+            name = Plugin.name
+            Plugin.log.info(
+                "Using default name '%s' from '%s'" % (name, Plugin.__name__)
+            )
 
         Plugin.log.info(
             "Creating '%s' with '%s'" % (name, Plugin.__name__)

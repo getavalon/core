@@ -3,6 +3,9 @@ import contextlib
 import importlib
 import logging
 from pyblish import api as pyblish
+from avalon import api as avalon
+
+from ..pipeline import AVALON_CONTAINER_ID
 
 
 class CompLogHandler(logging.Handler):
@@ -27,7 +30,23 @@ def ls():
     for tool in tools:
         container = parse_container(tool)
         if container:
+            # Collect custom data if attribute is present
+            config = find_host_config(avalon.registered_config())
+            if hasattr(config, "collect_container_metadata"):
+                metadata = config.collect_container_metadata(container)
+                container.update(metadata)
+
             yield container
+
+
+def find_host_config(config):
+    config_name = config.__name__
+    try:
+        config = importlib.import_module(config_name + ".fusion")
+    except ImportError:
+        pass
+
+    return config
 
 
 def install(config):
@@ -57,13 +76,9 @@ def install(config):
     logger.setLevel(logging.DEBUG)
 
     # Trigger install on the config's "fusion" package
-    try:
-        config = importlib.import_module(config.__name__ + ".fusion")
-    except ImportError:
-        pass
-    else:
-        if hasattr(config, "install"):
-            config.install()
+    config = find_host_config(config)
+    if hasattr(config, "install"):
+        config.install()
 
 
 def imprint_container(tool,
@@ -91,7 +106,7 @@ def imprint_container(tool,
 
     data = [
         ("schema", "avalon-core:container-2.0"),
-        ("id", "pyblish.avalon.container"),
+        ("id", AVALON_CONTAINER_ID),
         ("name", str(name)),
         ("namespace", str(namespace)),
         ("loader", str(loader)),
