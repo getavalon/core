@@ -91,7 +91,7 @@ class InventoryModel(TreeModel):
                 return node.get("familyIcon", None)
 
         if role == self.UniqueRole:
-            return node['representation'] + node.get("objectName", "<none>")
+            return node["representation"] + node.get("objectName", "<none>")
 
         return super(InventoryModel, self).data(index, role)
 
@@ -213,7 +213,7 @@ class InventoryModel(TreeModel):
         # Group by representation
         grouped = defaultdict(list)
         for item in items:
-            grouped[item['representation']].append(item)
+            grouped[item["representation"]].append(item)
 
         # Add to model
         for representation_id, group_items in sorted(grouped.items()):
@@ -227,9 +227,9 @@ class InventoryModel(TreeModel):
             asset = io.find_one({"_id": subset["parent"]})
 
             # Get the primary family
-            family = version['data'].get("family", "")
+            family = version["data"].get("family", "")
             if not family:
-                families = version['data'].get("families", [])
+                families = version["data"].get("families", [])
                 if families:
                     family = families[0]
 
@@ -248,12 +248,12 @@ class InventoryModel(TreeModel):
 
             # create the group header
             group_node = Node()
-            group_node["Name"] = "%s . %s: (%s)" % (asset['name'],
-                                                    subset['name'],
+            group_node["Name"] = "%s . %s: (%s)" % (asset["name"],
+                                                    subset["name"],
                                                     representation["name"])
             group_node["representation"] = representation_id
-            group_node["version"] = version['name']
-            group_node["highest_version"] = highest_version['name']
+            group_node["version"] = version["name"]
+            group_node["highest_version"] = highest_version["name"]
             group_node["family"] = family
             group_node["familyIcon"] = family_icon
             group_node["count"] = len(group_items)
@@ -266,7 +266,7 @@ class InventoryModel(TreeModel):
                 item_node.update(item)
 
                 # store the current version on the item
-                item_node["version"] = version['name']
+                item_node["version"] = version["name"]
 
                 # Remapping namespace to item name.
                 # Noted that the name key is capital "N", by doing this, we

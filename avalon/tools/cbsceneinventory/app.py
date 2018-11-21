@@ -57,9 +57,9 @@ class View(QtWidgets.QTreeView):
         """)
 
     def leave_hierarchy(self):
+        self._hierarchy_view = False
         self.hierarchy_view.emit(False)
         self.data_changed.emit()
-        self._hierarchy_view = False
         self.setStyleSheet("QTreeView {}")
 
     def build_item_menu(self, items):
