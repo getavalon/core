@@ -209,7 +209,7 @@ class View(QtWidgets.QTreeView):
         if result:
             self.data_changed.emit()
 
-            if isinstance(result, list):
+            if isinstance(result, (list, set)):
                 self.select_items_by_action(result)
 
             if isinstance(result, dict):
@@ -220,7 +220,7 @@ class View(QtWidgets.QTreeView):
         """Select view items by the result of action
 
         Args:
-            object_names (list): A list of container object name
+            object_names (list or set): A list/set of container object name
             options (dict): GUI operation options.
 
         Returns:
@@ -231,6 +231,14 @@ class View(QtWidgets.QTreeView):
 
         if options.get("clear", True):
             self.clearSelection()
+
+        object_names = set(object_names)
+        if (self._hierarchy_view and
+                not self._selected.issuperset(object_names)):
+            # If any container not in current cherry-picked view, update
+            # view before selecting them.
+            self._selected.update(object_names)
+            self.data_changed.emit()
 
         model = self.model()
         selection_model = self.selectionModel()
