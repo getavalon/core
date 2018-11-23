@@ -129,6 +129,20 @@ class View(QtWidgets.QTreeView):
         # add the actions
         has_selection = len(items)
 
+        if has_selection:
+            menu.addAction(updatetolatest_action)
+            menu.addAction(set_version_action)
+            menu.addAction(switch_asset_action)
+
+            menu.addSeparator()
+            menu.addAction(remove_action)
+
+            menu.addSeparator()
+
+        # These two actions should be able to work without selection
+        menu.addAction(expandall_action)
+        menu.addAction(collapse_action)
+
         custom_actions = self.get_custom_actions(containers=items)
         if custom_actions:
             submenu = QtWidgets.QMenu("Actions", self)
@@ -143,20 +157,6 @@ class View(QtWidgets.QTreeView):
                 submenu.addAction(action_item)
 
             menu.addMenu(submenu)
-
-        if has_selection:
-            menu.addAction(updatetolatest_action)
-            menu.addAction(set_version_action)
-            menu.addAction(switch_asset_action)
-
-            menu.addSeparator()
-            menu.addAction(remove_action)
-
-            menu.addSeparator()
-
-        # These two actions should be able to work without selection
-        menu.addAction(expandall_action)
-        menu.addAction(collapse_action)
 
         if has_selection:
             menu.addAction(enter_hierarchy_action)
