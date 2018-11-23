@@ -106,8 +106,6 @@ def uninstall():
         registered_host().uninstall(config)
     except AttributeError:
         pass
-    except TypeError:
-        pass
 
     try:
         config.uninstall()
