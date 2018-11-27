@@ -69,20 +69,11 @@ class InventoryModel(TreeModel):
         """Refresh the model"""
 
         host = api.registered_host()
-        config = api.registered_config()
 
         items = []
         containers = host.ls()
         for container in containers:
-            item = container
-            # Collect custom data if attribute is present
-            if hasattr(config, "collect_container_metadata"):
-                data = config.collect_container_metadata(container)
-                # Protect the container by merging it into the data
-                data.update(container)
-                item = data
-
-            items.append(item)
+            items.append(container)
 
         self.clear()
         self.add_items(items)
@@ -102,7 +93,7 @@ class InventoryModel(TreeModel):
             same type.
 
         Args:
-            items (list): the items to be processed as returned by `ls()`
+            items (generator): the items to be processed as returned by `ls()`
 
         Returns:
             node.Node: root node which has children added based on the data
@@ -166,10 +157,6 @@ class InventoryModel(TreeModel):
             for item in group_items:
                 item_node = Node()
                 item_node.update(item)
-
-                # set name from namespace (unique identifier for the `item`
-                # todo(marcus): should this remapping be necessary?
-                item_node["name"] = item["namespace"]
 
                 # store the current version on the item
                 item_node["version"] = version['name']

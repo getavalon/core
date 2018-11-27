@@ -84,6 +84,8 @@ class SubsetWidget(QtWidgets.QWidget):
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.active_changed)
 
+        version_delegate.version_changed.connect(self.version_changed)
+
         self.filter.textChanged.connect(self.proxy.setFilterRegExp)
 
         self.model.refresh()
@@ -186,19 +188,19 @@ class SubsetWidget(QtWidgets.QWidget):
         # Trigger
         for row in rows:
             node = row.data(self.model.NodeRole)
-            version_id = node['version_document']['_id']
+            version_id = node["version_document"]["_id"]
             representation = io.find_one({"type": "representation",
                                           "name": representation_name,
                                           "parent": version_id})
             if not representation:
                 self.echo("Subset '{}' has no representation '{}'".format(
-                        node['subset'],
-                        representation_name
-                ))
+                          node["subset"],
+                          representation_name
+                          ))
                 continue
 
             try:
-                api.load(Loader=loader, representation=representation['_id'])
+                api.load(Loader=loader, representation=representation)
             except pipeline.IncompatibleLoaderError as exc:
                 self.echo(exc)
                 continue
@@ -240,6 +242,8 @@ class VersionTextEdit(QtWidgets.QTextEdit):
 
         self.setEnabled(True)
 
+        print("Querying..")
+
         version = io.find_one({"_id": version_id, "type": "version"})
         assert version, "Not a valid version id"
 
@@ -268,7 +272,7 @@ class VersionTextEdit(QtWidgets.QTextEdit):
             "source": source_label
         }
 
-        self.setHtml("""
+        self.setHtml(u"""
 <h3>{subset} v{version:03d}</h3>
 <b>Comment</b><br>
 {comment}<br>

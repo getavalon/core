@@ -39,6 +39,9 @@ self.data = {}
 log = logging.getLogger(__name__)
 
 
+AVALON_CONTAINER_ID = "pyblish.avalon.container"
+
+
 class IncompatibleLoaderError(ValueError):
     """Error when Loader is incompatible with a representation."""
     pass
@@ -168,14 +171,14 @@ class Loader(list):
 
         self.fname = fname
 
-    def load(self, context, name=None, namespace=None, data=None):
+    def load(self, context, name=None, namespace=None, options=None):
         """Load asset via database
 
         Arguments:
             context (dict): Full parenthood of representation to load
             name (str, optional): Use pre-defined name
             namespace (str, optional): Use pre-defined namespace
-            data (dict, optional): Additional settings dictionary
+            options (dict, optional): Additional settings dictionary
 
         """
         raise NotImplementedError("Loader.load() must be "
@@ -225,7 +228,7 @@ class Creator(object):
         self.data["id"] = "pyblish.avalon.instance"
         self.data["family"] = self.family
         self.data["asset"] = asset
-        self.data["subset"] = name
+        self.data["subset"] = self.name
         self.data["active"] = True
 
         self.data.update(data or {})
@@ -411,7 +414,7 @@ def discover(superclass):
         for module in lib.modules_from_path(path):
             for plugin in plugin_from_module(superclass, module):
                 if plugin.__name__ in plugins:
-                    print("Duplicate plug-in found: %s", plugin)
+                    print("Duplicate plug-in found: %s" % plugin)
                     continue
 
                 plugins[plugin.__name__] = plugin
@@ -806,6 +809,12 @@ def create(name, asset, family, options=None, data=None):
         if not has_family:
             continue
 
+        if not name:
+            name = Plugin.name
+            Plugin.log.info(
+                "Using default name '%s' from '%s'" % (name, Plugin.__name__)
+            )
+
         Plugin.log.info(
             "Creating '%s' with '%s'" % (name, Plugin.__name__)
         )
@@ -887,10 +896,10 @@ def update_current_task(task=None, asset=None, app=None):
     # Update silo when asset changed
     if "AVALON_ASSET" in changed:
         asset_document = io.find_one({"name": changed["AVALON_ASSET"],
-                                      "type": "asset"},
-                                     projection={"silo": True})
+                                      "type": "asset"})
         assert asset_document, "Asset must exist"
         changed["AVALON_SILO"] = asset_document["silo"]
+        changed['AVALON_HIERARCHY'] = os.path.sep.join(asset_document['data']['parents'])
 
     # Compute work directory (with the temporary changed session so far)
     project = io.find_one({"type": "project"},
@@ -935,6 +944,7 @@ def _format_work_template(template, session=None):
         "root": registered_root(),
         "project": session["AVALON_PROJECT"],
         "silo": session["AVALON_SILO"],
+        "hierarchy": session['AVALON_HIERARCHY'],
         "asset": session["AVALON_ASSET"],
         "task": session["AVALON_TASK"],
         "app": session["AVALON_APP"],
@@ -963,15 +973,17 @@ def _make_backwards_compatible_loader(Loader):
     return type(Loader.__name__, (BackwardsCompatibleLoader, Loader), {})
 
 
-def load(Loader, representation, namespace=None, name=None, data=None):
+def load(Loader, representation, namespace=None, name=None, options=None,
+         **kwargs):
     """Use Loader to load a representation.
 
     Args:
         Loader (Loader): The loader class to trigger.
-        representation (str or io.ObjectId): The representation id.
+        representation (str or io.ObjectId or dict): The representation id
+            or full representation as returned by the database.
         namespace (str, Optional): The namespace to assign. Defaults to None.
         name (str, Optional): The name to assign. Defaults to subset name.
-        data (dict, Optional): Additional custom data to pass on to the loader.
+        options (dict, Optional): Additional options to pass on to the loader.
 
     Returns:
         The return of the `loader.load()` method.
@@ -991,11 +1003,11 @@ def load(Loader, representation, namespace=None, name=None, data=None):
                                       "{}".format(Loader.__name__,
                                                   context["subset"]["name"]))
 
-    # Ensure data is a dictionary when no explicit data provided
-    if data is None:
-        data = dict()
+    # Ensure options is a dictionary when no explicit options provided
+    if options is None:
+        options = kwargs.get("data", dict())  # "data" for backward compat
 
-    assert isinstance(data, dict), "Data must be a dictionary"
+    assert isinstance(options, dict), "Options must be a dictionary"
 
     # Fallback to subset when name is None
     if name is None:
@@ -1006,10 +1018,7 @@ def load(Loader, representation, namespace=None, name=None, data=None):
     )
 
     loader = Loader(context)
-    return loader.load(context=context,
-                       name=name,
-                       namespace=namespace,
-                       data=data)
+    return loader.load(context, name, namespace, options)
 
 
 def _get_container_loader(container):

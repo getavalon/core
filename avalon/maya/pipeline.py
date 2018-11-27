@@ -13,6 +13,8 @@ from .. import api, schema
 from ..tools import workfiles
 from ..vendor.Qt import QtCore, QtWidgets
 
+from ..pipeline import AVALON_CONTAINER_ID
+
 # Backwards compatibility
 load = compat.load
 update = compat.update
@@ -377,7 +379,7 @@ def containerise(name,
 
     data = [
         ("schema", "avalon-core:container-2.0"),
-        ("id", "pyblish.avalon.container"),
+        ("id", AVALON_CONTAINER_ID),
         ("name", name),
         ("namespace", namespace),
         ("loader", str(loader)),
@@ -441,12 +443,19 @@ def ls():
     """
 
     containers = list()
-    for identifier in ("pyblish.avalon.container",
+    for identifier in (AVALON_CONTAINER_ID,
                        "pyblish.mindbender.container"):
         containers += lib.lsattr("id", identifier)
 
     for container in sorted(containers):
         data = parse_container(container)
+
+        # Collect custom data if attribute is present
+        config = find_host_config(api.registered_config())
+        if hasattr(config, "collect_container_metadata"):
+            metadata = config.collect_container_metadata(container)
+            data.update(metadata)
+
         yield data
 
 
@@ -567,7 +576,14 @@ def _on_task_changed(*args):
     workdir = api.Session["AVALON_WORKDIR"]
     if os.path.exists(workdir):
         logger.info("Updating Maya workspace for task change to %s", workdir)
+
         _set_project()
+
+        # Set Maya fileDialog's start-dir to /scenes
+        frule_scene = cmds.workspace(fileRuleEntry="scene")
+        cmds.optionVar(stringValue=("browserLocationmayaBinaryscene",
+                                    workdir + "/" + frule_scene))
+
     else:
         logger.warning("Can't set project for new context because "
                        "path does not exist: %s", workdir)
