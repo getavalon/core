@@ -5,21 +5,13 @@ from .. import api, io
 import contextlib
 from pyblish import api as pyblish
 from ..vendor import toml
-
-from pprint import pprint
-
-from avalon.nuke.logger import nuke_logger
-
+import logging
 import nuke
 
-# TODO: covert completery fusion pipeline into nuke
-# TODO: go to config.nuke.__init__ and again convert fusion to Nuke
-# TODO: config.nuke.pipeline convert from fusion
 
-log = nuke_logger(__name__)
+log = logging.getLogger(__name__)
 
-self = sys.modules[__name__]
-self._parent = None
+AVALON_CONFIG = os.environ["AVALON_CONFIG"]
 
 
 def reload_pipeline():
@@ -37,7 +29,6 @@ def reload_pipeline():
     for module in ("avalon.io",
                    "avalon.lib",
                    "avalon.pipeline",
-                   "avalon.nuke.logger",
                    "avalon.nuke.pipeline",
                    "avalon.nuke.lib",
                    "avalon.tools.loader.app",
@@ -47,7 +38,7 @@ def reload_pipeline():
                    "avalon.api",
                    "avalon.tools",
                    "avalon.nuke"):
-
+        log.info("Reloading module: {}...".format(module))
         module = importlib.import_module(module)
         reload(module)
 
@@ -92,7 +83,7 @@ def containerise(node,
 
     try:
         avalon = node['avalon'].value()
-    except ValueError as error:
+    except ValueError:
         tab = nuke.Tab_Knob("Avalon")
         uk = nuke.Text_Knob('avalon', '')
         node.addKnob(tab)
@@ -207,21 +198,43 @@ def install(config):
 
     pyblish.register_host("nuke")
     # Trigger install on the config's "nuke" package
+    config = find_host_config(config)
+
+    if hasattr(config, "install"):
+        config.install()
+
+    log.info("config.nuke installed")
+
+
+def find_host_config(config):
     try:
         config = importlib.import_module(config.__name__ + ".nuke")
-    except ImportError as error:
-        log.critical("cannot acces config.nuke: {}".format(error))
-        pass
-    else:
-        if hasattr(config, "install"):
-            config.install()
-            log.info("config.nuke installed")
+    except ImportError as exc:
+        if str(exc) != "No module name {}".format(config.__name__ + ".nuke"):
+            raise
+        config = None
+
+    return config
 
 
-def _uninstall_menu():
-    menubar = nuke.menu("Nuke")
-    menubar.removeItem(api.Session["AVALON_LABEL"])
-    self._parent = None
+def uninstall(config):
+    """Uninstall all tha was installed
+
+    This is where you undo everything that was done in `install()`.
+    That means, removing menus, deregistering families and  data
+    and everything. It should be as though `install()` was never run,
+    because odds are calling this function means the user is interested
+    in re-installing shortly afterwards. If, for example, he has been
+    modifying the menu or registered families.
+
+    """
+    config = find_host_config(config)
+    if hasattr(config, "uninstall"):
+        config.uninstall()
+
+    _uninstall_menu()
+
+    pyblish.deregister_host("nuke")
 
 
 def _install_menu():
@@ -267,7 +280,10 @@ def _install_menu():
     menu.addSeparator()
     menu.addCommand("Reload Pipeline", reload_pipeline)
 
-    self._parent = menu
+
+def _uninstall_menu():
+    menubar = nuke.menu("Nuke")
+    menubar.removeItem(api.Session["AVALON_LABEL"])
 
 
 def reset_frame_range():
@@ -276,10 +292,9 @@ def reset_frame_range():
     fps = float(api.Session.get("AVALON_FPS", 25))
 
     nuke.root()["fps"].setValue(fps)
-    log.info(fps)
     asset = api.Session["AVALON_ASSET"]
     asset = io.find_one({"name": asset, "type": "asset"})
-    log.info(asset)
+
     try:
         edit_in = asset["data"]["fstart"]
         edit_out = asset["data"]["fend"]
@@ -360,23 +375,9 @@ def make_format(**args):
         args["format"].setR(50)
         args["format"].setT(500)
         args["format"].setPixelAspect(args["pixel_aspect"])
-        log.critical("Format `{}` was updated".format(args["format"].name()))
-
-
-def uninstall():
-    """Uninstall all tha was installed
-
-    This is where you undo everything that was done in `install()`.
-    That means, removing menus, deregistering families and  data
-    and everything. It should be as though `install()` was never run,
-    because odds are calling this function means the user is interested
-    in re-installing shortly afterwards. If, for example, he has been
-    modifying the menu or registered families.
-
-    """
-    _uninstall_menu()
-
-    pyblish.deregister_host("nuke")
+        log.critical(
+            "Format `{}` was updated".format(args["format"].name())
+        )
 
 
 def publish():

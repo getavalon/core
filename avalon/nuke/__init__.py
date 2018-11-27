@@ -24,8 +24,6 @@ from .pipeline import (
     viewer_update_and_undo_stop,
 )
 
-from .logger import nuke_logger
-
 __all__ = [
     "install",
     "uninstall",
@@ -44,5 +42,4 @@ __all__ = [
     "maintained_selection",
     "get_node_path",
 
-    "nuke_logger"
 ]

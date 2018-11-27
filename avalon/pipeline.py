@@ -157,7 +157,6 @@ class Loader(list):
 
     def __init__(self, context):
 
-
         try:
             fname = context['representation']['data']['path']
         except KeyError:
