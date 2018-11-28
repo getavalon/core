@@ -433,6 +433,15 @@ def parse_container(container, validate=True):
     return data
 
 
+def _ls():
+    containers = list()
+    for identifier in (AVALON_CONTAINER_ID,
+                       "pyblish.mindbender.container"):
+        containers += lib.lsattr("id", identifier)
+
+    return containers
+
+
 def ls():
     """List containers from active Maya scene
 
@@ -441,22 +450,50 @@ def ls():
     they are called 'containers'
 
     """
+    container_names = _ls()
 
-    containers = list()
-    for identifier in (AVALON_CONTAINER_ID,
-                       "pyblish.mindbender.container"):
-        containers += lib.lsattr("id", identifier)
+    has_metadata_collector = False
+    config = find_host_config(api.registered_config())
+    if hasattr(config, "collect_container_metadata"):
+        has_metadata_collector = True
 
-    for container in sorted(containers):
+    for container in sorted(container_names):
         data = parse_container(container)
 
         # Collect custom data if attribute is present
-        config = find_host_config(api.registered_config())
-        if hasattr(config, "collect_container_metadata"):
+        if has_metadata_collector:
             metadata = config.collect_container_metadata(container)
             data.update(metadata)
 
         yield data
+
+
+def update_hierarchy(containers):
+    """Hierarchical container support
+
+    This is the function to support Scene Inventory to draw hierarchical
+    view for containers.
+
+    We need both parent and children to visualize the graph.
+
+    """
+    container_names = set(_ls())  # lookup set
+
+    for container in containers:
+        # Find parent
+        parent = cmds.listSets(object=container["objectName"]) or []
+        for node in parent:
+            if node in container_names:
+                container["parent"] = node
+                break
+
+        # List children
+        children = cmds.ls(cmds.sets(container["objectName"], query=True),
+                           type="objectSet")
+        container["children"] = [child for child in children
+                                 if child in container_names]
+
+        yield container
 
 
 class Creator(api.Creator):

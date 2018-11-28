@@ -134,6 +134,7 @@ def preserve_selection(tree_view,
             value = index.data(role)
             state = value in selected
             if state:
+                tree_view.scrollTo(index)  # Ensure item is visible
                 selection_model.select(index, flags)
 
             if current_index_value and value == current_index_value:
