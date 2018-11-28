@@ -2,6 +2,10 @@ import os
 import contextlib
 import nuke
 import re
+import logging
+import toml
+
+log = logging.getLogger(__name__)
 
 
 @contextlib.contextmanager
@@ -21,6 +25,32 @@ def maintained_selection():
             [n['selected'].setValue(True)
              for n in nodes
              if n.name() in previous_selection]
+
+
+def add_avalon_tab(node):
+    try:
+        avalon_knob = node['avalon'].value()
+    except Exception:
+        tab = nuke.Tab_Knob("Avalon")
+        uk = nuke.Text_Knob('avalon', 'avalon data')
+        node.addKnob(tab)
+        node.addKnob(uk)
+        log.info("created new user knob avalon")
+
+
+def imprint(node, data):
+    """
+    """
+    if not node:
+        return
+    if isinstance(node, list):
+        node = node[0]
+
+    add_avalon_tab(node)
+    add_publish_knob(node)
+    node['avalon'].setValue(toml.dumps(data))
+
+    return node
 
 
 def ls_img_sequence(dirPath, one=None):
@@ -96,9 +126,52 @@ def ls_img_sequence(dirPath, one=None):
 def add_publish_knob(node):
     if "publish" not in node.knobs():
         knob = nuke.Boolean_Knob("publish", "Publish")
+        knob.setFlag(0x1000)
         knob.setValue(False)
         node.addKnob(knob)
     return node
+
+
+def fix_data_for_node_create(data):
+    for k, v in data.items():
+        try:
+            if isinstance(v, unicode):
+                data[k] = str(v)
+        except Exception:
+            data[k] = str(v)
+
+        if "True" in v:
+            data[k] = True
+        if "False" in v:
+            data[k] = False
+        if "0x" in v:
+            data[k] = int(v, 16)
+    return data
+
+
+def add_write_node(name, **kwarg):
+    w = nuke.createNode(
+        "Write",
+        "name {}".format(name))
+
+    w["file"].setValue(kwarg["file"])
+
+    for k, v in kwarg.items():
+        log.info([k, v])
+        try:
+            w[k].setValue(v)
+        except KeyError as e:
+            log.debug(e)
+            continue
+    log.info(w)
+    return w
+    # w.knob('colorspace').setValue()
+    # w.knob('file').setValue(filepath)
+    # w.knob('file_type').setValue(ext)
+    # w.knob('datatype').setValue("16 bit half")
+    # w.knob('compression').setValue("Zip (1 scanline)")
+    # w.knob('create_directories').setValue(True)
+    # w.knob('autocrop').setValue(True)
 
 
 def get_node_path(path, padding=4):

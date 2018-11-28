@@ -17,6 +17,8 @@ from .pipeline import (
     ls,
     publish,
 
+    Creator,
+
     containerise,
     parse_container,
     update_container,
@@ -30,6 +32,8 @@ __all__ = [
 
     "ls",
     "publish",
+
+    "Creator",
 
     "containerise",
     "parse_container",

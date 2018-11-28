@@ -7,6 +7,7 @@ from pyblish import api as pyblish
 from ..vendor import toml
 import logging
 import nuke
+from . import lib
 
 
 log = logging.getLogger(__name__)
@@ -37,7 +38,8 @@ def reload_pipeline():
 
                    "avalon.api",
                    "avalon.tools",
-                   "avalon.nuke"):
+                   "avalon.nuke",
+                   "{}".format(AVALON_CONFIG)):
         log.info("Reloading module: {}...".format(module))
         module = importlib.import_module(module)
         reload(module)
@@ -158,6 +160,21 @@ def update_container(node, keys=dict()):
     node['avalon'].setValue(toml.dumps(container))
 
     return node
+
+
+class Creator(api.Creator):
+    def process(self):
+        nodes = nuke.allNodes()
+
+        if (self.options or {}).get("useSelection"):
+            nodes = nuke.selectedNodes()
+
+        instance = [n for n in nodes
+                    if n["name"].value() in self.name] or None
+
+        instance = lib.imprint(instance, self.data)
+
+        return instance
 
 
 def ls():
