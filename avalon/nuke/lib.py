@@ -150,6 +150,8 @@ def fix_data_for_node_create(data):
 
 
 def add_write_node(name, **kwarg):
+    frame_range = kwarg.get("frame_range", None)
+
     w = nuke.createNode(
         "Write",
         "name {}".format(name))
@@ -157,12 +159,20 @@ def add_write_node(name, **kwarg):
     w["file"].setValue(kwarg["file"])
 
     for k, v in kwarg.items():
+        if "frame_range" in k:
+            continue
         log.info([k, v])
         try:
             w[k].setValue(v)
         except KeyError as e:
             log.debug(e)
             continue
+
+    if frame_range:
+        w["use_limit"].setValue(True)
+        w["first"].setValue(frame_range[0])
+        w["last"].setValue(frame_range[1])
+
     log.info(w)
     return w
     # w.knob('colorspace').setValue()
