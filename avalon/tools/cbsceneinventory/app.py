@@ -11,7 +11,8 @@ from .. import lib as tools_lib
 # todo(roy): refactor loading from other tools
 from ..projectmanager.widget import (
     preserve_expanded_rows,
-    preserve_selection
+    preserve_selection,
+    _iter_model_rows,
 )
 from ..cbloader.delegates import VersionDelegate
 from ..cbloader.lib import refresh_family_config
@@ -28,6 +29,7 @@ module.window = None
 
 class View(QtWidgets.QTreeView):
     data_changed = QtCore.Signal()
+    hierarchy_view = QtCore.Signal(bool)
 
     def __init__(self, parent=None):
         super(View, self).__init__(parent=parent)
@@ -39,6 +41,26 @@ class View(QtWidgets.QTreeView):
         self.setSelectionMode(self.ExtendedSelection)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_right_mouse_menu)
+        self._hierarchy_view = False
+        self._selected = None
+
+    def enter_hierarchy(self, items):
+        self._selected = set(i["objectName"] for i in items)
+        self._hierarchy_view = True
+        self.hierarchy_view.emit(True)
+        self.data_changed.emit()
+        self.expandToDepth(1)
+        self.setStyleSheet("""
+        QTreeView {
+             border-color: #fb9c15;
+        }
+        """)
+
+    def leave_hierarchy(self):
+        self._hierarchy_view = False
+        self.hierarchy_view.emit(False)
+        self.data_changed.emit()
+        self.setStyleSheet("QTreeView {}")
 
     def build_item_menu(self, items):
         """Create menu for the selected items"""
@@ -80,6 +102,22 @@ class View(QtWidgets.QTreeView):
         remove_action.triggered.connect(
             lambda: self.show_remove_warning_dialog(items))
 
+        # go back to flat view
+        if self._hierarchy_view:
+            back_to_flat_icon = qta.icon("fa.list", color=DEFAULT_COLOR)
+            back_to_flat_action = QtWidgets.QAction(back_to_flat_icon,
+                                                    "Back to Full-View",
+                                                    menu)
+            back_to_flat_action.triggered.connect(self.leave_hierarchy)
+
+        # send items to hierarchy view
+        enter_hierarchy_icon = qta.icon("fa.indent", color="#d8d8d8")
+        enter_hierarchy_action = QtWidgets.QAction(enter_hierarchy_icon,
+                                                   "Cherry-Pick (Hierarchy)",
+                                                   menu)
+        enter_hierarchy_action.triggered.connect(
+            lambda: self.enter_hierarchy(items))
+
         # expand all items
         expandall_action = QtWidgets.QAction(menu, text="Expand all items")
         expandall_action.triggered.connect(self.expandAll)
@@ -89,20 +127,24 @@ class View(QtWidgets.QTreeView):
         collapse_action.triggered.connect(self.collapseAll)
 
         # add the actions
-        menu.addAction(updatetolatest_action)
-        menu.addAction(set_version_action)
-        menu.addAction(switch_asset_action)
+        has_selection = len(items)
 
-        menu.addSeparator()
-        menu.addAction(remove_action)
+        if has_selection:
+            menu.addAction(updatetolatest_action)
+            menu.addAction(set_version_action)
+            menu.addAction(switch_asset_action)
 
-        menu.addSeparator()
+            menu.addSeparator()
+            menu.addAction(remove_action)
+
+            menu.addSeparator()
+
+        # These two actions should be able to work without selection
         menu.addAction(expandall_action)
         menu.addAction(collapse_action)
 
         custom_actions = self.get_custom_actions(containers=items)
         if custom_actions:
-            menu.addSeparator()
             submenu = QtWidgets.QMenu("Actions", self)
             for action in custom_actions:
 
@@ -115,6 +157,12 @@ class View(QtWidgets.QTreeView):
                 submenu.addAction(action_item)
 
             menu.addMenu(submenu)
+
+        if has_selection:
+            menu.addAction(enter_hierarchy_action)
+
+        if self._hierarchy_view:
+            menu.addAction(back_to_flat_action)
 
         return menu
 
@@ -132,6 +180,11 @@ class View(QtWidgets.QTreeView):
             """Sort based on order attribute of the plugin"""
             return Plugin.order
 
+        # Fedd an empty dict if no selection, this will ensure the compat
+        # lookup always work, so plugin can interact with Scene Inventory
+        # reversely.
+        containers = containers or [dict()]
+
         # Check which action will be available in the menu
         Plugins = api.discover(api.InventoryAction)
         compatible = [p() for p in Plugins if
@@ -141,6 +194,8 @@ class View(QtWidgets.QTreeView):
 
     def process_custom_action(self, action, containers):
         """Run action and if results are returned positive update the view
+
+        If the result is list or dict, will select view items by the result.
 
         Args:
             action (InventoryAction): Inventory Action instance
@@ -154,16 +209,74 @@ class View(QtWidgets.QTreeView):
         if result:
             self.data_changed.emit()
 
+            if isinstance(result, (list, set)):
+                self.select_items_by_action(result)
+
+            if isinstance(result, dict):
+                self.select_items_by_action(result["objectNames"],
+                                            result["options"])
+
+    def select_items_by_action(self, object_names, options=None):
+        """Select view items by the result of action
+
+        Args:
+            object_names (list or set): A list/set of container object name
+            options (dict): GUI operation options.
+
+        Returns:
+            None
+
+        """
+        options = options or dict()
+
+        if options.get("clear", True):
+            self.clearSelection()
+
+        object_names = set(object_names)
+        if (self._hierarchy_view and
+                not self._selected.issuperset(object_names)):
+            # If any container not in current cherry-picked view, update
+            # view before selecting them.
+            self._selected.update(object_names)
+            self.data_changed.emit()
+
+        model = self.model()
+        selection_model = self.selectionModel()
+
+        select_mode = {
+            "select": selection_model.Select,
+            "deselect": selection_model.Deselect,
+            "toggle": selection_model.Toggle,
+        }[options.get("mode", "select")]
+
+        for item in _iter_model_rows(model, 0):
+            node = item.data(InventoryModel.NodeRole)
+            if node.get("isGroupNode"):
+                continue
+
+            name = node.get("objectName")
+            if name in object_names:
+                self.scrollTo(item)  # Ensure item is visible
+                selection_model.select(item, select_mode)
+                object_names.remove(name)
+
+            if len(object_names) == 0:
+                break
+
     def show_right_mouse_menu(self, pos):
         """Display the menu when at the position of the item clicked"""
 
-        active = self.currentIndex()  # index under mouse
-        if not active.isValid():
-            print("No active item found in the selection")
+        globalpos = self.viewport().mapToGlobal(pos)
+
+        if not self.selectionModel().hasSelection():
+            print("No selection")
+            # Build menu without selection, feed an empty list
+            menu = self.build_item_menu([])
+            menu.exec_(globalpos)
             return
 
+        active = self.currentIndex()  # index under mouse
         active = active.sibling(active.row(), 0)  # get first column
-        globalpos = self.viewport().mapToGlobal(pos)
 
         # move index under mouse
         indices = self.get_indices()
@@ -176,6 +289,10 @@ class View(QtWidgets.QTreeView):
         all_indices = self.extend_to_children(indices)
         nodes = [dict(i.data(InventoryModel.NodeRole)) for i in all_indices
                  if i.parent().isValid()]
+
+        if self._hierarchy_view:
+            # Ensure no group node
+            nodes = [n for n in nodes if not n.get("isGroupNode")]
 
         menu = self.build_item_menu(nodes)
         menu.exec_(globalpos)
@@ -198,18 +315,26 @@ class View(QtWidgets.QTreeView):
             list: The children indices
 
         """
+        def get_children(i):
+            model = i.model()
+            rows = model.rowCount(parent=i)
+            for row in range(rows):
+                child = model.index(row, 0, parent=i)
+                yield child
 
         subitems = set()
         for i in indices:
             valid_parent = i.parent().isValid()
             if valid_parent and i not in subitems:
                 subitems.add(i)
+
+                if self._hierarchy_view:
+                    # Assume this is a group node
+                    for child in get_children(i):
+                        subitems.add(child)
             else:
                 # is top level node
-                model = i.model()
-                rows = model.rowCount(parent=i)
-                for row in range(rows):
-                    child = model.index(row, 0, parent=i)
+                for child in get_children(i):
                     subitems.add(child)
 
         return list(subitems)
@@ -475,6 +600,7 @@ class Window(QtWidgets.QDialog):
         control_layout.addWidget(text_filter)
         control_layout.addWidget(outdated_only)
         control_layout.addWidget(refresh_button)
+
         # endregion control
 
         model = InventoryModel()
@@ -502,6 +628,8 @@ class Window(QtWidgets.QDialog):
         outdated_only.stateChanged.connect(self.proxy.set_filter_outdated)
         refresh_button.clicked.connect(self.refresh)
         view.data_changed.connect(self.refresh)
+        view.hierarchy_view.connect(self.model.set_hierarchy_view)
+        view.hierarchy_view.connect(self.proxy.set_hierarchy_view)
 
         # proxy settings
         proxy.setSourceModel(self.model)
@@ -527,15 +655,19 @@ class Window(QtWidgets.QDialog):
         with preserve_expanded_rows(tree_view=self.view,
                                     role=self.model.UniqueRole):
             with preserve_selection(tree_view=self.view,
-                                    role=self.model.UniqueRole):
-                self.model.refresh()
+                                    role=self.model.UniqueRole,
+                                    current_index=False):
+                if self.view._hierarchy_view:
+                    self.model.refresh(selected=self.view._selected)
+                else:
+                    self.model.refresh()
 
 
 def show(root=None, debug=False, parent=None):
-    """Display Loader GUI
+    """Display Scene Inventory GUI
 
     Arguments:
-        debug (bool, optional): Run loader in debug-mode,
+        debug (bool, optional): Run in debug-mode,
             defaults to False
 
     """
