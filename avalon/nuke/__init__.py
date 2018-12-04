@@ -11,6 +11,7 @@ from .lib import (
     get_node_path
 )
 from .pipeline import (
+    reload_pipeline,
     install,
     uninstall,
 
@@ -27,6 +28,7 @@ from .pipeline import (
 )
 
 __all__ = [
+    "reload_pipeline",
     "install",
     "uninstall",
 

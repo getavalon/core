@@ -27,7 +27,9 @@ def maintained_selection():
              if n.name() in previous_selection]
 
 
-def add_avalon_tab(node):
+def add_avalon_tab_knob(node):
+    """Adding a tab and a knob into a node
+    """
     try:
         avalon_knob = node['avalon'].value()
     except Exception:
@@ -39,14 +41,19 @@ def add_avalon_tab(node):
 
 
 def imprint(node, data):
-    """
+    """Adding `Avalon data` into a node's Avalon Tab/Avalon knob
+    also including publish knob
+
+    Arguments:
+        node (list or obj): A nuke's node object either in list or individual
+        data (dict): Any data which needst to be imprinted
     """
     if not node:
         return
     if isinstance(node, list):
         node = node[0]
 
-    add_avalon_tab(node)
+    add_avalon_tab_knob(node)
     add_publish_knob(node)
     node['avalon'].setValue(toml.dumps(data))
 
@@ -175,13 +182,6 @@ def add_write_node(name, **kwarg):
 
     log.info(w)
     return w
-    # w.knob('colorspace').setValue()
-    # w.knob('file').setValue(filepath)
-    # w.knob('file_type').setValue(ext)
-    # w.knob('datatype').setValue("16 bit half")
-    # w.knob('compression').setValue("Zip (1 scanline)")
-    # w.knob('create_directories').setValue(True)
-    # w.knob('autocrop').setValue(True)
 
 
 def get_node_path(path, padding=4):

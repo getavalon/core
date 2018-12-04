@@ -1,5 +1,6 @@
 import os
 import sys
+from collections import OrderedDict
 import importlib
 from .. import api, io
 import contextlib
@@ -39,7 +40,8 @@ def reload_pipeline():
                    "avalon.api",
                    "avalon.tools",
                    "avalon.nuke",
-                   "{}".format(AVALON_CONFIG)):
+                   "{}".format(AVALON_CONFIG),
+                   "{}.lib".format(AVALON_CONFIG)):
         log.info("Reloading module: {}...".format(module))
         module = importlib.import_module(module)
         reload(module)
@@ -55,7 +57,8 @@ def containerise(node,
                  name,
                  namespace,
                  context,
-                 node_name=None):
+                 loader=None,
+                 data=None):
     """Bundle `nodes` into an assembly and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
@@ -67,32 +70,30 @@ def containerise(node,
         name (str): Name of resulting assembly
         namespace (str): Namespace under which to host container
         context (dict): Asset information
-        node_name (str, optional): Name of node used to produce this container.
+        loader (str, optional): Name of node used to produce this container.
 
     Returns:
         None
 
     """
 
-    data = [
-        ("schema", "avalon-core:container-2.0"),
-        ("id", "pyblish.avalon.container"),
-        ("name", str(name)),
-        ("namespace", str(namespace)),
-        ("node_name", str(node_name)),
-        ("representation", str(context["representation"]["_id"])),
-    ]
+    data_imprint = OrderedDict({
+        "schema": "avalon-core:container-2.0",
+        "id": "pyblish.avalon.container",
+        "name": str(name),
+        "namespace": str(namespace),
+        "loader": str(loader),
+        "representation": str(context["representation"]["_id"]),
+    })
 
-    try:
-        avalon = node['avalon'].value()
-    except ValueError:
-        tab = nuke.Tab_Knob("Avalon")
-        uk = nuke.Text_Knob('avalon', '')
-        node.addKnob(tab)
-        node.addKnob(uk)
-        log.info("created new user knob avalon")
+    if data:
+        {data_imprint.update({k: v}) for k, v in data.items()}
 
-    node['avalon'].setValue(toml.dumps(data))
+    log.info("data: {}".format(data_imprint))
+
+    lib.add_avalon_tab_knob(node)
+
+    node['avalon'].setValue(toml.dumps(data_imprint))
 
 
 def parse_container(node):
@@ -110,7 +111,7 @@ def parse_container(node):
 
     # If not all required data return the empty container
     required = ['schema', 'id', 'name',
-                'namespace', 'node_name', 'representation']
+                'namespace', 'loader', 'representation']
     if not all(key in data for key in required):
         return
 
@@ -329,20 +330,12 @@ def reset_frame_range():
 def reset_resolution():
     """Set resolution to project resolution."""
     project = io.find_one({"type": "project"})
-    asset = api.Session["AVALON_ASSET"]
-    asset = io.find_one({"name": asset, "type": "asset"})
 
     try:
-        width = asset["data"].get("resolution_width", 1920)
-        height = asset["data"].get("resolution_height", 1080)
-        pixel_aspect = asset["data"].get("pixel_aspect", 1)
-
-        bbox = asset["data"].get("crop", "0.0.1920.1080")
-        if "0.0.1920.1080" in bbox:
-            bbox = None
-
+        width = project["data"].get("resolution_width", 1920)
+        height = project["data"].get("resolution_height", 1080)
     except KeyError:
-        log.warning(
+        print(
             "No resolution information found for \"{0}\".".format(
                 project["name"]
             )
@@ -351,50 +344,21 @@ def reset_resolution():
 
     current_width = nuke.root()["format"].value().width()
     current_height = nuke.root()["format"].value().height()
-    current_pixel_aspect = nuke.root()["format"].value().pixelAspect()
 
-    if width != current_width \
-            or height != current_height \
-            or current_pixel_aspect != pixel_aspect:
+    if width != current_width or height != current_height:
 
         fmt = None
         for f in nuke.formats():
-            if f.name() in project["name"]:
-                fmt = f
+            if f.width() == width and f.height() == height:
+                fmt = f.name()
 
-        make_format(
-            format=fmt,
-            width=int(width),
-            height=int(height),
-            pixel_aspect=float(pixel_aspect),
-            project_name=project["name"]
-        )
+        if not fmt:
+            nuke.addFormat(
+                "{0} {1} {2}".format(int(width), int(height), project["name"])
+            )
+            fmt = project["name"]
 
-
-def make_format(**args):
-    if not args["format"]:
-        nuke.addFormat(
-            "{width} "
-            "{height} "
-            "0 "
-            "0 "
-            "{width} "
-            "{height} "
-            "{pixel_aspect} "
-            "{project_name}".format(**args)
-        )
-        nuke.root()["format"].setValue("{project_name}".format(**args))
-    else:
-        args["format"].setWidth(args["width"])
-        args["format"].setHeight(args["height"])
-        args["format"].setX(30)
-        args["format"].setY(30)
-        args["format"].setR(50)
-        args["format"].setT(500)
-        args["format"].setPixelAspect(args["pixel_aspect"])
-        log.critical(
-            "Format `{}` was updated".format(args["format"].name())
-        )
+        nuke.root()["format"].setValue(fmt)
 
 
 def publish():
