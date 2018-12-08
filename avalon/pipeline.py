@@ -280,7 +280,7 @@ class InventoryAction(object):
         Returns:
             bool
         """
-        return True
+        return bool(container.get("objectName"))
 
     def process(self, containers):
         """Override function in a custom class
@@ -294,11 +294,26 @@ class InventoryAction(object):
         The return value will need to be a True-ish value to trigger
         the data_changed signal in order to refresh the view.
 
+        You can return a list of container names to trigger GUI to select
+        treeview items.
+
+        You can return a dict to carry extra GUI options. For example:
+            {
+                "objectNames": [container names...],
+                "options": {"mode": "toggle",
+                            "clear": False}
+            }
+        Currently workable GUI options are:
+            - clear (bool): Clear current selection before selecting by action.
+                            Default `True`.
+            - mode (str): selection mode, use one of these:
+                          "select", "deselect", "toggle". Default is "select".
+
         Args:
             containers (list): list of dictionaries
 
         Return:
-            bool
+            bool, list or dict
 
         """
         return True
