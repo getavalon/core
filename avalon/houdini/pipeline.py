@@ -1,7 +1,6 @@
 # Standard library
 import sys
 import importlib
-import contextlib
 
 # Pyblish libraries
 import pyblish.api
@@ -20,7 +19,7 @@ self._has_been_setup = False
 self._parent = None
 self._events = dict()
 
-main_container = "/obj/AVALON_CONTAINERS"
+AVALON_CONTAINERS = "/obj/AVALON_CONTAINERS"
 IS_HEADLESS = not hasattr(hou, "ui")
 
 
@@ -148,42 +147,16 @@ def teardown():
     print("pyblish: Integration torn down successfully")
 
 
-@contextlib.contextmanager
-def maintained_selection():
-    """Maintain selection during context
-    Example:
-        >>> with maintained_selection():
-        ...     # Modify selection
-        ...     node.setSelected(on=False, clear_all_selected=True)
-        >>> # Selection restored
-    """
-
-    previous_selection = hou.selectedNodes()
-    try:
-        yield
-    finally:
-        if previous_selection:
-            for node in previous_selection:
-                node.setSelected(on=True)
-        else:
-            for node in previous_selection:
-                node.setSelected(on=False)
-
-
 def containerise(name,
                  namespace,
                  nodes,
                  context,
                  loader=None,
                  suffix=""):
-    """Bundle `nodes` into an assembly and imprint it with metadata
+    """Bundle `nodes` into a subnet and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
     for loaded assets.
-
-    In Houdini it is not possible to next goemetry nodes in geometry nodes
-    directly. To counter this we place a Object Network node calles ROOT
-    in the HOUDINI_CONTAINERS node.
 
     Arguments:
         name (str): Name of resulting assembly
@@ -198,11 +171,12 @@ def containerise(name,
 
     """
 
-    # Check if the AVALON_CONTAINERS exists
-    subnet = hou.node(main_container)
+    # Ensure AVALON_CONTAINERS subnet exists
+    subnet = hou.node(AVALON_CONTAINERS)
     if subnet is None:
         obj_network = hou.node("/obj")
-        subnet = obj_network.createNode("subnet", node_name="AVALON_CONTAINERS")
+        subnet = obj_network.createNode("subnet",
+                                        node_name="AVALON_CONTAINERS")
 
     # Create proper container name
     container_name = "{}_{}".format(name, suffix or "CON")
@@ -232,8 +206,8 @@ def parse_container(container, validate=True):
     """Return the container node's full container data.
 
     Args:
-        container (str): A container node name.
-        validate (bool): If True, validate schema and data
+        container (hou.Node): A container node name.
+        validate(bool): turn the validation for the container on or off
 
     Returns:
         dict: The container schema data for this container node.
@@ -283,7 +257,7 @@ class Creator(api.Creator):
     """
 
     def __init__(self, *args, **kwargs):
-        api.Creator.__init__(self, *args, **kwargs)
+        super(Creator, self).__init__(*args, **kwargs)
         self.nodes = list()
 
     def process(self):
@@ -320,7 +294,7 @@ class Creator(api.Creator):
             node_type = "geometry"
 
         # Get out node
-        out = hou.node("out")
+        out = hou.node("/out")
         instance = out.createNode(node_type, node_name=self.name)
         instance.moveToGoodPosition()
 

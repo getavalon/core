@@ -1,3 +1,5 @@
+import contextlib
+
 import hou
 from ..vendor import six
 
@@ -60,8 +62,7 @@ def imprint(node, data):
 
 
 def lsattr(attr, value=None):
-
-    nodes = hou.node("/obj").children()
+    nodes = list(hou.node("/obj").allNodes())
     if value is None:
         return [n for n in nodes if n.parm(attr)]
     return lsattrs({attr: value})
@@ -159,5 +160,25 @@ def unique_name(name, format="%03d", namespace="", prefix="", suffix="",
     return unique
 
 
+@contextlib.contextmanager
 def maintained_selection():
-    pass
+    """Maintain selection during context
+    Example:
+        >>> with maintained_selection():
+        ...     # Modify selection
+        ...     node.setSelected(on=False, clear_all_selected=True)
+        >>> # Selection restored
+    """
+
+    previous_selection = hou.selectedNodes()
+    try:
+        yield
+    finally:
+        # Clear the selection
+        # todo: does hou.clearAllSelected() do the same?
+        for node in hou.selectedNodes():
+            node.setSelected(on=False)
+
+        if previous_selection:
+            for node in previous_selection:
+                node.setSelected(on=True)
