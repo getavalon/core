@@ -153,14 +153,10 @@ def containerise(name,
                  context,
                  loader=None,
                  suffix=""):
-    """Bundle `nodes` into an assembly and imprint it with metadata
+    """Bundle `nodes` into a subnet and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
     for loaded assets.
-
-    In Houdini it is not possible to next goemetry nodes in geometry nodes
-    directly. To counter this we place a Object Network node calles ROOT
-    in the HOUDINI_CONTAINERS node.
 
     Arguments:
         name (str): Name of resulting assembly
