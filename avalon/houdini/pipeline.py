@@ -175,14 +175,12 @@ def containerise(name,
 
     """
 
-    # Get main object network node
-    obj_network = hou.node("/obj")
-
-    # Check if the AVALON_CONTAINERS exists
-    subnet = hou.node(main_container)
+    # Ensure AVALON_CONTAINERS subnet exists
+    subnet = hou.node(AVALON_CONTAINERS)
     if subnet is None:
         obj_network = hou.node("/obj")
-        subnet = obj_network.createNode("subnet", node_name="AVALON_CONTAINERS")
+        subnet = obj_network.createNode("subnet",
+                                        node_name="AVALON_CONTAINERS")
 
     # Create proper container name
     container_name = "{}_{}".format(name, suffix or "CON")
