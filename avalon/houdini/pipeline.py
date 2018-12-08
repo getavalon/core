@@ -294,7 +294,7 @@ class Creator(api.Creator):
             node_type = "geometry"
 
         # Get out node
-        out = hou.node("out")
+        out = hou.node("/out")
         instance = out.createNode(node_type, node_name=self.name)
         instance.moveToGoodPosition()
 
