@@ -19,7 +19,7 @@ self._has_been_setup = False
 self._parent = None
 self._events = dict()
 
-AVALON_CONTAINERS = "AVALON_CONTAINERS"
+AVALON_CONTAINERS = "/obj/AVALON_CONTAINERS"
 IS_HEADLESS = not hasattr(hou, "ui")
 
 
