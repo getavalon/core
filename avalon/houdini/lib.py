@@ -174,9 +174,11 @@ def maintained_selection():
     try:
         yield
     finally:
+        # Clear the selection
+        # todo: does hou.clearAllSelected() do the same?
+        for node in hou.selectedNodes():
+            node.setSelected(on=False)
+
         if previous_selection:
             for node in previous_selection:
                 node.setSelected(on=True)
-        else:
-            for node in previous_selection:
-                node.setSelected(on=False)
