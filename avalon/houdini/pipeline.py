@@ -257,7 +257,7 @@ class Creator(api.Creator):
     """
 
     def __init__(self, *args, **kwargs):
-        api.Creator.__init__(self, *args, **kwargs)
+        super(Creator, self).__init__(*args, **kwargs)
         self.nodes = list()
 
     def process(self):
