@@ -31,6 +31,9 @@ from . import (
 
 from .vendor import six
 
+# TODO acre needs to be in vendor
+import acre
+
 self = sys.modules[__name__]
 self._is_installed = False
 self._config = None
@@ -353,6 +356,19 @@ class Application(Action):
         template = project["config"]["template"]["work"]
         workdir = _format_work_template(template, session)
         session["AVALON_WORKDIR"] = os.path.normpath(workdir)
+
+        # #### dynamic environmnets
+        # # collect all the 'environment' attributes from parents
+        # tools_attr = [os.environ["AVALON_APP"], os.environ["AVALON_APP_NAME"]]
+        # for parent in reversed(parents):
+        #     # check if the attribute is empty, if not use it
+        #     if parent['custom_attributes']['tools_env']:
+        #         tools_attr.extend(parent['custom_attributes']['tools_env'])
+        #         break
+        #
+        # tools_env = acre.get_tools(tools_attr)
+        # env = acre.compute(tools_env)
+        # env = acre.merge(env, current_env=dict(os.environ))
 
         # Build environment
         env = os.environ.copy()
