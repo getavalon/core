@@ -10,7 +10,6 @@ log = logging.getLogger(__name__)
 
 @contextlib.contextmanager
 def maintained_selection():
-    # nuke = getattr(sys.modules["__main__"], "nuke", None)
     nodes = nuke.allNodes()
     previous_selection = [n.name()
                           for n in nodes
@@ -25,6 +24,16 @@ def maintained_selection():
             [n['selected'].setValue(True)
              for n in nodes
              if n.name() in previous_selection]
+
+
+def reset_selection():
+    nodes = nuke.allNodes()
+    [n['selected'].setValue(False) for n in nodes]
+
+
+def select_nodes(nodes):
+    assert isinstance(nodes, (list, tuple)), "nodes has to be list or tuple"
+    [n['selected'].setValue(True) for n in nodes]
 
 
 def add_avalon_tab_knob(node):
