@@ -357,25 +357,45 @@ class Application(Action):
         workdir = _format_work_template(template, session)
         session["AVALON_WORKDIR"] = os.path.normpath(workdir)
 
-        # #### dynamic environmnets
-        # # collect all the 'environment' attributes from parents
-        # tools_attr = [os.environ["AVALON_APP"], os.environ["AVALON_APP_NAME"]]
-        # for parent in reversed(parents):
-        #     # check if the attribute is empty, if not use it
-        #     if parent['custom_attributes']['tools_env']:
-        #         tools_attr.extend(parent['custom_attributes']['tools_env'])
-        #         break
-        #
-        # tools_env = acre.get_tools(tools_attr)
-        # env = acre.compute(tools_env)
-        # env = acre.merge(env, current_env=dict(os.environ))
+        # dynamic environmnets
+        # collect all the 'environment' attributes from parents
+        tools_attr = [session["AVALON_APP"], session["AVALON_APP_NAME"]]
+
+        asset = io.find_one({"type": "asset"})
+        tools_attr.extend(self.find_tools(asset))
+
+        tools_env = acre.get_tools(tools_attr)
+        dyn_env = acre.compute(tools_env)
+        dyn_env = acre.merge(dyn_env, current_env=dict(os.environ))
 
         # Build environment
         env = os.environ.copy()
         env.update(self.config.get("environment", {}))
+        env.update(dyn_env)
         env.update(session)
 
         return env
+
+    def find_tools(self, entity):
+        tools = []
+        if ('data' in entity and 'tools_env' in entity['data'] and
+        len(entity['data']['tools_env']) > 0):
+            tools = entity['data']['tools_env']
+
+        elif ('data' in entity and 'visualParent' in entity['data'] and
+        entity['data']['visualParent'] is not None):
+            tmp = io.find_one({
+                "_id": entity['data']['visualParent']
+            })
+            tools = self.find_tools(tmp)
+
+        project = io.find_one({"_id": entity['parent']})
+
+        if ('data' in project and 'tools_env' in project['data'] and
+        len(project['data']['tools_env']) > 0):
+            tools = project['data']['tools_env']
+
+        return tools
 
     def initialize(self, environment):
         """Initialize work directory"""
