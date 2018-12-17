@@ -321,6 +321,8 @@ class Window(QtWidgets.QDialog):
             self.echo("Program error: %s" % str(e))
             raise
 
+        self.echo("Created %s .." % subset_name)
+
     def echo(self, message):
         widget = self.data["Error Message"]
         widget.setText(str(message))
