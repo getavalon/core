@@ -134,6 +134,9 @@ def test_save():
                 "{root}/{project}/{silo}/{asset}/publish/"
                 "{subset}/v{version:0>3}/{subset}.{representation}"
         },
+        "families": [
+            {"name": "avalon.model", "label": "Model", "icon": "cube"}
+        ],
         "copy": {}
     }
 
