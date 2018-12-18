@@ -29,10 +29,8 @@ from . import (
     _registered_event_handlers,
 )
 
-from .vendor import six
+from .vendor import six, acre
 
-# TODO acre needs to be in vendor
-import acre
 
 self = sys.modules[__name__]
 self._is_installed = False
@@ -358,11 +356,16 @@ class Application(Action):
         session["AVALON_WORKDIR"] = os.path.normpath(workdir)
 
         # dynamic environmnets
-        # collect all the 'environment' attributes from parents
-        tools_attr = [session["AVALON_APP"], session["AVALON_APP_NAME"]]
+        tools_attr = []
+        if session["AVALON_APP"] is not None:
+            tools_attr.append(session["AVALON_APP"])
+        if session["AVALON_APP_NAME"] is not None:
+            tools_attr.append(session["AVALON_APP_NAME"])
 
+        # collect all the 'environment' attributes from parents
         asset = io.find_one({"type": "asset"})
-        tools_attr.extend(self.find_tools(asset))
+        tools = self.find_tools(asset)
+        tools_attr.extend(tools)
 
         tools_env = acre.get_tools(tools_attr)
         dyn_env = acre.compute(tools_env)
