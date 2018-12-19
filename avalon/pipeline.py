@@ -29,7 +29,8 @@ from . import (
     _registered_event_handlers,
 )
 
-from .vendor import six
+from .vendor import six, acre
+
 
 self = sys.modules[__name__]
 self._is_installed = False
@@ -354,12 +355,50 @@ class Application(Action):
         workdir = _format_work_template(template, session)
         session["AVALON_WORKDIR"] = os.path.normpath(workdir)
 
+        # dynamic environmnets
+        tools_attr = []
+        if session["AVALON_APP"] is not None:
+            tools_attr.append(session["AVALON_APP"])
+        if session["AVALON_APP_NAME"] is not None:
+            tools_attr.append(session["AVALON_APP_NAME"])
+
+        # collect all the 'environment' attributes from parents
+        asset = io.find_one({"type": "asset"})
+        tools = self.find_tools(asset)
+        tools_attr.extend(tools)
+
+        tools_env = acre.get_tools(tools_attr)
+        dyn_env = acre.compute(tools_env)
+        dyn_env = acre.merge(dyn_env, current_env=dict(os.environ))
+
         # Build environment
         env = os.environ.copy()
         env.update(self.config.get("environment", {}))
+        env.update(dyn_env)
         env.update(session)
 
         return env
+
+    def find_tools(self, entity):
+        tools = []
+        if ('data' in entity and 'tools_env' in entity['data'] and
+        len(entity['data']['tools_env']) > 0):
+            tools = entity['data']['tools_env']
+
+        elif ('data' in entity and 'visualParent' in entity['data'] and
+        entity['data']['visualParent'] is not None):
+            tmp = io.find_one({
+                "_id": entity['data']['visualParent']
+            })
+            tools = self.find_tools(tmp)
+
+        project = io.find_one({"_id": entity['parent']})
+
+        if ('data' in project and 'tools_env' in project['data'] and
+        len(project['data']['tools_env']) > 0):
+            tools = project['data']['tools_env']
+
+        return tools
 
     def initialize(self, environment):
         """Initialize work directory"""
