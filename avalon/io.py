@@ -224,16 +224,14 @@ def auto_reconnect(f):
     """Handling auto reconnect in 3 retry times"""
     @functools.wraps(f)
     def decorated(*args, **kwargs):
-        error = None
         for retry in range(3):
             try:
                 return f(*args, **kwargs)
-            except pymongo.errors.AutoReconnect as e:
-                error = e
+            except pymongo.errors.AutoReconnect:
                 log.error("Reconnecting..")
                 time.sleep(0.1)
         else:
-            raise error
+            raise
 
     return decorated
 
