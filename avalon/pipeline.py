@@ -370,9 +370,9 @@ class Application(Action):
                 else:
                     app_environment[key] = value
             else:
-                log_.error(
+                log.error(
                     "%s: Unsupported environment reference in %s for %s"
-                    % (value, name, key)
+                    % (value, self.name, key)
                 )
 
         # Build environment
@@ -453,12 +453,12 @@ class Application(Action):
         try:
             return lib.dict_format(original, **kwargs)
         except KeyError as e:
-            log_.error(
+            log.error(
                 "One of the {variables} defined in the application "
                 "definition wasn't found in this session.\n"
                 "The variable was %s " % e
             )
-            log_.error(json.dumps(kwargs, indent=4, sort_keys=True))
+            log.error(json.dumps(kwargs, indent=4, sort_keys=True))
 
             raise ValueError(
                 "This is typically a bug in the pipeline, "
