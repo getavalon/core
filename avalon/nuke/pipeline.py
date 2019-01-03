@@ -291,8 +291,9 @@ def _install_menu():
     menu.addCommand("Manage...", cbsceneinventory.show)
 
     menu.addSeparator()
-
-    menu.addCommand("Reset Frame Range", reset_frame_range)
+    frames_menu = menu.addMenu("Reset Frame Range")
+    frames_menu.addCommand("Cut length", reset_frame_range)
+    frames_menu.addCommand("Full length(handles)", reset_frame_range_handles)
     menu.addCommand("Reset Resolution", reset_resolution)
 
     menu.addSeparator()
@@ -322,6 +323,44 @@ def reset_frame_range():
             "\"{0}\".".format(asset["name"])
         )
         return
+
+    nuke.root()["first_frame"].setValue(edit_in)
+    nuke.root()["last_frame"].setValue(edit_out)
+
+
+def reset_frame_range_handles():
+    """Set frame range to current asset"""
+
+    fps = float(api.Session.get("AVALON_FPS", 25))
+
+    nuke.root()["fps"].setValue(fps)
+    name = api.Session["AVALON_ASSET"]
+    asset = io.find_one({"name": name, "type": "asset"})
+
+    if "data" not in asset:
+        msg = "Asset {} don't have set any 'data'".format(name)
+        log.warning(msg)
+        nuke.message(msg)
+        return
+    data = asset["data"]
+
+    missing_cols = []
+    check_cols = ["fstart", "fend", "handles"]
+
+    for col in check_cols:
+        if col not in data:
+            missing_cols.append(col)
+
+    if len(missing_cols) > 0:
+        missing = ", ".join(missing_cols)
+        msg = "'{}' are not set for asset '{}'!".format(missing, name)
+        log.warning(msg)
+        nuke.message(msg)
+        return
+
+    handles = asset["data"]["handles"]
+    edit_in = asset["data"]["fstart"] - handles
+    edit_out = asset["data"]["fend"] + handles
 
     nuke.root()["first_frame"].setValue(edit_in)
     nuke.root()["last_frame"].setValue(edit_out)
