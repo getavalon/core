@@ -315,8 +315,8 @@ def reset_frame_range():
     asset = io.find_one({"name": asset, "type": "asset"})
 
     try:
-        edit_in = asset["data"]["fstart"]
-        edit_out = asset["data"]["fend"]
+        edit_in = int(asset["data"]["fstart"])
+        edit_out = int(asset["data"]["fend"])
     except KeyError:
         log.warning(
             "Frame range not set! No edit information found for "
@@ -358,9 +358,9 @@ def reset_frame_range_handles():
         nuke.message(msg)
         return
 
-    handles = asset["data"]["handles"]
-    edit_in = asset["data"]["fstart"] - handles
-    edit_out = asset["data"]["fend"] + handles
+    handles = int(asset["data"]["handles"])
+    edit_in = int(asset["data"]["fstart"]) - handles
+    edit_out = int(asset["data"]["fend"]) + handles
 
     nuke.root()["first_frame"].setValue(edit_in)
     nuke.root()["last_frame"].setValue(edit_out)
