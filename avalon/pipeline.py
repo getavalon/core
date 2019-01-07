@@ -324,7 +324,7 @@ class Application(Action):
     """Default application launcher
 
     This is a convenience application Action that when "config" refers to a
-    loaded application `.toml` this can launch the application.
+    parsed application `.toml` this can launch the application.
 
     """
 
@@ -355,10 +355,31 @@ class Application(Action):
         workdir = _format_work_template(template, session)
         session["AVALON_WORKDIR"] = workdir
 
+        # Construct application environment from .toml config
+        app_environment = self.config.get("environment", {})
+        for key, value in app_environment.copy().items():
+            if isinstance(value, list):
+                # Treat list values as paths, e.g. PYTHONPATH=[]
+                app_environment[key] = os.pathsep.join(value)
+
+            elif isinstance(value, six.string_types):
+                if lib.PY2:
+                    # Protect against unicode in the environment
+                    encoding = sys.getfilesystemencoding()
+                    app_environment[key] = value.encode(encoding)
+                else:
+                    app_environment[key] = value
+            else:
+                log.error(
+                    "%s: Unsupported environment reference in %s for %s"
+                    % (value, self.name, key)
+                )
+
         # Build environment
         env = os.environ.copy()
-        env.update(self.config.get("environment", {}))
         env.update(session)
+        app_environment = self._format(app_environment, **env)
+        env.update(app_environment)
 
         return env
 
@@ -373,6 +394,7 @@ class Application(Action):
 
             # Create default directories from app configuration
             default_dirs = self.config.get("default_dirs", [])
+            default_dirs = self._format(default_dirs, **environment)
             if default_dirs:
                 self.log.debug("Creating default directories..")
                 for dirname in default_dirs:
@@ -398,7 +420,14 @@ class Application(Action):
                 self.log.error(" - %s -> %s" % (src, dst))
 
     def launch(self, environment):
+
         executable = lib.which(self.config["executable"])
+        if executable is None:
+            raise ValueError(
+                "'%s' not found on your PATH\n%s"
+                % (self.config["executable"], os.getenv("PATH"))
+            )
+
         args = self.config.get("args", [])
         return lib.launch(
             executable=executable,
@@ -417,6 +446,23 @@ class Application(Action):
 
         if kwargs.get("launch", True):
             return self.launch(environment)
+
+    def _format(self, original, **kwargs):
+        """Utility recursive dict formatting that logs the error clearly."""
+
+        try:
+            return lib.dict_format(original, **kwargs)
+        except KeyError as e:
+            log.error(
+                "One of the {variables} defined in the application "
+                "definition wasn't found in this session.\n"
+                "The variable was %s " % e
+            )
+            log.error(json.dumps(kwargs, indent=4, sort_keys=True))
+
+            raise ValueError(
+                "This is typically a bug in the pipeline, "
+                "ask your developer.")
 
 
 def discover(superclass):
