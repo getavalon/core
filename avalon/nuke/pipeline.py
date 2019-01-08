@@ -1,6 +1,7 @@
 import os
 import sys
 from collections import OrderedDict
+from bson.objectid import ObjectId
 import importlib
 from .. import api, io
 import contextlib
@@ -345,7 +346,7 @@ def reset_frame_range_handles():
     data = asset["data"]
 
     missing_cols = []
-    check_cols = ["fstart", "fend", "handles"]
+    check_cols = ["fstart", "fend"]
 
     for col in check_cols:
         if col not in data:
@@ -358,12 +359,32 @@ def reset_frame_range_handles():
         nuke.message(msg)
         return
 
-    handles = int(asset["data"]["handles"])
+    handles = get_handles(asset)
     edit_in = int(asset["data"]["fstart"]) - handles
     edit_out = int(asset["data"]["fend"]) + handles
 
     nuke.root()["first_frame"].setValue(edit_in)
     nuke.root()["last_frame"].setValue(edit_out)
+
+
+def get_handles(asset):
+    data = asset["data"]
+    if "handles" in data and data["handles"] is not None:
+        return int(data["handles"])
+
+    parent_asset = None
+    if "visualParent" in data:
+        vp = data["visualParent"]
+        if vp is not None:
+            parent_asset = io.find_one({"_id": ObjectId(vp)})
+
+    if parent_asset is None:
+        parent_asset = io.find_one({"_id": ObjectId(asset['parent'])})
+
+    if parent_asset is not None:
+        return get_handles(parent_asset)
+    else:
+        return 0
 
 
 def reset_resolution():
