@@ -411,6 +411,8 @@ class Application(Action):
         # Perform application copy
         for src, dst in self.config.get("copy", {}).items():
             dst = os.path.join(workdir, dst)
+            # Expand env vars
+            src, dst = self._format([src, dst], **environment)
 
             try:
                 self.log.info("Copying %s -> %s" % (src, dst))
