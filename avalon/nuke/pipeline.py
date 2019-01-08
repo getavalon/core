@@ -1,6 +1,7 @@
 import os
 import sys
 from collections import OrderedDict
+from bson.objectid import ObjectId
 import importlib
 from .. import api, io
 import contextlib
@@ -291,8 +292,9 @@ def _install_menu():
     menu.addCommand("Manage...", cbsceneinventory.show)
 
     menu.addSeparator()
-
-    menu.addCommand("Reset Frame Range", reset_frame_range)
+    frames_menu = menu.addMenu("Reset Frame Range")
+    frames_menu.addCommand("Cut length", reset_frame_range)
+    frames_menu.addCommand("Full length(handles)", reset_frame_range_handles)
     menu.addCommand("Reset Resolution", reset_resolution)
 
     menu.addSeparator()
@@ -314,8 +316,8 @@ def reset_frame_range():
     asset = io.find_one({"name": asset, "type": "asset"})
 
     try:
-        edit_in = asset["data"]["fstart"]
-        edit_out = asset["data"]["fend"]
+        edit_in = int(asset["data"]["fstart"])
+        edit_out = int(asset["data"]["fend"])
     except KeyError:
         log.warning(
             "Frame range not set! No edit information found for "
@@ -325,6 +327,64 @@ def reset_frame_range():
 
     nuke.root()["first_frame"].setValue(edit_in)
     nuke.root()["last_frame"].setValue(edit_out)
+
+
+def reset_frame_range_handles():
+    """Set frame range to current asset"""
+
+    fps = float(api.Session.get("AVALON_FPS", 25))
+
+    nuke.root()["fps"].setValue(fps)
+    name = api.Session["AVALON_ASSET"]
+    asset = io.find_one({"name": name, "type": "asset"})
+
+    if "data" not in asset:
+        msg = "Asset {} don't have set any 'data'".format(name)
+        log.warning(msg)
+        nuke.message(msg)
+        return
+    data = asset["data"]
+
+    missing_cols = []
+    check_cols = ["fstart", "fend"]
+
+    for col in check_cols:
+        if col not in data:
+            missing_cols.append(col)
+
+    if len(missing_cols) > 0:
+        missing = ", ".join(missing_cols)
+        msg = "'{}' are not set for asset '{}'!".format(missing, name)
+        log.warning(msg)
+        nuke.message(msg)
+        return
+
+    handles = get_handles(asset)
+    edit_in = int(asset["data"]["fstart"]) - handles
+    edit_out = int(asset["data"]["fend"]) + handles
+
+    nuke.root()["first_frame"].setValue(edit_in)
+    nuke.root()["last_frame"].setValue(edit_out)
+
+
+def get_handles(asset):
+    data = asset["data"]
+    if "handles" in data and data["handles"] is not None:
+        return int(data["handles"])
+
+    parent_asset = None
+    if "visualParent" in data:
+        vp = data["visualParent"]
+        if vp is not None:
+            parent_asset = io.find_one({"_id": ObjectId(vp)})
+
+    if parent_asset is None:
+        parent_asset = io.find_one({"_id": ObjectId(asset['parent'])})
+
+    if parent_asset is not None:
+        return get_handles(parent_asset)
+    else:
+        return 0
 
 
 def reset_resolution():
