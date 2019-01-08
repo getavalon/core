@@ -151,11 +151,13 @@ def append(env, env_b):
     # todo: this function name might also be confusing with "merge"
     env = env.copy()
     for variable, value in env_b.items():
-        for path in value.split(";"):
-            if not path:
-                continue
-
+        if isinstance(value, str):
+            for path in value.split(";"):
+                if not path:
+                    continue
             lib.append_path(env, variable, path)
+        elif isinstance(value, int):
+            lib.append_path(env, variable, value)
 
     return env
 
@@ -242,13 +244,26 @@ def merge(env, current_env):
         dict: The resulting environment after the merge.
 
     """
+    def _path_formating(string):
+        string = str(string)
+        frward = re.compile(r'^//').search(string)
+        bckwrd = re.compile(r'^\\').search(string)
+        url = re.compile(r'://').search(string)
+
+        if frward:
+            return os.path.normpath(string)
+        elif bckwrd:
+            return string
+        elif url:
+            return string
+        else:
+            return os.path.normpath(string)
 
     result = current_env.copy()
     for key, value in env.items():
         value = lib.partial_format(value, data=current_env, missing="")
 
-        if "://" not in value:
-            value = os.path.normpath(value)
+        value = _path_formating(value)
 
         lib.append_path(result, key, value)
 
