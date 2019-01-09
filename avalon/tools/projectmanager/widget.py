@@ -3,7 +3,7 @@ import contextlib
 
 from ...vendor import qtawesome as awesome
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
-from ... import io
+from ... import io, schema
 from ... import style
 
 from .model import (
@@ -143,7 +143,13 @@ def preserve_selection(tree_view,
 
 def _list_project_silos():
     """List the silos from the project's configuration"""
-    silos = io.distinct("silo")
+    # old way: silos = io.distinct("silo")
+    # new, Backwards compatible way to get all silos from DB:
+    silos = [s['name'] for s in io.find({"type": "asset", "silo": None})]
+    silos_old = io.distinct("silo")
+    for silo in silos_old:
+        if silo not in silos and silo is not None:
+            silos.append(silo)
 
     if not silos:
         project = io.find_one({"type": "project"})
@@ -434,8 +440,49 @@ class SiloTabWidget(QtWidgets.QTabBar):
         return silos
 
     def add_silo(self, silo):
+        project = io.find_one({"type": "project"})
 
-        # Add the silo
+        if project is None:
+            QtWidgets.QMessageBox.critical(
+                self,
+                "Duplicated entity name",
+                "Project must exist prior to creating assets"
+            )
+            return
+
+        data = {
+            "visualParent": None,
+            "parents": [],
+            "tasks": [],
+            "hierarchy": ""
+        }
+
+        asset = {
+            "schema": "avalon-core:asset-2.0",
+            "parent": project['_id'],
+            "name": silo,
+            "silo": None,
+            "type": "asset",
+            "data": data
+        }
+
+        # Ensure it has a unique name
+        asset_doc = io.find_one({
+            "name": asset['name'],
+            "type": "asset",
+        })
+        if asset_doc is not None:
+            QtWidgets.QMessageBox.critical(
+                self,
+                "Duplicated entity name",
+                "Entity with name '{}' already exists.".format(asset['name'])
+            )
+            return
+
+        schema.validate(asset)
+        io.insert_one(asset)
+
+        # Add the silo to tab
         silos = self.get_silos()
         silos.append(silo)
         silos = list(set(silos))  # ensure unique
@@ -536,7 +583,9 @@ class AssetWidget(QtWidgets.QWidget):
 
         silos = _list_project_silos()
         self.silo.set_silos(silos)
-
+        # set first silo as active so tasks are shown
+        if len(silos) > 0:
+            self.silo.set_current_silo(self.silo.tabText(0))
         self._refresh_model()
 
     def get_current_silo(self):
