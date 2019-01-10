@@ -35,46 +35,46 @@ def reload_pipeline():
                    "avalon.tools.creator.app",
                    "avalon.tools.manager.app",
 
-                   "avalon.editorial",
-                   "avalon.editorial.pipeline",
+                   "avalon.aport",
+                   "avalon.aport.pipeline",
                    "{}".format(AVALON_CONFIG)
                    ):
         log.info("Reloading module: {}...".format(module))
         module = importlib.import_module(module)
         reload(module)
 
-    import avalon.editorial
-    api.install(avalon.editorial)
+    import avalon.aport
+    api.install(avalon.aport)
 
 
 def install(config):
-    """Install Editorial-specific functionality of avalon-core.
+    """Install Aport-specific functionality of avalon-core.
 
     This is where you install menus and register families, data
-    and loaders into Editorial.
+    and loaders into Aport.
 
-    It is called automatically when installing via `api.install(editorial)`.
+    It is called automatically when installing via `api.install(avalon.aport)`.
 
     See the Maya equivalent for inspiration on how to implement this.
 
     """
 
-    pyblish.register_host("editorial")
-    # Trigger install on the config's "editorial" package
+    pyblish.register_host("aport")
+    # Trigger install on the config's "aport" package
     config = find_host_config(config)
 
     if hasattr(config, "install"):
         config.install()
 
-    log.info("config.editorial installed")
+    log.info("config.aport installed")
 
 
 def find_host_config(config):
     try:
-        config = importlib.import_module(config.__name__ + ".editorial")
+        config = importlib.import_module(config.__name__ + ".aport")
     except ImportError as exc:
         if str(exc) != "No module name {}".format(
-                config.__name__ + ".editorial"):
+                config.__name__ + ".aport"):
             raise
         config = None
 
@@ -96,4 +96,4 @@ def uninstall(config):
     if hasattr(config, "uninstall"):
         config.uninstall()
 
-    pyblish.deregister_host("editorial")
+    pyblish.deregister_host("aport")
