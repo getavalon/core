@@ -107,7 +107,7 @@ class Window(QtWidgets.QDialog):
         widget = self.data["label"]["message"]
         widget.setText(str(message))
 
-        QtCore.QTimer.singleShot(5000, lambda: widget.setText(""))
+        # QtCore.QTimer.singleShot(5000, lambda: widget.setText(""))
 
         print(message)
 
@@ -212,7 +212,8 @@ class Window(QtWidgets.QDialog):
                 'type': 'asset',
                 'name': silo
             })
-            selected = [silo_obj['_id']]
+            if silo_obj:
+                selected = [silo_obj['_id']]
         self.data['model']['tasks'].set_assets(selected)
 
     def on_silo_changed(self, silo):
