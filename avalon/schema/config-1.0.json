@@ -53,6 +53,18 @@
                 "required": ["name"]
             }
         },
+        "families": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "icon": {"type": "string"},
+                    "label": {"type": "string"}
+                },
+                "required": ["name"]
+            }
+        },
         "copy": {
             "type": "object"
         }
