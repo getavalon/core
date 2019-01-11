@@ -207,13 +207,9 @@ class Window(QtWidgets.QDialog):
         selected = model.get_selected_assets()
         # Show task of silo if nothing selected
         if len(selected) < 1:
-            silo = model.get_current_silo()
-            silo_obj = io.find_one({
-                'type': 'asset',
-                'name': silo
-            })
-            if silo_obj:
-                selected = [silo_obj['_id']]
+            silo = model.get_silo_object()
+            if silo:
+                selected = [silo['_id']]
         self.data['model']['tasks'].set_assets(selected)
 
     def on_silo_changed(self, silo):

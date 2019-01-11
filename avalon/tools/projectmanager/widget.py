@@ -440,47 +440,6 @@ class SiloTabWidget(QtWidgets.QTabBar):
         return silos
 
     def add_silo(self, silo):
-        project = io.find_one({"type": "project"})
-
-        if project is None:
-            QtWidgets.QMessageBox.critical(
-                self,
-                "Duplicated entity name",
-                "Project must exist prior to creating assets"
-            )
-            return
-
-        data = {
-            "visualParent": None,
-            "parents": [],
-            "tasks": [],
-            "hierarchy": ""
-        }
-
-        asset = {
-            "schema": "avalon-core:asset-2.0",
-            "parent": project['_id'],
-            "name": silo,
-            "silo": None,
-            "type": "asset",
-            "data": data
-        }
-
-        # Ensure it has a unique name
-        asset_doc = io.find_one({
-            "name": asset['name'],
-            "type": "asset",
-        })
-        if asset_doc is not None:
-            QtWidgets.QMessageBox.critical(
-                self,
-                "Duplicated entity name",
-                "Entity with name '{}' already exists.".format(asset['name'])
-            )
-            return
-
-        schema.validate(asset)
-        io.insert_one(asset)
 
         # Add the silo to tab
         silos = self.get_silos()
@@ -591,6 +550,16 @@ class AssetWidget(QtWidgets.QWidget):
     def get_current_silo(self):
         """Returns the currently active silo."""
         return self.silo.get_current_silo()
+
+    def get_silo_object(self, silo_name=None):
+        """ Returns silo object from db. None if not found.
+        Current silo is found if silo_name not entered."""
+        if silo_name is None:
+            silo_name = self.get_current_silo()
+        try:
+            return io.find_one({"type": "asset", "name": silo_name})
+        except:
+            return None
 
     def get_active_asset(self):
         """Return the asset id the current asset."""
