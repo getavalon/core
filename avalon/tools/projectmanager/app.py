@@ -107,7 +107,7 @@ class Window(QtWidgets.QDialog):
         widget = self.data["label"]["message"]
         widget.setText(str(message))
 
-        # QtCore.QTimer.singleShot(5000, lambda: widget.setText(""))
+        QtCore.QTimer.singleShot(5000, lambda: widget.setText(""))
 
         print(message)
 
