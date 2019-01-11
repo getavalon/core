@@ -183,6 +183,8 @@ class Window(QtWidgets.QDialog):
         else:
             document = asset_item.data(DocumentRole)
 
+        if document is None:
+            return
         subsets_model.set_asset(document['_id'])
 
         # Enforce the columns to fit the data (purely cosmetic)
