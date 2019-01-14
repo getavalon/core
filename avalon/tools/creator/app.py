@@ -203,8 +203,13 @@ class Window(QtWidgets.QDialog):
                                       "parent": {"$in": asset_ids}}) or []
 
             # Get all subsets' their description name, "Default", "High", "Low"
-            subsets = [subset["name"].split(family)[-1] for subset in subsets]
-            self._build_menu(subsets)
+            subsets = set([sub["name"].split(family)[-1] for sub in subsets])
+            plugin_subsets = getattr(plugin, "subsets", None)
+            if isinstance(plugin_subsets, list):
+                plugin_subsets.append("Default")
+                subsets.update(set(plugin_subsets))
+
+            self._build_menu(sorted(list(subsets)))
 
             # Update the result
             if subset_name:
