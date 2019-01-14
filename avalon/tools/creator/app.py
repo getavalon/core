@@ -1,4 +1,4 @@
-import os
+
 import sys
 import inspect
 
@@ -180,7 +180,6 @@ class Window(QtWidgets.QDialog):
         asset_name = self.data["Asset"]
         subset = self.data["Subset"]
         result = self.data["Result"]
-        button = self.data["Create Button"]
 
         item = listing.currentItem()
         subset_name = subset.text()
