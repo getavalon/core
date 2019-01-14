@@ -219,6 +219,7 @@ class Creator(object):
     name = None
     label = None
     family = None
+    subsets = None
 
     def __init__(self, name, asset, options=None, data=None):
         self.name = name or self.name
