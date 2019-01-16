@@ -325,6 +325,7 @@ def _save_config_1_0(project_name, data):
     config["apps"] = data.get("apps", [])
     config["tasks"] = data.get("tasks", [])
     config["template"].update(data.get("template", {}))
+    config["families"] = data.get("families", [])
 
     schema.validate(document)
 
