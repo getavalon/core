@@ -93,6 +93,7 @@ class App(QtWidgets.QDialog):
 
         # Enforce current context to be up-to-date
         self.refresh_context_view()
+        self.on_asset_changed()
 
     def refresh_context_view(self):
         """Refresh the context panel"""
@@ -126,6 +127,11 @@ class App(QtWidgets.QDialog):
             self._last_selected_task = current_task_data
 
         selected = self._assets.get_selected_assets()
+        if len(selected) == 0:
+            silo = self._assets.get_silo_object()
+            if silo:
+                selected = [silo["_id"]]
+
         self._task_model.set_assets(selected)
 
         # Find task with same name
