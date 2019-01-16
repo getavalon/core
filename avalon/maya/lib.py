@@ -83,6 +83,16 @@ def read(node):
     for attr in cmds.listAttr(node, userDefined=True) or list():
         try:
             value = cmds.getAttr(node + "." + attr, asString=True)
+
+        except RuntimeError:
+            # For Message type attribute or others that have connections,
+            # take source node name as value.
+            source = cmds.listConnections(node + "." + attr,
+                                          source=True,
+                                          destination=False)
+            source = cmds.ls(source, long=True) or [None]
+            value = source[0]
+
         except ValueError:
             # Some attributes cannot be read directly,
             # such as mesh and color attributes. These
