@@ -65,9 +65,20 @@ def switch_item(container,
                                   "parent": version["_id"]})
 
     assert representation, (
-            "Could not find representation in the database with"
-            " the name '%s'" % representation_name)
+        "Could not find representation in the database with"
+        " the name '%s'" % representation_name)
 
     api.switch(container, representation)
 
     return representation
+
+
+def walk_hierarchy(node):
+    """Recursively yield group node
+    """
+    for child in node.children():
+        if child.get("isGroupNode"):
+            yield child
+
+        for _child in walk_hierarchy(child):
+            yield _child
