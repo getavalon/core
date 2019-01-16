@@ -98,6 +98,10 @@ class Window(QtWidgets.QDialog):
 
     def refresh(self):
         self.data["model"]["assets"].refresh()
+        # set silo on start so tasks for silo are shown
+        current_silo = self.data["model"]["assets"].get_current_silo()
+        if current_silo != "":
+            self.on_asset_changed()
 
     def echo(self, message):
         widget = self.data["label"]["message"]
@@ -201,6 +205,11 @@ class Window(QtWidgets.QDialog):
 
         model = self.data["model"]["assets"]
         selected = model.get_selected_assets()
+        # Show task of silo if nothing selected
+        if len(selected) < 1:
+            silo = model.get_silo_object()
+            if silo:
+                selected = [silo['_id']]
         self.data['model']['tasks'].set_assets(selected)
 
     def on_silo_changed(self, silo):

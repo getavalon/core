@@ -106,6 +106,9 @@ class Window(QtWidgets.QDialog):
 
         refresh_family_config()
 
+        self._refresh()
+        self._assetschanged()
+
         # Defaults
         self.resize(1330, 700)
 
@@ -168,9 +171,20 @@ class Window(QtWidgets.QDialog):
 
         asset_item = assets_model.get_active_index()
         if asset_item is None or not asset_item.isValid():
-            return
+            type = "asset"
+            silo = assets_model.get_current_silo()
+            if len(silo) == 0:
+                return
+            document = io.find_one({
+                "type": type,
+                "name": silo
+            })
 
-        document = asset_item.data(DocumentRole)
+        else:
+            document = asset_item.data(DocumentRole)
+
+        if document is None:
+            return
         subsets_model.set_asset(document['_id'])
 
         # Enforce the columns to fit the data (purely cosmetic)
