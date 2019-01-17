@@ -159,7 +159,6 @@ class Loader(list):
     order = 0
 
     def __init__(self, context):
-
         template = context["project"]["config"]["template"]["publish"]
         data = {
             key: value["name"]
@@ -913,7 +912,7 @@ def update_current_task(task=None, asset=None, app=None):
     if "AVALON_ASSET" in changed:
         asset_document = io.find_one({"name": changed["AVALON_ASSET"],
                                       "type": "asset"},
-                                      projection={"silo": True})
+                                     projection={"silo": True})
         assert asset_document, "Asset must exist"
         changed["AVALON_SILO"] = asset_document["silo"]
 
@@ -1157,7 +1156,6 @@ def get_representation_path(representation):
 
     version_, subset, asset, project = io.parenthood(representation)
     template_publish = project["config"]["template"]["publish"]
-
     return template_publish.format(**{
         "root": registered_root(),
         "project": project["name"],

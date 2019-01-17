@@ -38,7 +38,6 @@ def validate(data, schema=None):
     """
 
     root, schema = data["schema"].rsplit(":", 1)
-    log_.info(root)
     assert root in (
         "mindbender-core",  # Backwards compatiblity
         "avalon-core"
@@ -62,6 +61,7 @@ def validate(data, schema=None):
 
 if sys.version_info[0] == 3:
     basestring = str
+
 
 _MODULE_DIR = os.path.dirname(__file__)
 _SCHEMA_DIR = os.path.join(_MODULE_DIR, "schema")
