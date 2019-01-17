@@ -216,13 +216,11 @@ class Loader(list):
 @lib.log
 class Creator(object):
     """Determine how assets are created"""
-    name = None
     label = None
     family = None
     subsets = None
 
     def __init__(self, name, asset, options=None, data=None):
-        self.name = name or self.name
         self.options = options
 
         # Default data
