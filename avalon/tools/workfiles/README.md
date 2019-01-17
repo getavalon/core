@@ -56,3 +56,71 @@ There are other variables to customize the template with:
 ### Optional template groups
 
 The default template contains an optional template group ```<_{comment}>```. If any template group (```{comment}```) within angle bracket ```<>``` does not exist, the whole optional group is discarded.
+
+
+## Implementing a new host integration for Work Files
+
+For the Work Files tool to work with a new host integration the host must
+implement the following functions:
+
+- `file_extensions()`: The files the host should allow to open and show in the Work Files view.
+- `open(filepath)`: Open a file.
+- `save(filepath)`: Save the current file. This should return None if it failed to save, and return the path if it succeeded
+- `has_unsaved_changes()`: Return whether the current scene has unsaved changes.
+- `current_file()`: The path to the current file. None if not saved.
+- `work_root()`: The path to where the work files for this app should be saved. (todo: This might change later to allow more customization per studio configuration)
+
+Here's an example code layout:
+
+```python
+def file_extensions():
+    """Return the filename extension formats that should be shown.
+
+    Note:
+        The first entry in the list will be used as the default file
+        format to save to when the current scene is not saved yet.
+
+    Returns:
+        list: A list of the file extensions supported by Work Files.
+
+    """
+    return list()
+
+
+def has_unsaved_changes():
+    """Return whether current file has unsaved modifications."""
+
+
+def save(filepath):
+    """Save to filepath.
+    
+    This should return None if it failed to save, and return the path if it 
+    succeeded.
+    """
+    pass
+
+
+def open(filepath):
+    """Open file"""
+    pass
+
+
+def current_file():
+    """Return path to currently open file or None if not saved.
+
+    Returns:
+        str or None: The full path to current file or None when not saved.
+
+    """
+    pass
+
+
+def work_root():
+    """Return the default root for the Host to browse in for Work Files
+
+    Returns:
+        str: The path to look in.
+
+    """
+    pass
+```

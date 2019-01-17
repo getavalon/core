@@ -15,7 +15,15 @@ from .pipeline import (
     get_current_comp,
     comp_lock_and_undo_chunk
 
+)
 
+from .workio import (
+    open,
+    save,
+    current_file,
+    has_unsaved_changes,
+    file_extensions,
+    work_root
 )
 
 from .lib import (
