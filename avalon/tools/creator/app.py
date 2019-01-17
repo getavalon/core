@@ -45,6 +45,7 @@ class Window(QtWidgets.QDialog):
         asset = QtWidgets.QLineEdit()
         name = QtWidgets.QLineEdit()
         result = QtWidgets.QLineEdit()
+        result.setStyleSheet("color: gray;")
         result.setEnabled(False)
 
         # region Menu for default subset names
