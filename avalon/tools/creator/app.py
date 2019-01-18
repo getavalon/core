@@ -193,17 +193,18 @@ class Window(QtWidgets.QDialog):
         if assets:
             # Get plugin and family
             plugin = item.data(PluginRole)
-            family = plugin.family.rsplit(".", 1)[-1]
+            branch = plugin.family_branch()
 
             # Get all subsets of the current asset
             asset_ids = [asset["_id"] for asset in assets]
             subsets = io.find(filter={"type": "subset",
-                                      "name": {"$regex": "{}*".format(family),
+                                      "name": {"$regex": "{}*".format(branch),
                                                "$options": "i"},
                                       "parent": {"$in": asset_ids}}) or []
 
             # Get all subsets' their variant name, "Default", "High", "Low"
-            variants = set([sub["name"].split(family)[-1] for sub in subsets])
+            variants = set([plugin.parse_variant(sub["name"])
+                            for sub in subsets])
 
             if isinstance(plugin.variants, list):
                 variants.update(set(plugin.variants))
@@ -211,9 +212,7 @@ class Window(QtWidgets.QDialog):
             self._build_menu(sorted(list(variants)))
 
             # Update the result
-            if variant_name:
-                variant_name = variant_name[0].upper() + variant_name[1:]
-            result.setText("{}{}".format(family, variant_name))
+            result.setText(plugin.compose_subset(variant_name))
 
             item.setData(ExistsRole, True)
             self.echo("Ready ..")
