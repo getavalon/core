@@ -211,14 +211,14 @@ class Window(QtWidgets.QDialog):
             existed_subsets = [sub["name"].split(family)[-1]
                                for sub in subsets]
 
-            if plugin.subsets and isinstance(plugin.subsets, list):
-                subsets = plugin.subsets[:] + [Separator]
-                for sub in [s for s in existed_subsets if s not in subsets]:
-                    subsets.append(sub)
+            if plugin.defaults and isinstance(plugin.defaults, list):
+                defaults = plugin.defaults[:] + [Separator]
+                for sub in [s for s in existed_subsets if s not in defaults]:
+                    defaults.append(sub)
             else:
-                subsets = existed_subsets
+                defaults = existed_subsets
 
-            self._build_menu(subsets)
+            self._build_menu(defaults)
 
             # Update the result
             if subset_name:
@@ -258,12 +258,12 @@ class Window(QtWidgets.QDialog):
         if plugin is None:
             return
 
-        if plugin.subsets and isinstance(plugin.subsets, list):
-            default_subset = plugin.subsets[0]
+        if plugin.defaults and isinstance(plugin.defaults, list):
+            default = plugin.defaults[0]
         else:
-            default_subset = "Default"
+            default = "Default"
 
-        name.setText(default_subset)
+        name.setText(default)
 
         self.on_data_changed()
 
