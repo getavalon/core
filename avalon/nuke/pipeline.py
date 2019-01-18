@@ -2,7 +2,8 @@ import os
 import sys
 from collections import OrderedDict
 import importlib
-from .. import api, io
+from .. import api, io, schema
+
 import contextlib
 from pyblish import api as pyblish
 from ..vendor import toml
@@ -10,6 +11,7 @@ import logging
 import nuke
 from . import lib
 
+from ..pipeline import AVALON_CONTAINER_ID
 
 log = logging.getLogger(__name__)
 
@@ -73,13 +75,13 @@ def containerise(node,
         loader (str, optional): Name of node used to produce this container.
 
     Returns:
-        None
+        Node
 
     """
 
     data_imprint = OrderedDict({
         "schema": "avalon-core:container-2.0",
-        "id": "pyblish.avalon.container",
+        "id": AVALON_CONTAINER_ID,
         "name": str(name),
         "namespace": str(namespace),
         "loader": str(loader),
@@ -95,8 +97,10 @@ def containerise(node,
 
     node['avalon'].setValue(toml.dumps(data_imprint))
 
+    return node
 
-def parse_container(node):
+
+def parse_container(node, validate=True):
     """Returns containerised data of a node
 
     This reads the imprinted data from `containerise`.
@@ -109,21 +113,13 @@ def parse_container(node):
     if not isinstance(data, dict):
         return
 
-    # If not all required data return the empty container
-    required = ['schema', 'id', 'name',
-                'namespace', 'loader', 'representation']
-    if not all(key in data for key in required):
-        return
-
-    container = {key: data[key] for key in required}
-
     # Store the node's name
-    container["objectName"] = node["name"].value()
+    data["objectName"] = node["name"].value()
 
-    # Store reference to the node object
-    container["_tool"] = node
+    if validate:
+        schema.validate(data)
 
-    return container
+    return data
 
 
 def update_container(node, keys=dict()):
@@ -137,19 +133,7 @@ def update_container(node, keys=dict()):
         node (object): nuke node with updated container data
     """
 
-    raw_text_data = node['avalon'].value()
-    data = toml.loads(raw_text_data, _dict=dict)
-
-    if not isinstance(data, dict):
-        return
-
-    # If not all required data return the empty container
-    required = ['schema', 'id', 'name',
-                'namespace', 'node_name', 'representation']
-    if not all(key in data for key in required):
-        return
-
-    container = {key: data[key] for key in required}
+    container = parse_container(node)
 
     for key, value in container.items():
         try:
