@@ -186,6 +186,16 @@ class AssetModel(TreeModel):
     def set_silo(self, silo, refresh=True):
         """Set the root path to the ItemType root."""
         self._silo = silo
+        try:
+            self.silo_asset = io.find_one(
+                {'$and': [
+                    {'type': 'asset'},
+                    {'name': silo},
+                    {'silo': None}
+                ]}
+            )
+        except Exception:
+            self.silo_asset = None
         if refresh:
             self.refresh()
 
@@ -199,17 +209,20 @@ class AssetModel(TreeModel):
         if parent is None:
             # if not a parent find all that are parented to the project
             # or do *not* have a visualParent field at all
-            find_data['$or'] = [
-                {'data.visualParent': {'$exists': False}},
-                {'data.visualParent': None}
-            ]
+            if self.silo_asset is None:
+                find_data['$or'] = [
+                    {'data.visualParent': {'$exists': False}},
+                    {'data.visualParent': None}
+                ]
+            else:
+                find_data['data.visualParent'] = self.silo_asset['_id']
+
         else:
             find_data["data.visualParent"] = parent['_id']
 
         assets = io.find(find_data).sort('name', 1)
 
         for asset in assets:
-
             # get label from data, otherwise use name
             data = asset.get("data", {})
             label = data.get("label", asset['name'])
@@ -558,7 +571,7 @@ class AssetWidget(QtWidgets.QWidget):
             silo_name = self.get_current_silo()
         try:
             return io.find_one({"type": "asset", "name": silo_name})
-        except:
+        except Exception:
             return None
 
     def get_active_asset(self):
