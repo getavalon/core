@@ -218,7 +218,7 @@ class Creator(object):
     """Determine how assets are created"""
     label = None
     family = None
-    variants = None
+    subsets = None
 
     def __init__(self, name, asset, options=None, data=None):
         self.name = name  # For backwards compatibility

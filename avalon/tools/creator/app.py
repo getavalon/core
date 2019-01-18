@@ -50,19 +50,19 @@ class Window(QtWidgets.QDialog):
         result.setStyleSheet("color: gray;")
         result.setEnabled(False)
 
-        # region Menu for default variant names
+        # region Menu for default subset names
 
-        variant_button = QtWidgets.QPushButton()
-        variant_button.setFixedWidth(18)
-        variant_button.setFixedHeight(20)
-        variant_menu = QtWidgets.QMenu(variant_button)
-        variant_button.setMenu(variant_menu)
+        subset_button = QtWidgets.QPushButton()
+        subset_button.setFixedWidth(18)
+        subset_button.setFixedHeight(20)
+        subset_menu = QtWidgets.QMenu(subset_button)
+        subset_button.setMenu(subset_menu)
 
         # endregion
 
         name_layout = QtWidgets.QHBoxLayout()
         name_layout.addWidget(name)
-        name_layout.addWidget(variant_button)
+        name_layout.addWidget(subset_button)
         name_layout.setContentsMargins(0, 0, 0, 0)
 
         layout = QtWidgets.QVBoxLayout(container)
@@ -114,8 +114,8 @@ class Window(QtWidgets.QDialog):
             "Create Button": create_btn,
             "Listing": listing,
             "Use Selection Checkbox": useselection_chk,
-            "Variant": name,
-            "Variant Menu": variant_menu,
+            "Subset": name,
+            "Subset Menu": subset_menu,
             "Result": result,
             "Asset": asset,
             "Error Message": error_msg,
@@ -143,7 +143,7 @@ class Window(QtWidgets.QDialog):
         self.data['Create Button'].setEnabled(state)
 
     def _build_menu(self, default_names):
-        """Create optional predefined variant names
+        """Create optional predefined subset names
 
         Args:
             default_names(list): all predefined names
@@ -152,7 +152,7 @@ class Window(QtWidgets.QDialog):
              None
         """
 
-        menu = self.data["Variant Menu"]
+        menu = self.data["Subset Menu"]
         button = menu.parent()
 
         # Get and destroy the action group
@@ -177,18 +177,18 @@ class Window(QtWidgets.QDialog):
         group.triggered.connect(self._on_action_clicked)
 
     def _on_action_clicked(self, action):
-        name = self.data["Variant"]
+        name = self.data["Subset"]
         name.setText(action.text())
 
     def _on_data_changed(self):
 
         listing = self.data["Listing"]
         asset_name = self.data["Asset"]
-        variant = self.data["Variant"]
+        subset = self.data["Subset"]
         result = self.data["Result"]
 
         item = listing.currentItem()
-        variant_name = variant.text()
+        subset_name = subset.text()
         asset_name = asset_name.text()
 
         # Get the assets from the database which match with the name
@@ -207,23 +207,23 @@ class Window(QtWidgets.QDialog):
                                                "$options": "i"},
                                       "parent": {"$in": asset_ids}}) or []
 
-            # Get all subsets' their variant name, "Default", "High", "Low"
-            existed_variants = [sub["name"].split(family)[-1]
-                                for sub in subsets]
+            # Get all subsets' their subset name, "Default", "High", "Low"
+            existed_subsets = [sub["name"].split(family)[-1]
+                               for sub in subsets]
 
-            if plugin.variants and isinstance(plugin.variants, list):
-                variants = plugin.variants[:] + [Separator]
-                for var in [v for v in existed_variants if v not in variants]:
-                    variants.append(var)
+            if plugin.subsets and isinstance(plugin.subsets, list):
+                subsets = plugin.subsets[:] + [Separator]
+                for sub in [s for s in existed_subsets if s not in subsets]:
+                    subsets.append(sub)
             else:
-                variants = existed_variants
+                subsets = existed_subsets
 
-            self._build_menu(variants)
+            self._build_menu(subsets)
 
             # Update the result
-            if variant_name:
-                variant_name = variant_name[0].upper() + variant_name[1:]
-            result.setText("{}{}".format(family, variant_name))
+            if subset_name:
+                subset_name = subset_name[0].upper() + subset_name[1:]
+            result.setText("{}{}".format(family, subset_name))
 
             item.setData(ExistsRole, True)
             self.echo("Ready ..")
@@ -234,7 +234,7 @@ class Window(QtWidgets.QDialog):
 
         # Update the valid state
         valid = (
-            variant_name.strip() != "" and
+            subset_name.strip() != "" and
             asset_name.strip() != "" and
             item.data(QtCore.Qt.ItemIsEnabled) and
             item.data(ExistsRole)
@@ -251,19 +251,19 @@ class Window(QtWidgets.QDialog):
         lib.schedule(self._on_data_changed, 500, channel="gui")
 
     def on_selection_changed(self, *args):
-        name = self.data["Variant"]
+        name = self.data["Subset"]
         item = self.data["Listing"].currentItem()
 
         plugin = item.data(PluginRole)
         if plugin is None:
             return
 
-        if plugin.variants and isinstance(plugin.variants, list):
-            default_variant = plugin.variants[0]
+        if plugin.subsets and isinstance(plugin.subsets, list):
+            default_subset = plugin.subsets[0]
         else:
-            default_variant = "Default"
+            default_subset = "Default"
 
-        name.setText(default_variant)
+        name.setText(default_subset)
 
         self.on_data_changed()
 
