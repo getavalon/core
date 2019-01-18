@@ -17,6 +17,8 @@ FamilyRole = QtCore.Qt.UserRole + 3
 ExistsRole = QtCore.Qt.UserRole + 4
 PluginRole = QtCore.Qt.UserRole + 5
 
+Separator = "---separator---"
+
 
 class Window(QtWidgets.QDialog):
 
@@ -166,6 +168,9 @@ class Window(QtWidgets.QDialog):
         # Build new action group
         group = QtWidgets.QActionGroup(button)
         for name in default_names:
+            if name == Separator:
+                menu.addSeparator()
+                continue
             action = group.addAction(name)
             menu.addAction(action)
 
@@ -207,7 +212,7 @@ class Window(QtWidgets.QDialog):
                                 for sub in subsets]
 
             if plugin.variants and isinstance(plugin.variants, list):
-                variants = plugin.variants[:]
+                variants = plugin.variants[:] + [Separator]
                 for var in [v for v in existed_variants if v not in variants]:
                     variants.append(var)
             else:
