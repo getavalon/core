@@ -503,7 +503,7 @@ class Creator(api.Creator):
         if (self.options or {}).get("useSelection"):
             nodes = cmds.ls(selection=True)
 
-        instance = cmds.sets(nodes, name=self.name)
+        instance = cmds.sets(nodes, name=self.data["subset"])
         lib.imprint(instance, self.data)
 
         return instance
