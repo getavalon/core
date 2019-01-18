@@ -221,6 +221,7 @@ class Creator(object):
     variants = None
 
     def __init__(self, name, asset, options=None, data=None):
+        self.name = name  # For backwards compatibility
         self.options = options
 
         # Default data
