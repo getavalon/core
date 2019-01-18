@@ -234,23 +234,6 @@ class Creator(object):
 
         self.data.update(data or {})
 
-    @classmethod
-    def family_branch(cls):
-        """Return family branch name"""
-        return cls.family.rsplit(".", 1)[-1]
-
-    @classmethod
-    def compose_subset(cls, variant):
-        """Compose subset name with variant name"""
-        if variant:
-            variant = variant[0].upper() + variant[1:]
-        return "{}{}".format(cls.family_branch(), variant)
-
-    @classmethod
-    def parse_variant(cls, subset):
-        """Parse variant name from subset name"""
-        return subset.split(cls.family_branch())[-1]
-
     def process(self):
         pass
 
