@@ -203,13 +203,17 @@ class Window(QtWidgets.QDialog):
                                       "parent": {"$in": asset_ids}}) or []
 
             # Get all subsets' their variant name, "Default", "High", "Low"
-            variants = set([plugin.parse_variant(sub["name"])
-                            for sub in subsets])
+            existed_variants = [plugin.parse_variant(sub["name"])
+                                for sub in subsets]
 
-            if isinstance(plugin.variants, list):
-                variants.update(set(plugin.variants))
+            if plugin.variants and isinstance(plugin.variants, list):
+                variants = plugin.variants[:]
+                for var in [v for v in existed_variants if v not in variants]:
+                    variants.append(var)
+            else:
+                variants = existed_variants
 
-            self._build_menu(sorted(list(variants)))
+            self._build_menu(variants)
 
             # Update the result
             result.setText(plugin.compose_subset(variant_name))
@@ -247,8 +251,12 @@ class Window(QtWidgets.QDialog):
         if plugin is None:
             return
 
-        label = "Default"
-        name.setText(label)
+        if plugin.variants and isinstance(plugin.variants, list):
+            default_variant = plugin.variants[0]
+        else:
+            default_variant = "Default"
+
+        name.setText(default_variant)
 
         self.on_data_changed()
 
