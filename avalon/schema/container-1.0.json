@@ -28,7 +28,7 @@
         "id": {
             "description": "Identifier for finding object in host",
             "type": "string",
-            "const": "pyblish.mindbender.container",
+            "enum": ["pyblish.mindbender.container"],
             "example": "pyblish.mindbender.container"
         },
         "objectName": {

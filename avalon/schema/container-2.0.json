@@ -21,13 +21,13 @@
         "schema": {
             "description": "Schema identifier for payload",
             "type": "string",
-            "const": "avalon-core:container-2.0",
+            "enum": ["avalon-core:container-2.0"],
             "example": "avalon-core:container-2.0"
         },
           "id": {
             "description": "Identifier for finding object in host",
             "type": "string",
-            "const": "pyblish.avalon.container",
+            "enum": ["pyblish.avalon.container"],
             "example": "pyblish.avalon.container"
         },
         "objectName": {

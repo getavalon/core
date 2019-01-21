@@ -20,13 +20,13 @@
         "schema": {
             "description": "The schema associated with this document",
             "type": "string",
-            "const": "avalon-core:subset-2.0",
+            "enum": ["avalon-core:subset-2.0"],
             "example": "avalon-core:subset-2.0"
         },
         "type": {
             "description": "The type of document",
             "type": "string",
-            "const": "subset",
+            "enum": ["subset"],
             "example": "subset"
         },
         "parent": {

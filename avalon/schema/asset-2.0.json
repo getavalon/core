@@ -20,13 +20,13 @@
         "schema": {
             "description": "Schema identifier for payload",
             "type": "string",
-            "const": "avalon-core:asset-2.0",
+            "enum": ["avalon-core:asset-2.0"],
             "example": "avalon-core:asset-2.0"
         },
         "type": {
             "description": "The type of document",
             "type": "string",
-            "const": "asset",
+            "enum": ["asset"],
             "example": "asset"
         },
         "parent": {
