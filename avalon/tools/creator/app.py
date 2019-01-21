@@ -213,7 +213,9 @@ class Window(QtWidgets.QDialog):
 
             if plugin.defaults and isinstance(plugin.defaults, list):
                 defaults = plugin.defaults[:] + [Separator]
-                for sub in [s for s in existed_subsets if s not in defaults]:
+                lowered = [d.lower() for d in plugin.defaults]
+                for sub in [s for s in existed_subsets
+                            if s.lower() not in lowered]:
                     defaults.append(sub)
             else:
                 defaults = existed_subsets
