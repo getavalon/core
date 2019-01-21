@@ -208,11 +208,12 @@ class Window(QtWidgets.QDialog):
                                       "parent": {"$in": asset_ids}}) or []
 
             # Get all subsets' their subset name, "Default", "High", "Low"
-            existed_subsets = [sub["name"].split(family)[-1]
+            existed_subsets = [sub["name"].split(family)[-1].capitalize()
                                for sub in subsets]
 
             if plugin.defaults and isinstance(plugin.defaults, list):
-                defaults = plugin.defaults[:] + [Separator]
+                defaults = [d.capitalize() for d in plugin.defaults]
+                defaults.append(Separator)
                 for sub in [s for s in existed_subsets if s not in defaults]:
                     defaults.append(sub)
             else:
@@ -222,7 +223,7 @@ class Window(QtWidgets.QDialog):
 
             # Update the result
             if subset_name:
-                subset_name = subset_name[0].upper() + subset_name[1:]
+                subset_name = subset_name.capitalize()
             result.setText("{}{}".format(family, subset_name))
 
             item.setData(ExistsRole, True)
@@ -259,7 +260,7 @@ class Window(QtWidgets.QDialog):
             return
 
         if plugin.defaults and isinstance(plugin.defaults, list):
-            default = plugin.defaults[0]
+            default = plugin.defaults[0].capitalize()
         else:
             default = "Default"
 
