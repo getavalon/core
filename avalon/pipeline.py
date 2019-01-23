@@ -377,8 +377,6 @@ class Application(Action):
         env.update(self.config.get("environment", {}))
         env.update(dyn_env)
         env.update(session)
-        app_environment = self._format(app_environment, **env)
-        env.update(app_environment)
 
         return env
 
