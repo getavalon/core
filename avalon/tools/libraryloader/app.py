@@ -1,12 +1,11 @@
 import sys
 import time
 
-from .db_connection import DbConnector
+from .io_nonsingleton import DbConnector
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import style
 from .. import lib
-
-from .lib import refresh_family_config
+from .lib import refresh_family_config, find_config
 from .widgets import (
     SubsetWidget,
     VersionWidget,
@@ -15,9 +14,6 @@ from .widgets import (
     AssetModel,
     ProjectsWidget
 )
-
-# module = sys.modules[__name__]
-# module.window = None
 
 # Custom roles
 DocumentRole = AssetModel.DocumentRole
@@ -42,8 +38,7 @@ class Window(QtWidgets.QDialog):
 
         container = QtWidgets.QWidget()
         self._db = DbConnector()
-        self.current_project = None
-        self.project_widget = None
+        self.project_widget = ProjectsWidget(self)
 
         assets = AssetWidget(self)
         families = FamilyListWidget(self)
@@ -131,32 +126,25 @@ class Window(QtWidgets.QDialog):
         self.show_projects_widget()
 
     def show_projects_widget(self):
-        if self.project_widget is not None:
-            try:
-                self.project_widget.close()
-            finally:
-                self.project_widget = None
-        self.project_widget = ProjectsWidget(self)
         self.project_widget.show()
 
+    @property
+    def current_project(self):
+        if self.db.active_project() == '':
+            return None
+        return self.db.active_project()
+
     def on_projectchanged(self, project_name):
-        if self.project_widget is not None:
-            # TODO window stay in this widget
-            self.project_widget.close()
-            self.project_widget = None
-        self.db.session['AVALON_PROJECT'] = project_name
-        self.current_project = project_name
+        self.db.activate_project(project_name)
         refresh_family_config(self.db)
 
-        # from avalon import pipeline
-        #
-        # # Find the set config
-        # _config = pipeline.find_config()
-        # if hasattr(_config, "install"):
-        #     _config.install()
-        # else:
-        #     print("Config `%s` has no function `install`" %
-        #           _config.__name__)
+        # Find the set config
+        _config = find_config(self.db)
+        if hasattr(_config, "install"):
+            _config.install()
+        else:
+            print("Config `%s` has no function `install`" %
+                  _config.__name__)
 
         self._refresh()
         self._assetschanged()

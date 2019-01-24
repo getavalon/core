@@ -21,17 +21,6 @@ from ...vendor import requests
 import pymongo
 
 
-def requires_install(func):
-    @functools.wraps(func)
-    def decorated(*args, **kwargs):
-        object = args[0]
-        if not object._is_installed:
-            raise IOError("'io.%s()' requires install()" % func.__name__)
-        return func(*args, **kwargs)
-
-    return decorated
-
-
 def auto_reconnect(func):
     """Handling auto reconnect in 3 retry times"""
     @functools.wraps(func)
@@ -134,6 +123,18 @@ class DbConnector(object):
                 # Root directory of projects on disk
                 ("AVALON_PROJECTS", None),
 
+                # Name of current Project
+                ("AVALON_PROJECT", ""),
+
+                # Name of current Asset
+                ("AVALON_ASSET", ""),
+
+                # Name of current silo
+                ("AVALON_SILO", ""),
+
+                # Name of current task
+                ("AVALON_TASK", None),
+
                 # Name of current app
                 ("AVALON_APP", None),
 
@@ -193,11 +194,6 @@ class DbConnector(object):
             ) if os.getenv(item[0], item[1]) is not None
         }
 
-        session["AVALON_PROJECT"] = ''
-        session["AVALON_ASSET"] = ''
-        session["AVALON_SILO"] = ''
-        session["AVALON_TASK"] = ''
-
         session["schema"] = "avalon-core:session-1.0"
         try:
             schema.validate(session)
@@ -224,16 +220,13 @@ class DbConnector(object):
             self.session.get("AVALON_PROJECTS", "")
         )
 
-    @requires_install
     def active_project(self):
         """Return the name of the active project"""
         return self.session["AVALON_PROJECT"]
 
-    def activate_project(self, project):
-        """Establish a connection to a given collection within the database"""
-        print("io.activate_project is deprecated")
+    def activate_project(self, project_name):
+        self.session["AVALON_PROJECT"] = project_name
 
-    @requires_install
     def projects(self):
         """List available projects
 
