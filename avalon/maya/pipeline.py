@@ -117,7 +117,8 @@ def _install_menu():
         publish,
         cbloader,
         cbsceneinventory,
-        contextmanager
+        contextmanager,
+        libraryloader
     )
 
     from . import interactive
@@ -170,6 +171,8 @@ def _install_menu():
         cmds.menuItem("Manage...",
                       command=lambda *args: cbsceneinventory.show(
                           parent=self._parent))
+
+        cmds.menuItem("Library...", libraryloader.show(parent=self._parent))
 
         cmds.menuItem(divider=True)
 

@@ -34,9 +34,10 @@ def reload_pipeline():
                    "avalon.pipeline",
                    "avalon.nuke.pipeline",
                    "avalon.nuke.lib",
-                   "avalon.tools.loader.app",
+                   "avalon.tools.cbloader.app",
                    "avalon.tools.creator.app",
                    "avalon.tools.manager.app",
+                   "avalon.tools.libraryloader",
 
                    "avalon.api",
                    "avalon.tools",
@@ -263,7 +264,8 @@ def _install_menu():
         workfiles,
         cbloader,
         cbsceneinventory,
-        contextmanager
+        contextmanager,
+        libraryloader
     )
     # for now we are using `lite` version
     # TODO: just for now untill qml in Nuke will be fixed (pyblish-qml#301)
@@ -290,6 +292,7 @@ def _install_menu():
     menu.addCommand("Load...", cbloader.show)
     menu.addCommand("Publish...", publish.show)
     menu.addCommand("Manage...", cbsceneinventory.show)
+    menu.addCommand("Library...", libraryloader.show)
 
     menu.addSeparator()
     frames_menu = menu.addMenu("Reset Frame Range")
