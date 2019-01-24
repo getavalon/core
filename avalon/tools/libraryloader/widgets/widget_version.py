@@ -1,6 +1,5 @@
 import datetime
 import pprint
-from .... import api
 from ....vendor.Qt import QtWidgets
 
 
@@ -133,7 +132,7 @@ class VersionTextEdit(QtWidgets.QTextEdit):
         if not source:
             return
 
-        path = source.format(root=api.registered_root())
+        path = source.format(root=self.parent.db.registered_root())
         clipboard = QtWidgets.QApplication.clipboard()
         clipboard.setText(path)
 

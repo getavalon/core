@@ -1,4 +1,5 @@
 import inspect
+from .. import lib
 from ..delegates import PrettyTimeDelegate, VersionDelegate
 from ..models import SubsetsModel, FamiliesFilterProxyModel
 from .... import api, pipeline
@@ -104,14 +105,16 @@ class SubsetWidget(QtWidgets.QWidget):
         loaders = list()
         node = point_index.data(self.model.NodeRole)
         version_id = node['version_document']['_id']
+
         representations = self.parent.db.find({
             "type": "representation",
             "parent": version_id}
         )
         for representation in representations:
-            for loader in api.loaders_from_representation(
-                    available_loaders,
-                    representation['_id']
+            for loader in lib.loaders_from_representation(
+                self.db,
+                available_loaders,
+                representation['_id']
             ):
                 loaders.append((representation, loader))
 
@@ -203,7 +206,11 @@ class SubsetWidget(QtWidgets.QWidget):
                 continue
 
             try:
-                api.load(Loader=loader, representation=representation)
+                lib.load(
+                    db=self.db,
+                    Loader=loader,
+                    representation=representation
+                )
             except pipeline.IncompatibleLoaderError as exc:
                 self.echo(exc)
                 continue

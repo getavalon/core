@@ -23,12 +23,10 @@ class ProjectsModel(TreeModel):
         self.set_projects()
 
     def set_projects(self):
-        """Set assets to track by their database id
-
-        Arguments:
-            asset_ids (list): List of asset ids.
+        """Set projects from db
 
         """
+
         projects = list()
         for project in self.parent.db.projects():
             projects.append(project['name'])
@@ -60,9 +58,11 @@ class ProjectsModel(TreeModel):
         if role == QtCore.Qt.DisplayRole:
             if orientation == QtCore.Qt.Horizontal:
                 if section == 0:
-                    return "Project/Library name"
+                    return "Project name"
 
-        return super(ProjectsModel, self).headerData(section, orientation, role)
+        return super(ProjectsModel, self).headerData(
+            section, orientation, role
+        )
 
     def data(self, index, role):
 
