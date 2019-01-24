@@ -9,9 +9,6 @@ class ProjectsWidget(QtWidgets.QWidget):
         super(ProjectsWidget, self).__init__(parent)
         self.parent = parent
 
-        init_project = True
-        if parent.current_project is None:
-            init_project = False
         # Enable minimize and maximize for app
         self.setWindowFlags(QtCore.Qt.Window)
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
@@ -40,7 +37,6 @@ class ProjectsWidget(QtWidgets.QWidget):
         selection.selectionChanged.connect(self.on_project_choose)
 
         self.chosen_one = None
-        self.init_project = init_project
         self.project_model = project_model
         self.project_view = project_view
 
@@ -52,6 +48,9 @@ class ProjectsWidget(QtWidgets.QWidget):
     @property
     def db(self):
         return self.parent.db
+
+    def showEvent(self, event):
+        self.project_model.set_projects()
 
     def on_project_choose(self):
         selection = self.project_view.selectionModel()
@@ -65,7 +64,7 @@ class ProjectsWidget(QtWidgets.QWidget):
             self.chosen_one = project_name
             self.parent.signal_project_changed.emit(project_name)
 
-        self.close()
+        self.hide()
 
     def closeEvent(self, event):
         if (
@@ -73,3 +72,6 @@ class ProjectsWidget(QtWidgets.QWidget):
             self.chosen_one is None
         ):
             self.parent.close()
+        else:
+            event.ignore()
+            self.hide()
