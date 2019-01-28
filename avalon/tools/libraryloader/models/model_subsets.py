@@ -20,15 +20,11 @@ class SubsetsModel(TreeModel):
     def __init__(self, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
 
-        self.parent_widget = parent
+        self.db = parent.db
         self._asset_id = None
         self._icons = {
             "subset": awesome.icon("fa.file-o", color=style.colors.default)
         }
-
-    @property
-    def db(self):
-        return self.parent_widget.db
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id

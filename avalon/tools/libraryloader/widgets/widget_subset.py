@@ -16,7 +16,7 @@ class SubsetWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(SubsetWidget, self).__init__(parent=parent)
 
-        self.parent = parent
+        self.db = parent.db
 
         model = SubsetsModel(self)
         proxy = QtCore.QSortFilterProxyModel()
@@ -89,10 +89,6 @@ class SubsetWidget(QtWidgets.QWidget):
         # Expose this from the widget as a method
         self.set_family_filters = self.family_proxy.setFamiliesFilter
 
-    @property
-    def db(self):
-        return self.parent.db
-
     def on_context_menu(self, point):
 
         point_index = self.view.indexAt(point)
@@ -106,7 +102,7 @@ class SubsetWidget(QtWidgets.QWidget):
         node = point_index.data(self.model.NodeRole)
         version_id = node['version_document']['_id']
 
-        representations = self.parent.db.find({
+        representations = self.db.find({
             "type": "representation",
             "parent": version_id}
         )
@@ -193,7 +189,7 @@ class SubsetWidget(QtWidgets.QWidget):
         for row in rows:
             node = row.data(self.model.NodeRole)
             version_id = node["version_document"]["_id"]
-            representation = self.parent.db.find_one({
+            representation = self.db.find_one({
                 "type": "representation",
                 "name": representation_name,
                 "parent": version_id

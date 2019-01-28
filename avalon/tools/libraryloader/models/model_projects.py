@@ -13,7 +13,7 @@ class ProjectsModel(TreeModel):
 
     def __init__(self, parent=None):
         super(ProjectsModel, self).__init__(parent=parent)
-        self.parent_widget = parent
+        self.db = parent.db
         self._num_projects = 0
         self._icons = {
             "__default__": awesome.icon(
@@ -21,10 +21,6 @@ class ProjectsModel(TreeModel):
             )
         }
         self.set_projects()
-
-    @property
-    def db(self):
-        return self.parent_widget.db
 
     def set_projects(self):
         """Set projects from db

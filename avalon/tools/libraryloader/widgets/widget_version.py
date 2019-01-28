@@ -7,7 +7,7 @@ class VersionWidget(QtWidgets.QWidget):
     """A Widget that display information about a specific version"""
     def __init__(self, parent=None):
         super(VersionWidget, self).__init__(parent=parent)
-        self.parent = parent
+        self.db = parent.db
         layout = QtWidgets.QVBoxLayout(self)
 
         label = QtWidgets.QLabel("Version")
@@ -21,10 +21,6 @@ class VersionWidget(QtWidgets.QWidget):
     def set_version(self, version_id):
         self.data.set_version(version_id)
 
-    @property
-    def db(self):
-        return self.parent.db
-
 
 class VersionTextEdit(QtWidgets.QTextEdit):
     """QTextEdit that displays version specific information.
@@ -36,7 +32,7 @@ class VersionTextEdit(QtWidgets.QTextEdit):
     """
     def __init__(self, parent=None):
         super(VersionTextEdit, self).__init__(parent=parent)
-        self.parent = parent
+        self.db = parent.db
         self.data = {
             "source": None,
             "raw": None
@@ -61,12 +57,12 @@ class VersionTextEdit(QtWidgets.QTextEdit):
 
         print("Querying..")
 
-        version = self.parent.db.find_one(
+        version = self.db.find_one(
             {"_id": version_id, "type": "version"}
         )
         assert version, "Not a valid version id"
 
-        subset = self.parent.db.find_one(
+        subset = self.db.find_one(
             {"_id": version['parent'], "type": "subset"}
         )
         assert subset, "No valid subset parent for version"
@@ -132,7 +128,7 @@ class VersionTextEdit(QtWidgets.QTextEdit):
         if not source:
             return
 
-        path = source.format(root=self.parent.db.registered_root())
+        path = source.format(root=self.db.registered_root())
         clipboard = QtWidgets.QApplication.clipboard()
         clipboard.setText(path)
 

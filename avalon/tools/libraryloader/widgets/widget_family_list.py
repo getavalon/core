@@ -10,7 +10,7 @@ class FamilyListWidget(QtWidgets.QListWidget):
 
     def __init__(self, parent=None):
         super(FamilyListWidget, self).__init__(parent=parent)
-        self.parent = parent
+        self.db = parent.db
         multi_select = QtWidgets.QAbstractItemView.ExtendedSelection
         self.setSelectionMode(multi_select)
         self.setAlternatingRowColors(True)
@@ -28,8 +28,8 @@ class FamilyListWidget(QtWidgets.QListWidget):
 
         """
 
-        family = self.parent.db.distinct("data.family")
-        families = self.parent.db.distinct("data.families")
+        family = self.db.distinct("data.family")
+        families = self.db.distinct("data.families")
         unique_families = list(set(family + families))
 
         # Rebuild list

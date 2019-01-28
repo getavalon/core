@@ -27,15 +27,11 @@ class AssetModel(TreeModel):
 
     def __init__(self, silo=None, parent=None):
         super(AssetModel, self).__init__(parent=parent)
-        self.parent_widget = parent
+        self.db = parent.db
         self._silo = None
 
         if silo is not None:
             self.set_silo(silo, refresh=True)
-
-    @property
-    def db(self):
-        return self.parent_widget.db
 
     def set_silo(self, silo, refresh=True):
         """Set the root path to the ItemType root."""

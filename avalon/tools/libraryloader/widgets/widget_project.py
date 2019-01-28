@@ -7,8 +7,8 @@ class ProjectsWidget(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super(ProjectsWidget, self).__init__(parent=parent)
-        self.parent = parent
-
+        self.db = parent.db
+        self.parent_widget = parent
         # Enable minimize and maximize for app
         self.setWindowFlags(QtCore.Qt.Window)
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
@@ -45,10 +45,6 @@ class ProjectsWidget(QtWidgets.QWidget):
         # Defaults
         self.resize(280, 400)
 
-    @property
-    def db(self):
-        return self.parent.db
-
     def showEvent(self, event):
         self.project_model.set_projects()
 
@@ -62,16 +58,16 @@ class ProjectsWidget(QtWidgets.QWidget):
         if len(rows) == 1:
             project_name = rows[0]['name']
             self.chosen_one = project_name
-            self.parent.signal_project_changed.emit(project_name)
+            self.parent_widget.signal_project_changed.emit(project_name)
 
         self.hide()
 
     def closeEvent(self, event):
         if (
-            self.parent.current_project is None and
+            self.parent_widget.current_project is None and
             self.chosen_one is None
         ):
-            self.parent.close()
+            self.parent_widget.close()
         else:
             event.ignore()
             self.hide()

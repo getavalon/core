@@ -13,7 +13,7 @@ class TasksModel(TreeModel):
 
     def __init__(self, parent=None):
         super(TasksModel, self).__init__()
-        self.parent_widget = parent
+        self.db = parent.db
         self._num_assets = 0
         self._icons = {
             "__default__": awesome.icon(
@@ -22,10 +22,6 @@ class TasksModel(TreeModel):
         }
 
         self._get_task_icons()
-
-    @property
-    def db(self):
-        return self.parent_widget.db
 
     def _get_task_icons(self):
         # Get the project configured icons from database

@@ -112,7 +112,7 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
 
     def __init__(self, parent=None):
         super(VersionDelegate, self).__init__()
-        self.parent = parent
+        self.db = parent.db
 
     def _format_version(self, value):
         """Formats integer to displayable version name"""
@@ -150,7 +150,7 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         # Add all available versions to the editor
         node = index.data(SubsetsModel.NodeRole)
         parent_id = node['version_document']['parent']
-        versions = self.parent.db.find(
+        versions = self.db.find(
             {"type": "version", "parent": parent_id},
             sort=[("name", 1)]
         )

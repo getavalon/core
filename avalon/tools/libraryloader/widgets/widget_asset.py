@@ -156,7 +156,7 @@ class AssetWidget(QtWidgets.QWidget):
         super(AssetWidget, self).__init__(parent=parent)
         self.setContentsMargins(0, 0, 0, 0)
 
-        self.parent = parent
+        self.db = parent.db
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
@@ -205,10 +205,6 @@ class AssetWidget(QtWidgets.QWidget):
         self.proxy = proxy
         self.view = view
 
-    @property
-    def db(self):
-        return self.parent.db
-
     def _on_silo_changed(self):
         """Callback for silo change"""
 
@@ -241,16 +237,16 @@ class AssetWidget(QtWidgets.QWidget):
 
     def _list_project_silos(self):
         """List the silos from the project's configuration"""
-        silos = [s['name'] for s in self.parent.db.find(
+        silos = [s['name'] for s in self.db.find(
             {"type": "asset", "silo": None}
         )]
-        silos_old = self.parent.db.distinct("silo")
+        silos_old = self.db.distinct("silo")
         for silo in silos_old:
             if silo not in silos and silo is not None:
                 silos.append(silo)
 
         if not silos:
-            project = self.parent.db.find_one({"type": "project"})
+            project = self.db.find_one({"type": "project"})
             log.warning("Project '%s' has no active silos", project['name'])
 
         return list(sorted(silos))
@@ -265,7 +261,7 @@ class AssetWidget(QtWidgets.QWidget):
         if silo_name is None:
             silo_name = self.get_current_silo()
         try:
-            return self.parent.db.find_one(
+            return self.db.find_one(
                 {"type": "asset", "name": silo_name}
             )
         except Exception:
