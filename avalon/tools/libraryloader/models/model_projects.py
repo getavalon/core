@@ -12,8 +12,8 @@ class ProjectsModel(TreeModel):
     ObjectIdRole = QtCore.Qt.UserRole + 1
 
     def __init__(self, parent=None):
-        super(ProjectsModel, self).__init__()
-        self.parent = parent
+        super(ProjectsModel, self).__init__(parent=parent)
+        self.parent_widget = parent
         self._num_projects = 0
         self._icons = {
             "__default__": awesome.icon(
@@ -22,13 +22,17 @@ class ProjectsModel(TreeModel):
         }
         self.set_projects()
 
+    @property
+    def db(self):
+        return self.parent_widget.db
+
     def set_projects(self):
         """Set projects from db
 
         """
 
         projects = list()
-        for project in self.parent.db.projects():
+        for project in self.db.projects():
             projects.append(project['name'])
 
         self._num_projects = len(projects)
@@ -53,13 +57,11 @@ class ProjectsModel(TreeModel):
         self.endResetModel()
 
     def headerData(self, section, orientation, role):
-
         # Override header for count column to show amount of assets
         if role == QtCore.Qt.DisplayRole:
             if orientation == QtCore.Qt.Horizontal:
                 if section == 0:
                     return "Project name"
-
         return super(ProjectsModel, self).headerData(
             section, orientation, role
         )

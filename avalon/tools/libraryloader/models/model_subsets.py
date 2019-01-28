@@ -20,11 +20,15 @@ class SubsetsModel(TreeModel):
     def __init__(self, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
 
-        self.parent = parent
+        self.parent_widget = parent
         self._asset_id = None
         self._icons = {
             "subset": awesome.icon("fa.file-o", color=style.colors.default)
         }
+
+    @property
+    def db(self):
+        return self.parent_widget.db
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id
@@ -37,7 +41,7 @@ class SubsetsModel(TreeModel):
         if index.column() == 2:
             node = index.internalPointer()
             parent = node["_id"]
-            version = self.parent.db.find_one({
+            version = self.db.find_one({
                 "name": value,
                 "type": "version",
                 "parent": parent
@@ -106,12 +110,12 @@ class SubsetsModel(TreeModel):
             return
 
         row = 0
-        for subset in self.parent.db.find({
+        for subset in self.db.find({
             "type": "subset",
             "parent": self._asset_id
         }):
 
-            last_version = self.parent.db.find_one({
+            last_version = self.db.find_one({
                 "type": "version",
                 "parent": subset['_id']
             },

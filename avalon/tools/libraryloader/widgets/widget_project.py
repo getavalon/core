@@ -6,7 +6,7 @@ class ProjectsWidget(QtWidgets.QWidget):
     """Asset loader interface"""
 
     def __init__(self, parent=None):
-        super(ProjectsWidget, self).__init__(parent)
+        super(ProjectsWidget, self).__init__(parent=parent)
         self.parent = parent
 
         # Enable minimize and maximize for app

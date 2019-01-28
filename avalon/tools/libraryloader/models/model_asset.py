@@ -27,17 +27,21 @@ class AssetModel(TreeModel):
 
     def __init__(self, silo=None, parent=None):
         super(AssetModel, self).__init__(parent=parent)
-        self.parent = parent
+        self.parent_widget = parent
         self._silo = None
 
         if silo is not None:
             self.set_silo(silo, refresh=True)
 
+    @property
+    def db(self):
+        return self.parent_widget.db
+
     def set_silo(self, silo, refresh=True):
         """Set the root path to the ItemType root."""
         self._silo = silo
         try:
-            self.silo_asset = self.parent.db.find_one(
+            self.silo_asset = self.db.find_one(
                 {'$and': [
                     {'type': 'asset'},
                     {'name': silo},
@@ -70,7 +74,7 @@ class AssetModel(TreeModel):
         else:
             find_data["data.visualParent"] = parent['_id']
 
-        assets = self.parent.db.find(find_data).sort('name', 1)
+        assets = self.db.find(find_data).sort('name', 1)
 
         for asset in assets:
             # get label from data, otherwise use name

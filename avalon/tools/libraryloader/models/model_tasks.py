@@ -13,7 +13,7 @@ class TasksModel(TreeModel):
 
     def __init__(self, parent=None):
         super(TasksModel, self).__init__()
-        self.parent = parent
+        self.parent_widget = parent
         self._num_assets = 0
         self._icons = {
             "__default__": awesome.icon(
@@ -23,9 +23,13 @@ class TasksModel(TreeModel):
 
         self._get_task_icons()
 
+    @property
+    def db(self):
+        return self.parent_widget.db
+
     def _get_task_icons(self):
         # Get the project configured icons from database
-        project = self.parent.db.find_one({"type": "project"})
+        project = self.db.find_one({"type": "project"})
         tasks = project['config'].get('tasks', [])
         for task in tasks:
             icon_name = task.get("icon", None)
@@ -46,7 +50,7 @@ class TasksModel(TreeModel):
 
         assets = list()
         for asset_id in asset_ids:
-            asset = self.parent.db.find_one(
+            asset = self.db.find_one(
                 {"_id": asset_id, "type": "asset"}
             )
             assert asset, "Asset not found by id: {0}".format(asset_id)
@@ -61,11 +65,11 @@ class TasksModel(TreeModel):
 
         # If no asset tasks are defined, use the project tasks.
         if assets and not tasks:
-            project = self.parent.db.find_one({"type": "project"})
+            project = self.db.find_one({"type": "project"})
             tasks.update(
                 [task["name"] for task in project["config"].get("tasks", [])]
             )
-        
+
         self.clear()
         # delete empty strings from tasks
         del tasks[""]

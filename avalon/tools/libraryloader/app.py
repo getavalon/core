@@ -15,6 +15,9 @@ from .widgets import (
     ProjectsWidget
 )
 
+module = sys.modules[__name__]
+module.window = None
+
 # Custom roles
 DocumentRole = AssetModel.DocumentRole
 
@@ -29,8 +32,10 @@ class Window(QtWidgets.QDialog):
         super(Window, self).__init__(parent)
 
         # Enable minimize and maximize for app
+        self.setWindowTitle(self.tool_name)
         self.setWindowFlags(QtCore.Qt.Window)
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
+        # self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         body = QtWidgets.QWidget()
         footer = QtWidgets.QWidget()
@@ -38,7 +43,7 @@ class Window(QtWidgets.QDialog):
 
         container = QtWidgets.QWidget()
         self._db = DbConnector()
-        self.project_widget = ProjectsWidget(self)
+        self.project_widget = ProjectsWidget(parent=self)
 
         assets = AssetWidget(self)
         families = FamilyListWidget(self)
@@ -118,8 +123,6 @@ class Window(QtWidgets.QDialog):
         subsets.version_changed.connect(self.on_versionschanged)
         change_project.clicked.connect(self.show_projects_widget)
         self.signal_project_changed.connect(self.on_projectchanged)
-
-        self.setWindowTitle(self.tool_name)
 
         # Defaults
         self.resize(1330, 700)
@@ -283,6 +286,8 @@ class Window(QtWidgets.QDialog):
             print("Force quitted..")
             self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
+        # self.db.uninstall()
+
         print("Good bye")
         return super(Window, self).closeEvent(event)
 
@@ -297,6 +302,26 @@ def show(debug=False, parent=None, use_context=False):
         use_context (bool): Whether to apply the current context upon launch
 
     """
+    # Remember window
+    if module.window is not None:
+        try:
+            module.window.show()
+
+            # If the window is minimized then unminimize it.
+            if module.window.windowState() & QtCore.Qt.WindowMinimized:
+                module.window.setWindowState(QtCore.Qt.WindowActive)
+
+            # Raise and activate the window
+            module.window.raise_()             # for MacOS
+            module.window.activateWindow()     # for Windows
+            module.window.refresh()
+            return
+        except RuntimeError as e:
+            if not e.message.rstrip().endswith("already deleted."):
+                raise
+
+            # Garbage collected
+            module.window = None
 
     if debug:
         import traceback
@@ -306,6 +331,8 @@ def show(debug=False, parent=None, use_context=False):
         window = Window(parent)
         window.setStyleSheet(style.load_stylesheet())
         window.show()
+
+        module.window = window
 
 
 def cli(args):
