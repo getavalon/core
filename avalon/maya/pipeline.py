@@ -172,7 +172,9 @@ def _install_menu():
                       command=lambda *args: cbsceneinventory.show(
                           parent=self._parent))
 
-        cmds.menuItem("Library...", libraryloader.show(parent=self._parent))
+        cmds.menuItem("Library...", command=lambda *args: libraryloader.show(
+            parent=self._parent)
+        )
 
         cmds.menuItem(divider=True)
 
