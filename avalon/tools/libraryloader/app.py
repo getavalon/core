@@ -188,7 +188,9 @@ class Window(QtWidgets.QDialog):
 
     def _refresh(self):
         """Load assets from database"""
-
+        if self.current_project is None:
+            self.show_projects_widget()
+            return
         # Ensure a project is loaded
         project = self.db.find_one({"type": "project"})
         assert project, "This is a bug"
