@@ -28,13 +28,15 @@ class Window(QtWidgets.QDialog):
     tool_name = "Library Loader 0.5"
     signal_project_changed = QtCore.Signal(object)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, icon=None):
         super(Window, self).__init__(parent)
 
         # Enable minimize and maximize for app
         self.setWindowTitle(self.tool_name)
         self.setWindowFlags(QtCore.Qt.Window)
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
+        if icon is not None:
+            self.setWindowIcon(icon)
         # self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         body = QtWidgets.QWidget()
@@ -292,7 +294,7 @@ class Window(QtWidgets.QDialog):
         return super(Window, self).closeEvent(event)
 
 
-def show(debug=False, parent=None, use_context=False):
+def show(debug=False, parent=None, use_context=False, icon=None):
     """Display Loader GUI
 
     Arguments:
@@ -328,7 +330,7 @@ def show(debug=False, parent=None, use_context=False):
         sys.excepthook = lambda typ, val, tb: traceback.print_last()
 
     with lib.application():
-        window = Window(parent)
+        window = Window(parent, icon)
         window.setStyleSheet(style.load_stylesheet())
         window.show()
 
