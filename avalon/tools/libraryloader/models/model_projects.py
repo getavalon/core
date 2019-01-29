@@ -11,25 +11,41 @@ class ProjectsModel(TreeModel):
     COLUMNS = ["name"]
     ObjectIdRole = QtCore.Qt.UserRole + 1
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, show_projects=True, show_libraries=True):
         super(ProjectsModel, self).__init__(parent=parent)
         self.db = parent.db
+        self.show_projects = show_projects
+        self.show_libraries = show_libraries
         self._num_projects = 0
         self._icons = {
             "__default__": awesome.icon(
                 "fa.map", color=style.colors.default
             )
         }
-        self.set_projects()
+        self.set_context()
 
-    def set_projects(self):
+    def set_context(self):
         """Set projects from db
 
         """
 
         projects = list()
         for project in self.db.projects():
-            projects.append(project['name'])
+            name = project['name']
+            if self.show_projects is True and self.show_libraries is True:
+                projects.append(name)
+            else:
+                data = project.get('data', None)
+                if data is None:
+                    self.log.warning(
+                        'Project "{}" don\'t have any "Data"'.format(name)
+                    )
+                is_library = data.get('library_project', False)
+                if (
+                    (self.show_libraries is True and is_library is True) or
+                    (self.show_projects is True and is_library is False)
+                ):
+                    projects.append(name)
 
         self._num_projects = len(projects)
 

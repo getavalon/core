@@ -28,7 +28,9 @@ class Window(QtWidgets.QDialog):
     tool_name = "Library Loader 0.5"
     signal_project_changed = QtCore.Signal(object)
 
-    def __init__(self, parent=None, icon=None):
+    def __init__(
+        self, parent=None, icon=None, show_projects=False, show_libraries=True
+    ):
         super(Window, self).__init__(parent)
 
         # Enable minimize and maximize for app
@@ -45,7 +47,9 @@ class Window(QtWidgets.QDialog):
 
         container = QtWidgets.QWidget()
         self._db = DbConnector()
-        self.project_widget = ProjectsWidget(parent=self)
+        self.project_widget = ProjectsWidget(
+            self, show_projects, show_libraries
+        )
 
         assets = AssetWidget(self)
         families = FamilyListWidget(self)
@@ -296,7 +300,10 @@ class Window(QtWidgets.QDialog):
         return super(Window, self).closeEvent(event)
 
 
-def show(debug=False, parent=None, use_context=False, icon=None):
+def show(
+    debug=False, parent=None, icon=None,
+    show_projects=False, show_libraries=True
+):
     """Display Loader GUI
 
     Arguments:
@@ -332,7 +339,7 @@ def show(debug=False, parent=None, use_context=False, icon=None):
         sys.excepthook = lambda typ, val, tb: traceback.print_last()
 
     with lib.application():
-        window = Window(parent, icon)
+        window = Window(parent, icon, show_projects, show_libraries)
         window.setStyleSheet(style.load_stylesheet())
         window.show()
 
@@ -346,4 +353,4 @@ def cli(args):
     parser = argparse.ArgumentParser()
     parser.add_argument("project")
 
-    show()
+    show(show_projects=True, show_libraries=True)

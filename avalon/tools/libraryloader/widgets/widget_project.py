@@ -5,7 +5,7 @@ from ..models import ProjectsModel
 class ProjectsWidget(QtWidgets.QWidget):
     """Asset loader interface"""
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, show_projects=True, show_libraries=True):
         super(ProjectsWidget, self).__init__(parent=parent)
         self.db = parent.db
         self.parent_widget = parent
@@ -20,7 +20,7 @@ class ProjectsWidget(QtWidgets.QWidget):
         label = QtWidgets.QLabel("Projects")
         label.setFixedHeight(28)
 
-        project_model = ProjectsModel(parent=self)
+        project_model = ProjectsModel(self, show_projects, show_libraries)
 
         project_view = QtWidgets.QTreeView()
         project_view.setIndentation(0)
@@ -46,7 +46,7 @@ class ProjectsWidget(QtWidgets.QWidget):
         self.resize(280, 400)
 
     def showEvent(self, event):
-        self.project_model.set_projects()
+        self.project_model.set_context()
 
     def on_project_choose(self):
         selection = self.project_view.selectionModel()
