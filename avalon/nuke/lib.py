@@ -10,20 +10,16 @@ log = logging.getLogger(__name__)
 
 @contextlib.contextmanager
 def maintained_selection():
-    nodes = nuke.allNodes()
-    previous_selection = [n.name()
-                          for n in nodes
-                          if n['selected'].value() is True]
+    previous_selection = nuke.selectedNodes()
     try:
         yield
     finally:
         # unselect all selection in case there is some
-        [n['selected'].setValue(False) for n in nodes]
+        current_seletion = nuke.selectedNodes()
+        [n['selected'].setValue(False) for n in current_seletion]
         # and select all previously selected nodes
         if previous_selection:
-            [n['selected'].setValue(True)
-             for n in nodes
-             if n.name() in previous_selection]
+            [n['selected'].setValue(True) for n in previous_selection]
 
 
 def reset_selection():
@@ -40,7 +36,7 @@ def add_avalon_tab_knob(node):
     """Adding a tab and a knob into a node
     """
     try:
-        avalon_knob = node['avalon'].value()
+        node['avalon'].value()
     except Exception:
         tab = nuke.Tab_Knob("Avalon")
         uk = nuke.Text_Knob('avalon', 'avalon data')
@@ -150,11 +146,8 @@ def add_publish_knob(node):
 
 def fix_data_for_node_create(data):
     for k, v in data.items():
-        try:
-            if isinstance(v, unicode):
-                data[k] = str(v)
-        except Exception:
-            data[k] = str(v)
+
+        data[k] = str(v)
 
         if "True" in v:
             data[k] = True
@@ -216,13 +209,10 @@ def get_node_path(path, padding=4):
 
     """
     filename, ext = os.path.splitext(path)
-    print(filename)
-    print(filename, ext)
+
     # Find a final number group
     if '%' in filename:
-        print("I am here")
         match = re.match('.*?(%[0-9]+d)$', filename)
-        print(match)
         if match:
             padding = int(match.group(1).replace('%', '').replace('d', ''))
             # remove number from end since fusion

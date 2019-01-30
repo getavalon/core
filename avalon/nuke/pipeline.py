@@ -1,5 +1,4 @@
 import os
-import sys
 from collections import OrderedDict
 import importlib
 from .. import api, io, schema
@@ -46,7 +45,7 @@ def reload_pipeline():
                    "{}.lib".format(AVALON_CONFIG)):
         log.info("Reloading module: {}...".format(module))
         module = importlib.import_module(module)
-        reload(module)
+        importlib.reload(module)
 
     import avalon.nuke
     api.install(avalon.nuke)
