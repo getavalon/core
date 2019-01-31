@@ -237,6 +237,10 @@ class TasksModel(TreeModel):
         #     )
 
         self.clear()
+        # let cleared task view if no tasks are available
+        if len(tasks) == 0:
+            return
+
         self.beginResetModel()
 
         default_icon = self._icons["__default__"]
