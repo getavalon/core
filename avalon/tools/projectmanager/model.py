@@ -229,12 +229,12 @@ class TasksModel(TreeModel):
             asset_tasks = asset.get("data", {}).get("tasks", [])
             tasks.update(asset_tasks)
 
-        # If no asset tasks are defined, use the project tasks.
-        if assets and not tasks:
-            project = io.find_one({"type": "project"})
-            tasks.update(
-                [task["name"] for task in project["config"].get("tasks", [])]
-            )
+        # # If no asset tasks are defined, use the project tasks.
+        # if assets and not tasks:
+        #     project = io.find_one({"type": "project"})
+        #     tasks.update(
+        #         [task["name"] for task in project["config"].get("tasks", [])]
+        #     )
 
         self.clear()
         self.beginResetModel()
