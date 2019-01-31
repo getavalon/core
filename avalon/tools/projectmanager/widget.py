@@ -3,7 +3,7 @@ import contextlib
 
 from ...vendor import qtawesome as awesome
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
-from ... import io
+from ... import io, schema
 from ... import style
 
 from .model import (
@@ -143,7 +143,12 @@ def preserve_selection(tree_view,
 
 def _list_project_silos():
     """List the silos from the project's configuration"""
-    silos = io.distinct("silo")
+    # Backwards compatible way to get all silos from DB:
+    silos = [s['name'] for s in io.find({"type": "asset", "silo": None})]
+    silos_old = io.distinct("silo")
+    for silo in silos_old:
+        if silo not in silos and silo is not None:
+            silos.append(silo)
 
     if not silos:
         project = io.find_one({"type": "project"})
@@ -536,12 +541,23 @@ class AssetWidget(QtWidgets.QWidget):
 
         silos = _list_project_silos()
         self.silo.set_silos(silos)
-
+        if len(silos) > 0:
+            self.silo.set_current_silo(self.silo.tabText(0))
         self._refresh_model()
 
     def get_current_silo(self):
         """Returns the currently active silo."""
         return self.silo.get_current_silo()
+
+    def get_silo_object(self, silo_name=None):
+        """ Returns silo object from db. None if not found.
+        Current silo is found if silo_name not entered."""
+        if silo_name is None:
+            silo_name = self.get_current_silo()
+        try:
+            return io.find_one({"type": "asset", "name": silo_name})
+        except Exception:
+            return None
 
     def get_active_asset(self):
         """Return the asset id the current asset."""
