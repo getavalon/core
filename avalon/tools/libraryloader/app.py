@@ -56,7 +56,11 @@ class Window(QtWidgets.QDialog):
         subsets = SubsetWidget(self)
         version = VersionWidget(self)
 
-        change_project = QtWidgets.QPushButton("Change Project")
+        widget_vp = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(self)
+        btn_change = QtWidgets.QPushButton("Change Library")
+        layout.addWidget(btn_change)
+        widget_vp.setLayout(layout)
 
         # Create splitter to show / hide family filters
         asset_filter_splitter = QtWidgets.QSplitter()
@@ -69,8 +73,8 @@ class Window(QtWidgets.QDialog):
         version_project = QtWidgets.QSplitter()
         version_project.setOrientation(QtCore.Qt.Vertical)
         version_project.addWidget(version)
-        version_project.addWidget(change_project)
         version_project.setStretchFactor(0, 95)
+        version_project.addWidget(widget_vp)
         version_project.setStretchFactor(1, 5)
 
         container_layout = QtWidgets.QHBoxLayout(container)
@@ -79,7 +83,6 @@ class Window(QtWidgets.QDialog):
         split.addWidget(asset_filter_splitter)
         split.addWidget(subsets)
         split.addWidget(version_project)
-        # split.addWidget(version)
         split.setSizes([180, 950, 200])
         container_layout.addWidget(split)
 
@@ -127,7 +130,7 @@ class Window(QtWidgets.QDialog):
         assets.selection_changed.connect(self.on_assetschanged)
         subsets.active_changed.connect(self.on_subsetschanged)
         subsets.version_changed.connect(self.on_versionschanged)
-        change_project.clicked.connect(self.show_projects_widget)
+        btn_change.clicked.connect(self.show_projects_widget)
         self.signal_project_changed.connect(self.on_projectchanged)
 
         # Defaults

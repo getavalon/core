@@ -70,10 +70,18 @@ class ProjectsModel(TreeModel):
 
     def headerData(self, section, orientation, role):
         # Override header for count column to show amount of assets
-        if role == QtCore.Qt.DisplayRole:
-            if orientation == QtCore.Qt.Horizontal:
-                if section == 0:
-                    return "Project name"
+        if (
+            role == QtCore.Qt.DisplayRole and
+            orientation == QtCore.Qt.Horizontal and
+            section == 0
+        ):
+            if self.show_projects and self.show_libraries:
+                return "Project/Library name"
+            elif self.show_projects:
+                return "Project name"
+            elif self.show_libraries:
+                return "Library name"
+
         return super(ProjectsModel, self).headerData(
             section, orientation, role
         )

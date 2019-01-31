@@ -40,7 +40,14 @@ class ProjectsWidget(QtWidgets.QWidget):
         self.project_model = project_model
         self.project_view = project_view
 
-        self.setWindowTitle("Choose project")
+        title = "Choose {}"
+        if show_projects and show_libraries:
+            title = title.format('Project/Library')
+        elif show_libraries:
+            title = title.format('Library')
+        else:
+            title = title.format('Project')
+        self.setWindowTitle(title)
 
         # Defaults
         self.resize(280, 400)
