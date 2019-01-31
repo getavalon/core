@@ -262,19 +262,19 @@ def _install_menu():
     context_menu.addCommand("Set Context", contextmanager.show)
 
     menu.addSeparator()
-    menu.addCommand("Work Files...",
-                    lambda: workfiles.show(
-                        os.environ["AVALON_WORKDIR"]
-                    )
-                    )
-    menu.addSeparator()
     menu.addCommand("Create...", creator.show)
     menu.addCommand("Load...", cbloader.show)
     menu.addCommand("Publish...", publish.show)
     menu.addCommand("Manage...", cbsceneinventory.show)
 
     menu.addSeparator()
+    menu.addCommand("Work Files...",
+                    lambda: workfiles.show(
+                        os.environ["AVALON_WORKDIR"]
+                    )
+                    )
 
+    menu.addSeparator()
     menu.addCommand("Reset Frame Range", reset_frame_range)
     menu.addCommand("Reset Resolution", reset_resolution)
 
