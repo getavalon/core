@@ -41,7 +41,7 @@
         },
         "silo": {
             "description": "Group or container of asset",
-            "type": "string",
+            "type":  ["string", "null"],
             "example": "assets"
         },
         "data": {
