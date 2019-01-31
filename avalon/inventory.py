@@ -222,6 +222,8 @@ def load(name):
         inventory = {"schema": "avalon-core:inventory-1.0"}
         for asset in io.find({"type": "asset", "parent": project["_id"]}):
             silo = asset["silo"]
+            if silo is None:
+                continue
             data = asset["data"]
 
             if silo not in inventory:
