@@ -62,10 +62,7 @@ def validate(data, schema=None):
 if sys.version_info[0] == 3:
     basestring = str
 
-<<<<<<< HEAD
 
-=======
->>>>>>> 8a6c27ad65b98b5b3e12a530122f1baad70dba80
 _MODULE_DIR = os.path.dirname(__file__)
 _SCHEMA_DIR = os.path.join(_MODULE_DIR, "schema")
 
