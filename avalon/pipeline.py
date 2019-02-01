@@ -159,18 +159,8 @@ class Loader(list):
     order = 0
 
     def __init__(self, context):
-        template = context["project"]["config"]["template"]["publish"]
-
-        data = {
-            key: value["name"]
-            for key, value in context.items()
-        }
-
-        data["root"] = registered_root()
-        data["silo"] = context["asset"]["silo"]
-
-        fname = template.format(**data)
-        self.fname = fname
+        representation = context['representation']
+        self.fname = get_representation_path(representation)
 
     def load(self, context, name=None, namespace=None, options=None):
         """Load asset via database
@@ -353,7 +343,7 @@ class Application(Action):
         project = io.find_one({"type": "project"})
         template = project["config"]["template"]["work"]
         workdir = _format_work_template(template, session)
-        session["AVALON_WORKDIR"] = workdir
+        session["AVALON_WORKDIR"] = os.path.normpath(workdir)
 
         # Construct application environment from .toml config
         app_environment = self.config.get("environment", {})
@@ -955,8 +945,7 @@ def update_current_task(task=None, asset=None, app=None):
     # Update silo when asset changed
     if "AVALON_ASSET" in changed:
         asset_document = io.find_one({"name": changed["AVALON_ASSET"],
-                                      "type": "asset"},
-                                     projection={"silo": True})
+                                      "type": "asset"})
         assert asset_document, "Asset must exist"
         changed["AVALON_SILO"] = asset_document["silo"]
 
@@ -1198,20 +1187,38 @@ def get_representation_path(representation):
 
     """
 
-    version_, subset, asset, project = io.parenthood(representation)
-    template_publish = project["config"]["template"]["publish"]
-    return template_publish.format(**{
-        "root": registered_root(),
-        "project": project["name"],
-        "asset": asset["name"],
-        "silo": asset["silo"],
-        "subset": subset["name"],
-        "version": version_["name"],
-        "representation": representation["name"],
-        "user": Session.get("AVALON_USER", getpass.getuser()),
-        "app": Session.get("AVALON_APP", ""),
-        "task": Session.get("AVALON_TASK", "")
-    })
+    output = None
+    try:
+        if 'path' in representation['data']:
+            path = representation['data']['path']
+            pathdir = os.path.dirname(path)
+            # if directory exists use path from representation
+            if os.path.isdir(pathdir):
+                output = path
+
+        if output is None:
+            template = representation['data']['template']
+            fill_data = representation['context']
+            fill_data["root"] = registered_root()
+            output = template.format(**fill_data)
+    finally:
+        if output is not None:
+            return output
+
+        version_, subset, asset, project = io.parenthood(representation)
+        template = project["config"]["template"]["publish"]
+        return template.format(**{
+            "root": registered_root(),
+            "project": project["name"],
+            "asset": asset["name"],
+            "silo": asset["silo"],
+            "subset": subset["name"],
+            "version": version_["name"],
+            "representation": representation["name"],
+            "user": Session.get("AVALON_USER", getpass.getuser()),
+            "app": Session.get("AVALON_APP", ""),
+            "task": Session.get("AVALON_TASK", "")
+        })
 
 
 def is_compatible_loader(Loader, context):
