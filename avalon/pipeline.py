@@ -1200,7 +1200,7 @@ def get_representation_path(representation):
             if os.path.isdir(pathdir):
                 output = path
 
-        # format representation template with context if 'path' wasn't a success
+        # format representation template with context if path wasn't a success
         if output is None:
             template = representation['data']['template']
             fill_data = representation['context']
