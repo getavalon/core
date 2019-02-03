@@ -1193,13 +1193,14 @@ def get_representation_path(representation):
 
     output = None
     try:
+        # get path from attribute on the representation
         if 'path' in representation['data']:
             path = representation['data']['path']
             pathdir = os.path.dirname(path)
-            # if directory exists use path from representation
             if os.path.isdir(pathdir):
                 output = path
 
+        # format representation template with context if 'path' wasn't a success
         if output is None:
             template = representation['data']['template']
             fill_data = representation['context']
