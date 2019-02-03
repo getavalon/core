@@ -3,7 +3,7 @@ import contextlib
 
 from ...vendor import qtawesome as awesome
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
-from ... import io, schema
+from ... import io
 from ... import style
 
 from .model import (
