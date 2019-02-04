@@ -185,16 +185,12 @@ class AssetModel(TreeModel):
     def set_silo(self, silo, refresh=True):
         """Set the root path to the ItemType root."""
         self._silo = silo
-        try:
-            self.silo_asset = io.find_one(
-                {'$and': [
-                    {'type': 'asset'},
-                    {'name': silo},
-                    {'silo': None}
-                ]}
-            )
-        except Exception:
-            self.silo_asset = None
+        self.silo_asset = io.find_one({
+            'type': 'asset',
+            'name': silo,
+            'silo': None
+        })
+
         if refresh:
             self.refresh()
 
