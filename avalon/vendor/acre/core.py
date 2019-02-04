@@ -155,7 +155,7 @@ def append(env, env_b):
             for path in value.split(";"):
                 if not path:
                     continue
-            lib.append_path(env, variable, path)
+                lib.append_path(env, variable, path)
         elif isinstance(value, int):
             lib.append_path(env, variable, value)
 
