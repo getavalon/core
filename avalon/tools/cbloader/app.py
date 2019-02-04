@@ -170,12 +170,11 @@ class Window(QtWidgets.QDialog):
 
         asset_item = assets_model.get_active_index()
         if asset_item is None or not asset_item.isValid():
-            type = "asset"
             silo = assets_model.get_current_silo()
             if len(silo) == 0:
                 return
             document = io.find_one({
-                "type": type,
+                "type": "asset",
                 "name": silo
             })
         else:
