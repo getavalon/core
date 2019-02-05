@@ -1,3 +1,4 @@
+import os
 import importlib
 import logging
 from bson.objectid import ObjectId
@@ -102,7 +103,7 @@ Copied from avalon.pipeline where few changes needed:
 def find_config(db):
     log.info("Finding configuration for project..")
 
-    config = db.session["AVALON_CONFIG"]
+    config = db.Session["AVALON_CONFIG"]
 
     if not config:
         raise EnvironmentError("No configuration found in "
@@ -204,3 +205,9 @@ def load(db, Loader, representation, namespace=None, name=None, options=None,
 
     loader = Loader(context)
     return loader.load(context, name, namespace, options)
+
+
+def registered_root(db):
+    return os.path.normpath(
+        db.Session.get("AVALON_PROJECTS") or ""
+    )
