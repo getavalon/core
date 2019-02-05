@@ -138,7 +138,7 @@ def parse(env, platform_name=None):
 
         # Allow to have lists as values in the tool data
         if isinstance(value, (list, tuple)):
-            value = ";".join(value)
+            value = os.pathsep.join(value)
 
         result[variable] = value
 
@@ -152,7 +152,7 @@ def append(env, env_b):
     env = env.copy()
     for variable, value in env_b.items():
         if isinstance(value, str):
-            for path in value.split(";"):
+            for path in value.split(os.pathsep):
                 if not path:
                     continue
                 lib.append_path(env, variable, path)
