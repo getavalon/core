@@ -151,13 +151,14 @@ def append(env, env_b):
     # todo: this function name might also be confusing with "merge"
     env = env.copy()
     for variable, value in env_b.items():
-        if isinstance(value, str):
+        try:
             for path in value.split(os.pathsep):
                 if not path:
                     continue
                 lib.append_path(env, variable, path)
-        elif isinstance(value, int):
-            lib.append_path(env, variable, value)
+        except Exception:
+            if not isinstance(value, str):
+                env[variable] = value
 
     return env
 
