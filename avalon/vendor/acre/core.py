@@ -138,7 +138,7 @@ def parse(env, platform_name=None):
 
         # Allow to have lists as values in the tool data
         if isinstance(value, (list, tuple)):
-            value = ";".join(value)
+            value = os.pathsep.join(value)
 
         result[variable] = value
 
@@ -151,13 +151,14 @@ def append(env, env_b):
     # todo: this function name might also be confusing with "merge"
     env = env.copy()
     for variable, value in env_b.items():
-        if isinstance(value, str):
-            for path in value.split(";"):
+        try:
+            for path in value.split(os.pathsep):
                 if not path:
                     continue
-            lib.append_path(env, variable, path)
-        elif isinstance(value, int):
-            lib.append_path(env, variable, value)
+                lib.append_path(env, variable, path)
+        except Exception:
+            if not isinstance(value, str):
+                env[variable] = value
 
     return env
 
