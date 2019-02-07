@@ -1,11 +1,12 @@
+import os
 import sys
 import time
 
 from .io_nonsingleton import DbConnector
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import style
-from .. import lib
-from .lib import refresh_family_config, find_config
+from .. import lib as toolslib
+from . import lib
 from .widgets import (
     SubsetWidget,
     VersionWidget,
@@ -46,7 +47,9 @@ class Window(QtWidgets.QDialog):
         footer.setFixedHeight(20)
 
         container = QtWidgets.QWidget()
+
         self._db = DbConnector()
+        self._db.install()
         self.project_widget = ProjectsWidget(
             self, show_projects, show_libraries
         )
@@ -147,11 +150,11 @@ class Window(QtWidgets.QDialog):
         return self.db.active_project()
 
     def on_projectchanged(self, project_name):
-        self.db.activate_project(project_name)
-        refresh_family_config(self.db)
+        self.db.Session['AVALON_PROJECT'] = project_name
+        lib.refresh_family_config(self.db)
 
         # Find the set config
-        _config = find_config(self.db)
+        _config = lib.find_config(self.db)
         if hasattr(_config, "install"):
             _config.install()
         else:
@@ -161,11 +164,20 @@ class Window(QtWidgets.QDialog):
         self._refresh()
         self._assetschanged()
 
-        self.setWindowTitle(
-            "{} - {}/{}".format(
+        title = "{} - {}"
+        if self.db.active_project() is None:
+            title = title.format(
                 self.tool_name,
-                self.db.registered_root(),
-                self.db.session.get("AVALON_PROJECT", "No project selected")))
+                "No project selected"
+            )
+        else:
+            title = title.format(
+                self.tool_name,
+                os.path.sep.join(
+                    [lib.registered_root(self.db), self.db.active_project()]
+                )
+            )
+        self.setWindowTitle(title)
 
     @property
     def db(self):
@@ -177,19 +189,19 @@ class Window(QtWidgets.QDialog):
 
     def refresh(self):
         self.echo("Fetching results..")
-        lib.schedule(self._refresh, 50, channel="mongo")
+        toolslib.schedule(self._refresh, 50, channel="mongo")
 
     def on_assetschanged(self, *args):
         self.echo("Fetching asset..")
-        lib.schedule(self._assetschanged, 50, channel="mongo")
+        toolslib.schedule(self._assetschanged, 50, channel="mongo")
 
     def on_subsetschanged(self, *args):
         self.echo("Fetching subset..")
-        lib.schedule(self._versionschanged, 50, channel="mongo")
+        toolslib.schedule(self._versionschanged, 50, channel="mongo")
 
     def on_versionschanged(self, *args):
         self.echo("Fetching version..")
-        lib.schedule(self._versionschanged, 150, channel="mongo")
+        toolslib.schedule(self._versionschanged, 150, channel="mongo")
 
     # ------------------------------
 
@@ -212,7 +224,7 @@ class Window(QtWidgets.QDialog):
         # Update state
         state = self.data["state"]
         state["template"] = project["config"]["template"]["publish"]
-        state["context"]["root"] = self.db.registered_root()
+        state["context"]["root"] = lib.registered_root(self.db)
         state["context"]["project"] = project["name"]
 
     def _assetschanged(self):
@@ -278,7 +290,7 @@ class Window(QtWidgets.QDialog):
         widget.show()
         print(message)
 
-        lib.schedule(widget.hide, 5000, channel="message")
+        toolslib.schedule(widget.hide, 5000, channel="message")
 
     def closeEvent(self, event):
         # Kill on holding SHIFT
@@ -341,7 +353,7 @@ def show(
         import traceback
         sys.excepthook = lambda typ, val, tb: traceback.print_last()
 
-    with lib.application():
+    with toolslib.application():
         window = Window(parent, icon, show_projects, show_libraries)
         window.setStyleSheet(style.load_stylesheet())
         window.show()

@@ -43,14 +43,12 @@ class DbConnector(object):
     log = logging.getLogger(__name__)
 
     def __init__(self):
-            self.session = {}
+            self.Session = {}
             self._mongo_client = None
             self._sentry_client = None
             self._sentry_logging_handler = None
             self._database = None
             self._is_installed = False
-
-            self.install()
 
     def install(self):
         """Establish a persistent connection to the database"""
@@ -58,11 +56,11 @@ class DbConnector(object):
             return
 
         logging.basicConfig()
-        self.session.update(self._from_environment())
+        self.Session.update(self._from_environment())
 
-        timeout = int(self.session["AVALON_TIMEOUT"])
+        timeout = int(self.Session["AVALON_TIMEOUT"])
         self._mongo_client = pymongo.MongoClient(
-            self.session["AVALON_MONGO"], serverSelectionTimeoutMS=timeout)
+            self.Session["AVALON_MONGO"], serverSelectionTimeoutMS=timeout)
 
         for retry in range(3):
             try:
@@ -80,18 +78,18 @@ class DbConnector(object):
         else:
             raise IOError(
                 "ERROR: Couldn't connect to %s in "
-                "less than %.3f ms" % (self.session["AVALON_MONGO"], timeout))
+                "less than %.3f ms" % (self.Session["AVALON_MONGO"], timeout))
 
         self.log.info("Connected to %s, delay %.3f s" % (
-            self.session["AVALON_MONGO"], time.time() - t1))
+            self.Session["AVALON_MONGO"], time.time() - t1))
 
         self._install_sentry()
 
-        self._database = self._mongo_client[self.session["AVALON_DB"]]
+        self._database = self._mongo_client[self.Session["AVALON_DB"]]
         self._is_installed = True
 
     def _install_sentry(self):
-        if "AVALON_SENTRY" not in self.session:
+        if "AVALON_SENTRY" not in self.Session:
             return
 
         try:
@@ -102,7 +100,7 @@ class DbConnector(object):
             # Note: There was a Sentry address in this Session
             return self.log.warning("Sentry disabled, raven not installed")
 
-        client = Client(self.session["AVALON_SENTRY"])
+        client = Client(self.Session["AVALON_SENTRY"])
 
         # Transmit log messages to Sentry
         handler = SentryHandler(client)
@@ -113,11 +111,11 @@ class DbConnector(object):
         self._sentry_client = client
         self._sentry_logging_handler = handler
         self.log.info(
-            "Connected to Sentry @ %s" % self.session["AVALON_SENTRY"]
+            "Connected to Sentry @ %s" % self.Session["AVALON_SENTRY"]
         )
 
     def _from_environment(self):
-        session = {
+        Session = {
             item[0]: os.getenv(item[0], item[1])
             for item in (
                 # Root directory of projects on disk
@@ -194,14 +192,14 @@ class DbConnector(object):
             ) if os.getenv(item[0], item[1]) is not None
         }
 
-        session["schema"] = "avalon-core:session-1.0"
+        Session["schema"] = "avalon-core:session-1.0"
         try:
-            schema.validate(session)
+            schema.validate(Session)
         except schema.ValidationError as e:
             # TODO(marcus): Make this mandatory
             self.log.warning(e)
 
-        return session
+        return Session
 
     def uninstall(self):
         """Close any connection to the database"""
@@ -214,18 +212,12 @@ class DbConnector(object):
         self._database = None
         self._is_installed = False
 
-    def registered_root(self):
-        """Return currently registered root"""
-        return os.path.normpath(
-            self.session.get("AVALON_PROJECTS", "")
-        )
-
     def active_project(self):
         """Return the name of the active project"""
-        return self.session["AVALON_PROJECT"]
+        return self.Session["AVALON_PROJECT"]
 
     def activate_project(self, project_name):
-        self.session["AVALON_PROJECT"] = project_name
+        self.Session["AVALON_PROJECT"] = project_name
 
     def projects(self):
         """List available projects
@@ -303,7 +295,7 @@ class DbConnector(object):
     def insert_one(self, item):
         assert isinstance(item, dict), "item must be of type <dict>"
         schema.validate(item)
-        return self._database[self.session["AVALON_PROJECT"]].insert_one(item)
+        return self._database[self.Session["AVALON_PROJECT"]].insert_one(item)
 
     @auto_reconnect
     def insert_many(self, items, ordered=True):
@@ -313,13 +305,13 @@ class DbConnector(object):
             assert isinstance(item, dict), "`item` must be of type <dict>"
             schema.validate(item)
 
-        return self._database[self.session["AVALON_PROJECT"]].insert_many(
+        return self._database[self.Session["AVALON_PROJECT"]].insert_many(
             items,
             ordered=ordered)
 
     @auto_reconnect
     def find(self, filter, projection=None, sort=None):
-        return self._database[self.session["AVALON_PROJECT"]].find(
+        return self._database[self.Session["AVALON_PROJECT"]].find(
             filter=filter,
             projection=projection,
             sort=sort
@@ -329,7 +321,7 @@ class DbConnector(object):
     def find_one(self, filter, projection=None, sort=None):
         assert isinstance(filter, dict), "filter must be <dict>"
 
-        return self._database[self.session["AVALON_PROJECT"]].find_one(
+        return self._database[self.Session["AVALON_PROJECT"]].find_one(
             filter=filter,
             projection=projection,
             sort=sort
@@ -337,32 +329,32 @@ class DbConnector(object):
 
     @auto_reconnect
     def save(self, *args, **kwargs):
-        return self._database[self.session["AVALON_PROJECT"]].save(
+        return self._database[self.Session["AVALON_PROJECT"]].save(
             *args, **kwargs)
 
     @auto_reconnect
     def replace_one(self, filter, replacement):
-        return self._database[self.session["AVALON_PROJECT"]].replace_one(
+        return self._database[self.Session["AVALON_PROJECT"]].replace_one(
             filter, replacement)
 
     @auto_reconnect
     def update_many(self, filter, update):
-        return self._database[self.session["AVALON_PROJECT"]].update_many(
+        return self._database[self.Session["AVALON_PROJECT"]].update_many(
             filter, update)
 
     @auto_reconnect
     def distinct(self, *args, **kwargs):
-        return self._database[self.session["AVALON_PROJECT"]].distinct(
+        return self._database[self.Session["AVALON_PROJECT"]].distinct(
             *args, **kwargs)
 
     @auto_reconnect
     def drop(self, *args, **kwargs):
-        return self._database[self.session["AVALON_PROJECT"]].drop(
+        return self._database[self.Session["AVALON_PROJECT"]].drop(
             *args, **kwargs)
 
     @auto_reconnect
     def delete_many(self, *args, **kwargs):
-        return self._database[self.session["AVALON_PROJECT"]].delete_many(
+        return self._database[self.Session["AVALON_PROJECT"]].delete_many(
             *args, **kwargs)
 
     def parenthood(self, document):
@@ -406,8 +398,8 @@ class DbConnector(object):
                 src,
                 stream=True,
                 auth=requests.auth.HTTPBasicAuth(
-                    self.session["AVALON_USERNAME"],
-                    self.session["AVALON_PASSWORD"]
+                    self.Session["AVALON_USERNAME"],
+                    self.Session["AVALON_PASSWORD"]
                 )
             )
         except requests.ConnectionError as e:
