@@ -975,9 +975,11 @@ def update_current_task(task=None, asset=None, app=None):
                                       "type": "asset"})
         assert asset_document, "Asset must exist"
         changed["AVALON_SILO"] = asset_document["silo"]
-        changed['AVALON_HIERARCHY'] = os.path.sep.join(
-            asset_document['data']['parents']
-        )
+        parents = asset_document['data']['parents']
+        hierarchy = ""
+        if len(parents) > 0:
+            hierarchy = os.path.sep.join(parents)
+        changed['AVALON_HIERARCHY'] = hierarchy
 
     # Compute work directory (with the temporary changed session so far)
     project = io.find_one({"type": "project"},
