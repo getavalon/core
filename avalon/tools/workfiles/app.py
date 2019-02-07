@@ -183,25 +183,25 @@ class NameWindow(QtWidgets.QDialog):
         self.application = determine_application()
 
         # Get work file name
+        project = io.find_one({
+            "name": os.environ["AVALON_PROJECT"],
+            "type": "project"
+        })
         self.data = {
-            "project": io.find_one(
-                {"name": os.environ["AVALON_PROJECT"], "type": "project"}
-            ),
-            "asset": io.find_one(
-                {"name": os.environ["AVALON_ASSET"], "type": "asset"}
-            ),
-            "task": {
-                "name": os.environ["AVALON_TASK"].lower(),
-                "label": os.environ["AVALON_TASK"]
+            "project": {
+                "name": project["name"],
+                "code": project["data"]["code"]
             },
+            "asset": os.environ["AVALON_ASSET"],
+            "task": os.environ["AVALON_TASK"].lower(),
             "version": 1,
             "user": getpass.getuser(),
             "comment": ""
         }
 
-        self.template = "{task[name]}_v{version:0>4}<_{comment}>"
+        self.template = "{task}_v{version:0>4}<_{comment}>"
 
-        templates = self.data["project"]["config"]["template"]
+        templates = project["config"]["template"]
 
         if "workfile" in templates:
             self.template = templates["workfile"]
