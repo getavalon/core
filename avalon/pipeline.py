@@ -956,9 +956,12 @@ def update_current_task(task=None, asset=None, app=None):
     _session = Session.copy()
     _session.update(changed)
     changed["AVALON_WORKDIR"] = _format_work_template(template, _session)
-    changed['AVALON_HIERARCHY'] = os.path.sep.join(
-            asset_document['data']['parents']
-    )
+
+    parents = asset_document['data'].get('parents', [])
+    hierarchy = ""
+    if len(parents) > 0:
+        hierarchy = os.path.sep.join(parents)
+    changed['AVALON_HIERARCHY'] = hierarchy
 
     # Update the full session in one go to avoid half updates
     Session.update(changed)
