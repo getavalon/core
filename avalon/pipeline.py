@@ -1020,14 +1020,9 @@ def _format_work_template(template, session=None):
     if session is None:
         session = Session
 
-    project = io.find_one({'type': 'project'})
-
     return template.format(**{
         "root": registered_root(),
-        "project": {
-            "name": project.get("name", session["AVALON_PROJECT"]),
-            "code": project["data"]["code"],
-        },
+        "project": session["AVALON_PROJECT"],
         "silo": session["AVALON_SILO"],
         "hierarchy": session['AVALON_HIERARCHY'],
         "asset": session["AVALON_ASSET"],
