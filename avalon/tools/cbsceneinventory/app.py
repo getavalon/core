@@ -541,16 +541,57 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         return self._get_document_names("asset")
 
     def _get_subsets(self):
-        return self._get_document_names("subset")
+        parents = []
+        if self._assets_box.currentText() != "":
+            parents.append(io.find_one({
+                'type': 'asset',
+                'name': self._assets_box.currentText()
+            }))
+        return self._get_document_names("subset", parents)
 
     def _get_representations(self):
-        return self._get_document_names("representation")
+        parents = []
+        subsets = []
 
-    def _get_document_names(self, document_type, parent=None):
+        if self._subsets_box.currentText() == "":
+            for i in range(self._subsets_box.count()):
+                subsets.append(self._subsets_box.itemText(i))
+            # Remove empty strings "" from all_subsets
+            subsets = [x for x in subsets if x]
+        else:
+            subsets.append(self._subsets_box.currentText())
+
+        for subset in subsets:
+            entity = io.find_one({
+                'type': 'subset',
+                'name': subset
+            })
+
+            entity = io.find_one(
+                {
+                    'type': 'version',
+                    'parent': entity['_id']
+                },
+                sort=[('name', -1)]
+            )
+            if entity not in parents:
+                parents.append(entity)
+
+        return self._get_document_names("representation", parents)
+
+    def _get_document_names(self, document_type, parents=[]):
 
         query = {"type": document_type}
-        if parent:
-            query["parent"] = parent["_id"]
+
+        if len(parents) == 1:
+            query["parent"] = parents[0]["_id"]
+        elif len(parents) > 1:
+            or_exprs = []
+            for parent in parents:
+                expr = {"parent": parent["_id"]}
+                or_exprs.append(expr)
+
+            query["$or"] = or_exprs
 
         return io.find(query).distinct("name")
 
