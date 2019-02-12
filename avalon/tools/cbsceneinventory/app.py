@@ -529,13 +529,33 @@ class SwitchAssetDialog(QtWidgets.QDialog):
             self._assets_box.populate(assets)
 
         if refresh_type < 2:
+            last_subset = self._subsets_box.currentText()
 
             subsets = sorted(self._get_subsets())
             self._subsets_box.populate(subsets)
 
+            if (last_subset != "" and last_subset in list(subsets)):
+                index = None
+                for i in range(self._subsets_box.count()):
+                    if last_subset == str(self._subsets_box.itemText(i)):
+                        index = i
+                        break
+                if index is not None:
+                    self._subsets_box.setCurrentIndex(index)
+
+        last_repre = self._representations_box.currentText()
 
         representations = sorted(self._get_representations())
         self._representations_box.populate(representations)
+
+        if (last_repre != "" and last_repre in list(representations)):
+            index = None
+            for i in range(self._representations_box.count()):
+                if last_repre == self._representations_box.itemText(i):
+                    index = i
+                    break
+            if index is not None:
+                self._representations_box.setCurrentIndex(index)
 
     def _get_assets(self):
         return self._get_document_names("asset")
