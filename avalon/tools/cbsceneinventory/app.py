@@ -497,6 +497,9 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self._input_layout = input_layout
         self._accept_btn = accept_btn
 
+        self._assets_box.currentIndexChanged.connect(self.on_assets_change)
+        self._subsets_box.currentIndexChanged.connect(self.on_subset_change)
+
         self.setLayout(input_layout)
         self.setWindowTitle("Switch selected items ...")
 
@@ -513,14 +516,23 @@ class SwitchAssetDialog(QtWidgets.QDialog):
     def connections(self):
         self._accept_btn.clicked.connect(self._on_accept)
 
-    def refresh(self):
+    def on_assets_change(self):
+        self.refresh(1)
+
+    def on_subset_change(self):
+        self.refresh(2)
+
+    def refresh(self, refresh_type=0):
         """Build the need comboboxes with content"""
+        if refresh_type < 1:
+            assets = sorted(self._get_assets())
+            self._assets_box.populate(assets)
 
-        assets = sorted(self._get_assets())
-        self._assets_box.populate(assets)
+        if refresh_type < 2:
 
-        subsets = sorted(self._get_subsets())
-        self._subsets_box.populate(subsets)
+            subsets = sorted(self._get_subsets())
+            self._subsets_box.populate(subsets)
+
 
         representations = sorted(self._get_representations())
         self._representations_box.populate(representations)
