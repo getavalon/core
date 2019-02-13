@@ -595,9 +595,9 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         if self._representations_box.currentText() != '':
             repre_label = self._representations_box.currentText()
 
-        self._asset_label.setText(asset_label or default)
-        self._subset_label.setText(subset_label or default)
-        self._repre_label.setText(repre_label or default)
+        self._asset_label.setText(asset_label)
+        self._subset_label.setText(subset_label)
+        self._repre_label.setText(repre_label)
 
     def validate(self):
         asset_name = self._assets_box.get_valid_value() or None
