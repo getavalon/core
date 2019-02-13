@@ -583,69 +583,20 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self.validate()
 
     def set_labels(self):
-        subset_label = None
-        repre_label = None
-        if (
-            self._assets_box.currentText() == '' or
-            self._subsets_box.currentText() == '' or
-            self._representations_box.currentText() == ''
-        ):
-            if len(self._items) == 1:
-                _id = io.ObjectId(self._items[0]["representation"])
-                representation = io.find_one({
-                    "type": "representation",
-                    "_id": _id
-                })
-                version, subset, asset, project = io.parenthood(representation)
-            else:
-                subset_label = ''
-                repre_label = ''
-                for item in self._items:
-                    _id = io.ObjectId(item["representation"])
-                    representation = io.find_one({
-                        "type": "representation",
-                        "_id": _id
-                    })
-                    version, subset, asset, project = io.parenthood(
-                        representation
-                    )
-                    if subset_label is not None:
-                        if subset_label == '':
-                            subset_label = subset['name']
-                        elif subset_label != subset['name']:
-                            subset_label = None
-
-                    if repre_label is not None:
-                        if repre_label == '':
-                            repre_label = representation['name']
-                        elif repre_label != representation['name']:
-                            repre_label = None
-
+        asset_label = "*No changes"
+        subset_label = "*No changes"
+        repre_label = "*No changes"
         # Assets
         if self._assets_box.currentText() != '':
             asset_label = self._assets_box.currentText()
-        elif len(self._items) > 1:
-            asset_label = '<selected assets>'
-        else:
-            asset_label = asset['name']
 
         # Subsets
         if self._subsets_box.currentText() != '':
             subset_label = self._subsets_box.currentText()
-        elif len(self._items) > 1:
-            if subset_label is None:
-                subset_label = '<selected subsets>'
-        else:
-            subset_label = subset['name']
 
         # Subsets
         if self._representations_box.currentText() != '':
             repre_label = self._representations_box.currentText()
-        elif len(self._items) > 1:
-            if repre_label is None:
-                repre_label = '<selected representations>'
-        else:
-            repre_label = representation['name']
 
         self._asset_label.setText(asset_label)
         self._subset_label.setText(subset_label)
