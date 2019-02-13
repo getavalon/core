@@ -481,7 +481,15 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self._representations_box = SearchComboBox(
             placeholder="<representation>")
 
-        input_layout = QtWidgets.QHBoxLayout()
+        self._asset_label = QtWidgets.QLabel('')
+        self._subset_label = QtWidgets.QLabel('')
+        self._repre_label = QtWidgets.QLabel('')
+
+        main_layout = QtWidgets.QVBoxLayout()
+        context_layout = QtWidgets.QHBoxLayout()
+        asset_layout = QtWidgets.QVBoxLayout()
+        subset_layout = QtWidgets.QVBoxLayout()
+        repre_layout = QtWidgets.QVBoxLayout()
 
         accept_icon = qta.icon("fa.check", color="white")
         accept_btn = QtWidgets.QPushButton()
@@ -489,18 +497,28 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         accept_btn.setFixedWidth(24)
         accept_btn.setFixedHeight(24)
 
-        input_layout.addWidget(self._assets_box)
-        input_layout.addWidget(self._subsets_box)
-        input_layout.addWidget(self._representations_box)
-        input_layout.addWidget(accept_btn)
+        asset_layout.addWidget(self._assets_box)
+        asset_layout.addWidget(self._asset_label)
+        subset_layout.addWidget(self._subsets_box)
+        subset_layout.addWidget(self._subset_label)
+        repre_layout.addWidget(self._representations_box)
+        repre_layout.addWidget(self._repre_label)
 
-        self._input_layout = input_layout
+        context_layout.addLayout(asset_layout)
+        context_layout.addLayout(subset_layout)
+        context_layout.addLayout(repre_layout)
+        context_layout.addWidget(accept_btn)
+
         self._accept_btn = accept_btn
 
         self._assets_box.currentIndexChanged.connect(self.on_assets_change)
         self._subsets_box.currentIndexChanged.connect(self.on_subset_change)
+        self._representations_box.currentIndexChanged.connect(
+            self.on_repre_change
+        )
 
-        self.setLayout(input_layout)
+        main_layout.addLayout(context_layout)
+        self.setLayout(main_layout)
         self.setWindowTitle("Switch selected items ...")
 
         self.connections()
@@ -521,6 +539,9 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
     def on_subset_change(self):
         self.refresh(2)
+
+    def on_repre_change(self):
+        self.refresh(3)
 
     def refresh(self, refresh_type=0):
         """Build the need comboboxes with content"""
@@ -543,31 +564,214 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                 if index is not None:
                     self._subsets_box.setCurrentIndex(index)
 
-        last_repre = self._representations_box.currentText()
+        if refresh_type < 3:
+            last_repre = self._representations_box.currentText()
 
-        representations = sorted(self._get_representations())
-        self._representations_box.populate(representations)
+            representations = sorted(self._get_representations())
+            self._representations_box.populate(representations)
 
-        if (last_repre != "" and last_repre in list(representations)):
-            index = None
-            for i in range(self._representations_box.count()):
-                if last_repre == self._representations_box.itemText(i):
-                    index = i
-                    break
-            if index is not None:
-                self._representations_box.setCurrentIndex(index)
+            if (last_repre != "" and last_repre in list(representations)):
+                index = None
+                for i in range(self._representations_box.count()):
+                    if last_repre == self._representations_box.itemText(i):
+                        index = i
+                        break
+                if index is not None:
+                    self._representations_box.setCurrentIndex(index)
+
+        self.set_labels()
+        self.validate()
+
+    def set_labels(self):
+        subset_label = None
+        repre_label = None
+        if (
+            self._assets_box.currentText() == '' or
+            self._subsets_box.currentText() == '' or
+            self._representations_box.currentText() == ''
+        ):
+            if len(self._items) == 1:
+                _id = io.ObjectId(self._items[0]["representation"])
+                representation = io.find_one({
+                    "type": "representation",
+                    "_id": _id
+                })
+                version, subset, asset, project = io.parenthood(representation)
+            else:
+                subset_label = ''
+                repre_label = ''
+                for item in self._items:
+                    _id = io.ObjectId(item["representation"])
+                    representation = io.find_one({
+                        "type": "representation",
+                        "_id": _id
+                    })
+                    version, subset, asset, project = io.parenthood(
+                        representation
+                    )
+                    if subset_label is not None:
+                        if subset_label == '':
+                            subset_label = subset['name']
+                        elif subset_label != subset['name']:
+                            subset_label = None
+
+                    if repre_label is not None:
+                        if repre_label == '':
+                            repre_label = representation['name']
+                        elif repre_label != representation['name']:
+                            repre_label = None
+
+        # Assets
+        if self._assets_box.currentText() != '':
+            asset_label = self._assets_box.currentText()
+        elif len(self._items) > 1:
+            asset_label = '<selected assets>'
+        else:
+            asset_label = asset['name']
+
+        # Subsets
+        if self._subsets_box.currentText() != '':
+            subset_label = self._subsets_box.currentText()
+        elif len(self._items) > 1:
+            if subset_label is None:
+                subset_label = '<selected subsets>'
+        else:
+            subset_label = subset['name']
+
+        # Subsets
+        if self._representations_box.currentText() != '':
+            repre_label = self._representations_box.currentText()
+        elif len(self._items) > 1:
+            if repre_label is None:
+                repre_label = '<selected representations>'
+        else:
+            repre_label = representation['name']
+
+        self._asset_label.setText(asset_label)
+        self._subset_label.setText(subset_label)
+        self._repre_label.setText(repre_label)
+
+    def validate(self):
+        asset_name = self._assets_box.get_valid_value() or None
+        subset_name = self._subsets_box.get_valid_value() or None
+        repre_name = self._representations_box.get_valid_value() or None
+
+        asset_ok = True
+        subset_ok = True
+        repre_ok = True
+        for item in self._items:
+            if any(not x for x in [asset_name, subset_name, repre_name]):
+                _id = io.ObjectId(item["representation"])
+                representation = io.find_one({
+                    "type": "representation",
+                    "_id": _id
+                })
+                version, subset, asset, project = io.parenthood(representation)
+
+                if asset_name is None:
+                    asset_name = asset["name"]
+
+                if subset_name is None:
+                    subset_name = subset["name"]
+
+                if repre_name is None:
+                    repre_name = representation["name"]
+
+            asset = io.find_one({"name": asset_name, "type": "asset"})
+            if asset is None:
+                asset_ok = False
+                continue
+            subset = io.find_one({
+                "name": subset_name,
+                "type": "subset",
+                "parent": asset["_id"]
+            })
+            if subset is None:
+                subset_ok = False
+                continue
+            version = io.find_one(
+                {
+                    "type": "version",
+                    "parent": subset["_id"]
+                },
+                sort=[('name', -1)]
+            )
+            if version is None:
+                repre_ok = False
+                continue
+
+            repre = io.find_one({
+                "name": repre_name,
+                "type": "representation",
+                "parent": version["_id"]
+            })
+            if repre is None:
+                repre_ok = False
+
+        asset_sheet = ''
+        subset_sheet = ''
+        repre_sheet = ''
+        accept_sheet = ''
+        error_msg = '*Please select'
+        if asset_ok is False:
+            asset_sheet = 'border: 1px solid red;'
+            self._asset_label.setText(error_msg)
+        if subset_ok is False:
+            subset_sheet = 'border: 1px solid red;'
+            self._subset_label.setText(error_msg)
+        if repre_ok is False:
+            repre_sheet = 'border: 1px solid red;'
+            self._repre_label.setText(error_msg)
+        if asset_ok and subset_ok and repre_ok:
+            accept_sheet = 'border: 1px solid green;'
+
+        self._assets_box.setStyleSheet(asset_sheet)
+        self._subsets_box.setStyleSheet(subset_sheet)
+        self._representations_box.setStyleSheet(repre_sheet)
+
+        self._accept_btn.setEnabled(asset_ok and subset_ok and repre_ok)
+        self._accept_btn.setStyleSheet(accept_sheet)
 
     def _get_assets(self):
         return self._get_document_names("asset")
 
     def _get_subsets(self):
-        parents = []
+        # Filter subsets by asset in dropdown
         if self._assets_box.currentText() != "":
+            parents = []
             parents.append(io.find_one({
                 'type': 'asset',
                 'name': self._assets_box.currentText()
             }))
-        return self._get_document_names("subset", parents)
+
+            return self._get_document_names("subset", parents)
+        # If any asset in dropdown is selected
+        # - filter subsets by selected assets in scene inventory
+        assets = []
+        for item in self._items:
+            _id = io.ObjectId(item["representation"])
+            representation = io.find_one(
+                {"type": "representation", "_id": _id}
+            )
+            version, subset, asset, project = io.parenthood(representation)
+            assets.append(asset)
+
+        possible_subsets = None
+        for asset in assets:
+            subsets = io.find({
+                'type': 'subset',
+                'parent': asset['_id']
+            })
+            asset_subsets = set()
+            for subset in subsets:
+                asset_subsets.add(subset['name'])
+
+            if possible_subsets is None:
+                possible_subsets = asset_subsets
+            else:
+                possible_subsets = (possible_subsets & asset_subsets)
+
+        return list(possible_subsets)
 
     def _get_representations(self):
         parents = []
