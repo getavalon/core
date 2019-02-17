@@ -935,7 +935,10 @@ def get_representation_context(representation):
     )
 
     context = {
-        "project": project,
+        "project": {
+            "name": project["name"],
+            "code": project["data"].get("code", '')
+        },
         "asset": asset,
         "subset": subset,
         "version": version,
@@ -1029,7 +1032,7 @@ def _format_work_template(template, session=None):
         "root": registered_root(),
         "project": {
             "name": project.get("name", session["AVALON_PROJECT"]),
-            "code": project["data"]["code"],
+            "code": project["data"].get("code", ''),
         },
         "silo": session["AVALON_SILO"],
         "hierarchy": session['AVALON_HIERARCHY'],
@@ -1239,7 +1242,10 @@ def get_representation_path(representation):
         else:
             return template_publish.format(**{
                 "root": registered_root(),
-                "project": project["name"],
+                "project": {
+                    "name": project["name"],
+                    "code": project["data"].get("code", '')
+                },
                 "asset": asset["name"],
                 "silo": asset["silo"],
                 "subset": subset["name"],

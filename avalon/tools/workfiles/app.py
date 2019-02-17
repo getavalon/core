@@ -190,7 +190,7 @@ class NameWindow(QtWidgets.QDialog):
         self.data = {
             "project": {
                 "name": project["name"],
-                "code": project["data"]["code"]
+                "code": project["data"].get("code", '')
             },
             "asset": os.environ["AVALON_ASSET"],
             "task": os.environ["AVALON_TASK"].lower(),
