@@ -732,34 +732,54 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         return list(possible_subsets)
 
     def _get_representations(self):
-        parents = []
-        subsets = []
-
-        if self._subsets_box.currentText() == "":
-            for i in range(self._subsets_box.count()):
-                subsets.append(self._subsets_box.itemText(i))
-            # Remove empty strings "" from all_subsets
-            subsets = [x for x in subsets if x]
-        else:
+        if self._subsets_box.currentText() != "":
+            subsets = []
+            parents = []
             subsets.append(self._subsets_box.currentText())
 
-        for subset in subsets:
-            entity = io.find_one({
-                'type': 'subset',
-                'name': subset
-            })
+            for subset in subsets:
+                entity = io.find_one({
+                    'type': 'subset',
+                    'name': subset
+                })
 
-            entity = io.find_one(
-                {
-                    'type': 'version',
-                    'parent': entity['_id']
-                },
-                sort=[('name', -1)]
+                entity = io.find_one(
+                    {
+                        'type': 'version',
+                        'parent': entity['_id']
+                    },
+                    sort=[('name', -1)]
+                )
+                if entity not in parents:
+                    parents.append(entity)
+
+            return self._get_document_names("representation", parents)
+
+        versions = []
+        for item in self._items:
+            _id = io.ObjectId(item["representation"])
+            representation = io.find_one(
+                {"type": "representation", "_id": _id}
             )
-            if entity not in parents:
-                parents.append(entity)
+            version, subset, asset, project = io.parenthood(representation)
+            versions.append(version)
 
-        return self._get_document_names("representation", parents)
+        possible_repres = None
+        for version in versions:
+            representations = io.find({
+                'type': 'representation',
+                'parent': version['_id']
+            })
+            repres = set()
+            for repre in representations:
+                repres.add(repre['name'])
+
+            if possible_repres is None:
+                possible_repres = repres
+            else:
+                possible_repres = (possible_repres & repres)
+
+        return list(possible_repres)
 
     def _get_document_names(self, document_type, parents=[]):
 
