@@ -681,7 +681,17 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self._accept_btn.setStyleSheet(accept_sheet)
 
     def _get_assets(self):
-        return self._get_document_names("asset")
+        filtered_assets = []
+        for asset in io.find({'type': 'asset'}):
+            subsets = io.find({
+                'type': 'subset',
+                'parent': asset['_id']
+            })
+            for subs in subsets:
+                filtered_assets.append(asset['name'])
+                break
+
+        return filtered_assets
 
     def _get_subsets(self):
         # Filter subsets by asset in dropdown
