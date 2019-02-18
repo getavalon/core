@@ -153,13 +153,40 @@ class NameWindow(QtWidgets.QDialog):
     def refresh(self):
         if self.version_checkbox.isChecked():
             self.version_spinbox.setEnabled(False)
+            self.data["version"] = 1
+            filepath = self.get_work_file()
+            basename, ext = os.path.splitext(os.path.basename(filepath))
 
-            for i in range(1, 9999):
-                self.data["version"] = i
-                self.work_file = self.get_work_file()
-                path = os.path.join(self.root, self.work_file)
-                if not os.path.exists(path):
-                    break
+            regex = "[._]v\d+"
+            matches = re.findall(regex, str(basename), re.IGNORECASE)
+            if len(matches) == 1:
+                verex = matches[0]
+                baseitems = basename.split(verex)
+                file_start = baseitems[0]
+            # Preventing v001_Sh001_v001
+            elif len(matches) > 1:
+                msg = (
+                    'File can\'t contain multiple versions in name ({})'
+                ).format(basename)
+                self.label.setText("<font color='red'>{0}</font>".format(msg))
+                self.ok_button.setEnabled(False)
+                return
+
+            dirname = self.root
+            for file in os.listdir(dirname):
+                if (
+                    file.startswith(file_start) and
+                    file.endswith(ext)
+                ):
+                    version = 0
+                    matches = re.findall(regex, str(file), re.IGNORECASE)
+                    for match in matches:
+                        match = match.replace('_v', '').replace('_V', '')
+                        if int(match) >= version:
+                            version = int(match) + 1
+                    if version > self.data['version']:
+                        self.data['version'] = version
+
         else:
             self.version_spinbox.setEnabled(True)
             self.data["version"] = self.version_spinbox.value()
