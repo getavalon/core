@@ -104,6 +104,8 @@ class NameWindow(QtWidgets.QDialog):
         self.refresh()
 
     def on_version_checkbox_changed(self, value):
+        if self.version_spinbox.value() == 1:
+            self.version_spinbox.setValue(self.data['version'])
         self.refresh()
 
     def on_comment_changed(self, text):
