@@ -153,14 +153,14 @@ class NameWindow(QtWidgets.QDialog):
         return work_file
 
     def refresh(self):
+        version_regex = "[._]v\d+"
         if self.version_checkbox.isChecked():
             self.version_spinbox.setEnabled(False)
             self.data["version"] = 1
             filepath = self.get_work_file()
             basename, ext = os.path.splitext(os.path.basename(filepath))
 
-            regex = "[._]v\d+"
-            matches = re.findall(regex, str(basename), re.IGNORECASE)
+            matches = re.findall(version_regex, str(basename), re.IGNORECASE)
             if len(matches) == 1:
                 verex = matches[0]
                 baseitems = basename.split(verex)
@@ -181,7 +181,7 @@ class NameWindow(QtWidgets.QDialog):
                     file.endswith(ext)
                 ):
                     version = 0
-                    matches = re.findall(regex, str(file), re.IGNORECASE)
+                    matches = re.findall(version_regex, str(file), re.IGNORECASE)
                     for match in matches:
                         match = match.replace('_v', '').replace('_V', '')
                         if int(match) >= version:
@@ -195,17 +195,24 @@ class NameWindow(QtWidgets.QDialog):
 
         self.work_file = self.get_work_file()
 
-        self.label.setText(
-            "<font color='green'>{0}</font>".format(self.work_file)
-        )
-        if os.path.exists(os.path.join(self.root, self.work_file)):
-            self.label.setText(
+        version_file_exists = False
+        for file in os.listdir(self.root):
+            matches = re.findall(version_regex, str(file), re.IGNORECASE)
+            for match in matches:
+                match = match.replace('_v', '').replace('_V', '')
+                if int(match) == self.data["version"]:
+                    version_file_exists = True
+
+        info_label = "<font color='green'>{0}</font>".format(self.work_file)
+
+        if version_file_exists:
+            info_label = (
                 "<font color='red'>Cannot create \"{0}\" because file exists!"
-                "</font>".format(self.work_file)
-            )
-            self.ok_button.setEnabled(False)
-        else:
-            self.ok_button.setEnabled(True)
+                "</font>"
+            ).format(self.work_file)
+
+        self.label.setText(info_label)
+        self.ok_button.setEnabled(not version_file_exists)
 
     def setup(self, root):
         self.root = root
