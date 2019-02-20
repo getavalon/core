@@ -112,6 +112,9 @@ class App(QtWidgets.QDialog):
         asset_index = self._assets.get_active_index()
         asset_data = asset_index.data(self._assets.model.NodeRole)
         if not asset_data or not isinstance(asset_data, dict):
+            silo = self._assets.get_silo_object()
+            if silo and 'name' in silo:
+                return silo["name"]
             return
 
         return asset_data["name"]

@@ -935,7 +935,10 @@ def get_representation_context(representation):
     )
 
     context = {
-        "project": project,
+        "project": {
+            "name": project["name"],
+            "code": project["data"].get("code", '')
+        },
         "asset": asset,
         "subset": subset,
         "version": version,
@@ -974,7 +977,10 @@ def update_current_task(task=None, asset=None, app=None):
         asset_document = io.find_one({"name": changed["AVALON_ASSET"],
                                       "type": "asset"})
         assert asset_document, "Asset must exist"
-        changed["AVALON_SILO"] = asset_document["silo"]
+        silo = asset_document["silo"]
+        if silo is None:
+            silo = asset_document["name"]
+        changed["AVALON_SILO"] = silo
         parents = asset_document['data']['parents']
         hierarchy = ""
         if len(parents) > 0:
@@ -1020,9 +1026,14 @@ def _format_work_template(template, session=None):
     if session is None:
         session = Session
 
+    project = io.find_one({'type': 'project'})
+
     return template.format(**{
         "root": registered_root(),
-        "project": session["AVALON_PROJECT"],
+        "project": {
+            "name": project.get("name", session["AVALON_PROJECT"]),
+            "code": project["data"].get("code", ''),
+        },
         "silo": session["AVALON_SILO"],
         "hierarchy": session['AVALON_HIERARCHY'],
         "asset": session["AVALON_ASSET"],
@@ -1231,7 +1242,10 @@ def get_representation_path(representation):
         else:
             return template_publish.format(**{
                 "root": registered_root(),
-                "project": project["name"],
+                "project": {
+                    "name": project["name"],
+                    "code": project["data"].get("code", '')
+                },
                 "asset": asset["name"],
                 "silo": asset["silo"],
                 "subset": subset["name"],
