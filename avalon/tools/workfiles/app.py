@@ -104,6 +104,8 @@ class NameWindow(QtWidgets.QDialog):
         self.refresh()
 
     def on_version_checkbox_changed(self, value):
+        if self.version_spinbox.value() == 1:
+            self.version_spinbox.setValue(self.data['version'])
         self.refresh()
 
     def on_comment_changed(self, text):
@@ -151,32 +153,66 @@ class NameWindow(QtWidgets.QDialog):
         return work_file
 
     def refresh(self):
+        version_regex = "[._]v\d+"
         if self.version_checkbox.isChecked():
             self.version_spinbox.setEnabled(False)
+            self.data["version"] = 1
+            filepath = self.get_work_file()
+            basename, ext = os.path.splitext(os.path.basename(filepath))
 
-            for i in range(1, 9999):
-                self.data["version"] = i
-                self.work_file = self.get_work_file()
-                path = os.path.join(self.root, self.work_file)
-                if not os.path.exists(path):
-                    break
+            matches = re.findall(version_regex, str(basename), re.IGNORECASE)
+            if len(matches) == 1:
+                verex = matches[0]
+                baseitems = basename.split(verex)
+                file_start = baseitems[0]
+            # Preventing v001_Sh001_v001
+            elif len(matches) > 1:
+                msg = (
+                    'File can\'t contain multiple versions in name ({})'
+                ).format(basename)
+                self.label.setText("<font color='red'>{0}</font>".format(msg))
+                self.ok_button.setEnabled(False)
+                return
+
+            dirname = self.root
+            for file in os.listdir(dirname):
+                if (
+                    file.startswith(file_start) and
+                    file.endswith(ext)
+                ):
+                    version = 0
+                    matches = re.findall(version_regex, str(file), re.IGNORECASE)
+                    for match in matches:
+                        match = match.replace('_v', '').replace('_V', '')
+                        if int(match) >= version:
+                            version = int(match) + 1
+                    if version > self.data['version']:
+                        self.data['version'] = version
+
         else:
             self.version_spinbox.setEnabled(True)
             self.data["version"] = self.version_spinbox.value()
 
         self.work_file = self.get_work_file()
 
-        self.label.setText(
-            "<font color='green'>{0}</font>".format(self.work_file)
-        )
-        if os.path.exists(os.path.join(self.root, self.work_file)):
-            self.label.setText(
+        version_file_exists = False
+        for file in os.listdir(self.root):
+            matches = re.findall(version_regex, str(file), re.IGNORECASE)
+            for match in matches:
+                match = match.replace('_v', '').replace('_V', '')
+                if int(match) == self.data["version"]:
+                    version_file_exists = True
+
+        info_label = "<font color='green'>{0}</font>".format(self.work_file)
+
+        if version_file_exists:
+            info_label = (
                 "<font color='red'>Cannot create \"{0}\" because file exists!"
-                "</font>".format(self.work_file)
-            )
-            self.ok_button.setEnabled(False)
-        else:
-            self.ok_button.setEnabled(True)
+                "</font>"
+            ).format(self.work_file)
+
+        self.label.setText(info_label)
+        self.ok_button.setEnabled(not version_file_exists)
 
     def setup(self, root):
         self.root = root
