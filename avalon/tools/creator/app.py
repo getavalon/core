@@ -1,12 +1,14 @@
-
+import os
 import sys
 import inspect
+import json
 
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ...vendor import qtawesome
 from ...vendor import six
 from ... import api, io, style
 from .. import lib
+from pype import lib as pypelib
 
 module = sys.modules[__name__]
 module.window = None
@@ -306,7 +308,26 @@ class Window(QtWidgets.QDialog):
             item.setData(QtCore.Qt.ItemIsEnabled, False)
             listing.addItem(item)
 
-        listing.setCurrentItem(listing.item(0))
+        presets_path = pypelib.get_presets_path()
+        config_file = os.path.sep.join([presets_path, 'tools', 'creator.json'])
+
+        item = None
+        with open(config_file) as data_file:
+            config_data = json.load(data_file)
+        family_type = None
+        task_name = io.Session.get('AVALON_TASK', None)
+        if task_name is not None:
+            for key, value in config_data.items():
+                if task_name in value:
+                    family_type = key
+                    break
+            if family_type is not None:
+                items = listing.findItems(family_type, QtCore.Qt.MatchExactly)
+                if len(items) > 0:
+                    item = items[0]
+                    listing.setCurrentItem(item)
+        if item is None:
+            listing.setCurrentItem(listing.item(0))
 
     def on_create(self):
 
