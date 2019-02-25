@@ -22,6 +22,10 @@ class SubsetWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super(SubsetWidget, self).__init__(parent=parent)
 
+        self.tool_name = None
+        if hasattr(parent, 'tool_name'):
+            self.tool_name = parent.tool_name
+
         model = SubsetsModel()
         proxy = QtCore.QSortFilterProxyModel()
         family_proxy = FamiliesFilterProxyModel()
@@ -102,6 +106,14 @@ class SubsetWidget(QtWidgets.QWidget):
         # Get all representation->loader combinations available for the
         # index under the cursor, so we can list the user the options.
         available_loaders = api.discover(api.Loader)
+        if self.tool_name is not None:
+            for loader in available_loaders:
+                if hasattr(loader, 'tool_names'):
+                    if not (
+                        "*" in loader.tool_names or
+                        self.tool_name in loader.tool_names
+                    ):
+                        available_loaders.remove(loader)
         loaders = list()
         node = point_index.data(self.model.NodeRole)
         version_id = node['version_document']['_id']
