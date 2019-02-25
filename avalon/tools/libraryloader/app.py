@@ -27,6 +27,7 @@ class Window(QtWidgets.QDialog):
     """Asset loader interface"""
 
     tool_title = "Library Loader 0.5"
+    tool_name = "library_loader"
     signal_project_changed = QtCore.Signal(object)
 
     def __init__(
