@@ -312,23 +312,24 @@ class Window(QtWidgets.QDialog):
         config_file = os.path.sep.join([presets_path, 'tools', 'creator.json'])
 
         item = None
-        with open(config_file) as data_file:
-            config_data = json.load(data_file)
-        family_type = None
-        task_name = io.Session.get('AVALON_TASK', None)
-        if task_name is not None:
-            for key, value in config_data.items():
-                for t_name in value:
-                    if t_name in task_name.lower():
-                        family_type = key
+        if os.path.exists(config_file):
+            with open(config_file) as data_file:
+                config_data = json.load(data_file)
+            family_type = None
+            task_name = io.Session.get('AVALON_TASK', None)
+            if task_name is not None:
+                for key, value in config_data.items():
+                    for t_name in value:
+                        if t_name in task_name.lower():
+                            family_type = key
+                            break
+                    if family_type is not None:
                         break
                 if family_type is not None:
-                    break
-            if family_type is not None:
-                items = listing.findItems(family_type, QtCore.Qt.MatchExactly)
-                if len(items) > 0:
-                    item = items[0]
-                    listing.setCurrentItem(item)
+                    items = listing.findItems(family_type, QtCore.Qt.MatchExactly)
+                    if len(items) > 0:
+                        item = items[0]
+                        listing.setCurrentItem(item)
         if item is None:
             listing.setCurrentItem(listing.item(0))
 
