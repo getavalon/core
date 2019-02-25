@@ -26,7 +26,7 @@ DocumentRole = AssetModel.DocumentRole
 class Window(QtWidgets.QDialog):
     """Asset loader interface"""
 
-    tool_name = "Library Loader 0.5"
+    tool_title = "Library Loader 0.5"
     signal_project_changed = QtCore.Signal(object)
 
     def __init__(
@@ -35,7 +35,7 @@ class Window(QtWidgets.QDialog):
         super(Window, self).__init__(parent)
 
         # Enable minimize and maximize for app
-        self.setWindowTitle(self.tool_name)
+        self.setWindowTitle(self.tool_title)
         self.setWindowFlags(QtCore.Qt.Window)
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         if icon is not None:
@@ -167,12 +167,12 @@ class Window(QtWidgets.QDialog):
         title = "{} - {}"
         if self.db.active_project() is None:
             title = title.format(
-                self.tool_name,
+                self.tool_title,
                 "No project selected"
             )
         else:
             title = title.format(
-                self.tool_name,
+                self.tool_title,
                 os.path.sep.join(
                     [lib.registered_root(self.db), self.db.active_project()]
                 )
