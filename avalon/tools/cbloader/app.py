@@ -20,6 +20,8 @@ DocumentRole = AssetModel.DocumentRole
 class Window(QtWidgets.QDialog):
     """Asset loader interface"""
 
+    tool_name = "loader"
+
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
         self.setWindowTitle(
@@ -39,7 +41,7 @@ class Window(QtWidgets.QDialog):
 
         assets = AssetWidget()
         families = FamilyListWidget()
-        subsets = SubsetWidget()
+        subsets = SubsetWidget(self)
         version = VersionWidget()
 
         # Create splitter to show / hide family filters
