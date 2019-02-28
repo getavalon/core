@@ -143,12 +143,18 @@ def preserve_selection(tree_view,
 
 def _list_project_silos():
     """List the silos from the project's configuration"""
-    # Backwards compatible way to get all silos from DB:
-    silos = [s['name'] for s in io.find({"type": "asset", "silo": None})]
-    silos_old = io.distinct("silo")
-    for silo in silos_old:
-        if silo not in silos and silo is not None:
-            silos.append(silo)
+    # Backwards compatible way to get silos/top assets from DB:
+    silo_existence = {
+        'type': 'asset',
+        '$or': [{'silo': {'$exists': False}}, {'silo': None}]
+    }
+    if len(list(io.find(silo_existence))) > 0:
+        silos = [s['name'] for s in io.find({
+            'type': 'asset',
+            'data.visualParent': None
+        })]
+    else:
+        silos = io.distinct("silo")
 
     if not silos:
         project = io.find_one({"type": "project"})
@@ -185,11 +191,18 @@ class AssetModel(TreeModel):
     def set_silo(self, silo, refresh=True):
         """Set the root path to the ItemType root."""
         self._silo = silo
-        self.silo_asset = io.find_one({
+        silo_existence = {
             'type': 'asset',
-            'name': silo,
-            'silo': None
-        })
+            '$or': [{'silo': {'$exists': False}}, {'silo': None}]
+        }
+        if len(list(io.find(silo_existence))) > 0:
+            self.silo_asset = io.find_one({
+                'type': 'asset',
+                'name': silo,
+                'data.visualParent': None
+            })
+        else:
+            self.silo_asset = None
 
         if refresh:
             self.refresh()
@@ -213,7 +226,7 @@ class AssetModel(TreeModel):
                 find_data['data.visualParent'] = self.silo_asset['_id']
 
         else:
-            find_data["data.visualParent"] = parent['_id']
+            find_data['data.visualParent'] = parent['_id']
 
         assets = io.find(find_data).sort('name', 1)
 
