@@ -481,7 +481,15 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self._representations_box = SearchComboBox(
             placeholder="<representation>")
 
-        input_layout = QtWidgets.QHBoxLayout()
+        self._asset_label = QtWidgets.QLabel('')
+        self._subset_label = QtWidgets.QLabel('')
+        self._repre_label = QtWidgets.QLabel('')
+
+        main_layout = QtWidgets.QVBoxLayout()
+        context_layout = QtWidgets.QHBoxLayout()
+        asset_layout = QtWidgets.QVBoxLayout()
+        subset_layout = QtWidgets.QVBoxLayout()
+        repre_layout = QtWidgets.QVBoxLayout()
 
         accept_icon = qta.icon("fa.check", color="white")
         accept_btn = QtWidgets.QPushButton()
@@ -489,15 +497,23 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         accept_btn.setFixedWidth(24)
         accept_btn.setFixedHeight(24)
 
-        input_layout.addWidget(self._assets_box)
-        input_layout.addWidget(self._subsets_box)
-        input_layout.addWidget(self._representations_box)
-        input_layout.addWidget(accept_btn)
+        asset_layout.addWidget(self._assets_box)
+        asset_layout.addWidget(self._asset_label)
+        subset_layout.addWidget(self._subsets_box)
+        subset_layout.addWidget(self._subset_label)
+        repre_layout.addWidget(self._representations_box)
+        repre_layout.addWidget(self._repre_label)
 
-        self._input_layout = input_layout
+        context_layout.addLayout(asset_layout)
+        context_layout.addLayout(subset_layout)
+        context_layout.addLayout(repre_layout)
+        context_layout.addWidget(accept_btn)
+
         self._accept_btn = accept_btn
 
-        self.setLayout(input_layout)
+
+        main_layout.addLayout(context_layout)
+        self.setLayout(main_layout)
         self.setWindowTitle("Switch selected items ...")
 
         self.connections()
@@ -522,8 +538,23 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         subsets = sorted(self._get_subsets())
         self._subsets_box.populate(subsets)
 
-        representations = sorted(self._get_representations())
-        self._representations_box.populate(representations)
+    def set_labels(self):
+        default = "*No changes"
+        asset_label = default
+        subset_label = default
+        repre_label = default
+
+        if self._assets_box.currentText() != '':
+            asset_label = self._assets_box.currentText()
+        if self._subsets_box.currentText() != '':
+            subset_label = self._subsets_box.currentText()
+        if self._representations_box.currentText() != '':
+            repre_label = self._representations_box.currentText()
+
+        self._asset_label.setText(asset_label)
+        self._subset_label.setText(subset_label)
+        self._repre_label.setText(repre_label)
+
 
     def _get_assets(self):
         filtered_assets = []
