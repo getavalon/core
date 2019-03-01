@@ -575,11 +575,21 @@ class SwitchAssetDialog(QtWidgets.QDialog):
     def _get_representations(self):
         return self._get_document_names("representation")
 
-    def _get_document_names(self, document_type, parent=None):
+        return list(possible_repres)
+
+    def _get_document_names(self, document_type, parents=[]):
 
         query = {"type": document_type}
-        if parent:
-            query["parent"] = parent["_id"]
+
+        if len(parents) == 1:
+            query["parent"] = parents[0]["_id"]
+        elif len(parents) > 1:
+            or_exprs = []
+            for parent in parents:
+                expr = {"parent": parent["_id"]}
+                or_exprs.append(expr)
+
+            query["$or"] = or_exprs
 
         return io.find(query).distinct("name")
 
