@@ -570,7 +570,42 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         return filtered_assets
 
     def _get_subsets(self):
-        return self._get_document_names("subset")
+        # Filter subsets by asset in dropdown
+        if self._assets_box.currentText() != "":
+            parents = []
+            parents.append(io.find_one({
+                'type': 'asset',
+                'name': self._assets_box.currentText()
+            }))
+
+            return self._get_document_names("subset", parents)
+        # If any asset in dropdown is selected
+        # - filter subsets by selected assets in scene inventory
+        assets = []
+        for item in self._items:
+            _id = io.ObjectId(item["representation"])
+            representation = io.find_one(
+                {"type": "representation", "_id": _id}
+            )
+            version, subset, asset, project = io.parenthood(representation)
+            assets.append(asset)
+
+        possible_subsets = None
+        for asset in assets:
+            subsets = io.find({
+                'type': 'subset',
+                'parent': asset['_id']
+            })
+            asset_subsets = set()
+            for subset in subsets:
+                asset_subsets.add(subset['name'])
+
+            if possible_subsets is None:
+                possible_subsets = asset_subsets
+            else:
+                possible_subsets = (possible_subsets & asset_subsets)
+
+        return list(possible_subsets)
 
     def _get_representations(self):
         return self._get_document_names("representation")
