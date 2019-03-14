@@ -216,12 +216,12 @@ class Loader(list):
 @lib.log
 class Creator(object):
     """Determine how assets are created"""
-    name = None
     label = None
     family = None
+    defaults = None
 
     def __init__(self, name, asset, options=None, data=None):
-        self.name = name or self.name
+        self.name = name  # For backwards compatibility
         self.options = options
 
         # Default data
@@ -229,7 +229,7 @@ class Creator(object):
         self.data["id"] = "pyblish.avalon.instance"
         self.data["family"] = self.family
         self.data["asset"] = asset
-        self.data["subset"] = self.name
+        self.data["subset"] = name
         self.data["active"] = True
 
         self.data.update(data or {})
@@ -411,6 +411,8 @@ class Application(Action):
         # Perform application copy
         for src, dst in self.config.get("copy", {}).items():
             dst = os.path.join(workdir, dst)
+            # Expand env vars
+            src, dst = self._format([src, dst], **environment)
 
             try:
                 self.log.info("Copying %s -> %s" % (src, dst))
@@ -870,12 +872,6 @@ def create(name, asset, family, options=None, data=None):
 
         if not has_family:
             continue
-
-        if not name:
-            name = Plugin.name
-            Plugin.log.info(
-                "Using default name '%s' from '%s'" % (name, Plugin.__name__)
-            )
 
         Plugin.log.info(
             "Creating '%s' with '%s'" % (name, Plugin.__name__)
