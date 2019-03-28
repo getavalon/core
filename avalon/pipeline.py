@@ -1186,6 +1186,13 @@ def switch(container, representation):
 def get_representation_path(representation):
     """Get filename from representation document
 
+    There are three ways of getting the path from representation which are tried
+    in following sequence until successful.
+    1. Get template from representation['data']['template'] and data from
+       representation['context']. Then format template with the data.
+    2. Get template from project['config'] and format it with default data set
+    3. Get representation['data']['path'] and use it directly
+
     Args:
         representation(dict): representation document from the database
 
@@ -1196,37 +1203,48 @@ def get_representation_path(representation):
 
     output = None
     try:
+        # format representation template with context if path wasn't a success
+        if output is None:
+            template = representation['data']['template']
+            fill_data = representation['context']
+            fill_data["root"] = registered_root()
+            path = template.format(**fill_data)
+            pathdir = os.path.dirname(path)
+            if os.path.isdir(pathdir):
+                output = path
+
+        if output is None:
+            version_, subset, asset, project = io.parenthood(representation)
+            template = project["config"]["template"]["publish"]
+            path = template.format(**{
+                "root": registered_root(),
+                "project": project["name"],
+                "asset": asset["name"],
+                "silo": asset["silo"],
+                "subset": subset["name"],
+                "version": version_["name"],
+                "representation": representation["name"],
+                "user": Session.get("AVALON_USER", getpass.getuser()),
+                "app": Session.get("AVALON_APP", ""),
+                "task": Session.get("AVALON_TASK", "")
+            })
+            pathdir = os.path.dirname(path)
+            if os.path.isdir(pathdir):
+                output = path
+    finally:
+        if output is not None:
+            return output
+
         # get path from attribute on the representation
         if 'path' in representation['data']:
             path = representation['data']['path']
             pathdir = os.path.dirname(path)
             if os.path.isdir(pathdir):
                 output = path
+        else:
+            return None
 
-        # format representation template with context if path wasn't a success
-        if output is None:
-            template = representation['data']['template']
-            fill_data = representation['context']
-            fill_data["root"] = registered_root()
-            output = template.format(**fill_data)
-    finally:
-        if output is not None:
-            return output
 
-        version_, subset, asset, project = io.parenthood(representation)
-        template = project["config"]["template"]["publish"]
-        return template.format(**{
-            "root": registered_root(),
-            "project": project["name"],
-            "asset": asset["name"],
-            "silo": asset["silo"],
-            "subset": subset["name"],
-            "version": version_["name"],
-            "representation": representation["name"],
-            "user": Session.get("AVALON_USER", getpass.getuser()),
-            "app": Session.get("AVALON_APP", ""),
-            "task": Session.get("AVALON_TASK", "")
-        })
 
 
 def is_compatible_loader(Loader, context):
