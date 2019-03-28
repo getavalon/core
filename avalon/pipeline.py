@@ -1186,8 +1186,8 @@ def switch(container, representation):
 def get_representation_path(representation):
     """Get filename from representation document
 
-    There are three ways of getting the path from representation which are tried
-    in following sequence until successful.
+    There are three ways of getting the path from representation which are
+    tried in following sequence until successful.
     1. Get template from representation['data']['template'] and data from
        representation['context']. Then format template with the data.
     2. Get template from project['config'] and format it with default data set
