@@ -54,6 +54,8 @@ class Window(QtWidgets.QDialog):
         self.project_widget = ProjectsWidget(
             self, show_projects, show_libraries
         )
+        self.show_projects = show_projects
+        self.show_libraries = show_libraries
 
         assets = AssetWidget(self)
         families = FamilyListWidget(self)
@@ -139,7 +141,40 @@ class Window(QtWidgets.QDialog):
 
         # Defaults
         self.resize(1330, 700)
-        self.show_projects_widget()
+
+        # Set project
+        default_project = self.get_default_project()
+        if default_project is None:
+            self.show_projects_widget()
+        else:
+            self.signal_project_changed.emit(default_project)
+
+    def get_default_project(self):
+        presets = self.load_presets()
+        name = None
+        if self.show_libraries:
+            name = presets.get('default_library', None)
+        if name is None:
+            return None
+        projects = [p['name'] for p in self.db.projects()]
+        if name in projects:
+            return name
+        return None
+
+    def load_presets(self):
+        from pype import lib as pypelib
+        import json
+        path_items = [
+            pypelib.get_presets_path(), 'tools', 'library_loader.json'
+        ]
+        filepath = os.path.sep.join(path_items)
+        data = dict()
+        try:
+            with open(filepath) as data_file:
+                data = json.load(data_file)
+        except Exception as e:
+            print('Failed to load presets file ({})'.format(e))
+        return data
 
     def show_projects_widget(self):
         self.project_widget.show()
