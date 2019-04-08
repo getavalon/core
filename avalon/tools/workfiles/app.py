@@ -313,7 +313,7 @@ class Window(QtWidgets.QDialog):
     def get_name(self):
         temp = tempfile.TemporaryFile(mode="w+t")
 
-        current_file = current_file()
+        current_file = self.current_file()
         window = NameWindow(self.root, temp, current_file)
         window.setStyleSheet(style.load_stylesheet())
         window.exec_()
@@ -385,8 +385,14 @@ class Window(QtWidgets.QDialog):
 
     def save_as_maya(self, file_path):
         from maya import cmds
+
+        if file_path.endswith(".ma"):
+            fileType = "mayaAscii"
+        elif file_path.endswith(".mb"):
+            fileType = "mayaBinary"
+
         cmds.file(rename=file_path)
-        cmds.file(save=True, type="mayaAscii")
+        cmds.file(save=True, type=fileType)
 
     def save_as_nuke(self, file_path):
         import nuke
