@@ -36,12 +36,15 @@ def determine_application():
 class NameWindow(QtWidgets.QDialog):
     """Name Window"""
 
-    def __init__(self, root, temp_file):
+    def __init__(self, root, temp_file, current_file):
         super(NameWindow, self).__init__()
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
 
         self.setup(root)
         self.temp_file = temp_file
+        if current_file == 'NOT SAVED':
+            current_file = None
+        self.current_file = current_file
 
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
@@ -147,8 +150,11 @@ class NameWindow(QtWidgets.QDialog):
         # Remove optional symbols
         work_file = work_file.replace("<", "")
         work_file = work_file.replace(">", "")
-
-        work_file = work_file + self.extensions[self.application]
+        if self.current_file is None:
+            ext = self.extensions[self.application]
+        else:
+            ext = os.path.splitext(self.current_file)[1]
+        work_file += ext
 
         return work_file
 
@@ -307,7 +313,8 @@ class Window(QtWidgets.QDialog):
     def get_name(self):
         temp = tempfile.TemporaryFile(mode="w+t")
 
-        window = NameWindow(self.root, temp)
+        current_file = self.current_file()
+        window = NameWindow(self.root, temp, current_file)
         window.setStyleSheet(style.load_stylesheet())
         window.exec_()
 
@@ -378,8 +385,14 @@ class Window(QtWidgets.QDialog):
 
     def save_as_maya(self, file_path):
         from maya import cmds
+
+        if file_path.endswith(".ma"):
+            fileType = "mayaAscii"
+        elif file_path.endswith(".mb"):
+            fileType = "mayaBinary"
+
         cmds.file(rename=file_path)
-        cmds.file(save=True, type="mayaAscii")
+        cmds.file(save=True, type=fileType)
 
     def save_as_nuke(self, file_path):
         import nuke
