@@ -267,10 +267,6 @@ def _install_menu():
         contextmanager,
         libraryloader
     )
-    # for now we are using `lite` version
-    # TODO: just for now untill qml in Nuke will be fixed (pyblish-qml#301)
-    if os.getenv("PYBLISH_GUI", None):
-        pyblish.register_gui(os.getenv("PYBLISH_GUI", None))
 
     # Create menu
     menubar = nuke.menu("Nuke")
