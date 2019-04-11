@@ -216,21 +216,17 @@ def get_node_path(path, padding=4):
 
     """
     filename, ext = os.path.splitext(path)
-    print(filename)
-    print(filename, ext)
     # Find a final number group
     if '%' in filename:
-        print("I am here")
         match = re.match('.*?(%[0-9]+d)$', filename)
-        print(match)
         if match:
             padding = int(match.group(1).replace('%', '').replace('d', ''))
             # remove number from end since fusion
             # will swap it with the frame number
             filename = filename.replace(match.group(1), '')
+            
     elif '#' in filename:
         match = re.match('.*?(#+)$', filename)
-
         if match:
             padding = len(match.group(1))
             # remove number from end since fusion
