@@ -292,9 +292,7 @@ def _install_menu():
     menu.addCommand("Library...", libraryloader.show)
 
     menu.addSeparator()
-    frames_menu = menu.addMenu("Reset Frame Range")
-    frames_menu.addCommand("Cut length", reset_frame_range)
-    frames_menu.addCommand("Full length(handles)", reset_frame_range_handles)
+    menu.addCommand("Reset Frame Range", reset_frame_range_handles)
     menu.addCommand("Reset Resolution", reset_resolution)
 
     menu.addSeparator()
@@ -365,6 +363,15 @@ def reset_frame_range_handles():
 
     nuke.root()["first_frame"].setValue(edit_in)
     nuke.root()["last_frame"].setValue(edit_out)
+
+    # setting active viewers
+    vv = nuke.activeViewer().node()
+    vv['frame_range_lock'].setValue(True)
+    vv['frame_range'].setValue('{0}-{1}'.format(
+        int(asset["data"]["fstart"]),
+        int(asset["data"]["fend"]))
+    )
+
 
 
 def get_handles(asset):
