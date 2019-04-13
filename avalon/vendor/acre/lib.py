@@ -37,7 +37,6 @@ def partial_format(s, data, missing="{{{key}}}"):
         Missing keys are replaced with the return value of __missing__.
 
         """
-
         def __missing__(self, key):
             return missing.format(key=key)
 
@@ -71,7 +70,6 @@ def topological_sort(dependency_pairs):
 
 def append_path(self, key, path):
     """Append *path* to *key* in *self*."""
-
     try:
         if path not in self[key]:
             self[key] = os.pathsep.join([self[key], str(path)])
