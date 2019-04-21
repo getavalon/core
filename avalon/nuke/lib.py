@@ -70,7 +70,7 @@ def imprint(node, data):
 
 
 def ls_img_sequence(dirPath, one=None):
-    excluding_patterns = ['_broken_', '._', '/.', '/_']
+    excluding_patterns = ['_broken_', '._', '/.', '.mov', '.jpeg', '.jpg']
     result = {}
     sortedList = []
     files = os.listdir(dirPath)
@@ -95,7 +95,9 @@ def ls_img_sequence(dirPath, one=None):
                 result[prefix] = [[frame], suffix]
         except ValueError:
             # the file isn't in a sequence, add a dummy key:value pair
-            result[file] = file
+            if not one:
+                result[file] = file
+                log.info("!____ result[file]: `{}`".format(result[file]))
 
     for prefix in result:
         if result[prefix] != prefix:
