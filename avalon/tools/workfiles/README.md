@@ -21,6 +21,18 @@ workfiles.show(
 )
 ```
 
+Or open the latest workfile.
+
+```python
+workfiles.open_latest_workfile(
+    os.path.join(
+        cmds.workspace(query=True, rootDirectory=True),
+        cmds.workspace(fileRuleEntry="scene")
+    )
+)
+# Returns None if no latest file were found.
+```
+
 ## Naming Files
 
 Workfiles app enables user to easily save and create new work files.
