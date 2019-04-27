@@ -1,7 +1,9 @@
 from .app import (
-    show
+    show,
+    open_latest_workfile
 )
 
 __all__ = [
-    "show"
+    "show",
+    "open_latest_workfile"
 ]

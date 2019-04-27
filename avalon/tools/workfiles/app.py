@@ -12,21 +12,21 @@ from avalon import io
 
 
 def determine_application():
-        # Determine executable
-        application = None
+    # Determine executable
+    application = None
 
-        basename = os.path.basename(sys.executable).lower()
+    basename = os.path.basename(sys.executable).lower()
 
-        if "maya" in basename:
-            application = "maya"
+    if "maya" in basename:
+        application = "maya"
 
-        if application is None:
-            raise ValueError(
-                "Could not determine application from executable:"
-                " \"{0}\"".format(sys.executable)
-            )
+    if application is None:
+        raise ValueError(
+            "Could not determine application from executable:"
+            " \"{0}\"".format(sys.executable)
+        )
 
-        return application
+    return application
 
 
 class NameWindow(QtWidgets.QDialog):
@@ -291,19 +291,41 @@ class Window(QtWidgets.QDialog):
 
         return normalised
 
-    def refresh(self):
-        self.list.clear()
-        items = []
-        modified = []
+    def get_files_data(self):
+        """Get time modified data from files in self.root.
+
+            Return:
+                (dict): {
+                    (str): Modified time.
+                    (str): File path.
+                }
+        """
+        files_data = {}
         for f in os.listdir(self.root):
             if os.path.isdir(os.path.join(self.root, f)):
                 continue
 
             if self.filter and os.path.splitext(f)[1] not in self.filter:
                 continue
+            time_modified = os.path.getmtime(os.path.join(self.root, f))
+            files_data[str(time_modified)] = os.path.join(self.root, f)
+
+        return files_data
+
+    def get_latest_file(self):
+        data = self.get_files_data()
+        return data[str(max([float(x) for x in data.keys()]))]
+
+    def refresh(self):
+        self.list.clear()
+        items = []
+        modified = []
+        data = self.get_files_data()
+        for key in data:
+            f = os.path.basename(data[key])
             self.list.addItem(f)
             items.append(self.list.findItems(f, QtCore.Qt.MatchExactly)[0])
-            modified.append(os.path.getmtime(os.path.join(self.root, f)))
+            modified.append(float(key))
 
         # Select last modified file
         if items:
@@ -430,6 +452,11 @@ class Window(QtWidgets.QDialog):
         save_as[application](file_path)
 
         self.close()
+
+
+def open_latest_workfile(root):
+    window = Window(root)
+    window.open(window.get_latest_file())
 
 
 def show(root):
