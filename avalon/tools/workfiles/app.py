@@ -4,11 +4,13 @@ import tempfile
 import getpass
 import re
 import shutil
-
+import logging
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import style
 from avalon import io
+
+log = logging.getLogger(__name__)
 
 
 def determine_application():
@@ -314,7 +316,13 @@ class Window(QtWidgets.QDialog):
 
     def get_latest_file(self):
         data = self.get_files_data()
-        return data[str(max([float(x) for x in data.keys()]))]
+        float_list = [float(x) for x in data.keys()]
+
+        # If no file were found return None.
+        if not float_list:
+            return None
+
+        return data[str(max())]
 
     def refresh(self):
         self.list.clear()
@@ -456,7 +464,14 @@ class Window(QtWidgets.QDialog):
 
 def open_latest_workfile(root):
     window = Window(root)
-    window.open(window.get_latest_file())
+    latest_file = window.get_latest_file()
+
+    if latest_file:
+        window.open(latest_file)
+    else:
+        log.info("No latest file were found.")
+
+    return latest_file
 
 
 def show(root):
