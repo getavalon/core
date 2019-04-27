@@ -322,7 +322,7 @@ class Window(QtWidgets.QDialog):
         if not float_list:
             return None
 
-        return data[str(max())]
+        return data[str(max(float_list))]
 
     def refresh(self):
         self.list.clear()
@@ -370,11 +370,10 @@ class Window(QtWidgets.QDialog):
         else:
             return None
 
-    def open_maya(self, file_path):
+    def open_maya(self, file_path, force):
         from maya import cmds
 
-        force = False
-        if cmds.file(q=True, modified=True):
+        if cmds.file(q=True, modified=True) and not force:
             result = self.save_changes_prompt()
 
             if result is None:
@@ -389,14 +388,14 @@ class Window(QtWidgets.QDialog):
 
         return True
 
-    def open(self, file_path):
+    def open(self, file_path, force):
         func = {"maya": self.open_maya}
 
         work_file = os.path.join(
             self.root, self.list.selectedItems()[0].text()
         )
 
-        return func[self.application](work_file)
+        return func[self.application](work_file, force)
 
     def on_duplicate_pressed(self):
         work_file = self.get_name()
@@ -462,12 +461,23 @@ class Window(QtWidgets.QDialog):
         self.close()
 
 
-def open_latest_workfile(root):
+def open_latest_workfile(root, force=False):
+    """Open the latest workfile
+
+        Args:
+            root (str): Directory to search for workfiles.
+            force (bool): Force open the workfile, ignoring any saved changes.
+
+        Return:
+            (str) or None: File path opened or None if no latest file were
+                found.
+    """
+
     window = Window(root)
     latest_file = window.get_latest_file()
 
     if latest_file:
-        window.open(latest_file)
+        window.open(latest_file, force)
     else:
         log.info("No latest file were found.")
 
