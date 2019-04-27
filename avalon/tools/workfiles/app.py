@@ -388,7 +388,7 @@ class Window(QtWidgets.QDialog):
 
         return True
 
-    def open(self, file_path, force):
+    def open(self, file_path, force=False):
         func = {"maya": self.open_maya}
 
         work_file = os.path.join(
