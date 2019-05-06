@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 from functools import partial
+import re
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ...vendor import qtawesome as qta
@@ -20,6 +21,8 @@ from ..cbloader.lib import refresh_family_config
 from .proxy import FilterProxyModel
 from .model import InventoryModel
 from .lib import switch_item
+import collections
+from pprint import pprint
 
 DEFAULT_COLOR = "#fb9c15"
 
@@ -395,7 +398,7 @@ class View(QtWidgets.QTreeView):
 
     def show_switch_dialog(self, items):
         """Display Switch dialog"""
-        dialog = SwitchAssetDialog(self, items)
+        dialog = SwitchAssetDialogLod(self, items)
         dialog.switched.connect(self.data_changed.emit)
         dialog.show()
 
@@ -820,6 +823,321 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self.switched.emit()
 
         self.close()
+
+
+class SwitchAssetDialogLod(SwitchAssetDialog):
+
+    LOD_REGEX = re.compile(r"_(LOD\d+)")
+
+    def __init__(self, parent=None, items=None):
+        QtWidgets.QDialog.__init__(self, parent)
+
+        self.setModal(True)  # Force and keep focus dialog
+
+        self.log = logging.getLogger(self.__class__.__name__)
+
+        self._items = items
+
+        self._assets_box = SearchComboBox(placeholder="<asset>")
+        self._subsets_box = SearchComboBox(placeholder="<subset>")
+        self._lods_box = SearchComboBox(placeholder="<lod>")
+        self._representations_box = SearchComboBox(
+            placeholder="<representation>")
+
+        self._asset_label = QtWidgets.QLabel('')
+        self._subset_label = QtWidgets.QLabel('')
+        self._lod_label = QtWidgets.QLabel('')
+        self._repre_label = QtWidgets.QLabel('')
+
+        main_layout = QtWidgets.QVBoxLayout()
+        context_layout = QtWidgets.QHBoxLayout()
+        asset_layout = QtWidgets.QVBoxLayout()
+        subset_layout = QtWidgets.QVBoxLayout()
+        lod_layout = QtWidgets.QVBoxLayout()
+        repre_layout = QtWidgets.QVBoxLayout()
+
+        accept_icon = qta.icon("fa.check", color="white")
+        accept_btn = QtWidgets.QPushButton()
+        accept_btn.setIcon(accept_icon)
+        accept_btn.setFixedWidth(24)
+        accept_btn.setFixedHeight(24)
+
+        asset_layout.addWidget(self._assets_box)
+        asset_layout.addWidget(self._asset_label)
+        subset_layout.addWidget(self._subsets_box)
+        subset_layout.addWidget(self._subset_label)
+        lod_layout.addWidget(self._lods_box)
+        lod_layout.addWidget(self._lod_label)
+        repre_layout.addWidget(self._representations_box)
+        repre_layout.addWidget(self._repre_label)
+
+        context_layout.addLayout(asset_layout)
+        context_layout.addLayout(subset_layout)
+        context_layout.addLayout(lod_layout)
+        context_layout.addLayout(repre_layout)
+        context_layout.addWidget(accept_btn)
+
+        self._accept_btn = accept_btn
+
+        self._assets_box.currentIndexChanged.connect(self.on_assets_change)
+        self._subsets_box.currentIndexChanged.connect(self.on_subset_change)
+        self._lods_box.currentIndexChanged.connect(self.on_lod_change)
+        self._representations_box.currentIndexChanged.connect(
+            self.on_repre_change
+        )
+
+        main_layout.addLayout(context_layout)
+        self.setLayout(main_layout)
+        self.setWindowTitle("Switch selected items ...")
+
+        self.connections()
+
+        self.refresh()
+
+        self.setFixedSize(self.sizeHint())  # Lock window size
+
+        # Set default focus to accept button so you don't directly type in
+        # first asset field, this also allows to see the placeholder value.
+        accept_btn.setFocus()
+
+    def _group_lods(self, subsets):
+        """
+        Group subset names if they contains ``_LODx`` string in list under
+        dict key with the name of group.
+
+        Example::
+            ``['A_LOD1', 'A_LOD2', 'B_LOD1', 'B_LOD2', 'C']``
+            will became:
+            ``
+            {
+                "A (LODs)": ['A_LOD1', 'A_LOD2'],
+                "B (LODs)": ['B_LOD1', 'B_LOD2']
+            }
+
+        :param subsets: List of subset names
+        :param type: list
+        :returns: dict of groups and list of all subset with group names
+        :rtype: dict, list
+        """
+        groups = collections.defaultdict(list)
+        subsets_out = []
+        for subset in subsets:
+            m = re.search(self.LOD_REGEX, subset)
+            if m:
+                # strip _LOD string from subset name
+                grp_name = re.search('(.*){}'.format(m.group(0)), subset)
+                key_name = "{} (LODs)".format(grp_name.group(1))
+                groups[key_name].append(subset)
+                subsets_out.append(key_name)
+            else:
+                print("-- not lod {}".format(subset))
+                subsets_out.append(subset)
+        return groups, subsets_out
+
+    def _strip_lod(self, subset):
+        """
+        Strip _LODx string from subset name or return subset name unmodified.
+        :param subset: subset name
+        :type subset: str
+        :returns: subset name
+        :rtype: str
+        """
+        m = re.search(self.LOD_REGEX, subset)
+        if m:
+            grp_name = re.search('(.*){}'.format(m.group(0)), subset)
+            return grp_name.group(1)
+        else:
+            return subset
+
+    def _get_subsets(self):
+        # Filter subsets by asset in dropdown
+        if self._assets_box.currentText() != "":
+            parents = []
+            parents.append(io.find_one({
+                'type': 'asset',
+                'name': self._assets_box.currentText()
+            }))
+
+            subsets = self._get_document_names("subset", parents)
+            self._subset_groups, subsets = self._group_lods(subsets)
+            return subsets
+
+        # If any asset in dropdown is selected
+        # - filter subsets by selected assets in scene inventory
+        assets = []
+        for item in self._items:
+            _id = io.ObjectId(item["representation"])
+            representation = io.find_one(
+                {"type": "representation", "_id": _id}
+            )
+            version, subset, asset, project = io.parenthood(representation)
+            assets.append(asset)
+
+        possible_subsets = None
+        for asset in assets:
+            subsets = io.find({
+                'type': 'subset',
+                'parent': asset['_id']
+            })
+            asset_subsets = set()
+            for subset in subsets:
+                asset_subsets.add(subset['name'])
+
+            if possible_subsets is None:
+                possible_subsets = asset_subsets
+            else:
+                possible_subsets = (possible_subsets & asset_subsets)
+
+        self._subset_groups, subsets = self._group_lods(list(possible_subsets))
+        return subsets
+
+    def _on_accept(self):
+
+        pprint(self._items)
+        # Use None when not a valid value or when placeholder value
+        asset = self._assets_box.get_valid_value() or None
+        subset = self._subsets_box.get_valid_value() or None
+        lod = self._subsets_box.get_valid_value() or None
+        representation = self._representations_box.get_valid_value() or None
+
+        if not any([asset, subset, representation]):
+            self.log.error("Nothing selected")
+            return
+
+        for item in self._items:
+            try:
+                if subset in self._subset_groups.keys():
+                    # group of LODs is selected
+                    if lod is not None:
+                        # specific LOD in group is selected
+                        # so we try to switch only that one
+                        switch_item(item,
+                                    asset_name=asset,
+                                    subset_name='{}_{}'.format(subset, lod),
+                                    representation_name=representation)
+                    else:
+                        # Whole LOD group is selected, so we switch all LODs
+                        for s in self._subset_groups[subset]:
+                            switch_item(item,
+                                        asset_name=asset,
+                                        subset_name=s,
+                                        representation_name=representation)
+                else:
+                    switch_item(item,
+                                asset_name=asset,
+                                subset_name=subset,
+                                representation_name=representation)
+            except Exception as e:
+                self.log.warning(e)
+
+        self.switched.emit()
+
+        self.close()
+
+    def set_labels(self):
+        default = "*No changes"
+        lod_label = default
+        super(SwitchAssetDialogLod, self).set_labels()
+
+        if self._lods_box.currentText() != '':
+            lod_label = self._lods_box.currentText()
+
+        self._lod_label.setText(lod_label)
+
+    def on_lod_change(self):
+        self.refresh(2)
+
+    def _get_representations(self):
+        if self._subsets_box.currentText() != "":
+            subsets = []
+            parents = []
+            subset_text = self._subsets_box.currentText()
+            subsets = self._subset_groups[subset_text]
+            # subsets.append(self._subsets_box.currentText())
+
+            for subset in subsets:
+                entity = io.find_one({
+                    'type': 'subset',
+                    'name': subset
+                })
+
+                entity = io.find_one(
+                    {
+                        'type': 'version',
+                        'parent': entity['_id']
+                    },
+                    sort=[('name', -1)]
+                )
+                if entity not in parents:
+                    parents.append(entity)
+
+            return self._get_document_names("representation", parents)
+
+        versions = []
+        for item in self._items:
+            _id = io.ObjectId(item["representation"])
+            representation = io.find_one(
+                {"type": "representation", "_id": _id}
+            )
+            version, subset, asset, project = io.parenthood(representation)
+            versions.append(version)
+
+        possible_repres = None
+        for version in versions:
+            representations = io.find({
+                'type': 'representation',
+                'parent': version['_id']
+            })
+            repres = set()
+            for repre in representations:
+                repres.add(repre['name'])
+
+            if possible_repres is None:
+                possible_repres = repres
+            else:
+                possible_repres = (possible_repres & repres)
+
+        return list(possible_repres)
+
+    def refresh(self, refresh_type=0):
+        """Build the need comboboxes with content"""
+        pprint(self._subset_groups)
+        if refresh_type < 1:
+            assets = sorted(self._get_assets())
+            self._assets_box.populate(assets)
+
+        if refresh_type < 2:
+            last_subset = self._subsets_box.currentText()
+
+            subsets = sorted(self._get_subsets())
+            self._subsets_box.populate(subsets)
+
+            if (last_subset != "" and last_subset in list(subsets)):
+                index = None
+                for i in range(self._subsets_box.count()):
+                    if last_subset == str(self._subsets_box.itemText(i)):
+                        index = i
+                        break
+                if index is not None:
+                    self._subsets_box.setCurrentIndex(index)
+
+        if refresh_type < 3:
+            last_repre = self._representations_box.currentText()
+
+            representations = sorted(self._get_representations())
+            self._representations_box.populate(representations)
+
+            if (last_repre != "" and last_repre in list(representations)):
+                index = None
+                for i in range(self._representations_box.count()):
+                    if last_repre == self._representations_box.itemText(i):
+                        index = i
+                        break
+                if index is not None:
+                    self._representations_box.setCurrentIndex(index)
+
+        self.set_labels()
+        self.validate()
 
 
 class Window(QtWidgets.QDialog):
