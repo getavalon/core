@@ -539,7 +539,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         self.connections()
 
-        self.refresh()
+        self.refresh(0)
 
         self.setFixedSize(self.sizeHint())  # Lock window size
 
@@ -556,10 +556,15 @@ class SwitchAssetDialog(QtWidgets.QDialog):
     def on_subset_change(self):
         self.refresh(2)
 
-    def on_repre_change(self):
+    def on_lod_change(self):
+        # if self.fill_check and self.initialized:
         self.refresh(3)
 
-    def refresh(self, refresh_type=0):
+    def on_repre_change(self):
+        # if self.fill_check and self.initialized:
+        self.refresh(4)
+
+    def refresh(self, refresh_type):
         """Build the need comboboxes with content"""
         if refresh_type < 1:
             assets = sorted(self._get_assets())
@@ -581,7 +586,12 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                     self._subsets_box.setCurrentIndex(index)
 
         if refresh_type < 3:
+            self._lods_box.setVisible(self.is_lod)
+            self._lod_label.setVisible(self.is_lod)
+            if self.is_lod:
+                self._fill_lod_box()
 
+        if refresh_type < 4:
             self._fill_representations_box()
 
         self.set_labels()
