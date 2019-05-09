@@ -1402,22 +1402,95 @@ class SwitchAssetDialog(QtWidgets.QDialog):
     def _on_accept(self):
 
         # Use None when not a valid value or when placeholder value
-        asset = self._assets_box.get_valid_value() or None
-        subset = self._subsets_box.get_valid_value() or None
-        representation = self._representations_box.get_valid_value() or None
+        _asset = self._assets_box.get_valid_value() or None
+        _subset = self._subsets_box.get_valid_value() or None
+        _lod = self._lods_box.get_valid_value() or None
+        _representation = self._representations_box.get_valid_value() or None
 
-        if not any([asset, subset, representation]):
-            self.log.error("Nothing selected")
-            return
+        if self.is_lod:
+            if not any([_asset, _subset, _lod, _representation]):
+                self.log.error("Nothing selected")
+                return
 
-        for item in self._items:
-            try:
-                switch_item(item,
-                            asset_name=asset,
-                            subset_name=subset,
-                            representation_name=representation)
-            except Exception as e:
-                self.log.warning(e)
+            for item in self._items:
+                _asset_name = _asset
+                _subset_name = _subset
+                _lod_name = _lod
+                _representation_name = _representation
+
+                _id = io.ObjectId(item["representation"])
+                representation = io.find_one({
+                "type": "representation",
+                "_id": _id
+                })
+                version, subset, asset, project = io.parenthood(representation)
+
+                if _subset_name is not None and _lod_name is not None:
+                    _subset_name = self.LOD_SPLITTER.join([
+                        _subset_name.replace(self.LOD_MARK),
+                        _lod_name
+                    ])
+                elif _subset_name is not None and self._lods_box.isVisible():
+                    subset_name = subset['name']
+                    lod_regex_result = re.search(self.LOD_REGEX, subset_name)
+                    _lod_name = lod_regex_result.group(0)
+                    _subset_name = self.LOD_SPLITTER.join([
+                        _subset_name, _lod_name
+                    ])
+
+                elif _lod_name is not None:
+                    subset_name = subset['name']
+                    lod_regex_result = re.search(self.LOD_REGEX, subset_name)
+                    if lod_regex_result:
+                        subset_name = subset_name.replace(
+                            lod_regex_result.group(0), ''
+                        )
+                    _subset_name = self.LOD_SPLITTER.join([
+                        subset_name, _lod_name
+                    ])
+
+                try:
+                    switch_item(
+                        item,
+                        asset_name=_asset_name,
+                        subset_name=_subset_name,
+                        representation_name=_representation_name
+                    )
+                except Exception as e:
+                    self.log.warning(e)
+        else:
+            if not any([_asset, _subset, _representation]):
+                self.log.error("Nothing selected")
+                return
+
+            for item in self._items:
+                _asset_name = _asset
+                _subset_name = _subset
+                _representation_name = _representation
+
+                _id = io.ObjectId(item["representation"])
+                representation = io.find_one({
+                    "type": "representation",
+                    "_id": _id
+                })
+                version, subset, asset, project = io.parenthood(representation)
+                if _subset_name is not None and _asset_name is None:
+                    lod_regex_result = re.search(
+                        self.LOD_REGEX, subset['name']
+                    )
+                    if lod_regex_result:
+                        lod = lod_regex_result.group(0)
+                        _subset_name += lod
+
+                try:
+                    switch_item(
+                        item,
+                        asset_name=_asset_name,
+                        subset_name=_subset_name,
+                        representation_name=_representation_name
+                    )
+                except Exception as e:
+                    self.log.warning(e)
 
         self.switched.emit()
 
