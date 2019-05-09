@@ -582,8 +582,8 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         if refresh_type < 2:
             last_subset = self._subsets_box.currentText()
 
-            subsets = sorted(self._get_subsets())
             self._compute_is_lod()
+            subsets, gs = self._group_lods(sorted(self._get_subsets()))
             self.fill_check = False
             self._subsets_box.populate(subsets)
             self.fill_check = True
