@@ -581,19 +581,8 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                     self._subsets_box.setCurrentIndex(index)
 
         if refresh_type < 3:
-            last_repre = self._representations_box.currentText()
 
-            representations = sorted(self._get_representations())
-            self._representations_box.populate(representations)
-
-            if (last_repre != "" and last_repre in list(representations)):
-                index = None
-                for i in range(self._representations_box.count()):
-                    if last_repre == self._representations_box.itemText(i):
-                        index = i
-                        break
-                if index is not None:
-                    self._representations_box.setCurrentIndex(index)
+            self._fill_representations_box()
 
         self.set_labels()
         self.validate()
@@ -653,6 +642,22 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self.is_lod = is_lod
 
         return is_lod
+
+    def _fill_representations_box(self):
+        last_repre = self._representations_box.currentText()
+        representations = sorted(self._get_representations())
+        self.fill_check = False
+        self._representations_box.populate(representations)
+
+        if (last_repre != '' and last_repre in list(representations)):
+            index = None
+            for i in range(self._representations_box.count()):
+                if last_repre == self._representations_box.itemText(i):
+                    index = i
+                    break
+            if index is not None:
+                self._representations_box.setCurrentIndex(index)
+        self.fill_check = True
     def set_labels(self):
         default = "*No changes"
         asset_label = default
