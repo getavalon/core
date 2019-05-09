@@ -467,6 +467,8 @@ class SearchComboBox(QtWidgets.QComboBox):
 class SwitchAssetDialog(QtWidgets.QDialog):
     """Widget to support asset switching"""
 
+    fill_check = False
+    initialized = False
     switched = QtCore.Signal()
 
     is_lod = False
@@ -546,6 +548,8 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         # Set default focus to accept button so you don't directly type in
         # first asset field, this also allows to see the placeholder value.
         accept_btn.setFocus()
+        self.fill_check = True
+        self.initialized = True
 
     def connections(self):
         self._accept_btn.clicked.connect(self._on_accept)
@@ -566,16 +570,23 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
     def refresh(self, refresh_type):
         """Build the need comboboxes with content"""
+        if (not self.fill_check or not self.initialized) and refresh_type > 0:
+            return
+
         if refresh_type < 1:
             assets = sorted(self._get_assets())
+            self.fill_check = False
             self._assets_box.populate(assets)
+            self.fill_check = True
 
         if refresh_type < 2:
             last_subset = self._subsets_box.currentText()
 
             subsets = sorted(self._get_subsets())
+            self._compute_is_lod()
+            self.fill_check = False
             self._subsets_box.populate(subsets)
-
+            self.fill_check = True
             if (last_subset != "" and last_subset in list(subsets)):
                 index = None
                 for i in range(self._subsets_box.count()):
