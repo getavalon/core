@@ -467,6 +467,8 @@ class SearchComboBox(QtWidgets.QComboBox):
 class SwitchAssetDialog(QtWidgets.QDialog):
     """Widget to support asset switching"""
 
+    MIN_WIDTH = 550
+
     fill_check = False
     initialized = False
     switched = QtCore.Signal()
@@ -543,7 +545,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         self.refresh(0)
 
-        self.setFixedSize(self.sizeHint())  # Lock window size
+        self.setMinimumWidth(self.MIN_WIDTH)
 
         # Set default focus to accept button so you don't directly type in
         # first asset field, this also allows to see the placeholder value.
