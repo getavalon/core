@@ -996,54 +996,243 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         return subsets_out, groups
 
     def _get_representations(self):
-        if self._subsets_box.currentText() != "":
-            subsets = []
-            parents = []
-            subsets.append(self._subsets_box.currentText())
+        output_repres = set()
+        # If nothing is selected
+        if (
+            self._assets_box.currentText() == '' and
+            self._subsets_box.currentText() == '' and
+            (
+                self.is_lod is False or
+                self._lods_box.currentText() == ''
+            )
+        ):
+            for item in self._items:
+                _id = io.ObjectId(item["representation"])
+                representation = io.find_one({
+                    "type": "representation",
+                    "_id": _id
+                })
+                # version, subset, asset, project = io.parenthood(representation)
+                repres = io.find({
+                    'type':'representation',
+                    'parent': representation['parent']
+                })
+                merge_repres = set()
+                for repre in repres:
+                    merge_repres.add(repre['name'])
+                if output_repres:
+                    output_repres = (output_repres & merge_repres)
+                else:
+                    output_repres = merge_repres
 
-            for subset in subsets:
-                entity = io.find_one({
+        # If everything is selected
+        elif(
+            self._assets_box.currentText() != '' and
+            self._subsets_box.currentText() != '' and
+            (
+                self.is_lod is False or
+                self._lods_box.currentText() != ''
+            )
+        ):
+            asset = io.find_one({
+                'type': 'asset',
+                'name': self._assets_box.currentText()
+            })
+            # subset
+            subset_name = self._subsets_box.currentText()
+            if self.is_lod:
+                subset_name = subset_name.replace(self.LOD_MARK, '')
+                lod_name = self._lods_box.currentText()
+                if lod_name != self.LOD_NOT_LOD:
+                    subset_name += (
+                        self.LOD_SPLITTER + self._lods_box.currentText()
+                    )
+            subset = io.find_one({
+                'type': 'subset',
+                'parent': asset['_id'],
+                'name': subset_name
+            })
+            #versions
+            versions = io.find({
+                'type': 'version',
+                'parent': subset['_id']
+            }, sort=[('name', 1)])
+            versions = [version for version in versions]
+            if len(versions) == 0:
+                return list(output_repres)
+            # representations
+            repres = io.find({
+                'type': 'representation',
+                'parent': versions[-1]['_id']
+            })
+            output_repres = [repre['name'] for repre in repres]
+
+        # Rest of If asset is selected
+        elif(
+            self._assets_box.currentText() != ''
+        ):
+            # if is LOD and (subset or lod) are selected
+            asset = io.find_one({
+                'type': 'asset',
+                'name': self._assets_box.currentText()
+            })
+            subsets = io.find({
+                'type': 'subset',
+                'parent': asset['_id']
+            })
+
+            possible_subsets = []
+            if (
+                self.is_lod and (
+                    self._subsets_box.currentText() != '' or
+                    self._lods_box.currentText() != ''
+                )
+            ):
+                if self._subsets_box.currentText() != '':
+                    subset_name = self._subsets_box.currentText()
+                    subset_name = subset_name.replace(self.LOD_MARK, '')
+                    for subset in subsets:
+                        if subset['name'].startswith(subset_name):
+                            possible_subsets.append(subset)
+                else:
+                    lod_name = self._lods_box.currentText()
+                    if lod_name == self.LOD_NOT_LOD:
+                        for subset in subsets:
+                            lod_regex_result = re.search(
+                                self.LOD_REGEX, subs['name']
+                            )
+                            if lod_regex_result:
+                                continue
+                            possible_subsets.append(subset)
+                    else:
+                        for subset in subsets:
+                            if subset['name'].endswith(lod_name):
+                                possible_subsets.append(subset)
+            # if only asset is selected
+            else:
+                possible_subsets = subsets
+            #versions
+            versions = []
+            for subset in possible_subsets:
+                _versions = io.find({
+                    'type': 'version',
+                    'parent': subset['_id']
+                }, sort=[('name', 1)])
+                _versions = [version for version in _versions]
+                if len(_versions) == 0:
+                    continue
+                versions.append(_versions[-1])
+            if len(versions) == 0:
+                return list(output_repres)
+            # representations
+            for version in versions:
+                repres = io.find({
+                    'type': 'representation',
+                    'parent': version['_id']
+                }).distinct('name')
+                repre_names = set(repres)
+                if output_repres:
+                    output_repres = (output_repres & repre_names)
+                else:
+                    output_repres = repre_names
+
+        # if asset is not selected and lod is selected
+        elif self.is_lod and self._lods_box.currentText() != '':
+            lod_name = self._lods_box.currentText()
+            for item in self._items:
+                _id = io.ObjectId(item["representation"])
+                representation = io.find_one({
+                    "type": "representation",
+                    "_id": _id
+                })
+                ver, subs, asset, proj = io.parenthood(representation)
+                subset_name = self._strip_lod(subs['name'])
+                if lod_name != self.LOD_NOT_LOD:
+                    subset_name = self.LOD_SPLITTER.join(
+                        [subset_name, lod_name]
+                    )
+
+                subsets = io.find({
                     'type': 'subset',
-                    'name': subset
+                    'parent': asset['_id'],
+                    'name': subset_name
                 })
 
-                entity = io.find_one(
-                    {
+                versions = []
+                for subset in subsets:
+                    _versions = io.find({
                         'type': 'version',
-                        'parent': entity['_id']
-                    },
-                    sort=[('name', -1)]
-                )
-                if entity not in parents:
-                    parents.append(entity)
+                        'parent': subset['_id']
+                    }, sort=[('name', 1)])
+                    _versions = [version for version in _versions]
+                    if len(_versions) == 0:
+                        continue
+                    versions.append(_versions[-1])
 
-            return self._get_document_names("representation", parents)
+                if len(versions) == 0:
+                    return list(output_repres)
 
-        versions = []
-        for item in self._items:
-            _id = io.ObjectId(item["representation"])
-            representation = io.find_one(
-                {"type": "representation", "_id": _id}
-            )
-            version, subset, asset, project = io.parenthood(representation)
-            versions.append(version)
+                for version in versions:
+                    repres = io.find({
+                        'type': 'representation',
+                        'parent': version['_id']
+                    }).distinct('name')
+                    repre_names = set(repres)
+                    if output_repres:
+                        output_repres = (output_repres & repre_names)
+                    else:
+                        output_repres = repre_names
 
-        possible_repres = None
-        for version in versions:
-            representations = io.find({
-                'type': 'representation',
-                'parent': version['_id']
-            })
-            repres = set()
-            for repre in representations:
-                repres.add(repre['name'])
+        # if asset is not selected
+        else:
+            subset_text = self._subsets_box.currentText()
+            if self.is_lod:
+                subset_text = subset_text.replace(self.LOD_MARK, '')
 
-            if possible_repres is None:
-                possible_repres = repres
-            else:
-                possible_repres = (possible_repres & repres)
+            for item in self._items:
+                _id = io.ObjectId(item["representation"])
+                representation = io.find_one({
+                    "type": "representation",
+                    "_id": _id
+                })
+                ver, subs, asset, proj = io.parenthood(representation)
 
-        return list(possible_repres)
+                subset_name = subset_text
+                lod_regex_result = re.search(self.LOD_REGEX, subs['name'])
+                if lod_regex_result:
+                     subset_name += lod_regex_result.group(0)
+                # should find only one subset
+                subsets = io.find({
+                    'type': 'subset',
+                    'parent': asset['_id'],
+                    'name': subset_name
+                })
+                versions = []
+                for subset in subsets:
+                    _versions = io.find({
+                        'type': 'version',
+                        'parent': subset['_id']
+                    }, sort=[('name', 1)])
+                    _versions = [version for version in _versions]
+                    if len(_versions) == 0:
+                        continue
+                    versions.append(_versions[-1])
+
+                if len(versions) == 0:
+                    return list(output_repres)
+
+                for version in versions:
+                    repres = io.find({
+                        'type': 'representation',
+                        'parent': version['_id']
+                    }).distinct('name')
+                    repre_names = set(repres)
+                    if output_repres:
+                        output_repres = (output_repres & repre_names)
+                    else:
+                        output_repres = repre_names
+
+        return list(output_repres)
 
     def _get_document_names(self, document_type, parents=[]):
 
