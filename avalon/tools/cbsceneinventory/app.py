@@ -598,6 +598,61 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self.set_labels()
         self.validate()
 
+    def _compute_is_lod(self):
+        is_lod = True
+        if self._assets_box.currentText() != '':
+            asset = io.find_one({
+                'type': 'asset',
+                'name': self._assets_box.currentText()
+            })
+            subsets = io.find({'parent': asset['_id']})
+            is_lod = False
+            for subset in subsets:
+                lod_regex_result = re.search(
+                    self.LOD_REGEX, subset['name']
+                )
+                # If had at least one LOD subset
+                if lod_regex_result:
+                    is_lod = True
+                    break
+        else:
+            for item in self._items:
+                if is_lod is False:
+                    break
+                _id = io.ObjectId(item['representation'])
+                repre = io.find_one({'_id': _id})
+                version = io.find_one({'_id': repre['parent']})
+                subset = io.find_one({'_id': version['parent']})
+
+                lod_regex_result = re.search(
+                    self.LOD_REGEX, subset['name']
+                )
+                if lod_regex_result:
+                    continue
+
+                if self._assets_box.currentText() == '':
+                    parent = subset['parent']
+                else:
+                    asset = io.find_one({
+                        'type': 'asset',
+                        'name': self._assets_box.currentText()
+                    })
+                    parent = asset['_id']
+                # check if exists lod subset with same name
+                lod_subsets = []
+                for sub in io.find({'parent': parent}):
+                    name = sub['name']
+                    lod_regex_result = re.search(self.LOD_REGEX, name)
+                    if not lod_regex_result:
+                        continue
+                    if name.startswith(subset['name']):
+                        lod_subsets.append(name)
+                if len(lod_subsets) == 0:
+                    is_lod = False
+
+        self.is_lod = is_lod
+
+        return is_lod
     def set_labels(self):
         default = "*No changes"
         asset_label = default
