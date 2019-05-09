@@ -805,20 +805,20 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self.fill_check = True
 
     def set_labels(self):
-        default = "*No changes"
-        asset_label = default
-        subset_label = default
-        repre_label = default
+        asset_label = subset_label = repre_label = lod_label = "*No changes"
 
         if self._assets_box.currentText() != '':
             asset_label = self._assets_box.currentText()
         if self._subsets_box.currentText() != '':
             subset_label = self._subsets_box.currentText()
+        if self._lods_box.currentText() != '':
+            lod_label = self._lods_box.currentText()
         if self._representations_box.currentText() != '':
             repre_label = self._representations_box.currentText()
 
         self._asset_label.setText(asset_label)
         self._subset_label.setText(subset_label)
+        self._lod_label.setText(lod_label)
         self._repre_label.setText(repre_label)
 
     def validate(self):
