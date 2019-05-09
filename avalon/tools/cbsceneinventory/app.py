@@ -802,6 +802,48 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         return list(possible_subsets)
 
+    def _group_lods(self, subsets):
+        """
+        Group subset names if they contains ``_LODx`` string in list under
+        dict key with the name of group.
+
+        Example::
+            ``['A_LOD1', 'A_LOD2', 'B_LOD1', 'B_LOD2', 'C']``
+            will became:
+            ``
+            {
+                "A(LODs)": ['LOD1', 'LOD2'],
+                "B(LODs)": ['LOD1', 'LOD2']
+            }
+
+        :param subsets: List of subset names
+        :param type: list
+        :returns: dict of groups and list of all subset with group names
+        :rtype: dict, list
+        """
+        groups = collections.defaultdict(list)
+        subsets_out = []
+        for subset in subsets:
+            lod_regex_result = re.search(self.LOD_REGEX, subset)
+            if lod_regex_result:
+                # strip _LOD string from subset name
+                grp_name = re.search('(.*){}'.format(
+                    lod_regex_result.group(0)), subset
+                )
+                # This formatting can't be changed!!!
+                #  - replacing on accept won't work (LOD_MARK is replaced)
+                key_name = "{}{}".format(grp_name.group(1), self.LOD_MARK)
+                # store only 'LOD*number*'
+                groups[key_name].append(
+                    lod_regex_result.group(1).replace('_', '')
+                )
+                if key_name not in subsets_out:
+                    subsets_out.append(key_name)
+            elif subset not in subsets_out:
+                subsets_out.append(subset)
+
+        return subsets_out, groups
+
     def _get_representations(self):
         if self._subsets_box.currentText() != "":
             subsets = []
