@@ -22,7 +22,6 @@ from .proxy import FilterProxyModel
 from .model import InventoryModel
 from .lib import switch_item
 import collections
-from pprint import pprint
 
 DEFAULT_COLOR = "#fb9c15"
 
@@ -470,6 +469,12 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
     switched = QtCore.Signal()
 
+    is_lod = False
+    LOD_REGEX = re.compile(r"_(LOD\d+)")
+    LOD_MARK = '(LODs)'
+    LOD_SPLITTER = '_'
+    LOD_NOT_LOD = '< without LOD >'
+
     def __init__(self, parent=None, items=None):
         QtWidgets.QDialog.__init__(self, parent)
 
@@ -481,17 +486,21 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         self._assets_box = SearchComboBox(placeholder="<asset>")
         self._subsets_box = SearchComboBox(placeholder="<subset>")
+        self._lods_box = SearchComboBox(placeholder="<lod>")
         self._representations_box = SearchComboBox(
-            placeholder="<representation>")
+            placeholder="<representation>"
+        )
 
         self._asset_label = QtWidgets.QLabel('')
         self._subset_label = QtWidgets.QLabel('')
+        self._lod_label = QtWidgets.QLabel('')
         self._repre_label = QtWidgets.QLabel('')
 
         main_layout = QtWidgets.QVBoxLayout()
         context_layout = QtWidgets.QHBoxLayout()
         asset_layout = QtWidgets.QVBoxLayout()
         subset_layout = QtWidgets.QVBoxLayout()
+        lod_layout = QtWidgets.QVBoxLayout()
         repre_layout = QtWidgets.QVBoxLayout()
 
         accept_icon = qta.icon("fa.check", color="white")
@@ -504,11 +513,14 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         asset_layout.addWidget(self._asset_label)
         subset_layout.addWidget(self._subsets_box)
         subset_layout.addWidget(self._subset_label)
+        lod_layout.addWidget(self._lods_box)
+        lod_layout.addWidget(self._lod_label)
         repre_layout.addWidget(self._representations_box)
         repre_layout.addWidget(self._repre_label)
 
         context_layout.addLayout(asset_layout)
         context_layout.addLayout(subset_layout)
+        context_layout.addLayout(lod_layout)
         context_layout.addLayout(repre_layout)
         context_layout.addWidget(accept_btn)
 
@@ -516,6 +528,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         self._assets_box.currentIndexChanged.connect(self.on_assets_change)
         self._subsets_box.currentIndexChanged.connect(self.on_subset_change)
+        self._lods_box.currentIndexChanged.connect(self.on_lod_change)
         self._representations_box.currentIndexChanged.connect(
             self.on_repre_change
         )
@@ -823,6 +836,21 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self.switched.emit()
 
         self.close()
+
+    def _strip_lod(self, subset):
+        """
+        Strip _LODx string from subset name or return subset name unmodified.
+        :param subset: subset name
+        :type subset: str
+        :returns: subset name
+        :rtype: str
+        """
+        m = re.search(self.LOD_REGEX, subset)
+        if m:
+            grp_name = re.search('(.*){}'.format(m.group(0)), subset)
+            return grp_name.group(1)
+        else:
+            return subset
 
 
 class Window(QtWidgets.QDialog):
