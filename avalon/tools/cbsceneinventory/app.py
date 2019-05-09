@@ -824,43 +824,178 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self._repre_label.setText(repre_label)
 
     def validate(self):
-        asset_name = self._assets_box.get_valid_value() or None
-        subset_name = self._subsets_box.get_valid_value() or None
-        repre_name = self._representations_box.get_valid_value() or None
+        _asset_name = self._assets_box.get_valid_value() or None
+        _subset_name = self._subsets_box.get_valid_value() or None
+        _lod_name = self._lods_box.get_valid_value() or None
+        _repre_name = self._representations_box.get_valid_value() or None
 
         asset_ok = True
         subset_ok = True
+        lod_ok = True
         repre_ok = True
         for item in self._items:
-            if any(not x for x in [asset_name, subset_name, repre_name]):
-                _id = io.ObjectId(item["representation"])
-                representation = io.find_one({
-                    "type": "representation",
-                    "_id": _id
-                })
-                version, subset, asset, project = io.parenthood(representation)
+            _id = io.ObjectId(item["representation"])
+            representation = io.find_one({
+                "type": "representation",
+                "_id": _id
+            })
+            ver, subset, asset, proj = io.parenthood(representation)
 
-                if asset_name is None:
-                    asset_name = asset["name"]
+            asset_name = _asset_name
+            subset_name = _subset_name
+            lod_name = _lod_name
+            repre_name = _repre_name
 
-                if subset_name is None:
-                    subset_name = subset["name"]
+            if asset_name is None:
+                asset_name = asset["name"]
 
-                if repre_name is None:
-                    repre_name = representation["name"]
+            # asset check
+            asset = io.find_one({
+                "name": asset_name,
+                "type": "asset"
+            })
 
-            asset = io.find_one({"name": asset_name, "type": "asset"})
             if asset is None:
                 asset_ok = False
                 continue
-            subset = io.find_one({
-                "name": subset_name,
-                "type": "subset",
-                "parent": asset["_id"]
-            })
-            if subset is None:
-                subset_ok = False
-                continue
+
+            if repre_name is None:
+                repre_name = representation["name"]
+
+            if self.is_lod and self._lods_box.isVisible():
+                subsets = io.find({
+                    "type": "subset",
+                    "parent": asset["_id"]
+                })
+
+                if subset_name is None and lod_name is None:
+                    subset_name = subset["name"]
+                    lod_regex_result = re.search(
+                        self.LOD_REGEX, subset_name
+                    )
+                    subset = io.find_one({
+                        "name": subset_name,
+                        "type": "subset",
+                        "parent": asset["_id"]
+                    })
+                    if not lod_regex_result:
+                        subset_ok = False
+                        continue
+                    elif subset is None:
+                        lod_part = lod_regex_result.group(1)
+                        subset_part = subset_name.replace(
+                            lod_regex_result.group(0), ''
+                        )
+                        _sub_ok = False
+                        for subset in subsets:
+                            if subset['name'].startswith(subset_part):
+                                _sub_ok = True
+                                break
+                        if subset_ok:
+                            subset_ok = _sub_ok
+                        if lod_ok:
+                            lod_ok = not _sub_ok
+                        continue
+
+                elif subset_name is None:
+                    subset_name = subset["name"]
+                    lod_regex_result = re.search(
+                        self.LOD_REGEX, subset_name
+                    )
+                    if not lod_regex_result:
+                        subset_ok = False
+                        continue
+                    subset_name = subset_name.replace(
+                        lod_regex_result.group(0),
+                        (self.LOD_SPLITTER + lod_name)
+                    )
+                    subset = io.find_one({
+                        "name": subset_name,
+                        "type": "subset",
+                        "parent": asset["_id"]
+                    })
+                    if subset is None:
+                        subset_ok = False
+                        continue
+
+                elif lod_name is None:
+                    orig_subset_name = subset["name"]
+                    lod_regex_result = re.search(
+                        self.LOD_REGEX, orig_subset_name
+                    )
+                    if not lod_regex_result:
+                        lod_ok = False
+                        continue
+                    subset_name = subset_name.replace(self.LOD_MARK, '')
+                    subset_name += (
+                        lod_regex_result.group(0)
+                    )
+                    subset = io.find_one({
+                        "name": subset_name,
+                        "type": "subset",
+                        "parent": asset["_id"]
+                    })
+                    if subset is None:
+                        lod_ok = False
+                        continue
+                else:
+                    orig_subset_name = subset['name']
+                    subset_name = subset_name.replace(self.LOD_MARK, '')
+                    subset_name += self.LOD_SPLITTER + lod_name
+                    subset = io.find_one({
+                        "name": subset_name,
+                        "type": "subset",
+                        "parent": asset["_id"]
+                    })
+
+                    # This should never happen
+                    if subset is None:
+                        lod_regex_result = re.search(
+                            self.LOD_REGEX, orig_subset_name
+                        )
+                        lod_part = lod_regex_result.group(1)
+                        subset_part = subset_name.replace(
+                            lod_regex_result.group(0), ''
+                        )
+                        _sub_ok = False
+                        for subset in subsets:
+                            if subset['name'].startswith(subset_part):
+                                _sub_ok = True
+                                break
+                        if _sub_ok and self._lods_box.count() == 0:
+                            _sub_ok = False
+                        if subset_ok:
+                            subset_ok = _sub_ok
+                        if lod_ok:
+                            lod_ok = not _sub_ok
+                        continue
+
+            else:
+                if subset_name is None:
+                    subset_name = subset["name"]
+                    lod_regex_result = re.search(
+                        self.LOD_REGEX, subset['name']
+                    )
+                    if lod_regex_result and _asset_name is not None:
+                        subset_name = subset_name.replace(
+                            lod_regex_result.group(0), ''
+                        )
+                else:
+                    lod_regex_result = re.search(
+                        self.LOD_REGEX, subset['name']
+                    )
+                    if lod_regex_result and _asset_name is None:
+                        subset_name += lod_regex_result.group(0)
+
+                subset = io.find_one({
+                    "name": subset_name,
+                    "type": "subset",
+                    "parent": asset["_id"]
+                })
+                if subset is None:
+                    subset_ok = False
+                    continue
+
             version = io.find_one(
                 {
                     "type": "version",
@@ -879,29 +1014,36 @@ class SwitchAssetDialog(QtWidgets.QDialog):
             })
             if repre is None:
                 repre_ok = False
+                continue
 
-        asset_sheet = ''
-        subset_sheet = ''
-        repre_sheet = ''
-        accept_sheet = ''
         error_msg = '*Please select'
+        error_sheet = 'border: 1px solid red;'
+        success_sheet = 'border: 1px solid green;'
+        asset_sheet = subset_sheet = repre_sheet = lod_sheet = ''
+        accept_sheet = ''
+        all_ok = asset_ok and subset_ok and lod_ok and repre_ok
+
         if asset_ok is False:
-            asset_sheet = 'border: 1px solid red;'
+            asset_sheet = error_sheet
             self._asset_label.setText(error_msg)
         if subset_ok is False:
-            subset_sheet = 'border: 1px solid red;'
+            subset_sheet = error_sheet
             self._subset_label.setText(error_msg)
+        if lod_ok is False:
+            lod_sheet = error_sheet
+            self._lod_label.setText(error_msg)
         if repre_ok is False:
-            repre_sheet = 'border: 1px solid red;'
+            repre_sheet = error_sheet
             self._repre_label.setText(error_msg)
-        if asset_ok and subset_ok and repre_ok:
-            accept_sheet = 'border: 1px solid green;'
+        if all_ok:
+            accept_sheet = success_sheet
 
         self._assets_box.setStyleSheet(asset_sheet)
         self._subsets_box.setStyleSheet(subset_sheet)
+        self._lods_box.setStyleSheet(lod_sheet)
         self._representations_box.setStyleSheet(repre_sheet)
 
-        self._accept_btn.setEnabled(asset_ok and subset_ok and repre_ok)
+        self._accept_btn.setEnabled(all_ok)
         self._accept_btn.setStyleSheet(accept_sheet)
 
     def _get_assets(self):
@@ -938,7 +1080,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
             version, subset, asset, project = io.parenthood(representation)
             assets.append(asset)
 
-        possible_subsets = None
+        possible_subsets = set()
         for asset in assets:
             subsets = io.find({
                 'type': 'subset',
@@ -946,12 +1088,17 @@ class SwitchAssetDialog(QtWidgets.QDialog):
             })
             asset_subsets = set()
             for subset in subsets:
-                asset_subsets.add(subset['name'])
-
-            if possible_subsets is None:
-                possible_subsets = asset_subsets
-            else:
+                subset_name = subset['name']
+                lod_regex_result = re.search(self.LOD_REGEX, subset_name)
+                if not self.is_lod and lod_regex_result:
+                    subset_name = subset_name.replace(
+                        lod_regex_result.group(0), ''
+                    )
+                asset_subsets.add(subset_name)
+            if possible_subsets:
                 possible_subsets = (possible_subsets & asset_subsets)
+            else:
+                possible_subsets = asset_subsets
 
         return list(possible_subsets)
 
