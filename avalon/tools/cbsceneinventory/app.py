@@ -679,6 +679,131 @@ class SwitchAssetDialog(QtWidgets.QDialog):
             if index is not None:
                 self._representations_box.setCurrentIndex(index)
         self.fill_check = True
+
+    def _fill_lod_box(self):
+        asset_text = self._assets_box.currentText()
+        subset_text = self._subsets_box.currentText()
+        last_lod = self._lods_box.currentText()
+
+        if subset_text != '':
+            is_lod = self.LOD_MARK in subset_text
+            # self.is_lod = is_lod
+            self._lods_box.setVisible(is_lod)
+            self._lod_label.setVisible(is_lod)
+            if not is_lod:
+                lods = []
+                lods.append(self.LOD_NOT_LOD)
+                self.fill_check = False
+                self._lods_box.populate(list(lods))
+                self._lods_box.setCurrentIndex(0)
+                self.fill_check = True
+                return
+
+        lods = set()
+        if asset_text != '' and subset_text != '':
+            subset_part = subset_text.replace(self.LOD_MARK, '')
+            asset = io.find_one({
+                'type': 'asset',
+                'name': asset_text
+            })
+            subsets = io.find({
+                'type': 'subset',
+                'parent': asset['_id']
+            })
+            for subset in subsets:
+                if not subset['name'].startswith(subset_part):
+                    continue
+                lod_regex_result = re.search(self.LOD_REGEX, subset['name'])
+                if lod_regex_result:
+                    lod = lod_regex_result.group(0).replace(
+                        self.LOD_SPLITTER, ''
+                    )
+                else:
+                    lod = self.LOD_NOT_LOD
+                lods.add(lod)
+
+        elif asset_text != '':
+            asset = io.find_one({
+                'type': 'asset',
+                'name': asset_text
+            })
+            subsets = io.find({
+                'type': 'subset',
+                'parent': asset['_id']
+            })
+            subset_names, groups = self._group_lods(
+                sorted(subsets.distinct('name'))
+            )
+            is_lod = True
+            for name in subset_names:
+                if self.LOD_MARK not in name:
+                    is_lod = False
+                    break
+
+            self._lods_box.setVisible(is_lod)
+            self._lod_label.setVisible(is_lod)
+            if not is_lod:
+                lods = []
+                lods.append(self.LOD_NOT_LOD)
+                self.fill_check = False
+                self._lods_box.populate(lods)
+                self._lods_box.setCurrentIndex(0)
+                self.fill_check = True
+                return
+            for _lods in groups.values():
+                sub_lods = set()
+                for lod in _lods:
+                    sub_lods.add(lod)
+                if lods:
+                    lods = (lods & sub_lods)
+                else:
+                    lods = sub_lods
+
+        else:
+            subset_part = subset_text.replace(self.LOD_MARK, '')
+            for item in self._items:
+                item_lods = set()
+                _id = io.ObjectId(item["representation"])
+                representation = io.find_one({
+                    "type": "representation",
+                    "_id": _id
+                })
+                version, subset, asset, project = io.parenthood(representation)
+                subsets = io.find({
+                    'type': 'subset',
+                    'parent': asset['_id']
+                })
+                for subset in subsets:
+                    if not subset['name'].startswith(subset_part):
+                        continue
+                    lod_regex_result = re.search(self.LOD_REGEX, subset['name'])
+                    if lod_regex_result:
+                        lod = lod_regex_result.group(0).replace(
+                            self.LOD_SPLITTER, ''
+                        )
+                    else:
+                        lod = self.LOD_NOT_LOD
+                    item_lods.add(lod)
+                if lods:
+                    lods = (lods & item_lods)
+                else:
+                    lods = item_lods
+
+        lods = sorted(list(lods))
+        self.fill_check = False
+        # fill lods into combobox
+        self._lods_box.populate(lods)
+        # try select last LOD if was selected
+        if last_lod != '':
+            index = None
+            for i in range(self._lods_box.count()):
+                if last_lod == self._lods_box.itemText(i):
+                    index = i
+                    break
+            if index is not None:
+                self._lods_box.setCurrentIndex(index)
+        self.fill_check = True
+
     def set_labels(self):
         default = "*No changes"
         asset_label = default
