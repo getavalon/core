@@ -1427,7 +1427,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
                 if _subset_name is not None and _lod_name is not None:
                     _subset_name = self.LOD_SPLITTER.join([
-                        _subset_name.replace(self.LOD_MARK),
+                        _subset_name.replace(self.LOD_MARK, ''),
                         _lod_name
                     ])
                 elif _subset_name is not None and self._lods_box.isVisible():
