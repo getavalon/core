@@ -41,6 +41,14 @@ __all__ = [
     "get_current_comp",
     "comp_lock_and_undo_chunk",
 
+    # Workfiles API
+    "open",
+    "save",
+    "current_file",
+    "has_unsaved_changes",
+    "file_extensions",
+    "work_root",
+
     "maintained_selection"
 
 ]

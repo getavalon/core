@@ -70,6 +70,15 @@ __all__ = [
     "is_locked",
     "lock_ignored",
 
+    # Workfiles API
+    "open",
+    "save",
+    "current_file",
+    "has_unsaved_changes",
+    "file_extensions",
+    "work_root",
+
+    # Utility functions
     "export_alembic",
     "lsattr",
     "lsattrs",

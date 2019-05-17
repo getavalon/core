@@ -37,6 +37,14 @@ __all__ = [
     "ls",
     "containerise",
 
+    # Workfiles API
+    "open",
+    "save",
+    "current_file",
+    "has_unsaved_changes",
+    "file_extensions",
+    "work_root",
+
     # Utility functions
     "lsattr",
     "lsattrs",
