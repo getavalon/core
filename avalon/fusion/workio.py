@@ -1,5 +1,6 @@
 """Host API required Work Files tool"""
 import sys
+import os
 
 
 def file_extensions():
