@@ -16,18 +16,21 @@ def determine_application():
     # Determine executable
     application = None
 
-    basename = os.path.basename(sys.executable).lower()
+    host = os.getenv("AVALON_APP", None)
 
-    if "maya" in basename:
+    if host in "maya":
         application = "maya"
 
-    if "nuke" in basename:
+    elif host in "nuke":
         application = "nuke"
+
+    elif host in "nukestudio":
+        application = "nukestudio"
 
     if application is None:
         raise ValueError(
             "Could not determine application from executable:"
-            " \"{0}\"".format(sys.executable)
+            " \"{0}\"".format(host)
         )
 
     return application
@@ -248,7 +251,7 @@ class NameWindow(QtWidgets.QDialog):
         if "workfile" in templates:
             self.template = templates["workfile"]
 
-        self.extensions = {"maya": ".ma", "nuke": ".nk"}
+        self.extensions = {"maya": ".ma", "nuke": ".nk", "nukestudio": ".hrox"}
 
 
 class Window(QtWidgets.QDialog):
@@ -266,7 +269,8 @@ class Window(QtWidgets.QDialog):
 
         filters = {
             "maya": [".ma", ".mb"],
-            "nuke": [".nk", ".nknc"]
+            "nuke": [".nk", ".nknc"],
+            "nukestudio": [".hrox"]
         }
         self.application = determine_application()
         self.filter = filters[self.application]
@@ -326,7 +330,8 @@ class Window(QtWidgets.QDialog):
     def current_file(self):
         func = {
             "maya": self.current_file_maya,
-            "nuke": self.current_file_nuke
+            "nuke": self.current_file_nuke,
+            "nukestudio": self.current_file_nukestudio
         }
         return func[self.application]()
 
@@ -354,6 +359,19 @@ class Window(QtWidgets.QDialog):
 
         # Unsaved current file
         if nuke.Root().name() == 'Root':
+            return "NOT SAVED"
+
+        return normalised
+
+    def current_file_nukestudio(self):
+        import os
+        import hiero
+
+        current_file = hiero.core.projects()[-1].path()
+        normalised = os.path.normpath(current_file)
+
+        # Unsaved current file
+        if normalised is '':
             return "NOT SAVED"
 
         return normalised
@@ -397,6 +415,11 @@ class Window(QtWidgets.QDialog):
     def save_as_nuke(self, file_path):
         import nuke
         nuke.scriptSaveAs(file_path)
+
+    def save_as_nukestudio(self, file_path):
+        import hiero
+        project = hiero.core.newProject()
+        project.saveAs(file_path)
 
     def save_changes_prompt(self):
         messagebox = QtWidgets.QMessageBox()
@@ -454,10 +477,16 @@ class Window(QtWidgets.QDialog):
 
         return True
 
+    def open_nukestudio(self, file_path):
+        import hiero
+        hiero.core.openProject(file_path)
+        return True
+
     def open(self, file_path):
         func = {
             "maya": self.open_maya,
-            "nuke": self.open_nuke
+            "nuke": self.open_nuke,
+            "nukestudio": self.open_nukestudio
         }
 
         work_file = os.path.join(
@@ -518,7 +547,8 @@ class Window(QtWidgets.QDialog):
 
         save_as = {
             "maya": self.save_as_maya,
-            "nuke": self.save_as_nuke
+            "nuke": self.save_as_nuke,
+            "nukestudio": self.save_as_nukestudio
         }
         application = determine_application()
         if application not in save_as:
