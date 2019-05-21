@@ -1,5 +1,5 @@
 import logging
-import toml
+import json
 import re
 import os
 import platform
@@ -10,7 +10,7 @@ from . import lib
 PLATFORM = platform.system().lower()
 
 logging.basicConfig()
-log = logging.getLogger(__name__)
+log = logging.getLogger()
 
 
 class CycleError(ValueError):
@@ -138,7 +138,7 @@ def parse(env, platform_name=None):
 
         # Allow to have lists as values in the tool data
         if isinstance(value, (list, tuple)):
-            value = os.pathsep.join(value)
+            value = ";".join(value)
 
         result[variable] = value
 
@@ -151,14 +151,11 @@ def append(env, env_b):
     # todo: this function name might also be confusing with "merge"
     env = env.copy()
     for variable, value in env_b.items():
-        try:
-            for path in value.split(os.pathsep):
-                if not path:
-                    continue
-                lib.append_path(env, variable, path)
-        except Exception:
-            if not isinstance(value, str):
-                env[variable] = value
+        for path in value.split(";"):
+            if not path:
+                continue
+
+            lib.append_path(env, variable, path)
 
     return env
 
@@ -193,13 +190,13 @@ def get_tools(tools, platform_name=None):
             '"TOOL_ENV" environment variable not found. '
             'Please create it and point it to a folder with your .json '
             'config files.'
-        )
+         )
 
     # Collect the tool files to load
     tool_paths = []
     for env_path in env_paths:
         for tool in tools:
-            tool_paths.append(os.path.join(env_path, tool + ".toml"))
+            tool_paths.append(os.path.join(env_path, tool + ".json"))
 
     environment = dict()
     for tool_path in tool_paths:
@@ -207,22 +204,21 @@ def get_tools(tools, platform_name=None):
         # Load tool
         try:
             with open(tool_path, "r") as f:
-                tool_env = toml.load(f)
+                tool_env = json.load(f)
             log.debug('Read tool successfully: {}'.format(tool_path))
         except IOError:
-            log.error(
+            log.debug(
                 'Unable to find the environment file: "{}"'.format(tool_path)
             )
             continue
         except ValueError as e:
-            log.error(
+            log.debug(
                 'Unable to read the environment file: "{0}", due to:'
                 '\n{1}'.format(tool_path, e)
             )
             continue
 
         tool_env = parse(tool_env, platform_name=platform_name)
-
         environment = append(environment, tool_env)
 
     return environment
@@ -245,27 +241,11 @@ def merge(env, current_env):
         dict: The resulting environment after the merge.
 
     """
-    def _path_formating(string):
-        string = str(string)
-        frward = re.compile(r'^//').search(string)
-        bckwrd = re.compile(r'^\\').search(string)
-        url = re.compile(r'://').search(string)
-
-        if frward:
-            return os.path.normpath(string)
-        elif bckwrd:
-            return string
-        elif url:
-            return string
-        else:
-            return os.path.normpath(string)
 
     result = current_env.copy()
     for key, value in env.items():
         value = lib.partial_format(value, data=current_env, missing="")
-
-        value = _path_formating(value)
-
-        lib.append_path(result, key, value)
+        result[key] = value
 
     return result
+

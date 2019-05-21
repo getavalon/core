@@ -371,11 +371,12 @@ class Application(Action):
         tools_env = acre.get_tools(tools_attr)
         dyn_env = acre.compute(tools_env)
         dyn_env = acre.merge(dyn_env, current_env=dict(os.environ))
+        env = acre.append(dict(os.environ), dyn_env)
 
         # Build environment
-        env = os.environ.copy()
+        # env = os.environ.copy()
         env.update(self.config.get("environment", {}))
-        env.update(dyn_env)
+        # env.update(dyn_env)
         env.update(session)
 
         return env

@@ -158,11 +158,11 @@ def fix_data_for_node_create(data):
         except Exception:
             data[k] = str(v)
 
-        if "True" in v:
-            data[k] = True
-        if "False" in v:
-            data[k] = False
-        if "0x" in v:
+        # if "True" in str(v):
+        #     data[k] = True
+        # if "False" in str(v):
+        #     data[k] = False
+        if "0x" in str(v):
             data[k] = int(v, 16)
     return data
 
@@ -226,7 +226,7 @@ def get_node_path(path, padding=4):
             # remove number from end since fusion
             # will swap it with the frame number
             filename = filename.replace(match.group(1), '')
-            
+
     elif '#' in filename:
         match = re.match('.*?(#+)$', filename)
         if match:
