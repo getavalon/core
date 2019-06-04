@@ -92,7 +92,7 @@ def load(Loader,
         suffix="_",
     )
 
-    # TODO(roy): add compatibility check, see `tools.cbloader.lib`
+    # TODO(roy): add compatibility check, see `tools.loader.lib`
 
     Loader.log.info(
         "Running '%s' on '%s'" % (Loader.__name__, asset["name"])

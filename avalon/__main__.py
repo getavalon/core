@@ -29,8 +29,8 @@ if __name__ == '__main__':
         loader.show(debug=True)
 
     elif args.manager:
-        from .tools import manager
-        manager.show(debug=True)
+        from .tools import sceneinventory
+        sceneinventory.show(debug=True)
 
     elif args.projectmanager:
         from .tools import projectmanager
