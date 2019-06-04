@@ -382,7 +382,7 @@ class Window(QtWidgets.QDialog):
         modified = []
         if not os.path.exists(self.root):
             os.makedirs(self.root)
-        for f in os.listdir(self.root):
+        for f in reversed(os.listdir(self.root)):
             if os.path.isdir(os.path.join(self.root, f)):
                 continue
 
