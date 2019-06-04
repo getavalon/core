@@ -9,8 +9,8 @@ if __name__ == '__main__':
                         help="Launch Instance Creator in standalone mode")
     parser.add_argument("--loader", action="store_true",
                         help="Launch Asset Loader in standalone mode")
-    parser.add_argument("--manager", action="store_true",
-                        help="Launch Manager in standalone mode")
+    parser.add_argument("--sceneinventory", action="store_true",
+                        help="Launch Scene Inventory in standalone mode")
     parser.add_argument("--projectmanager", action="store_true",
                         help="Launch Manager in standalone mode")
     parser.add_argument("--root",
@@ -28,7 +28,7 @@ if __name__ == '__main__':
         from .tools import loader
         loader.show(debug=True)
 
-    elif args.manager:
+    elif args.sceneinventory:
         from .tools import sceneinventory
         sceneinventory.show(debug=True)
 
