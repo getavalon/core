@@ -354,6 +354,7 @@ class FamilyListWidget(QtWidgets.QListWidget):
 
     NameRole = QtCore.Qt.UserRole + 1
     active_changed = QtCore.Signal(list)
+    shadow_families = list()
 
     def __init__(self, parent=None):
         super(FamilyListWidget, self).__init__(parent=parent)
@@ -383,6 +384,8 @@ class FamilyListWidget(QtWidgets.QListWidget):
         self.blockSignals(True)
         self.clear()
         for name in sorted(unique_families):
+            if name in self.shadow_families:
+                continue
 
             family = lib.get(lib.FAMILY_CONFIG, name)
             label = family.get("label", name)

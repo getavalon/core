@@ -148,6 +148,7 @@ class Window(QtWidgets.QDialog):
         assets_model.setFocus()
 
         families = self.data["widgets"]["families"]
+        families.shadow_families = project["data"].get("shadowFamilies", [])
         families.refresh()
 
         # Update state
