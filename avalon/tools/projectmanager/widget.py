@@ -358,7 +358,7 @@ class SiloTabWidget(QtWidgets.QTabBar):
         for i in range(self.count()):
             self.removeTab(0)
 
-    def set_silos(self, silos):
+    def set_silos(self, silos, creatable=True):
 
         current_silo = self.get_current_silo()
 
@@ -372,8 +372,9 @@ class SiloTabWidget(QtWidgets.QTabBar):
         for silo in sorted(silos):
             self.addTab(silo)
 
-        # Add the "+" tab
-        self.addTab("+")
+        if creatable:
+            # Add the "+" tab
+            self.addTab("+")
 
         self.set_current_silo(current_silo)
         self.blockSignals(False)
@@ -460,7 +461,7 @@ class AssetWidget(QtWidgets.QWidget):
     selection_changed = QtCore.Signal()  # on view selection change
     current_changed = QtCore.Signal()    # on view current index change
 
-    def __init__(self, parent=None):
+    def __init__(self, silo_creatable=True, parent=None):
         super(AssetWidget, self).__init__(parent=parent)
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -505,6 +506,7 @@ class AssetWidget(QtWidgets.QWidget):
         silo.silo_changed.connect(self._on_silo_changed)
         refresh.clicked.connect(self.refresh)
 
+        self.silo_creatable = silo_creatable
         self.refreshButton = refresh
         self.silo = silo
         self.model = model
@@ -535,7 +537,7 @@ class AssetWidget(QtWidgets.QWidget):
     def refresh(self):
 
         silos = _list_project_silos()
-        self.silo.set_silos(silos)
+        self.silo.set_silos(silos, self.silo_creatable)
 
         self._refresh_model()
 
