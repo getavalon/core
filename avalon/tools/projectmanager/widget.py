@@ -318,8 +318,9 @@ class SiloTabWidget(QtWidgets.QTabBar):
     silo_changed = QtCore.Signal(str)
     silo_added = QtCore.Signal(str)
 
-    def __init__(self, parent=None):
+    def __init__(self, silo_creatable=True, parent=None):
         super(SiloTabWidget, self).__init__(parent=parent)
+        self.silo_creatable = silo_creatable
         self._previous_tab_index = -1
         self.set_silos([])
 
@@ -338,7 +339,7 @@ class SiloTabWidget(QtWidgets.QTabBar):
 
         # If it's the last tab
         num = self.count()
-        if index == num - 1:
+        if self.silo_creatable and index == num - 1:
             self.on_add_silo()
             self.setCurrentIndex(self._previous_tab_index)
             return
@@ -358,7 +359,7 @@ class SiloTabWidget(QtWidgets.QTabBar):
         for i in range(self.count()):
             self.removeTab(0)
 
-    def set_silos(self, silos, creatable=True):
+    def set_silos(self, silos):
 
         current_silo = self.get_current_silo()
 
@@ -372,7 +373,7 @@ class SiloTabWidget(QtWidgets.QTabBar):
         for silo in sorted(silos):
             self.addTab(silo)
 
-        if creatable:
+        if self.silo_creatable:
             # Add the "+" tab
             self.addTab("+")
 
@@ -472,7 +473,7 @@ class AssetWidget(QtWidgets.QWidget):
         # Header
         header = QtWidgets.QHBoxLayout()
 
-        silo = SiloTabWidget()
+        silo = SiloTabWidget(silo_creatable=silo_creatable)
 
         icon = awesome.icon("fa.refresh", color=style.colors.light)
         refresh = QtWidgets.QPushButton(icon, "")
@@ -506,7 +507,6 @@ class AssetWidget(QtWidgets.QWidget):
         silo.silo_changed.connect(self._on_silo_changed)
         refresh.clicked.connect(self.refresh)
 
-        self.silo_creatable = silo_creatable
         self.refreshButton = refresh
         self.silo = silo
         self.model = model
@@ -537,7 +537,7 @@ class AssetWidget(QtWidgets.QWidget):
     def refresh(self):
 
         silos = _list_project_silos()
-        self.silo.set_silos(silos, self.silo_creatable)
+        self.silo.set_silos(silos)
 
         self._refresh_model()
 
