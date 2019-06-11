@@ -254,7 +254,10 @@ def _save_inventory_1_0(project_name, data):
     # Separate project metadata from assets
     metadata = {}
     for key, value in data.copy().items():
-        if not isinstance(value, list):
+        is_list = isinstance(value, list)
+        is_flat_list = is_list and not any(isinstance(m, (dict, list))
+                                           for m in value)
+        if not is_list or is_flat_list:
             print("Separating project metadata: %s" % key)
             metadata[key] = data.pop(key)
 
