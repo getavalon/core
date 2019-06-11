@@ -21,7 +21,7 @@ def determine_application():
     if host in "maya":
         application = "maya"
 
-    elif host in "nuke":
+    elif host in "nuke" or host in 'nukex':
         application = "nuke"
 
     elif host in "nukestudio":

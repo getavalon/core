@@ -295,8 +295,11 @@ def _install_menu():
                     )
     menu.addSeparator()
     menu.addCommand("Create...", creator.show)
-    menu.addCommand("Load...", cbloader.show)
-    menu.addCommand("Publish...", publish.show)
+    menu.addCommand(
+        "Load...", command=lambda *args:
+        cbloader.show(use_context=True)
+    )
+    menu.addCommand("Publish...", publish.show, "~")
     menu.addCommand("Manage...", cbsceneinventory.show)
     menu.addCommand("Library...", libraryloader.show)
 
