@@ -31,7 +31,7 @@ class SubsetWidget(QtWidgets.QWidget):
         filter.setPlaceholderText("Filter subsets..")
 
         view = QtWidgets.QTreeView()
-        view.setIndentation(5)
+        view.setIndentation(20)
         view.setStyleSheet("""
             QTreeView::item{
                 padding: 5px 1px;

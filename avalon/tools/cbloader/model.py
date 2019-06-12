@@ -25,7 +25,11 @@ class SubsetsModel(TreeModel):
         super(SubsetsModel, self).__init__(parent=parent)
         self._asset_id = None
         self._icons = {"subset": qta.icon("fa.file-o",
-                                          color=style.colors.default)}
+                                          color=style.colors.default),
+                       "group": qta.icon("fa.object-group",
+                                         color=style.colors.default),
+                       "grouped": qta.icon("fa.file",
+                                           color=style.colors.default)}
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id
@@ -104,9 +108,24 @@ class SubsetsModel(TreeModel):
             self.endResetModel()
             return
 
-        row = 0
-        for subset in io.find({"type": "subset",
-                               "parent": self._asset_id}):
+        filter = {"type": "subset", "parent": self._asset_id}
+
+        # Collect subset groups
+        group_nodes = dict()
+        for group_name in io.distinct("data.subsetGroup", filter):
+            group = Node()
+            data = {
+                "subset": group_name,
+                "isGroup": True,
+            }
+            group.update(data)
+            group_nodes[group_name] = {"node": group,
+                                       "childRow": 0}
+            self.add_child(group)
+
+        # Process subsets
+        row = len(group_nodes)
+        for subset in io.find(filter):
 
             last_version = io.find_one({"type": "version",
                                         "parent": subset["_id"]},
@@ -118,16 +137,28 @@ class SubsetsModel(TreeModel):
             data = subset.copy()
             data["subset"] = data["name"]
 
+            group_name = subset["data"].get("subsetGroup")
+            if group_name:
+                group = group_nodes[group_name]
+                parent = group["node"]
+                parent_index = self.createIndex(0, 0, parent)
+                row_ = group["childRow"]
+                group["childRow"] += 1
+                data["isGrouped"] = True
+            else:
+                parent = None
+                parent_index = QtCore.QModelIndex()
+                row_ = row
+                row += 1
+
             node = Node()
             node.update(data)
 
-            self.add_child(node)
+            self.add_child(node, parent=parent)
 
             # Set the version information
-            index = self.index(row, 0, parent=QtCore.QModelIndex())
+            index = self.index(row_, 0, parent=parent_index)
             self.set_version(index, last_version)
-
-            row += 1
 
         self.endResetModel()
 
@@ -146,7 +177,13 @@ class SubsetsModel(TreeModel):
 
             # Add icon to subset column
             if index.column() == 0:
-                return self._icons["subset"]
+                node = index.internalPointer()
+                if node.get("isGroup"):
+                    return self._icons["group"]
+                elif node.get("isGrouped"):
+                    return self._icons["grouped"]
+                else:
+                    return self._icons["subset"]
 
             # Add icon to family column
             if index.column() == 1:

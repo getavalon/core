@@ -198,6 +198,9 @@ class Window(QtWidgets.QDialog):
             rows = selection.selectedRows(column=active.column())
             if active in rows:
                 node = active.data(subsets.model.NodeRole)
+                if node.get("isGroup"):
+                    return
+
                 version = node['version_document']['_id']
 
         self.data['model']['version'].set_version(version)
