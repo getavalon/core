@@ -8,7 +8,11 @@ from ... import io
 from ... import api
 from ... import pipeline
 
-from .model import SubsetsModel, FamiliesFilterProxyModel
+from .model import (
+    SubsetsModel,
+    SubsetFilterProxyModel,
+    FamiliesFilterProxyModel,
+)
 from .delegates import PrettyTimeDelegate, VersionDelegate
 from . import lib
 
@@ -23,7 +27,7 @@ class SubsetWidget(QtWidgets.QWidget):
         super(SubsetWidget, self).__init__(parent=parent)
 
         model = SubsetsModel()
-        proxy = QtCore.QSortFilterProxyModel()
+        proxy = SubsetFilterProxyModel()
         family_proxy = FamiliesFilterProxyModel()
         family_proxy.setSourceModel(proxy)
 

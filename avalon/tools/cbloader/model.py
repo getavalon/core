@@ -220,6 +220,23 @@ class SubsetsModel(TreeModel):
         return flags
 
 
+class SubsetFilterProxyModel(QtCore.QSortFilterProxyModel):
+
+    def filterAcceptsRow(self, row, parent):
+
+        model = self.sourceModel()
+        index = model.index(row,
+                            self.filterKeyColumn(),
+                            parent)
+        node = index.internalPointer()
+        if node.get("isGroup"):
+            # Keep group in view
+            return True
+        else:
+            return super(SubsetFilterProxyModel,
+                         self).filterAcceptsRow(row, parent)
+
+
 class FamiliesFilterProxyModel(QtCore.QSortFilterProxyModel):
     """Filters to specified families"""
 
