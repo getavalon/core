@@ -109,14 +109,14 @@ class SubsetsModel(TreeModel):
                                "parent": self._asset_id}):
 
             last_version = io.find_one({"type": "version",
-                                        "parent": subset['_id']},
+                                        "parent": subset["_id"]},
                                        sort=[("name", -1)])
             if not last_version:
                 # No published version for the subset
                 continue
 
             data = subset.copy()
-            data['subset'] = data['name']
+            data["subset"] = data["name"]
 
             node = Node()
             node.update(data)
@@ -146,7 +146,7 @@ class SubsetsModel(TreeModel):
 
             # Add icon to subset column
             if index.column() == 0:
-                return self._icons['subset']
+                return self._icons["subset"]
 
             # Add icon to family column
             if index.column() == 1:
