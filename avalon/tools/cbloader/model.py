@@ -21,15 +21,21 @@ class SubsetsModel(TreeModel):
                "handles",
                "step"]
 
+    SortRole = QtCore.Qt.UserRole + 2
+
     def __init__(self, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
         self._asset_id = None
+        self._sorter = None
         self._icons = {"subset": qta.icon("fa.file-o",
                                           color=style.colors.default),
                        "group": qta.icon("fa.object-group",
                                          color=style.colors.default),
                        "grouped": qta.icon("fa.file",
                                            color=style.colors.default)}
+
+    def set_sorter(self, sorter):
+        self._sorter = sorter
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id
@@ -189,6 +195,18 @@ class SubsetsModel(TreeModel):
             if index.column() == 1:
                 node = index.internalPointer()
                 return node.get("familyIcon", None)
+
+        if role == self.SortRole:
+            node = index.internalPointer()
+            order = self._sorter.sortOrder()
+            column = self.COLUMNS[self._sorter.sortColumn()]
+            # This would make group items always be on top
+            if node.get("isGroup"):
+                prefix = "1" if order else "0"
+            else:
+                prefix = "0" if order else "1"
+
+            return prefix + str(node.get(column))
 
         return super(SubsetsModel, self).data(index, role)
 
