@@ -101,11 +101,15 @@ class SubsetWidget(QtWidgets.QWidget):
         if not point_index.isValid():
             return
 
+        node = point_index.data(self.model.NodeRole)
+        if node.get("isGroup"):
+            return
+
         # Get all representation->loader combinations available for the
         # index under the cursor, so we can list the user the options.
         available_loaders = api.discover(api.Loader)
         loaders = list()
-        node = point_index.data(self.model.NodeRole)
+
         version_id = node['version_document']['_id']
         representations = io.find({"type": "representation",
                                    "parent": version_id})
@@ -190,6 +194,9 @@ class SubsetWidget(QtWidgets.QWidget):
         # Trigger
         for row in rows:
             node = row.data(self.model.NodeRole)
+            if node.get("isGroup"):
+                continue
+
             version_id = node["version_document"]["_id"]
             representation = io.find_one({"type": "representation",
                                           "name": representation_name,
