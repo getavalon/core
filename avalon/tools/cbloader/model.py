@@ -28,11 +28,11 @@ class SubsetsModel(TreeModel):
         self._asset_id = None
         self._sorter = None
         self._icons = {"subset": qta.icon("fa.file-o",
-                                          color=style.colors.default),
-                       "group": qta.icon("fa.object-group",
-                                         color=style.colors.default),
-                       "grouped": qta.icon("fa.file",
-                                           color=style.colors.default)}
+                                          color=style.colors.default)}
+        # Subset group item's default icon and order
+        self._default_group = {"icon": qta.icon("fa.object-group",
+                                                color=style.colors.default),
+                               "order": 0}
 
     def set_sorter(self, sorter):
         self._sorter = sorter
@@ -116,12 +116,39 @@ class SubsetsModel(TreeModel):
 
         filter = {"type": "subset", "parent": self._asset_id}
 
+        # Get pre-defined group name and apperance from project config
+        group_configs = io.find_one(
+            {"type": "project"}, {"config.groups": 1}
+        )["config"].get("groups") or []
+
+        # Build pre-defined group configs
+        predefineds = dict()
+        sort_orders = set([0])  # default order zero included
+        for config in group_configs:
+            name = config["name"]
+            icon = "fa." + config.get("icon", "object-group")
+            color = config.get("color", style.colors.default)
+            order = float(config.get("order"))
+
+            predefineds[name] = {"icon": qta.icon(icon, color=color),
+                                 "order": order}
+            sort_orders.add(order)
+
+        # For ensuring positive order
+        order_offset = abs(min(sort_orders)) + 1
+        # For computing complement number for inverse order
+        order_cap = max(sort_orders) + order_offset
+
         # Collect subset groups
         group_nodes = dict()
         for group_name in io.distinct("data.subsetGroup", filter):
             group = Node()
+            config = predefineds.get(group_name, self._default_group)
             data = {
                 "subset": group_name,
+                "icon": config["icon"],
+                "fixAscending": config["order"] + order_offset,
+                "fixDescending": order_cap - config["order"] + order_offset,
                 "isGroup": True,
             }
             group.update(data)
@@ -150,7 +177,6 @@ class SubsetsModel(TreeModel):
                 parent_index = self.createIndex(0, 0, parent)
                 row_ = group["childRow"]
                 group["childRow"] += 1
-                data["isGrouped"] = True
             else:
                 parent = None
                 parent_index = QtCore.QModelIndex()
@@ -185,9 +211,7 @@ class SubsetsModel(TreeModel):
             if index.column() == 0:
                 node = index.internalPointer()
                 if node.get("isGroup"):
-                    return self._icons["group"]
-                elif node.get("isGrouped"):
-                    return self._icons["grouped"]
+                    return node["icon"]
                 else:
                     return self._icons["subset"]
 
@@ -198,15 +222,21 @@ class SubsetsModel(TreeModel):
 
         if role == self.SortRole:
             node = index.internalPointer()
-            order = self._sorter.sortOrder()
+            descending = self._sorter.sortOrder()
             column = self.COLUMNS[self._sorter.sortColumn()]
-            # This would make group items always be on top
+            # This would make group items always be on top, and always in
+            # descending order.
             if node.get("isGroup"):
-                prefix = "1" if order else "0"
+                if descending:
+                    order = ".%010.4f" % node["fixDescending"]
+                else:
+                    order = ".+%010.4f" % node["fixAscending"]
             else:
-                prefix = "0" if order else "1"
+                # The `v` is for prefixing version number, so they won't
+                # ordering with group items which were using digit to sort.
+                order = ".+v" + str(node[column])
 
-            return prefix + str(node.get(column))
+            return order
 
         return super(SubsetsModel, self).data(index, role)
 
