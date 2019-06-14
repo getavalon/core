@@ -60,7 +60,8 @@
                 "properties": {
                     "name": {"type": "string"},
                     "icon": {"type": "string"},
-                    "label": {"type": "string"}
+                    "label": {"type": "string"},
+                    "hideFilter": {"type": "boolean"}
                 },
                 "required": ["name"]
             }
