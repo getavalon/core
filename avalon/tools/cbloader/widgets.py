@@ -92,8 +92,6 @@ class SubsetWidget(QtWidgets.QWidget):
 
         self.filter.textChanged.connect(self.proxy.setFilterRegExp)
 
-        self.family_proxy.setSortRole(self.model.SortRole)
-        self.model.set_sorter(self.family_proxy)
         self.model.refresh()
 
         # Expose this from the widget as a method

@@ -21,7 +21,8 @@ class SubsetsModel(TreeModel):
                "handles",
                "step"]
 
-    SortRole = QtCore.Qt.UserRole + 2
+    SortAscendingRole = QtCore.Qt.UserRole + 2
+    sortDescendingRole = QtCore.Qt.UserRole + 3
 
     def __init__(self, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
@@ -33,9 +34,6 @@ class SubsetsModel(TreeModel):
         self._default_group = {"icon": qta.icon("fa.object-group",
                                                 color=style.colors.default),
                                "order": 0}
-
-    def set_sorter(self, sorter):
-        self._sorter = sorter
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id
@@ -123,7 +121,7 @@ class SubsetsModel(TreeModel):
 
         # Build pre-defined group configs
         predefineds = dict()
-        sort_orders = set([0])  # default order zero included
+        _orders = set([0])  # default order zero included
         for config in group_configs:
             name = config["name"]
             icon = "fa." + config.get("icon", "object-group")
@@ -132,24 +130,25 @@ class SubsetsModel(TreeModel):
 
             predefineds[name] = {"icon": qta.icon(icon, color=color),
                                  "order": order}
-            sort_orders.add(order)
+            _orders.add(order)
 
-        # For ensuring positive order
-        order_offset = abs(min(sort_orders)) + 1
-        # For computing complement number for inverse order
-        order_cap = max(sort_orders) + order_offset
+        orders = sorted(_orders)
+        order_temp = "%0{}d".format(len(str(len(orders))))
 
         # Collect subset groups
         group_nodes = dict()
         for group_name in io.distinct("data.subsetGroup", filter):
             group = Node()
             config = predefineds.get(group_name, self._default_group)
+            remapped_order = orders.index(config["order"])
+            inverse_order = len(orders) - remapped_order
             data = {
                 "subset": group_name,
                 "icon": config["icon"],
-                "fixAscending": config["order"] + order_offset,
-                "fixDescending": order_cap - config["order"] + order_offset,
                 "isGroup": True,
+                # Format orders into fixed length string for groups sorting
+                "order": order_temp % remapped_order,
+                "inverseOrder": order_temp % inverse_order,
             }
             group.update(data)
             group_nodes[group_name] = {"node": group,
@@ -220,23 +219,29 @@ class SubsetsModel(TreeModel):
                 node = index.internalPointer()
                 return node.get("familyIcon", None)
 
-        if role == self.SortRole:
+        if role == self.sortDescendingRole:
             node = index.internalPointer()
-            descending = self._sorter.sortOrder()
-            column = self.COLUMNS[self._sorter.sortColumn()]
-            # This would make group items always be on top, and always in
-            # descending order.
             if node.get("isGroup"):
-                if descending:
-                    order = ".%010.4f" % node["fixDescending"]
-                else:
-                    order = ".+%010.4f" % node["fixAscending"]
+                # Ensure groups be on top when sorting by descending order
+                prefix = "1"
+                order = node["inverseOrder"]
             else:
-                # The `v` is for prefixing version number, so they won't
-                # ordering with group items which were using digit to sort.
-                order = ".+v" + str(node[column])
+                prefix = "0"
+                order = str(super(SubsetsModel,
+                                  self).data(index, QtCore.Qt.DisplayRole))
+            return prefix + order
 
-            return order
+        if role == self.SortAscendingRole:
+            node = index.internalPointer()
+            if node.get("isGroup"):
+                # Ensure groups be on top when sorting by ascending order
+                prefix = "0"
+                order = node["order"]
+            else:
+                prefix = "1"
+                order = str(super(SubsetsModel,
+                                  self).data(index, QtCore.Qt.DisplayRole))
+            return prefix + order
 
         return super(SubsetsModel, self).data(index, role)
 
@@ -304,3 +309,14 @@ class FamiliesFilterProxyModel(QtCore.QSortFilterProxyModel):
 
         # We want to keep the families which are not in the list
         return family in self._families
+
+    def sort(self, column, order):
+        proxy = self.sourceModel()
+        model = proxy.sourceModel()
+        # We need to know the sorting direction for pinning groups on top
+        if order == QtCore.Qt.AscendingOrder:
+            self.setSortRole(model.SortAscendingRole)
+        else:
+            self.setSortRole(model.sortDescendingRole)
+
+        super(FamiliesFilterProxyModel, self).sort(column, order)
