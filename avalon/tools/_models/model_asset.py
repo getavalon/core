@@ -1,6 +1,6 @@
 from . import QtCore
-from . import qtawesome, io
-from . import TreeModel
+from . import qtawesome, io, style
+from . import TreeModel, Node
 
 
 class AssetModel(TreeModel):
