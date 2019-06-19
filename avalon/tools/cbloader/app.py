@@ -1,14 +1,16 @@
 import sys
 import time
 
-from ..projectmanager.widget import AssetWidget, AssetModel
-
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io, style
 from .. import lib
 
-from .lib import refresh_family_config
-from .widgets import SubsetWidget, VersionWidget, FamilyListWidget
+from .lib import refresh_family_config, FamilyConfig
+from .._models import AssetModel
+from .._widgets import (
+    SubsetWidget, VersionWidget, FamilyListWidget, AssetWidget
+)
+
 
 module = sys.modules[__name__]
 module.window = None
