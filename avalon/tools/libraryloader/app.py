@@ -137,6 +137,40 @@ class Window(QtWidgets.QDialog):
         if default_project:
             self.signal_project_changed.emit(default_project)
 
+    def _set_projects(self):
+        projects = self.get_filtered_projects()
+
+        default = self.get_default_project()
+        self.combo_projects.clear()
+        if len(projects) > 0:
+            self.combo_projects.addItems(projects)
+        if default:
+            index = self.combo_projects.findText(
+                default, QtCore.Qt.MatchFixedString
+            )
+            if index:
+                self.db.activate_project(default)
+                self.combo_projects.setCurrentIndex(index)
+
+    def get_filtered_projects(self):
+        projects = list()
+        for project in self.db.projects():
+            is_library = project.get('data', {}).get('library_project', False)
+            if (
+                (is_library and self.show_libraries) or
+                (not is_library and self.show_projects)
+            ):
+                projects.append(project['name'])
+
+        return projects
+
+    def on_project_change(self):
+        projects = self.get_filtered_projects()
+        project_name = self.combo_projects.currentText()
+        if project_name in projects:
+            self.db.activate_project(project_name)
+        self.refresh()
+
     def get_default_project(self):
         # looks into presets if any default library is set
         # - returns name of library from presets if exists in db
@@ -174,7 +208,7 @@ class Window(QtWidgets.QDialog):
 
     @property
     def current_project(self):
-        if self.db.active_project() == '':
+        if self.db.active_project().strip() == '':
             return None
         return self.db.active_project()
 
@@ -267,17 +301,9 @@ class Window(QtWidgets.QDialog):
 
         asset_item = assets_widget.get_active_index()
         if asset_item is None or not asset_item.isValid():
-            type = "asset"
-            silo = assets_model.get_current_silo()
-            if len(silo) == 0:
-                return
-            document = self.db.find_one({
-                "type": type,
-                "name": silo
-            })
+            return
 
-        else:
-            document = asset_item.data(DocumentRole)
+        document = asset_item.data(DocumentRole)
 
         if document is None:
             return
