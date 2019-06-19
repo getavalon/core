@@ -12,8 +12,7 @@ from .widgets import (
     VersionWidget,
     FamilyListWidget,
     AssetWidget,
-    AssetModel,
-    ProjectsWidget
+    AssetModel
 )
 
 module = sys.modules[__name__]
@@ -51,9 +50,7 @@ class Window(QtWidgets.QDialog):
 
         self._db = DbConnector()
         self._db.install()
-        self.project_widget = ProjectsWidget(
-            self, show_projects, show_libraries
-        )
+
         self.show_projects = show_projects
         self.show_libraries = show_libraries
 
@@ -62,33 +59,26 @@ class Window(QtWidgets.QDialog):
         subsets = SubsetWidget(self)
         version = VersionWidget(self)
 
-        widget_project = QtWidgets.QWidget()
-        layout_project_btn = QtWidgets.QVBoxLayout(self)
-        btn_change_project = QtWidgets.QPushButton("Change Library")
-        layout_project_btn.addWidget(btn_change_project)
-        widget_project.setLayout(layout_project_btn)
+        # Project
+        self.combo_projects = QtWidgets.QComboBox()
+        self._set_projects()
+        self.combo_projects.currentTextChanged.connect(self.on_project_change)
 
         # Create splitter to show / hide family filters
         asset_filter_splitter = QtWidgets.QSplitter()
         asset_filter_splitter.setOrientation(QtCore.Qt.Vertical)
+        asset_filter_splitter.addWidget(self.combo_projects)
         asset_filter_splitter.addWidget(assets)
         asset_filter_splitter.addWidget(families)
-        asset_filter_splitter.setStretchFactor(0, 65)
-        asset_filter_splitter.setStretchFactor(1, 35)
-
-        version_project = QtWidgets.QSplitter()
-        version_project.setOrientation(QtCore.Qt.Vertical)
-        version_project.addWidget(version)
-        version_project.setStretchFactor(0, 95)
-        version_project.addWidget(widget_project)
-        version_project.setStretchFactor(1, 5)
+        asset_filter_splitter.setStretchFactor(1, 65)
+        asset_filter_splitter.setStretchFactor(2, 35)
 
         container_layout = QtWidgets.QHBoxLayout(container)
         container_layout.setContentsMargins(0, 0, 0, 0)
         split = QtWidgets.QSplitter()
         split.addWidget(asset_filter_splitter)
         split.addWidget(subsets)
-        split.addWidget(version_project)
+        split.addWidget(version)
         split.setSizes([180, 950, 200])
         container_layout.addWidget(split)
 
@@ -134,9 +124,9 @@ class Window(QtWidgets.QDialog):
 
         families.active_changed.connect(subsets.set_family_filters)
         assets.selection_changed.connect(self.on_assetschanged)
+        assets.refreshButton.clicked.connect(self._set_projects)
         subsets.active_changed.connect(self.on_subsetschanged)
         subsets.version_changed.connect(self.on_versionschanged)
-        btn_change_project.clicked.connect(self.show_projects_widget)
         self.signal_project_changed.connect(self.on_projectchanged)
 
         # Defaults
@@ -144,9 +134,7 @@ class Window(QtWidgets.QDialog):
 
         # Set project
         default_project = self.get_default_project()
-        if default_project is None:
-            self.show_projects_widget()
-        else:
+        if default_project:
             self.signal_project_changed.emit(default_project)
 
     def get_default_project(self):
@@ -175,9 +163,6 @@ class Window(QtWidgets.QDialog):
         except Exception as e:
             print('Failed to load presets file ({})'.format(e))
         return data
-
-    def show_projects_widget(self):
-        self.project_widget.show()
 
     @property
     def current_project(self):
@@ -244,7 +229,6 @@ class Window(QtWidgets.QDialog):
     def _refresh(self):
         """Load assets from database"""
         if self.current_project is None:
-            self.show_projects_widget()
             return
         # Ensure a project is loaded
         project = self.db.find_one({"type": "project"})
