@@ -2,7 +2,12 @@ from ...vendor import qtawesome
 from ... import io, api
 
 FAMILY_ICON_COLOR = "#0091B2"
-FAMILY_CONFIG = {}
+
+
+# inherits dict so FamilyConfig behaves like object with dict attributes
+class FamilyConfig(dict):
+    def __init__(self, *args, **kwargs):
+        super(FamilyConfig, self).__init__(*args, **kwargs)
 
 
 def get(config, name):
@@ -11,7 +16,7 @@ def get(config, name):
     return config.get(name, config.get("__default__", None))
 
 
-def refresh_family_config():
+def refresh_family_config(family_config):
     """Get the family configurations from the database
 
     The configuration must be stored on the project under `config`.
@@ -67,7 +72,7 @@ def refresh_family_config():
     # Default configuration
     families["__default__"] = {"icon": default_icon}
 
-    FAMILY_CONFIG.clear()
-    FAMILY_CONFIG.update(families)
+    family_config.clear()
+    family_config.update(families)
 
-    return families
+    return family_config
