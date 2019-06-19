@@ -98,8 +98,8 @@ class Window(QtWidgets.QDialog):
         layout.addWidget(footer)
 
         self.data = {
-            "widgets": {"families": families},
-            "model": {
+            "widgets": {
+                "families": families,
                 "assets": assets,
                 "subsets": subsets,
                 "version": version,
@@ -234,7 +234,7 @@ class Window(QtWidgets.QDialog):
         project = self.db.find_one({"type": "project"})
         assert project, "This is a bug"
 
-        assets_model = self.data["model"]["assets"]
+        assets_model = self.data["widgets"]["assets"]
         assets_model.refresh()
         assets_model.setFocus()
 
@@ -250,14 +250,14 @@ class Window(QtWidgets.QDialog):
     def _assetschanged(self):
         """Selected assets have changed"""
 
-        assets_model = self.data["model"]["assets"]
-        subsets = self.data["model"]["subsets"]
+        assets_widget = self.data["widgets"]["assets"]
+        subsets = self.data["widgets"]["subsets"]
         subsets_model = subsets.model
         subsets_model.clear()
 
         t1 = time.time()
 
-        asset_item = assets_model.get_active_index()
+        asset_item = assets_widget.get_active_index()
         if asset_item is None or not asset_item.isValid():
             type = "asset"
             silo = assets_model.get_current_silo()
@@ -281,7 +281,7 @@ class Window(QtWidgets.QDialog):
             subsets.view.resizeColumnToContents(i)
 
         # Clear the version information on asset change
-        self.data['model']['version'].set_version(None)
+        self.data['widgets']['version'].set_version(None)
 
         self.data["state"]["context"]["asset"] = document["name"]
         self.data["state"]["context"]["silo"] = document["silo"]
@@ -289,7 +289,7 @@ class Window(QtWidgets.QDialog):
 
     def _versionschanged(self):
 
-        subsets = self.data["model"]["subsets"]
+        subsets = self.data["widget"]["subsets"]
         selection = subsets.view.selectionModel()
 
         # Active must be in the selected rows otherwise we
@@ -302,7 +302,7 @@ class Window(QtWidgets.QDialog):
                 node = active.data(subsets.model.NodeRole)
                 version = node['version_document']['_id']
 
-        self.data['model']['version'].set_version(version)
+        self.data['widgets']['version'].set_version(version)
 
     def echo(self, message):
         widget = self.data["label"]["message"]
