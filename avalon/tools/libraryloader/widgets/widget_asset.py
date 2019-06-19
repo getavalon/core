@@ -5,7 +5,6 @@ from ....vendor import qtawesome as awesome
 from ....vendor.Qt import QtWidgets, QtCore
 from .... import style
 
-from .widget_silo_tab import SiloTabWidget
 from ..models import RecursiveSortFilterProxyModel, AssetModel, AssetView
 
 
@@ -147,125 +146,93 @@ class AssetWidget(QtWidgets.QWidget):
 
     """
 
-    silo_changed = QtCore.Signal(str)    # on silo combobox change
     assets_refreshed = QtCore.Signal()   # on model refresh
     selection_changed = QtCore.Signal()  # on view selection change
     current_changed = QtCore.Signal()    # on view current index change
 
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         super(AssetWidget, self).__init__(parent=parent)
         self.setContentsMargins(0, 0, 0, 0)
 
-        self.db = parent.db
+        self.parent_widget = parent
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
-        # Header
-        header = QtWidgets.QHBoxLayout()
-
-        silo = SiloTabWidget()
-
-        icon = awesome.icon("fa.refresh", color=style.colors.light)
-        refresh = QtWidgets.QPushButton(icon, "")
-        refresh.setToolTip("Refresh items")
-
-        header.addWidget(silo)
-        header.addStretch(1)
-        header.addWidget(refresh)
-
         # Tree View
-        model = AssetModel(parent=self)
+        model = AssetModel(self)
         proxy = RecursiveSortFilterProxyModel()
         proxy.setSourceModel(model)
         proxy.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
         view = AssetView()
         view.setModel(proxy)
 
+        # Header
+        header = QtWidgets.QHBoxLayout()
+
+        icon = awesome.icon("fa.refresh", color=style.colors.light)
+        refresh = QtWidgets.QPushButton(icon, "")
+        refresh.setToolTip("Refresh items")
+
         filter = QtWidgets.QLineEdit()
         filter.textChanged.connect(proxy.setFilterFixedString)
         filter.setPlaceholderText("Filter assets..")
 
+        header.addWidget(filter)
+        header.addWidget(refresh)
+
         # Layout
         layout.addLayout(header)
-        layout.addWidget(filter)
         layout.addWidget(view)
 
         # Signals/Slots
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.selection_changed)
         selection.currentChanged.connect(self.current_changed)
-        silo.silo_changed.connect(self._on_silo_changed)
-        refresh.clicked.connect(self.refresh)
+        self.parent_widget.signal_project_changed.connect(self.refresh)
 
         self.refreshButton = refresh
-        self.silo = silo
         self.model = model
         self.proxy = proxy
         self.view = view
 
-    def _on_silo_changed(self):
-        """Callback for silo change"""
+    @property
+    def db(self):
+        return self.parent_widget.db
 
-        self._refresh_model()
-        silo = self.get_current_silo()
-        self.silo_changed.emit(silo)
-        self.selection_changed.emit()
+    def collect_data(self):
+        project = self.db.find_one({'type': 'project'})
+        asset = self.db.find_one({'_id': self.get_active_asset()})
+
+        try:
+            index = self.task_view.selectedIndexes()[0]
+            task = self.task_model.itemData(index)[0]
+        except Exception:
+            task = None
+        data = {
+            'project': project['name'],
+            'asset': asset['name'],
+            'parents': self.get_parents(asset),
+            'task': task
+        }
+        return data
+
+    def get_parents(self, entity):
+        output = []
+        if entity.get('data', {}).get('visualParent', None) is None:
+            return output
+        parent = self.db.find_one({'_id': entity['data']['visualParent']})
+        output.append(parent['name'])
+        output.extend(self.get_parents(parent))
+        return output
 
     def _refresh_model(self):
-
-        silo = self.get_current_silo()
-        with preserve_expanded_rows(self.view,
-                                    column=0,
-                                    role=self.model.ObjectIdRole):
-            with preserve_selection(self.view,
-                                    column=0,
-                                    role=self.model.ObjectIdRole):
-                self.model.set_silo(silo)
-
+        self.model.refresh()
         self.assets_refreshed.emit()
 
     def refresh(self):
-
-        silos = self._list_project_silos()
-        self.silo.set_silos(silos)
-        # set first silo as active so tasks are shown
-        if len(silos) > 0:
-            self.silo.set_current_silo(self.silo.tabText(0))
         self._refresh_model()
-
-    def _list_project_silos(self):
-        """List the silos from the project's configuration"""
-        silos = [s['name'] for s in self.db.find(
-            {"type": "asset", "silo": None}
-        )]
-        silos_old = self.db.distinct("silo")
-        for silo in silos_old:
-            if silo not in silos and silo is not None:
-                silos.append(silo)
-
-        if not silos:
-            project = self.db.find_one({"type": "project"})
-            log.warning("Project '%s' has no active silos", project['name'])
-
-        return list(sorted(silos))
-
-    def get_current_silo(self):
-        """Returns the currently active silo."""
-        return self.silo.get_current_silo()
-
-    def get_silo_object(self, silo_name=None):
-        """ Returns silo object from db. None if not found.
-        Current silo is found if silo_name not entered."""
-        if silo_name is None:
-            silo_name = self.get_current_silo()
-        try:
-            return self.db.find_one(
-                {"type": "asset", "name": silo_name}
-            )
-        except Exception:
-            return None
 
     def get_active_asset(self):
         """Return the asset id the current asset."""
@@ -280,10 +247,6 @@ class AssetWidget(QtWidgets.QWidget):
         selection = self.view.selectionModel()
         rows = selection.selectedRows()
         return [row.data(self.model.ObjectIdRole) for row in rows]
-
-    def set_silo(self, silo):
-        """Set the active silo tab"""
-        self.silo.set_current_silo(silo)
 
     def select_assets(self, assets, expand=True):
         """Select assets by name.
