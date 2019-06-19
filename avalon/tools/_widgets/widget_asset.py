@@ -1,14 +1,26 @@
 from . import QtCore, QtWidgets
 from . import qtawesome, style, io
-from .lib import (
-    _iter_model_rows,
-    _list_project_silos,
-    preserve_selection,
-    preserve_expanded_rows
-)
-from . import SiloTabWidget
+
 from .._models import AssetModel, RecursiveSortFilterProxyModel
 from .._views import AssetView
+
+
+
+def _iter_model_rows(model, column, include_root=False):
+    """Iterate over all row indices in a model"""
+    indices = [QtCore.QModelIndex()]  # start iteration at root
+
+    for index in indices:
+        # Add children to the iterations
+        child_rows = model.rowCount(index)
+        for child_row in range(child_rows):
+            child_index = model.index(child_row, column, index)
+            indices.append(child_index)
+
+        if not include_root and not index.isValid():
+            continue
+
+        yield index
 
 
 class AssetWidget(QtWidgets.QWidget):
@@ -21,7 +33,6 @@ class AssetWidget(QtWidgets.QWidget):
 
     """
 
-    silo_changed = QtCore.Signal(str)    # on silo combobox change
     assets_refreshed = QtCore.Signal()   # on model refresh
     selection_changed = QtCore.Signal()  # on view selection change
     current_changed = QtCore.Signal()    # on view current index change
@@ -34,92 +45,75 @@ class AssetWidget(QtWidgets.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
-        # Header
-        header = QtWidgets.QHBoxLayout()
-
-        silo = SiloTabWidget()
-
-        icon = qtawesome.icon("fa.refresh", color=style.colors.light)
-        refresh = QtWidgets.QPushButton(icon, "")
-        refresh.setToolTip("Refresh items")
-
-        header.addWidget(silo)
-        header.addStretch(1)
-        header.addWidget(refresh)
-
         # Tree View
-        model = AssetModel()
+        model = AssetModel(self)
         proxy = RecursiveSortFilterProxyModel()
         proxy.setSourceModel(model)
         proxy.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
         view = AssetView()
         view.setModel(proxy)
 
+        # Header
+        header = QtWidgets.QHBoxLayout()
+
+        icon = qtawesome.icon("fa.refresh", color=style.colors.light)
+        refresh = QtWidgets.QPushButton(icon, "")
+        refresh.setToolTip("Refresh items")
+
         filter = QtWidgets.QLineEdit()
         filter.textChanged.connect(proxy.setFilterFixedString)
         filter.setPlaceholderText("Filter assets..")
 
+        header.addWidget(filter)
+        header.addWidget(refresh)
+
         # Layout
         layout.addLayout(header)
-        layout.addWidget(filter)
         layout.addWidget(view)
 
         # Signals/Slots
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.selection_changed)
         selection.currentChanged.connect(self.current_changed)
-        silo.silo_changed.connect(self._on_silo_changed)
         refresh.clicked.connect(self.refresh)
 
         self.refreshButton = refresh
-        self.silo = silo
         self.model = model
         self.proxy = proxy
         self.view = view
 
-    def _on_silo_changed(self):
-        """Callback for silo change"""
+    def collect_data(self):
+        project = io.find_one({'type': 'project'})
+        asset = io.find_one({'_id': self.get_active_asset()})
 
-        self._refresh_model()
-        silo = self.get_current_silo()
-        self.silo_changed.emit(silo)
-        self.selection_changed.emit()
+        try:
+            index = self.task_view.selectedIndexes()[0]
+            task = self.task_model.itemData(index)[0]
+        except Exception:
+            task = None
+        data = {
+            'project': project['name'],
+            'asset': asset['name'],
+            'parents': self.get_parents(asset),
+            'task': task
+        }
+        return data
+
+    def get_parents(self, entity):
+        output = []
+        if entity.get('data', {}).get('visualParent', None) is None:
+            return output
+        parent = io.find_one({'_id': entity['data']['visualParent']})
+        output.append(parent['name'])
+        output.extend(self.get_parents(parent))
+        return output
 
     def _refresh_model(self):
-
-        silo = self.get_current_silo()
-        with preserve_expanded_rows(
-            self.view, column=0, role=self.model.ObjectIdRole
-        ):
-            with preserve_selection(
-                self.view, column=0, role=self.model.ObjectIdRole
-            ):
-                self.model.set_silo(silo)
-
+        self.model.refresh()
         self.assets_refreshed.emit()
 
     def refresh(self):
-
-        silos = _list_project_silos()
-        self.silo.set_silos(silos)
-        # set first silo as active so tasks are shown
-        if len(silos) > 0:
-            self.silo.set_current_silo(self.silo.tabText(0))
         self._refresh_model()
-
-    def get_current_silo(self):
-        """Returns the currently active silo."""
-        return self.silo.get_current_silo()
-
-    def get_silo_object(self, silo_name=None):
-        """ Returns silo object from db. None if not found.
-        Current silo is found if silo_name not entered."""
-        if silo_name is None:
-            silo_name = self.get_current_silo()
-        try:
-            return io.find_one({"type": "asset", "name": silo_name})
-        except Exception:
-            return None
 
     def get_active_asset(self):
         """Return the asset id the current asset."""
@@ -134,10 +128,6 @@ class AssetWidget(QtWidgets.QWidget):
         selection = self.view.selectionModel()
         rows = selection.selectedRows()
         return [row.data(self.model.ObjectIdRole) for row in rows]
-
-    def set_silo(self, silo):
-        """Set the active silo tab"""
-        self.silo.set_current_silo(silo)
 
     def select_assets(self, assets, expand=True):
         """Select assets by name.
