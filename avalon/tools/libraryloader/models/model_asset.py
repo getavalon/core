@@ -25,53 +25,30 @@ class AssetModel(TreeModel):
     DocumentRole = QtCore.Qt.UserRole + 2
     ObjectIdRole = QtCore.Qt.UserRole + 3
 
-    def __init__(self, silo=None, parent=None):
+    def __init__(self, parent):
         super(AssetModel, self).__init__(parent=parent)
-        self.db = parent.db
-        self._silo = None
+        self.parent_widget = parent
+        self.refresh()
 
-        if silo is not None:
-            self.set_silo(silo, refresh=True)
-
-    def set_silo(self, silo, refresh=True):
-        """Set the root path to the ItemType root."""
-        self._silo = silo
-        try:
-            self.silo_asset = self.db.find_one(
-                {'$and': [
-                    {'type': 'asset'},
-                    {'name': silo},
-                    {'silo': None}
-                ]}
-            )
-        except Exception:
-            self.silo_asset = None
-        if refresh:
-            self.refresh()
+    @property
+    def db(self):
+        return self.parent_widget.db
 
     def _add_hierarchy(self, parent=None):
 
         # Find the assets under the parent
         find_data = {
-            "type": "asset",
-            "silo": self._silo,
+            "type": "asset"
         }
         if parent is None:
-            # if not a parent find all that are parented to the project
-            # or do *not* have a visualParent field at all
-            if self.silo_asset is None:
-                find_data['$or'] = [
-                    {'data.visualParent': {'$exists': False}},
-                    {'data.visualParent': None}
-                ]
-            else:
-                find_data['data.visualParent'] = self.silo_asset['_id']
-
+            find_data['$or'] = [
+                {'data.visualParent': {'$exists': False}},
+                {'data.visualParent': None}
+            ]
         else:
             find_data["data.visualParent"] = parent['_id']
 
         assets = self.db.find(find_data).sort('name', 1)
-
         for asset in assets:
             # get label from data, otherwise use name
             data = asset.get("data", {})
@@ -99,9 +76,13 @@ class AssetModel(TreeModel):
         """Refresh the data for the model."""
 
         self.clear()
+        if (
+            self.db.active_project() is None or
+            self.db.active_project() == ''
+        ):
+            return
         self.beginResetModel()
-        if self._silo:
-            self._add_hierarchy(parent=None)
+        self._add_hierarchy(parent=None)
         self.endResetModel()
 
     def flags(self, index):
