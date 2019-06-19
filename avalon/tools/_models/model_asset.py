@@ -4,12 +4,13 @@ from . import TreeModel, Node
 
 
 class AssetModel(TreeModel):
-    """A model listing assets in the silo in the active project.
+    """ Displaying assets in hierarchical tree by visualParent.
 
     The assets are displayed in a treeview, they are visually parented by
     a `visualParent` field in the database containing an `_id` to a parent
     asset.
 
+    Entities with `visualParent` set to None/null/nil are used as top items.
     """
 
     COLUMNS = ["label"]
@@ -20,48 +21,21 @@ class AssetModel(TreeModel):
     DocumentRole = QtCore.Qt.UserRole + 2
     ObjectIdRole = QtCore.Qt.UserRole + 3
 
-    def __init__(self, silo=None, parent=None):
+    def __init__(self, parent=None):
         super(AssetModel, self).__init__(parent=parent)
-
-        self._silo = None
-
-        if silo is not None:
-            self.set_silo(silo, refresh=True)
-
-    def set_silo(self, silo, refresh=True):
-        """Set the root path to the ItemType root."""
-        self._silo = silo
-        try:
-            self.silo_asset = io.find_one(
-                {'$and': [
-                    {'type': 'asset'},
-                    {'name': silo},
-                    {'silo': None}
-                ]}
-            )
-        except Exception:
-            self.silo_asset = None
-        if refresh:
-            self.refresh()
+        self.refresh()
 
     def _add_hierarchy(self, parent=None):
 
         # Find the assets under the parent
         find_data = {
-            "type": "asset",
-            "silo": self._silo,
+            "type": "asset"
         }
         if parent is None:
-            # if not a parent find all that are parented to the project
-            # or do *not* have a visualParent field at all
-            if self.silo_asset is None:
-                find_data['$or'] = [
-                    {'data.visualParent': {'$exists': False}},
-                    {'data.visualParent': None}
-                ]
-            else:
-                find_data['data.visualParent'] = self.silo_asset['_id']
-
+            find_data['$or'] = [
+                {'data.visualParent': {'$exists': False}},
+                {'data.visualParent': None}
+            ]
         else:
             find_data["data.visualParent"] = parent['_id']
 
@@ -94,8 +68,7 @@ class AssetModel(TreeModel):
 
         self.clear()
         self.beginResetModel()
-        if self._silo:
-            self._add_hierarchy(parent=None)
+        self._add_hierarchy(parent=None)
         self.endResetModel()
 
     def flags(self, index):
