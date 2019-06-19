@@ -138,15 +138,23 @@ class Window(QtWidgets.QDialog):
             self.signal_project_changed.emit(default_project)
 
     def get_default_project(self):
-        presets = self.load_presets()
+        # looks into presets if any default library is set
+        # - returns name of library from presets if exists in db
+        # - if was not found or not set then returns first existing project
+        # - returns `None` if any project was found in db
         name = None
-        if self.show_libraries:
+        presets = self.load_presets()
+        if self.show_projects:
+            name = presets.get('default_project', None)
+        if self.show_libraries and not name:
             name = presets.get('default_library', None)
-        if name is None:
-            return None
-        projects = [p['name'] for p in self.db.projects()]
-        if name in projects:
+
+        projects = self.get_filtered_projects()
+
+        if name and name in projects:
             return name
+        elif len(projects) > 0:
+            return projects[0]
         return None
 
     def load_presets(self):
