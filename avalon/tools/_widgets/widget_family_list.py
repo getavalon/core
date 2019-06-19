@@ -1,5 +1,6 @@
 from . import QtCore, QtWidgets
-from . import io, lib
+from . import io
+from .._models.lib import get
 
 
 class FamilyListWidget(QtWidgets.QListWidget):
@@ -37,7 +38,7 @@ class FamilyListWidget(QtWidgets.QListWidget):
         self.clear()
         for name in sorted(unique_families):
 
-            family = lib.get(self.family_config, name)
+            family = get(self.family_config, name)
             label = family.get("label", name)
             icon = family.get("icon", None)
 
