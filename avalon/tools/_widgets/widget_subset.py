@@ -12,14 +12,14 @@ class SubsetWidget(QtWidgets.QWidget):
     active_changed = QtCore.Signal()    # active index changed
     version_changed = QtCore.Signal()   # version state changed for a subset
 
-    def __init__(self, family_config, parent=None):
+    def __init__(self, parent=None):
         super(SubsetWidget, self).__init__(parent=parent)
 
         self.tool_name = None
         if hasattr(parent, 'tool_name'):
             self.tool_name = parent.tool_name
 
-        model = SubsetsModel(family_config)
+        model = SubsetsModel()
         proxy = QtCore.QSortFilterProxyModel()
         family_proxy = FamiliesFilterProxyModel()
         family_proxy.setSourceModel(proxy)

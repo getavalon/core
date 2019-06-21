@@ -5,8 +5,7 @@ from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io, style
 from .. import lib
 
-from .lib import refresh_family_config, FamilyConfig
-from .._models import AssetModel
+from .._models import AssetModel, FamilyConfig
 from .._widgets import (
     SubsetWidget, VersionWidget, FamilyListWidget, AssetWidget
 )
@@ -44,8 +43,8 @@ class Window(QtWidgets.QDialog):
         self.family_config = FamilyConfig()
 
         assets = AssetWidget()
-        families = FamilyListWidget(self.family_config)
-        subsets = SubsetWidget(self.family_config, self)
+        families = FamilyListWidget()
+        subsets = SubsetWidget(self)
         version = VersionWidget()
 
         # Create splitter to show / hide family filters
@@ -109,7 +108,7 @@ class Window(QtWidgets.QDialog):
         subsets.active_changed.connect(self.on_subsetschanged)
         subsets.version_changed.connect(self.on_versionschanged)
 
-        refresh_family_config(self.family_config)
+        self.family_config.refresh()
 
         self._refresh()
         self._assetschanged()

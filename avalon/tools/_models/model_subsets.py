@@ -1,7 +1,6 @@
 from . import QtCore
 from . import qtawesome, style, io
-from . import Node, TreeModel
-from . import lib
+from . import Node, FamilyConfig, TreeModel
 
 
 class SubsetsModel(TreeModel):
@@ -17,10 +16,10 @@ class SubsetsModel(TreeModel):
         "step"
     ]
 
-    def __init__(self, family_config, parent=None):
+    def __init__(self, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
         self._asset_id = None
-        self.family_config = family_config
+        self.family_config = FamilyConfig()
         self._icons = {
             "subset": qtawesome.icon("fa.file-o", color=style.colors.default)
         }
@@ -79,7 +78,7 @@ class SubsetsModel(TreeModel):
             duration = None
 
         family = version_data.get("families", [None])[0]
-        family_config = lib.get(self.family_config, family)
+        family_config = self.family_config.get(family)
 
         node.update({
             "version": version['name'],

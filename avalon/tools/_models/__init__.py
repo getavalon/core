@@ -4,6 +4,7 @@ from ... import io, api
 from ... import style
 
 from .node import Node
+from .family_config import FamilyConfig
 
 from .model_tree import TreeModel
 from .model_tasks import TasksModel

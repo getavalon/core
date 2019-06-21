@@ -1,6 +1,6 @@
 from . import QtCore, QtWidgets
 from . import io
-from .._models.lib import get
+from .._models import FamilyConfig
 
 
 class FamilyListWidget(QtWidgets.QListWidget):
@@ -9,9 +9,9 @@ class FamilyListWidget(QtWidgets.QListWidget):
     NameRole = QtCore.Qt.UserRole + 1
     active_changed = QtCore.Signal(list)
 
-    def __init__(self, family_config, parent=None):
+    def __init__(self, parent=None):
         super(FamilyListWidget, self).__init__(parent=parent)
-        self.family_config = family_config
+        self.family_config = FamilyConfig()
         multi_select = QtWidgets.QAbstractItemView.ExtendedSelection
         self.setSelectionMode(multi_select)
         self.setAlternatingRowColors(True)
@@ -38,7 +38,7 @@ class FamilyListWidget(QtWidgets.QListWidget):
         self.clear()
         for name in sorted(unique_families):
 
-            family = get(self.family_config, name)
+            family = self.family_config.get(name)
             label = family.get("label", name)
             icon = family.get("icon", None)
 
