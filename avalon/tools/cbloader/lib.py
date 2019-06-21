@@ -1,13 +1,13 @@
 from ...vendor import qtawesome
 from ... import io, api
 
+'''
+WARNING: Let this file here because `cbsceneinventory` is using these methods!!!
+    - probably will change in future...
+'''
+
 FAMILY_ICON_COLOR = "#0091B2"
-
-
-# inherits dict so FamilyConfig behaves like object with dict attributes
-class FamilyConfig(dict):
-    def __init__(self, *args, **kwargs):
-        super(FamilyConfig, self).__init__(*args, **kwargs)
+FAMILY_CONFIG = {}
 
 
 def get(config, name):
@@ -16,12 +16,10 @@ def get(config, name):
     return config.get(name, config.get("__default__", None))
 
 
-def refresh_family_config(family_config):
+def refresh_family_config():
     """Get the family configurations from the database
-
     The configuration must be stored on the project under `config`.
     For example:
-
     {
         "config": {
             "families": [
@@ -30,17 +28,13 @@ def refresh_family_config(family_config):
             ]
         }
     }
-
     It is possible to override the default behavior and set specific families
     checked. For example we only want the families imagesequence  and camera
     to be visible in the Loader.
-
     # This will turn every item off
     api.data["familyStateDefault"] = False
-
     # Only allow the imagesequence and camera
     api.data["familyStateToggled"] = ["imagesequence", "camera"]
-
     """
     # Update the icons from the project configuration
     project = io.find_one({"type": "project"},
@@ -72,7 +66,7 @@ def refresh_family_config(family_config):
     # Default configuration
     families["__default__"] = {"icon": default_icon}
 
-    family_config.clear()
-    family_config.update(families)
+    FAMILY_CONFIG.clear()
+    FAMILY_CONFIG.update(families)
 
-    return family_config
+    return families
