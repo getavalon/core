@@ -26,10 +26,10 @@ class Window(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
-        self.setWindowTitle(
-            "Asset Loader 2.1 - %s/%s" % (
-                api.registered_root(),
-                api.Session.get("AVALON_PROJECT")))
+        self.setWindowTitle("Asset Loader 2.1 - {}/{}".format(
+            api.registered_root().replace('\\', '/'),
+            api.Session.get("AVALON_PROJECT")
+        ))
 
         # Enable minimize and maximize for app
         self.setWindowFlags(QtCore.Qt.Window)
