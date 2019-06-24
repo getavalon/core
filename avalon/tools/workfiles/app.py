@@ -472,8 +472,13 @@ class Window(QtWidgets.QDialog):
             if result:
                 nuke.scriptSave()
 
+        # To remain in the same window, we have to clear the script and read
+        # in the contents of the workfile.
         nuke.scriptClear()
-        nuke.scriptOpen(file_path)
+        nuke.scriptReadFile(file_path)
+        nuke.Root()["name"].setValue(file_path)
+        nuke.Root()["project_directory"].setValue(os.path.dirname(file_path))
+        nuke.Root().setModified(False)
 
         return True
 
