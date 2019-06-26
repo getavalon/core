@@ -15,7 +15,7 @@ from ..projectmanager.widget import (
     preserve_selection,
     _iter_model_rows,
 )
-from ..cbloader.delegates import VersionDelegate
+from .._delegates import VersionDelegate
 from ..cbloader.lib import refresh_family_config
 
 from .proxy import FilterProxyModel

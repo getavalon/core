@@ -1,14 +1,15 @@
 import sys
 import time
 
-from ..projectmanager.widget import AssetWidget, AssetModel
-
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io, style
 from .. import lib
 
-from .lib import refresh_family_config
-from .widgets import SubsetWidget, VersionWidget, FamilyListWidget
+from .._models import AssetModel, FamilyConfig
+from .._widgets import (
+    SubsetWidget, VersionWidget, FamilyListWidget, AssetWidget
+)
+
 
 module = sys.modules[__name__]
 module.window = None
@@ -24,10 +25,10 @@ class Window(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
-        self.setWindowTitle(
-            "Asset Loader 2.1 - %s/%s" % (
-                api.registered_root(),
-                api.Session.get("AVALON_PROJECT")))
+        self.setWindowTitle("Asset Loader 2.1 - {}/{}".format(
+            api.registered_root().replace('\\', '/'),
+            api.Session.get("AVALON_PROJECT")
+        ))
 
         # Enable minimize and maximize for app
         self.setWindowFlags(QtCore.Qt.Window)
@@ -38,6 +39,8 @@ class Window(QtWidgets.QDialog):
         footer.setFixedHeight(20)
 
         container = QtWidgets.QWidget()
+
+        self.family_config = FamilyConfig()
 
         assets = AssetWidget()
         families = FamilyListWidget()
@@ -93,7 +96,6 @@ class Window(QtWidgets.QDialog):
                     "root": None,
                     "project": None,
                     "asset": None,
-                    "silo": None,
                     "subset": None,
                     "version": None,
                     "representation": None,
@@ -106,7 +108,7 @@ class Window(QtWidgets.QDialog):
         subsets.active_changed.connect(self.on_subsetschanged)
         subsets.version_changed.connect(self.on_versionschanged)
 
-        refresh_family_config()
+        self.family_config.refresh()
 
         self._refresh()
         self._assetschanged()
@@ -173,15 +175,13 @@ class Window(QtWidgets.QDialog):
 
         asset_item = assets_model.get_active_index()
         if asset_item is None or not asset_item.isValid():
-            type = "asset"
-            silo = assets_model.get_current_silo()
-            if len(silo) == 0:
+            documents = [doc for doc in io.find({
+                "type": "asset",
+                "data.visualParent": None
+            })]
+            if len(documents) == 0:
                 return
-            document = io.find_one({
-                "type": type,
-                "name": silo
-            })
-
+            document = documents[0]
         else:
             document = asset_item.data(DocumentRole)
 
@@ -198,7 +198,7 @@ class Window(QtWidgets.QDialog):
         self.data['model']['version'].set_version(None)
 
         self.data["state"]["context"]["asset"] = document["name"]
-        self.data["state"]["context"]["silo"] = document["silo"]
+
         self.echo("Duration: %.3fs" % (time.time() - t1))
 
     def _versionschanged(self):
@@ -221,12 +221,7 @@ class Window(QtWidgets.QDialog):
     def _set_context(self, context, refresh=True):
         """Set the selection in the interface using a context.
 
-        The context must contain `silo` and `asset` data by name.
-
-        Note: Prior to setting context ensure `refresh` is triggered so that
-              the "silos" are listed correctly, aside from that setting the
-              context will force a refresh further down because it changes
-              the active silo and asset.
+        The context must contain `asset` data by name.
 
         Args:
             context (dict): The context to apply.
@@ -235,10 +230,6 @@ class Window(QtWidgets.QDialog):
             None
 
         """
-
-        silo = context.get("silo", None)
-        if silo is None:
-            return
 
         asset = context.get("asset", None)
         if asset is None:
@@ -254,7 +245,6 @@ class Window(QtWidgets.QDialog):
             self._refresh()
 
         asset_widget = self.data['model']['assets']
-        asset_widget.set_silo(silo)
         asset_widget.select_assets([asset], expand=True)
 
     def echo(self, message):
@@ -338,8 +328,7 @@ def show(debug=False, parent=None, use_context=False):
         window.show()
 
         if use_context:
-            context = {"asset": api.Session['AVALON_ASSET'],
-                       "silo": api.Session['AVALON_SILO']}
+            context = {"asset": api.Session['AVALON_ASSET']}
             window.set_context(context, refresh=True)
         else:
             window.refresh()
