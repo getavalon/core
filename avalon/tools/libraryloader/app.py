@@ -12,8 +12,7 @@ from .widgets import (
     VersionWidget,
     FamilyListWidget,
     AssetWidget,
-    AssetModel,
-    ProjectsWidget
+    AssetModel
 )
 
 module = sys.modules[__name__]
@@ -51,9 +50,7 @@ class Window(QtWidgets.QDialog):
 
         self._db = DbConnector()
         self._db.install()
-        self.project_widget = ProjectsWidget(
-            self, show_projects, show_libraries
-        )
+
         self.show_projects = show_projects
         self.show_libraries = show_libraries
 
@@ -62,33 +59,26 @@ class Window(QtWidgets.QDialog):
         subsets = SubsetWidget(self)
         version = VersionWidget(self)
 
-        widget_project = QtWidgets.QWidget()
-        layout_project_btn = QtWidgets.QVBoxLayout(self)
-        btn_change_project = QtWidgets.QPushButton("Change Library")
-        layout_project_btn.addWidget(btn_change_project)
-        widget_project.setLayout(layout_project_btn)
+        # Project
+        self.combo_projects = QtWidgets.QComboBox()
+        self._set_projects()
+        self.combo_projects.currentTextChanged.connect(self.on_project_change)
 
         # Create splitter to show / hide family filters
         asset_filter_splitter = QtWidgets.QSplitter()
         asset_filter_splitter.setOrientation(QtCore.Qt.Vertical)
+        asset_filter_splitter.addWidget(self.combo_projects)
         asset_filter_splitter.addWidget(assets)
         asset_filter_splitter.addWidget(families)
-        asset_filter_splitter.setStretchFactor(0, 65)
-        asset_filter_splitter.setStretchFactor(1, 35)
-
-        version_project = QtWidgets.QSplitter()
-        version_project.setOrientation(QtCore.Qt.Vertical)
-        version_project.addWidget(version)
-        version_project.setStretchFactor(0, 95)
-        version_project.addWidget(widget_project)
-        version_project.setStretchFactor(1, 5)
+        asset_filter_splitter.setStretchFactor(1, 65)
+        asset_filter_splitter.setStretchFactor(2, 35)
 
         container_layout = QtWidgets.QHBoxLayout(container)
         container_layout.setContentsMargins(0, 0, 0, 0)
         split = QtWidgets.QSplitter()
         split.addWidget(asset_filter_splitter)
         split.addWidget(subsets)
-        split.addWidget(version_project)
+        split.addWidget(version)
         split.setSizes([180, 950, 200])
         container_layout.addWidget(split)
 
@@ -108,8 +98,8 @@ class Window(QtWidgets.QDialog):
         layout.addWidget(footer)
 
         self.data = {
-            "widgets": {"families": families},
-            "model": {
+            "widgets": {
+                "families": families,
                 "assets": assets,
                 "subsets": subsets,
                 "version": version,
@@ -134,9 +124,9 @@ class Window(QtWidgets.QDialog):
 
         families.active_changed.connect(subsets.set_family_filters)
         assets.selection_changed.connect(self.on_assetschanged)
+        assets.refreshButton.clicked.connect(self._set_projects)
         subsets.active_changed.connect(self.on_subsetschanged)
         subsets.version_changed.connect(self.on_versionschanged)
-        btn_change_project.clicked.connect(self.show_projects_widget)
         self.signal_project_changed.connect(self.on_projectchanged)
 
         # Defaults
@@ -144,21 +134,61 @@ class Window(QtWidgets.QDialog):
 
         # Set project
         default_project = self.get_default_project()
-        if default_project is None:
-            self.show_projects_widget()
-        else:
+        if default_project:
             self.signal_project_changed.emit(default_project)
 
+    def _set_projects(self):
+        projects = self.get_filtered_projects()
+
+        default = self.get_default_project()
+        self.combo_projects.clear()
+        if len(projects) > 0:
+            self.combo_projects.addItems(projects)
+        if default:
+            index = self.combo_projects.findText(
+                default, QtCore.Qt.MatchFixedString
+            )
+            if index:
+                self.db.activate_project(default)
+                self.combo_projects.setCurrentIndex(index)
+
+    def get_filtered_projects(self):
+        projects = list()
+        for project in self.db.projects():
+            is_library = project.get('data', {}).get('library_project', False)
+            if (
+                (is_library and self.show_libraries) or
+                (not is_library and self.show_projects)
+            ):
+                projects.append(project['name'])
+
+        return projects
+
+    def on_project_change(self):
+        projects = self.get_filtered_projects()
+        project_name = self.combo_projects.currentText()
+        if project_name in projects:
+            self.db.activate_project(project_name)
+        self.refresh()
+
     def get_default_project(self):
-        presets = self.load_presets()
+        # looks into presets if any default library is set
+        # - returns name of library from presets if exists in db
+        # - if was not found or not set then returns first existing project
+        # - returns `None` if any project was found in db
         name = None
-        if self.show_libraries:
+        presets = self.load_presets()
+        if self.show_projects:
+            name = presets.get('default_project', None)
+        if self.show_libraries and not name:
             name = presets.get('default_library', None)
-        if name is None:
-            return None
-        projects = [p['name'] for p in self.db.projects()]
-        if name in projects:
+
+        projects = self.get_filtered_projects()
+
+        if name and name in projects:
             return name
+        elif len(projects) > 0:
+            return projects[0]
         return None
 
     def load_presets(self):
@@ -176,12 +206,9 @@ class Window(QtWidgets.QDialog):
             print('Failed to load presets file ({})'.format(e))
         return data
 
-    def show_projects_widget(self):
-        self.project_widget.show()
-
     @property
     def current_project(self):
-        if self.db.active_project() == '':
+        if self.db.active_project().strip() == '':
             return None
         return self.db.active_project()
 
@@ -244,13 +271,12 @@ class Window(QtWidgets.QDialog):
     def _refresh(self):
         """Load assets from database"""
         if self.current_project is None:
-            self.show_projects_widget()
             return
         # Ensure a project is loaded
         project = self.db.find_one({"type": "project"})
         assert project, "This is a bug"
 
-        assets_model = self.data["model"]["assets"]
+        assets_model = self.data["widgets"]["assets"]
         assets_model.refresh()
         assets_model.setFocus()
 
@@ -266,26 +292,18 @@ class Window(QtWidgets.QDialog):
     def _assetschanged(self):
         """Selected assets have changed"""
 
-        assets_model = self.data["model"]["assets"]
-        subsets = self.data["model"]["subsets"]
+        assets_widget = self.data["widgets"]["assets"]
+        subsets = self.data["widgets"]["subsets"]
         subsets_model = subsets.model
         subsets_model.clear()
 
         t1 = time.time()
 
-        asset_item = assets_model.get_active_index()
+        asset_item = assets_widget.get_active_index()
         if asset_item is None or not asset_item.isValid():
-            type = "asset"
-            silo = assets_model.get_current_silo()
-            if len(silo) == 0:
-                return
-            document = self.db.find_one({
-                "type": type,
-                "name": silo
-            })
+            return
 
-        else:
-            document = asset_item.data(DocumentRole)
+        document = asset_item.data(DocumentRole)
 
         if document is None:
             return
@@ -297,7 +315,7 @@ class Window(QtWidgets.QDialog):
             subsets.view.resizeColumnToContents(i)
 
         # Clear the version information on asset change
-        self.data['model']['version'].set_version(None)
+        self.data['widgets']['version'].set_version(None)
 
         self.data["state"]["context"]["asset"] = document["name"]
         self.data["state"]["context"]["silo"] = document["silo"]
@@ -305,7 +323,7 @@ class Window(QtWidgets.QDialog):
 
     def _versionschanged(self):
 
-        subsets = self.data["model"]["subsets"]
+        subsets = self.data["widget"]["subsets"]
         selection = subsets.view.selectionModel()
 
         # Active must be in the selected rows otherwise we
@@ -318,7 +336,7 @@ class Window(QtWidgets.QDialog):
                 node = active.data(subsets.model.NodeRole)
                 version = node['version_document']['_id']
 
-        self.data['model']['version'].set_version(version)
+        self.data['widgets']['version'].set_version(version)
 
     def echo(self, message):
         widget = self.data["label"]["message"]
