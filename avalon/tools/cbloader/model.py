@@ -197,10 +197,16 @@ class FamiliesFilterProxyModel(QtCore.QSortFilterProxyModel):
 
         # Get the node data and validate
         node = model.data(index, TreeModel.NodeRole)
-        families = node.get("families", None)
+        families = node.get("families", [])
 
-        if not families:
+        filterable_families = set()
+        for name in families:
+            family_config = lib.get(lib.FAMILY_CONFIG, name)
+            if not family_config.get("hideFilter"):
+                filterable_families.add(name)
+
+        if not filterable_families:
             return True
 
         # We want to keep the families which are not in the list
-        return families.issubset(self._families)
+        return filterable_families.issubset(self._families)
