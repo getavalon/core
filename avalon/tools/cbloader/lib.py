@@ -1,8 +1,9 @@
 from ...vendor import qtawesome
-from ... import io, api
+from ... import io, api, style
 
 FAMILY_ICON_COLOR = "#0091B2"
 FAMILY_CONFIG = {}
+GROUP_CONFIG = {}
 
 
 def get(config, name):
@@ -71,3 +72,81 @@ def refresh_family_config():
     FAMILY_CONFIG.update(families)
 
     return families
+
+
+def refresh_group_config():
+    """Get subset group configurations from the database
+
+    The 'group' configuration must be stored in the project `config` field.
+    See schema `config-1.0.json`
+
+    """
+
+    # Subset group item's default icon and order
+    default_group_icon = qtawesome.icon("fa.object-group",
+                                        color=style.colors.default)
+    default_group_config = {"icon": default_group_icon,
+                            "order": 0}
+
+    # Get pre-defined group name and apperance from project config
+    project = io.find_one({"type": "project"},
+                          projection={"config.groups": True})
+
+    assert project, "Project not found!"
+    group_configs = project["config"].get("groups", [])
+
+    # Build pre-defined group configs
+    groups = dict()
+    for config in group_configs:
+        name = config["name"]
+        icon = "fa." + config.get("icon", "object-group")
+        color = config.get("color", style.colors.default)
+        order = float(config.get("order", 0))
+
+        groups[name] = {"icon": qtawesome.icon(icon, color=color),
+                        "order": order}
+
+    # Default configuration
+    groups["__default__"] = default_group_config
+
+    GROUP_CONFIG.clear()
+    GROUP_CONFIG.update(groups)
+
+    return groups
+
+
+def get_active_group_config(asset_id):
+    """Collect all active groups from each subset
+    """
+    predefineds = GROUP_CONFIG.copy()
+    default_group_config = predefineds.pop("__default__")
+
+    _orders = set([0])  # default order zero included
+    for config in predefineds.values():
+        _orders.add(config["order"])
+
+    orders = sorted(_orders)
+    order_temp = "%0{}d".format(len(str(len(orders))))
+
+    # Collect groups from subsets
+    active_groups = list()
+
+    for group_name in set(io.distinct("data.subsetGroup",
+                                      {"type": "subset", "parent": asset_id})):
+        # Get group config
+        config = predefineds.get(group_name, default_group_config)
+        # Calculate order
+        remapped_order = orders.index(config["order"])
+        inverse_order = len(orders) - remapped_order
+
+        data = {
+            "name": group_name,
+            "icon": config["icon"],
+            # Format orders into fixed length string for groups sorting
+            "order": order_temp % remapped_order,
+            "inverseOrder": order_temp % inverse_order,
+        }
+
+        active_groups.append(data)
+
+    return active_groups

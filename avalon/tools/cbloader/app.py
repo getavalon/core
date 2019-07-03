@@ -7,7 +7,7 @@ from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io, style
 from .. import lib
 
-from .lib import refresh_family_config
+from .lib import refresh_family_config, refresh_group_config
 from .widgets import SubsetWidget, VersionWidget, FamilyListWidget
 
 module = sys.modules[__name__]
@@ -105,6 +105,7 @@ class Window(QtWidgets.QDialog):
         subsets.version_changed.connect(self.on_versionschanged)
 
         refresh_family_config()
+        refresh_group_config()
 
         # Defaults
         self.resize(1330, 700)

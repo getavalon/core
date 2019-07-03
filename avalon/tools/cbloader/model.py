@@ -30,10 +30,6 @@ class SubsetsModel(TreeModel):
         self._sorter = None
         self._icons = {"subset": qta.icon("fa.file-o",
                                           color=style.colors.default)}
-        # Subset group item's default icon and order
-        self._default_group = {"icon": qta.icon("fa.object-group",
-                                                color=style.colors.default),
-                               "order": 0}
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id
@@ -112,48 +108,22 @@ class SubsetsModel(TreeModel):
             self.endResetModel()
             return
 
-        filter = {"type": "subset", "parent": self._asset_id}
+        asset_id = self._asset_id
 
-        # Get pre-defined group name and apperance from project config
-        group_configs = io.find_one(
-            {"type": "project"}, {"config.groups": 1}
-        )["config"].get("groups") or []
+        active_groups = lib.get_active_group_config(asset_id)
 
-        # Build pre-defined group configs
-        predefineds = dict()
-        _orders = set([0])  # default order zero included
-        for config in group_configs:
-            name = config["name"]
-            icon = "fa." + config.get("icon", "object-group")
-            color = config.get("color", style.colors.default)
-            order = float(config.get("order"))
-
-            predefineds[name] = {"icon": qta.icon(icon, color=color),
-                                 "order": order}
-            _orders.add(order)
-
-        orders = sorted(_orders)
-        order_temp = "%0{}d".format(len(str(len(orders))))
-
-        # Collect subset groups
+        # Generate subset group nodes
         group_nodes = dict()
-        for group_name in io.distinct("data.subsetGroup", filter):
+        for data in active_groups:
+            name = data.pop("name")
             group = Node()
-            config = predefineds.get(group_name, self._default_group)
-            remapped_order = orders.index(config["order"])
-            inverse_order = len(orders) - remapped_order
-            data = {
-                "subset": group_name,
-                "icon": config["icon"],
-                "isGroup": True,
-                # Format orders into fixed length string for groups sorting
-                "order": order_temp % remapped_order,
-                "inverseOrder": order_temp % inverse_order,
-            }
+            group.update({"subset": name, "isGroup": True})
             group.update(data)
-            group_nodes[group_name] = {"node": group,
-                                       "childRow": 0}
+
+            group_nodes[name] = {"node": group, "childRow": 0}
             self.add_child(group)
+
+        filter = {"type": "subset", "parent": asset_id}
 
         # Process subsets
         row = len(group_nodes)
