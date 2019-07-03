@@ -406,6 +406,16 @@ def containerise(name,
 
     cmds.sets(container, addElement=main_container)
 
+    # Implement #399: Maya 2019+ hide containers in outliner
+    if cmds.attributeQuery("hiddenInOutliner",
+                           node=container,
+                           exists=True):
+        cmds.setAttr(container + ".hiddenInOutliner", True)
+    if cmds.attributeQuery("hiddenInOutliner",
+                           node=main_container,
+                           exists=True):
+        cmds.setAttr(main_container + ".hiddenInOutliner", True)
+
     return container
 
 
