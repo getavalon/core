@@ -312,6 +312,7 @@ class SubsetGroupingDialog(QtWidgets.QDialog):
     def __init__(self, items, parent=None):
         super(SubsetGroupingDialog, self).__init__(parent=parent)
         self.setWindowTitle("Grouping Subsets")
+        self.setMinimumWidth(250)
         self.setModal(True)
 
         self.items = items
@@ -319,6 +320,7 @@ class SubsetGroupingDialog(QtWidgets.QDialog):
         self.asset_id = parent.data["state"]["context"]["assetId"]
 
         name = QtWidgets.QLineEdit()
+        name.setPlaceholderText("Remain blank to ungroup..")
 
         # Menu for pre-defined subset groups
         name_button = QtWidgets.QPushButton()
