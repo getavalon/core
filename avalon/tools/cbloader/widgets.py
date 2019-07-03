@@ -216,6 +216,39 @@ class SubsetWidget(QtWidgets.QWidget):
                 self.echo(exc)
                 continue
 
+    def selected_subsets(self):
+        selection = self.view.selectionModel()
+        rows = selection.selectedRows(column=0)
+
+        subsets = list()
+        for row in rows:
+            node = row.data(self.model.NodeRole)
+            if not node.get("isGroup"):
+                subsets.append(node)
+
+        return subsets
+
+    def group_subsets(self, name, asset_id, nodes):
+        field = "data.subsetGroup"
+
+        if name:
+            update = {"$set": {field: name}}
+            self.echo("Group subsets to '%s'.." % name)
+        else:
+            update = {"$unset": {field: ""}}
+            self.echo("Ungroup subsets..")
+
+        subsets = list()
+        for node in nodes:
+            subsets.append(node["subset"])
+
+        filter = {
+            "type": "subset",
+            "parent": asset_id,
+            "name": {"$in": subsets},
+        }
+        io.update_many(filter, update)
+
     def echo(self, message):
         print(message)
 

@@ -115,7 +115,7 @@ def refresh_group_config():
     return groups
 
 
-def get_active_group_config(asset_id):
+def get_active_group_config(asset_id, include_predefined=False):
     """Collect all active groups from each subset
     """
     predefineds = GROUP_CONFIG.copy()
@@ -131,8 +131,13 @@ def get_active_group_config(asset_id):
     # Collect groups from subsets
     active_groups = list()
 
-    for group_name in set(io.distinct("data.subsetGroup",
-                                      {"type": "subset", "parent": asset_id})):
+    existed = set(io.distinct("data.subsetGroup",
+                              {"type": "subset", "parent": asset_id}))
+    if include_predefined:
+        # Ensure all predefined group configs will be included
+        existed.update(predefineds.keys())
+
+    for group_name in existed:
         # Get group config
         config = predefineds.get(group_name, default_group_config)
         # Calculate order
