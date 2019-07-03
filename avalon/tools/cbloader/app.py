@@ -270,6 +270,18 @@ class Window(QtWidgets.QDialog):
         print("Good bye")
         return super(Window, self).closeEvent(event)
 
+    def keyReleaseEvent(self, event):
+        modifiers = event.modifiers()
+        ctrl_pressed = QtCore.Qt.ControlModifier & modifiers
+
+        # Grouping subsets on releasing Ctrl + G
+        if (ctrl_pressed and event.key() == QtCore.Qt.Key_G and
+                not event.isAutoRepeat()):
+            print("GROUP...")
+            event.accept()
+
+        return super(Window, self).keyReleaseEvent(event)
+
 
 def show(debug=False, parent=None, use_context=False):
     """Display Loader GUI
