@@ -5,6 +5,8 @@ The Workfiles app facilitates easy saving, creation and launching of work files.
 The current supported hosts are:
 
 - Maya
+- Houdini
+- Fusion
 
 The app is available inside hosts via. the ```Avalon > Work Files``` menu.
 
@@ -13,12 +15,7 @@ The app is available inside hosts via. the ```Avalon > Work Files``` menu.
 By default the Workfiles app will not launch on startup, so it has to be explicitly enabled in a config.
 
 ```python
-workfiles.show(
-    os.path.join(
-        cmds.workspace(query=True, rootDirectory=True),
-        cmds.workspace(fileRuleEntry="scene")
-    )
-)
+workfiles.show()
 ```
 
 ## Naming Files
