@@ -68,7 +68,7 @@ implement the following functions:
 - `save(filepath)`: Save the current file. This should return None if it failed to save, and return the path if it succeeded
 - `has_unsaved_changes()`: Return whether the current scene has unsaved changes.
 - `current_file()`: The path to the current file. None if not saved.
-- `work_root()`: The path to where the work files for this app should be saved. (todo: This might change later to allow more customization per studio configuration)
+- `work_root()`: The path to where the work files for this app should be saved.
 
 Here's an example code layout:
 
@@ -123,4 +123,24 @@ def work_root():
 
     """
     pass
+```
+
+#### Work Files Scenes root (AVALON_SCENEDIR)
+
+Whenever the host application has no built-in implementation that defines
+where scene files should be saved to then the Work Files API for that host
+should fall back to the `AVALON_SCENEDIR` variable in `api.Session`.
+
+When `AVALON_SCENEDIR` is set the  directory is the relative folder inside the 
+`AVALON_WORKDIR`. Otherwise, when it is not set or empty it should fall back
+to the Work Directory's root, `AVALON_WORKDIR` 
+
+```python
+AVALON_WORKDIR="/path/to/work"
+AVALON_SCENEDIR="scenes"
+# Result: /path/to/work/scenes
+
+AVALON_WORKDIR="/path/to/work"
+AVALON_SCENEDIR=None
+# Result: /path/to/work
 ```
