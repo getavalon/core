@@ -319,22 +319,19 @@ class Window(QtWidgets.QDialog):
         result = self.data["Result"]
 
         item = listing.currentItem()
-        useselection_chk = self.data["Use Selection Checkbox"]
-
-        if item is not None:
-            subset_name = result.text()
-            asset = asset.text()
-            family = item.data(FamilyRole)
-        else:
+        if item is None:
             return
+
+        subset_name = result.text()
+        asset = asset.text()
+        family = item.data(FamilyRole)
+        use_selection = self.data["Use Selection Checkbox"].isChecked()
 
         try:
             api.create(subset_name,
                        asset,
                        family,
-                       options={"useSelection":
-                                useselection_chk.checkState()}
-                       )
+                       options={"useSelection": use_selection})
 
         except NameError as e:
             self.echo(e)
@@ -343,6 +340,8 @@ class Window(QtWidgets.QDialog):
         except (TypeError, RuntimeError, KeyError, AssertionError) as e:
             self.echo("Program error: %s" % str(e))
             raise
+
+        self.echo("Created %s .." % subset_name)
 
     def echo(self, message):
         widget = self.data["Error Message"]

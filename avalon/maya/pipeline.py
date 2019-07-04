@@ -500,11 +500,12 @@ class Creator(api.Creator):
     def process(self):
         nodes = list()
 
-        if (self.options or {}).get("useSelection"):
-            nodes = cmds.ls(selection=True)
+        with lib.undo_chunk():
+            if (self.options or {}).get("useSelection"):
+                nodes = cmds.ls(selection=True)
 
-        instance = cmds.sets(nodes, name=self.data["subset"])
-        lib.imprint(instance, self.data)
+            instance = cmds.sets(nodes, name=self.name)
+            lib.imprint(instance, self.data)
 
         return instance
 
