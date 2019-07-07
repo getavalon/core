@@ -82,6 +82,9 @@ class SubsetWidget(QtWidgets.QWidget):
         self.proxy.setDynamicSortFilter(True)
         self.proxy.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
 
+        self.proxy.setRecursiveFilteringEnabled(True)
+        self.family_proxy.setRecursiveFilteringEnabled(True)
+
         self.view.setModel(self.family_proxy)
         self.view.customContextMenuRequested.connect(self.on_context_menu)
 

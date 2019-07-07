@@ -272,6 +272,10 @@ class FamiliesFilterProxyModel(QtCore.QSortFilterProxyModel):
 
         # Get the node data and validate
         node = model.data(index, TreeModel.NodeRole)
+
+        if node.get("isGroup"):
+            return False
+
         family = node.get("family", None)
 
         if not family:
