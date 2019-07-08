@@ -125,33 +125,48 @@ def get_active_group_config(asset_id, include_predefined=False):
     for config in predefineds.values():
         _orders.add(config["order"])
 
+    # Remap order to list index
     orders = sorted(_orders)
-    order_temp = "%0{}d".format(len(str(len(orders))))
 
     # Collect groups from subsets
-    active_groups = list()
-
-    existed = set(io.distinct("data.subsetGroup",
-                              {"type": "subset", "parent": asset_id}))
+    group_names = set(io.distinct("data.subsetGroup",
+                                  {"type": "subset", "parent": asset_id}))
     if include_predefined:
         # Ensure all predefined group configs will be included
-        existed.update(predefineds.keys())
+        group_names.update(predefineds.keys())
 
-    for group_name in existed:
+    groups = list()
+
+    for name in group_names:
         # Get group config
-        config = predefineds.get(group_name, default_group_config)
-        # Calculate order
+        config = predefineds.get(name, default_group_config)
+        # Base order
         remapped_order = orders.index(config["order"])
-        inverse_order = len(orders) - remapped_order
 
         data = {
-            "name": group_name,
+            "name": name,
             "icon": config["icon"],
-            # Format orders into fixed length string for groups sorting
-            "order": order_temp % remapped_order,
-            "inverseOrder": order_temp % inverse_order,
+            "_order": remapped_order,
         }
 
-        active_groups.append(data)
+        groups.append(data)
 
-    return active_groups
+    # Sort by tuple (base_order, name)
+    # If there are multiple groups in same order, will sorted by name.
+    ordered = sorted(groups, key=lambda dat: (dat.pop("_order"), dat["name"]))
+
+    total = len(ordered)
+    order_temp = "%0{}d".format(len(str(total)))
+
+    # Update sorted order to config
+    for index, data in enumerate(ordered):
+        order = index
+        inverse_order = total - order
+
+        data.update({
+            # Format orders into fixed length string for groups sorting
+            "order": order_temp % order,
+            "inverseOrder": order_temp % inverse_order,
+        })
+
+    return ordered
