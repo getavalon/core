@@ -184,8 +184,8 @@ class Window(QtWidgets.QDialog):
         subsets_model.set_asset(document['_id'])
 
         # Enforce the columns to fit the data (purely cosmetic)
-        rows = subsets_model.rowCount(QtCore.QModelIndex())
-        for i in range(rows):
+        columns = subsets_model.columnCount(QtCore.QModelIndex())
+        for i in range(columns):
             subsets.view.resizeColumnToContents(i)
 
         # Clear the version information on asset change
