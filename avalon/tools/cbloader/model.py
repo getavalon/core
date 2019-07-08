@@ -24,15 +24,20 @@ class SubsetsModel(TreeModel):
     SortAscendingRole = QtCore.Qt.UserRole + 2
     sortDescendingRole = QtCore.Qt.UserRole + 3
 
-    def __init__(self, parent=None):
+    def __init__(self, grouping=True, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
         self._asset_id = None
         self._sorter = None
+        self._grouping = grouping
         self._icons = {"subset": qta.icon("fa.file-o",
                                           color=style.colors.default)}
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id
+        self.refresh()
+
+    def set_grouping(self, state):
+        self._grouping = state
         self.refresh()
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
@@ -114,14 +119,16 @@ class SubsetsModel(TreeModel):
 
         # Generate subset group nodes
         group_nodes = dict()
-        for data in active_groups:
-            name = data.pop("name")
-            group = Node()
-            group.update({"subset": name, "isGroup": True, "childRow": 0})
-            group.update(data)
 
-            group_nodes[name] = group
-            self.add_child(group)
+        if self._grouping:
+            for data in active_groups:
+                name = data.pop("name")
+                group = Node()
+                group.update({"subset": name, "isGroup": True, "childRow": 0})
+                group.update(data)
+
+                group_nodes[name] = group
+                self.add_child(group)
 
         filter = {"type": "subset", "parent": asset_id}
 
@@ -140,7 +147,7 @@ class SubsetsModel(TreeModel):
             data["subset"] = data["name"]
 
             group_name = subset["data"].get("subsetGroup")
-            if group_name:
+            if self._grouping and group_name:
                 group = group_nodes[group_name]
                 parent = group
                 parent_index = self.createIndex(0, 0, group)

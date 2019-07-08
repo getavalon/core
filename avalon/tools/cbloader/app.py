@@ -290,6 +290,10 @@ class Window(QtWidgets.QDialog):
 
     def show_grouping_dialog(self):
         subsets = self.data["model"]["subsets"]
+        if not subsets.is_groupable():
+            self.echo("Grouping not enabled.")
+            return
+
         selected = subsets.selected_subsets()
         if not selected:
             self.echo("No selected subset.")

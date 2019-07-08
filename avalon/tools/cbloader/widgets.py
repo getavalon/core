@@ -8,6 +8,8 @@ from ... import io
 from ... import api
 from ... import pipeline
 
+from ..projectmanager.widget import preserve_selection
+
 from .model import (
     SubsetsModel,
     SubsetFilterProxyModel,
@@ -23,16 +25,23 @@ class SubsetWidget(QtWidgets.QWidget):
     active_changed = QtCore.Signal()    # active index changed
     version_changed = QtCore.Signal()   # version state changed for a subset
 
-    def __init__(self, parent=None):
+    def __init__(self, enable_grouping=True, parent=None):
         super(SubsetWidget, self).__init__(parent=parent)
 
-        model = SubsetsModel()
+        model = SubsetsModel(grouping=enable_grouping)
         proxy = SubsetFilterProxyModel()
         family_proxy = FamiliesFilterProxyModel()
         family_proxy.setSourceModel(proxy)
 
         filter = QtWidgets.QLineEdit()
         filter.setPlaceholderText("Filter subsets..")
+
+        groupable = QtWidgets.QCheckBox("Enable Grouping")
+        groupable.setChecked(enable_grouping)
+
+        top_bar_layout = QtWidgets.QHBoxLayout()
+        top_bar_layout.addWidget(filter)
+        top_bar_layout.addWidget(groupable)
 
         view = QtWidgets.QTreeView()
         view.setIndentation(20)
@@ -55,7 +64,7 @@ class SubsetWidget(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(filter)
+        layout.addLayout(top_bar_layout)
         layout.addWidget(view)
 
         view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -68,6 +77,9 @@ class SubsetWidget(QtWidgets.QWidget):
             "delegates": {
                 "version": version_delegate,
                 "time": time_delegate
+            },
+            "state": {
+                "groupable": groupable
             }
         }
 
@@ -94,6 +106,8 @@ class SubsetWidget(QtWidgets.QWidget):
 
         version_delegate.version_changed.connect(self.version_changed)
 
+        groupable.stateChanged.connect(self.set_grouping)
+
         self.filter.textChanged.connect(self.proxy.setFilterRegExp)
         self.filter.textChanged.connect(self.view.expandAll)
 
@@ -101,6 +115,14 @@ class SubsetWidget(QtWidgets.QWidget):
 
         # Expose this from the widget as a method
         self.set_family_filters = self.family_proxy.setFamiliesFilter
+
+    def is_groupable(self):
+        return self.data["state"]["groupable"].checkState()
+
+    def set_grouping(self, state):
+        with preserve_selection(tree_view=self.view,
+                                current_index=False):
+            self.model.set_grouping(state)
 
     def on_context_menu(self, point):
 
