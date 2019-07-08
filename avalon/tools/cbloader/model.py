@@ -22,7 +22,7 @@ class SubsetsModel(TreeModel):
                "step"]
 
     SortAscendingRole = QtCore.Qt.UserRole + 2
-    sortDescendingRole = QtCore.Qt.UserRole + 3
+    SortDescendingRole = QtCore.Qt.UserRole + 3
 
     def __init__(self, grouping=True, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
@@ -196,7 +196,7 @@ class SubsetsModel(TreeModel):
                 node = index.internalPointer()
                 return node.get("familyIcon", None)
 
-        if role == self.sortDescendingRole:
+        if role == self.SortDescendingRole:
             node = index.internalPointer()
             if node.get("isGroup"):
                 # Ensure groups be on top when sorting by descending order
@@ -329,6 +329,6 @@ class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
         if order == QtCore.Qt.AscendingOrder:
             self.setSortRole(model.SortAscendingRole)
         else:
-            self.setSortRole(model.sortDescendingRole)
+            self.setSortRole(model.SortDescendingRole)
 
         super(FamiliesFilterProxyModel, self).sort(column, order)
