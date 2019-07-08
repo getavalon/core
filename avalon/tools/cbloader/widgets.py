@@ -85,6 +85,10 @@ class SubsetWidget(QtWidgets.QWidget):
         self.view.setModel(self.family_proxy)
         self.view.customContextMenuRequested.connect(self.on_context_menu)
 
+        header = self.view.header()
+        # Enforce the columns to fit the data (purely cosmetic)
+        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.active_changed)
 
