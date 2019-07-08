@@ -342,6 +342,8 @@ class SubsetGroupingDialog(QtWidgets.QDialog):
         layout.addWidget(group_btn)
 
         group_btn.clicked.connect(self.on_group)
+        group_btn.setAutoDefault(True)
+        group_btn.setDefault(True)
 
         self.name = name
         self.name_menu = name_menu
