@@ -281,17 +281,17 @@ class Window(QtWidgets.QDialog):
         print("Good bye")
         return super(Window, self).closeEvent(event)
 
-    def keyReleaseEvent(self, event):
+    def keyPressEvent(self, event):
         modifiers = event.modifiers()
         ctrl_pressed = QtCore.Qt.ControlModifier & modifiers
 
-        # Grouping subsets on releasing Ctrl + G
+        # Grouping subsets on pressing Ctrl + G
         if (ctrl_pressed and event.key() == QtCore.Qt.Key_G and
                 not event.isAutoRepeat()):
             self.show_grouping_dialog()
-            event.accept()
+            return
 
-        return super(Window, self).keyReleaseEvent(event)
+        return super(Window, self).keyPressEvent(event)
 
     def show_grouping_dialog(self):
         subsets = self.data["model"]["subsets"]
