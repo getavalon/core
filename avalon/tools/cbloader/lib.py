@@ -1,4 +1,4 @@
-from ...vendor import qtawesome
+from ...vendor import qtawesome, Qt
 from ... import io, api, style
 
 FAMILY_ICON_COLOR = "#0091B2"
@@ -10,6 +10,16 @@ def get(config, name):
     """Get value from config with fallback to default"""
     # We assume the default fallback key in the config is `__default__`
     return config.get(name, config.get("__default__", None))
+
+
+def is_filtering_recursible():
+    """Does Qt binding support recursive filtering for QSortFilterProxyModel ?
+
+    (NOTE) Recursive filtering was introduced in Qt 5.10.
+
+    """
+    return hasattr(Qt.QtCore.QSortFilterProxyModel,
+                   "setRecursiveFilteringEnabled")
 
 
 def refresh_family_config():

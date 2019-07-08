@@ -117,10 +117,10 @@ class SubsetsModel(TreeModel):
         for data in active_groups:
             name = data.pop("name")
             group = Node()
-            group.update({"subset": name, "isGroup": True})
+            group.update({"subset": name, "isGroup": True, "childRow": 0})
             group.update(data)
 
-            group_nodes[name] = {"node": group, "childRow": 0}
+            group_nodes[name] = group
             self.add_child(group)
 
         filter = {"type": "subset", "parent": asset_id}
@@ -142,8 +142,8 @@ class SubsetsModel(TreeModel):
             group_name = subset["data"].get("subsetGroup")
             if group_name:
                 group = group_nodes[group_name]
-                parent = group["node"]
-                parent_index = self.createIndex(0, 0, parent)
+                parent = group
+                parent_index = self.createIndex(0, 0, group)
                 row_ = group["childRow"]
                 group["childRow"] += 1
             else:
@@ -225,7 +225,39 @@ class SubsetsModel(TreeModel):
         return flags
 
 
-class SubsetFilterProxyModel(QtCore.QSortFilterProxyModel):
+class GroupMemberFilterProxyModel(QtCore.QSortFilterProxyModel):
+    """Provide the feature of filtering group by the acceptance of members
+
+    The subset group nodes will not be filtered directly, the group node's
+    acceptance depends on it's child subsets' acceptance.
+
+    """
+
+    if lib.is_filtering_recursible():
+        def _is_group_acceptable(self, index, node):
+            # (NOTE) With the help of `RecursiveFiltering` feature from
+            #        Qt 5.10, group always not be accepted by default.
+            return False
+        filter_accepts_group = _is_group_acceptable
+
+    else:
+        # Patch future function
+        setRecursiveFilteringEnabled = (lambda *args: None)
+
+        def _is_group_acceptable(self, index, node):
+            # (NOTE) This is not recursive.
+            for child_row in range(node["childRow"]):
+                if self.filterAcceptsRow(child_row, index):
+                    return True
+            return False
+        filter_accepts_group = _is_group_acceptable
+
+    def __init__(self, *args, **kwargs):
+        super(GroupMemberFilterProxyModel, self).__init__(*args, **kwargs)
+        self.setRecursiveFilteringEnabled(True)
+
+
+class SubsetFilterProxyModel(GroupMemberFilterProxyModel):
 
     def filterAcceptsRow(self, row, parent):
 
@@ -235,14 +267,13 @@ class SubsetFilterProxyModel(QtCore.QSortFilterProxyModel):
                             parent)
         node = index.internalPointer()
         if node.get("isGroup"):
-            # Keep group in view
-            return True
+            return self.filter_accepts_group(index, node)
         else:
             return super(SubsetFilterProxyModel,
                          self).filterAcceptsRow(row, parent)
 
 
-class FamiliesFilterProxyModel(QtCore.QSortFilterProxyModel):
+class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
     """Filters to specified families"""
 
     def __init__(self, *args, **kwargs):
@@ -274,7 +305,7 @@ class FamiliesFilterProxyModel(QtCore.QSortFilterProxyModel):
         node = model.data(index, TreeModel.NodeRole)
 
         if node.get("isGroup"):
-            return False
+            return self.filter_accepts_group(index, node)
 
         family = node.get("family", None)
 
