@@ -244,9 +244,9 @@ class GroupMemberFilterProxyModel(QtCore.QSortFilterProxyModel):
         # Patch future function
         setRecursiveFilteringEnabled = (lambda *args: None)
 
-        def _is_group_acceptable(self, index, node):
+        def _is_group_acceptable(self, index, model):
             # (NOTE) This is not recursive.
-            for child_row in range(node["childRow"]):
+            for child_row in range(model.rowCount(index)):
                 if self.filterAcceptsRow(child_row, index):
                     return True
             return False
@@ -267,7 +267,7 @@ class SubsetFilterProxyModel(GroupMemberFilterProxyModel):
                             parent)
         node = index.internalPointer()
         if node.get("isGroup"):
-            return self.filter_accepts_group(index, node)
+            return self.filter_accepts_group(index, model)
         else:
             return super(SubsetFilterProxyModel,
                          self).filterAcceptsRow(row, parent)
@@ -305,7 +305,7 @@ class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
         node = model.data(index, TreeModel.NodeRole)
 
         if node.get("isGroup"):
-            return self.filter_accepts_group(index, node)
+            return self.filter_accepts_group(index, model)
 
         family = node.get("family", None)
 
