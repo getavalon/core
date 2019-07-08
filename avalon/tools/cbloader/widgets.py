@@ -95,6 +95,7 @@ class SubsetWidget(QtWidgets.QWidget):
         version_delegate.version_changed.connect(self.version_changed)
 
         self.filter.textChanged.connect(self.proxy.setFilterRegExp)
+        self.filter.textChanged.connect(self.view.expandAll)
 
         self.model.refresh()
 
