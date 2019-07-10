@@ -86,7 +86,8 @@ class SubsetsModel(TreeModel):
             frames = None
             duration = None
 
-        family = version_data.get("families", [None])[0]
+        families = version_data.get("families", [None])
+        family = families[0]
         family_config = lib.get(lib.FAMILY_CONFIG, family)
 
         node.update({
@@ -97,6 +98,7 @@ class SubsetsModel(TreeModel):
             "family": family,
             "familyLabel": family_config.get("label", family),
             "familyIcon": family_config.get('icon', None),
+            "families": set(families),
             "startFrame": start,
             "endFrame": end,
             "duration": duration,
@@ -314,13 +316,19 @@ class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
         if node.get("isGroup"):
             return self.filter_accepts_group(index, model)
 
-        family = node.get("family", None)
+        families = node.get("families", [])
 
-        if not family:
+        filterable_families = set()
+        for name in families:
+            family_config = lib.get(lib.FAMILY_CONFIG, name)
+            if not family_config.get("hideFilter"):
+                filterable_families.add(name)
+
+        if not filterable_families:
             return True
 
         # We want to keep the families which are not in the list
-        return family in self._families
+        return filterable_families.issubset(self._families)
 
     def sort(self, column, order):
         proxy = self.sourceModel()
