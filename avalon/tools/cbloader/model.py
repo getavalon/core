@@ -340,4 +340,3 @@ class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
             self.setSortRole(model.SortDescendingRole)
 
         super(FamiliesFilterProxyModel, self).sort(column, order)
-
