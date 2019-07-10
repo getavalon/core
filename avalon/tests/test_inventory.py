@@ -137,6 +137,14 @@ def test_save():
         "families": [
             {"name": "avalon.model", "label": "Model", "icon": "cube"}
         ],
+        "groups": [
+            {
+                "name": "charCaches",
+                "icon": "diamond",
+                "color": "#C4CEDC",
+                "order": -99
+            },
+        ],
         "copy": {}
     }
 
