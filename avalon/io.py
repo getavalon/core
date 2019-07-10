@@ -135,6 +135,9 @@ def _from_environment():
             # Path to working directory
             ("AVALON_WORKDIR", None),
 
+            # Optional path to scenes directory (see Work Files API)
+            ("AVALON_SCENEDIR", None),
+
             # Name of current Config
             # TODO(marcus): Establish a suitable default config
             ("AVALON_CONFIG", "no_config"),
