@@ -55,6 +55,48 @@ def reload_pipeline():
     _register_events()
 
 
+def set_avalon_knob_data(node, data):
+    """ Sets a data into nodes's avalon knob
+
+    Arguments:
+        node (object): The node in Nuke to imprint as data,
+        data (dict): data to be printed into Avalon knob
+
+    Returns:
+        True (bool)
+    """
+    try:
+        lib.add_avalon_tab_knob(node)
+        lib.add_avalon_tab_knob(node)
+
+        node['avalon'].setValue(toml.dumps(data))
+
+        return True
+    except Exception as e:
+        log.warning("set_avalon_knob_data: `{}`".format(e))
+        return False
+
+
+def get_avalon_knob_data(node):
+    """ Gets all imprinted data from nodes's avalon knob
+
+    Arguments:
+        node (object): The node in Nuke to read data from,
+
+    Returns:
+        data (dict): imprinted data
+    """
+    try:
+        raw_text_data = node['avalon'].value()
+    except Exception as e:
+        log.debug("Creating avalon knob: `{}`".format(e))
+        lib.add_avalon_tab_knob()
+        return get_avalon_knob_data(node)
+
+    data = toml.loads(raw_text_data, _dict=dict)
+    return data
+
+
 def containerise(node,
                  name,
                  namespace,
@@ -91,11 +133,9 @@ def containerise(node,
     if data:
         {data_imprint.update({k: v}) for k, v in data.items()}
 
-    log.info("data: {}".format(data_imprint))
+    log.info("data_imprint: {}".format(data_imprint))
 
-    lib.add_avalon_tab_knob(node)
-
-    node['avalon'].setValue(toml.dumps(data_imprint))
+    set_avalon_knob_data(node, data_imprint)
 
 
 def parse_container(node):
@@ -104,12 +144,7 @@ def parse_container(node):
     This reads the imprinted data from `containerise`.
 
     """
-    try:
-        raw_text_data = node['avalon'].value()
-    except:
-        return
-
-    data = toml.loads(raw_text_data, _dict=dict)
+    data = get_avalon_knob_data(node)
 
     if not isinstance(data, dict):
         return

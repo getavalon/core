@@ -20,6 +20,8 @@ from .pipeline import (
 
     Creator,
 
+    get_avalon_knob_data,
+    set_avalon_knob_data,
     containerise,
     parse_container,
     update_container,
@@ -38,6 +40,8 @@ __all__ = [
 
     "Creator",
 
+    "get_avalon_knob_data",
+    "set_avalon_knob_data",
     "containerise",
     "parse_container",
     "update_container",
