@@ -418,8 +418,12 @@ class Window(QtWidgets.QDialog):
 
     def save_as_nukestudio(self, file_path):
         import hiero
-        project = hiero.core.newProject()
-        project.saveAs(file_path)
+        project = hiero.core.projects()[-1]
+        if project:
+            project.saveAs(file_path)
+        else:
+            project = hiero.core.newProject()
+            project.saveAs(file_path)
 
     def save_changes_prompt(self):
         messagebox = QtWidgets.QMessageBox()
@@ -484,8 +488,22 @@ class Window(QtWidgets.QDialog):
 
     def open_nukestudio(self, file_path):
         import hiero
-        hiero.core.openProject(file_path)
-        return True
+        try:
+            hiero.core.openProject(file_path)
+            return True
+        except Exception as e:
+            try:
+                from PySide.QtGui import *
+                from PySide.QtCore import *
+            except:
+                from PySide2.QtGui import *
+                from PySide2.QtWidgets import *
+                from PySide2.QtCore import *
+
+            prompt = "Cannot open the selected file: `{}`".format(e)
+            hiero.core.log.error(prompt)
+            dialog = QMessageBox.critical(
+                hiero.ui.mainWindow(), "Error", unicode(prompt))
 
     def open(self, file_path):
         func = {
