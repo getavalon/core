@@ -74,6 +74,9 @@ class NameWindow(QtWidgets.QDialog):
         self.ok_button.pressed.connect(self.on_ok_pressed)
         self.cancel_button.pressed.connect(self.on_cancel_pressed)
 
+        # Allow "Enter" key to accept the save.
+        self.ok_button.setDefault(True)
+
         self.refresh()
 
     def on_version_spinbox_changed(self, value):
