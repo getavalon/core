@@ -414,7 +414,8 @@ class Window(QtWidgets.QDialog):
 
     def save_as_nuke(self, file_path):
         import nuke
-        nuke.scriptSaveAs(file_path)
+        path = file_path.replace("\\", "/")
+        nuke.scriptSaveAs(path)
 
     def save_as_nukestudio(self, file_path):
         import hiero
