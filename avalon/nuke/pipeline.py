@@ -334,7 +334,7 @@ def _install_menu():
         "Load...", command=lambda *args:
         cbloader.show(use_context=True)
     )
-    menu.addCommand("Publish...", publish.show, "~")
+    menu.addCommand("Publish...", publish.show)
     menu.addCommand("Manage...", cbsceneinventory.show)
     menu.addCommand("Library...", libraryloader.show)
 
