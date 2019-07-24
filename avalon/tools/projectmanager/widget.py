@@ -3,7 +3,7 @@ import contextlib
 
 from ...vendor import qtawesome as awesome
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
-from ... import io, schema
+from ... import io
 from ... import style
 
 from .model import (
@@ -138,7 +138,8 @@ def preserve_selection(tree_view,
                 selection_model.select(index, flags)
 
             if current_index_value and value == current_index_value:
-                tree_view.setCurrentIndex(index)
+                selection_model.setCurrentIndex(index,
+                                                selection_model.NoUpdate)
 
 
 def _list_project_silos():
@@ -223,6 +224,7 @@ class AssetModel(TreeModel):
         assets = io.find(find_data).sort('name', 1)
 
         for asset in assets:
+
             # get label from data, otherwise use name
             data = asset.get("data", {})
             label = data.get("label", asset['name'])
@@ -337,8 +339,9 @@ class SiloTabWidget(QtWidgets.QTabBar):
     silo_changed = QtCore.Signal(str)
     silo_added = QtCore.Signal(str)
 
-    def __init__(self, parent=None):
+    def __init__(self, silo_creatable=True, parent=None):
         super(SiloTabWidget, self).__init__(parent=parent)
+        self.silo_creatable = silo_creatable
         self._previous_tab_index = -1
         self.set_silos([])
 
@@ -357,7 +360,7 @@ class SiloTabWidget(QtWidgets.QTabBar):
 
         # If it's the last tab
         num = self.count()
-        if index == num - 1:
+        if self.silo_creatable and index == num - 1:
             self.on_add_silo()
             self.setCurrentIndex(self._previous_tab_index)
             return
@@ -391,8 +394,9 @@ class SiloTabWidget(QtWidgets.QTabBar):
         for silo in sorted(silos):
             self.addTab(silo)
 
-        # Add the "+" tab
-        self.addTab("+")
+        if self.silo_creatable:
+            # Add the "+" tab
+            self.addTab("+")
 
         self.set_current_silo(current_silo)
         self.blockSignals(False)
@@ -454,7 +458,7 @@ class SiloTabWidget(QtWidgets.QTabBar):
 
     def add_silo(self, silo):
 
-        # Add the silo to tab
+        # Add the silo
         silos = self.get_silos()
         silos.append(silo)
         silos = list(set(silos))  # ensure unique
@@ -479,7 +483,7 @@ class AssetWidget(QtWidgets.QWidget):
     selection_changed = QtCore.Signal()  # on view selection change
     current_changed = QtCore.Signal()    # on view current index change
 
-    def __init__(self, parent=None):
+    def __init__(self, silo_creatable=True, parent=None):
         super(AssetWidget, self).__init__(parent=parent)
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -490,7 +494,7 @@ class AssetWidget(QtWidgets.QWidget):
         # Header
         header = QtWidgets.QHBoxLayout()
 
-        silo = SiloTabWidget()
+        silo = SiloTabWidget(silo_creatable=silo_creatable)
 
         icon = awesome.icon("fa.refresh", color=style.colors.light)
         refresh = QtWidgets.QPushButton(icon, "")
@@ -555,9 +559,7 @@ class AssetWidget(QtWidgets.QWidget):
 
         silos = _list_project_silos()
         self.silo.set_silos(silos)
-        # set first silo as active so tasks are shown
-        if len(silos) > 0:
-            self.silo.set_current_silo(self.silo.tabText(0))
+
         self._refresh_model()
 
     def get_current_silo(self):

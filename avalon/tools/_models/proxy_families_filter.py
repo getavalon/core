@@ -1,7 +1,9 @@
 from . import QtCore
-from . import TreeModel
+from . import TreeModel, GroupMemberFilterProxyModel
+from . import lib
 
-class FamiliesFilterProxyModel(QtCore.QSortFilterProxyModel):
+
+class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
     """Filters to specified families"""
 
     def __init__(self, *args, **kwargs):
@@ -31,10 +33,31 @@ class FamiliesFilterProxyModel(QtCore.QSortFilterProxyModel):
 
         # Get the node data and validate
         node = model.data(index, TreeModel.NodeRole)
-        family = node.get("family", None)
 
-        if not family:
+        if node.get("isGroup"):
+            return self.filter_accepts_group(index, model)
+
+        families = node.get("families", [])
+
+        filterable_families = set()
+        for name in families:
+            family_config = lib.get(lib.FAMILY_CONFIG, name)
+            if not family_config.get("hideFilter"):
+                filterable_families.add(name)
+
+        if not filterable_families:
             return True
 
         # We want to keep the families which are not in the list
-        return family in self._families
+        return filterable_families.issubset(self._families)
+
+    def sort(self, column, order):
+        proxy = self.sourceModel()
+        model = proxy.sourceModel()
+        # We need to know the sorting direction for pinning groups on top
+        if order == QtCore.Qt.AscendingOrder:
+            self.setSortRole(model.SortAscendingRole)
+        else:
+            self.setSortRole(model.SortDescendingRole)
+
+        super(FamiliesFilterProxyModel, self).sort(column, order)
