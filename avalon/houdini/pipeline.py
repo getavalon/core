@@ -20,7 +20,7 @@ self._has_been_setup = False
 self._parent = None
 self._events = dict()
 
-AVALON_CONTAINERS = "AVALON_CONTAINERS"
+AVALON_CONTAINERS = "/obj/AVALON_CONTAINERS"
 IS_HEADLESS = not hasattr(hou, "ui")
 
 
@@ -30,6 +30,7 @@ def install(config):
 
     """
 
+    print("Registering callbacks")
     _register_callbacks()
 
     pyblish.api.register_host("houdini")
@@ -153,14 +154,10 @@ def containerise(name,
                  context,
                  loader=None,
                  suffix=""):
-    """Bundle `nodes` into an assembly and imprint it with metadata
+    """Bundle `nodes` into a subnet and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
     for loaded assets.
-
-    In Houdini it is not possible to next goemetry nodes in geometry nodes
-    directly. To counter this we place a Object Network node calles ROOT
-    in the HOUDINI_CONTAINERS node.
 
     Arguments:
         name (str): Name of resulting assembly
@@ -175,16 +172,18 @@ def containerise(name,
 
     """
 
-    # Get main object network node
-    obj_network = hou.node("/obj")
+    # Ensure AVALON_CONTAINERS subnet exists
+    subnet = hou.node(AVALON_CONTAINERS)
+    if subnet is None:
+        obj_network = hou.node("/obj")
+        subnet = obj_network.createNode("subnet",
+                                        node_name="AVALON_CONTAINERS")
 
-    # Check if the AVALON_CONTAINERS exists
-    main_container = obj_network.node(AVALON_CONTAINERS)
-    if main_container is None:
-        main_container = obj_network.createNode("subnet",
-                                                node_name="AVALON_CONTAINERS")
+    # Create proper container name
+    container_name = "{}_{}".format(name, suffix or "CON")
+    container = hou.node("/obj/{}".format(name))
+    container.setName(container_name)
 
-    container = obj_network.node(name)
     data = {
         "schema": "avalon-core:container-2.0",
         "id": AVALON_CONTAINER_ID,
@@ -197,10 +196,9 @@ def containerise(name,
     lib.imprint(container, data)
 
     # "Parent" the container under the container network
-    hou.moveNodesTo([container], main_container)
+    hou.moveNodesTo([container], subnet)
 
-    # Get the container and set good position
-    main_container.node(name).moveToGoodPosition()
+    subnet.node(container_name).moveToGoodPosition()
 
     return container
 
@@ -267,7 +265,7 @@ class Creator(api.Creator):
     """
 
     def __init__(self, *args, **kwargs):
-        api.Creator.__init__(self, *args, **kwargs)
+        super(Creator, self).__init__(*args, **kwargs)
         self.nodes = list()
 
     def process(self):
@@ -304,8 +302,8 @@ class Creator(api.Creator):
             node_type = "geometry"
 
         # Get out node
-        out = hou.node("out")
-        instance = out.createNode(node_type, node_name=self.data["subset"])
+        out = hou.node("/out")
+        instance = out.createNode(node_type, node_name=self.name)
         instance.moveToGoodPosition()
 
         lib.imprint(instance, self.data)
