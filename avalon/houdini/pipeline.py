@@ -313,16 +313,15 @@ class Creator(api.Creator):
         return instance
 
 
-def _on_scene_open(*args):
-    api.emit("open", *[])
-
-
-def _on_scene_new(*args):
-    api.emit("new", *[])
-
-
-def _on_scene_save(*args):
-    api.emit("save", *[])
+def on_file_event_callback(event):
+    if event == hou.hipFileEventType.AfterLoad:
+        api.emit("open", [event])
+    elif event == hou.hipFileEventType.AfterSave:
+        api.emit("save", [event])
+    elif event == hou.hipFileEventType.BeforeSave:
+        api.emit("before_save", [event])
+    elif event == hou.hipFileEventType.AfterClear:
+        api.emit("new", [event])
 
 
 def on_houdini_initialize():
@@ -342,8 +341,6 @@ def _register_callbacks():
         except RuntimeError as e:
             logger.info(e)
 
-    self._events[_on_scene_save] = hou.hipFile.addEventCallback(_on_scene_save)
-
-    self._events[_on_scene_new] = hou.hipFile.addEventCallback(_on_scene_new)
-
-    self._events[_on_scene_open] = hou.hipFile.addEventCallback(_on_scene_open)
+    self._events[on_file_event_callback] = hou.hipFile.addEventCallback(
+        on_file_event_callback
+    )
