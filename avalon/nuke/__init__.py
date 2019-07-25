@@ -10,6 +10,16 @@ from .lib import (
     maintained_selection,
     get_node_path
 )
+
+from .workio import (
+    open,
+    save,
+    current_file,
+    has_unsaved_changes,
+    file_extensions,
+    work_root
+)
+
 from .pipeline import (
     reload_pipeline,
     install,
@@ -54,4 +64,11 @@ __all__ = [
     "maintained_selection",
     "get_node_path",
 
+    # Workfiles API
+    "open",
+    "save",
+    "current_file",
+    "has_unsaved_changes",
+    "file_extensions",
+    "work_root"
 ]
