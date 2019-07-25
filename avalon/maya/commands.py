@@ -19,7 +19,12 @@ def reset_frame_range():
 
     try:
         edit_in = shot["data"]["edit_in"]
+        if edit_in is None:
+            edit_in = shot["data"]["fstart"]
+
         edit_out = shot["data"]["edit_out"]
+        if edit_out is None:
+            edit_out = shot["data"]["fend"]
     except KeyError:
         cmds.warning("No edit information found for %s" % shot["name"])
         return
