@@ -18,11 +18,11 @@ def reset_frame_range():
     shot = io.find_one({"name": shot, "type": "asset"})
 
     try:
-        edit_in = shot["data"]["edit_in"]
+        edit_in = shot["data"].get("edit_in")
         if edit_in is None:
             edit_in = shot["data"]["fstart"]
 
-        edit_out = shot["data"]["edit_out"]
+        edit_out = shot["data"].get("edit_out")
         if edit_out is None:
             edit_out = shot["data"]["fend"]
     except KeyError:
