@@ -191,8 +191,7 @@ class TasksModel(TreeModel):
         super(TasksModel, self).__init__()
         self._num_assets = 0
         self._icons = {
-            "__default__": awesome.icon("fa.folder-o",
-                                        color=style.colors.default)
+            "__default__": awesome.icon("fa.male", color=style.colors.default)
         }
 
         self._get_task_icons()
