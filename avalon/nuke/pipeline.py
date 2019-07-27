@@ -55,48 +55,6 @@ def reload_pipeline():
     _register_events()
 
 
-def set_avalon_knob_data(node, data):
-    """ Sets a data into nodes's avalon knob
-
-    Arguments:
-        node (object): The node in Nuke to imprint as data,
-        data (dict): data to be printed into Avalon knob
-
-    Returns:
-        True (bool)
-    """
-    try:
-        lib.add_avalon_tab_knob(node)
-        lib.add_avalon_tab_knob(node)
-
-        node['avalon'].setValue(toml.dumps(data))
-
-        return True
-    except Exception as e:
-        log.warning("set_avalon_knob_data: `{}`".format(e))
-        return False
-
-
-def get_avalon_knob_data(node):
-    """ Gets all imprinted data from nodes's avalon knob
-
-    Arguments:
-        node (object): The node in Nuke to read data from,
-
-    Returns:
-        data (dict): imprinted data
-    """
-    try:
-        raw_text_data = node['avalon'].value()
-    except Exception as e:
-        log.debug("Creating avalon knob: `{}`".format(e))
-        lib.add_avalon_tab_knob(node)
-        return get_avalon_knob_data(node)
-
-    data = toml.loads(raw_text_data, _dict=dict)
-    return data
-
-
 def containerise(node,
                  name,
                  namespace,
@@ -135,7 +93,7 @@ def containerise(node,
 
     log.info("data_imprint: {}".format(data_imprint))
 
-    set_avalon_knob_data(node, data_imprint)
+    lib.set_avalon_knob_data(node, data_imprint)
 
 
 def parse_container(node):
@@ -144,7 +102,7 @@ def parse_container(node):
     This reads the imprinted data from `containerise`.
 
     """
-    data = get_avalon_knob_data(node)
+    data = lib.get_avalon_knob_data(node)
 
     if not isinstance(data, dict):
         return
@@ -152,6 +110,7 @@ def parse_container(node):
     # If not all required data return the empty container
     required = ['schema', 'id', 'name',
                 'namespace', 'loader', 'representation']
+
     if not all(key in data for key in required):
         return
 
@@ -161,7 +120,7 @@ def parse_container(node):
     container["objectName"] = node["name"].value()
 
     # Store reference to the node object
-    container["_tool"] = node
+    container["_node"] = node
 
     return container
 
@@ -177,8 +136,7 @@ def update_container(node, keys=dict()):
         node (object): nuke node with updated container data
     """
 
-    raw_text_data = node['avalon'].value()
-    data = toml.loads(raw_text_data, _dict=dict)
+    data = lib.get_avalon_knob_data(node)
 
     if not isinstance(data, dict):
         return
@@ -202,8 +160,7 @@ def update_container(node, keys=dict()):
         except KeyError:
             pass
 
-    node['avalon'].setValue('')
-    node['avalon'].setValue(toml.dumps(container))
+    node = lib.set_avalon_knob_data(node, container)
 
     return node
 

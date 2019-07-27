@@ -8,7 +8,9 @@ from .lib import (
     add_publish_knob,
     ls_img_sequence,
     maintained_selection,
-    get_node_path
+    get_node_path,
+    get_avalon_knob_data,
+    set_avalon_knob_data
 )
 from .pipeline import (
     reload_pipeline,
@@ -20,8 +22,6 @@ from .pipeline import (
 
     Creator,
 
-    get_avalon_knob_data,
-    set_avalon_knob_data,
     containerise,
     parse_container,
     update_container,
@@ -40,8 +40,6 @@ __all__ = [
 
     "Creator",
 
-    "get_avalon_knob_data",
-    "set_avalon_knob_data",
     "containerise",
     "parse_container",
     "update_container",
@@ -49,6 +47,8 @@ __all__ = [
 
     "viewer_update_and_undo_stop",
 
+    "get_avalon_knob_data",
+    "set_avalon_knob_data",
     "add_publish_knob",
     "ls_img_sequence",
     "maintained_selection",
