@@ -10,7 +10,8 @@ from .lib import (
     maintained_selection,
     get_node_path,
     get_avalon_knob_data,
-    set_avalon_knob_data
+    set_avalon_knob_data,
+    imprint
 )
 from .pipeline import (
     reload_pipeline,
@@ -47,6 +48,7 @@ __all__ = [
 
     "viewer_update_and_undo_stop",
 
+    "imprint",
     "get_avalon_knob_data",
     "set_avalon_knob_data",
     "add_publish_knob",
