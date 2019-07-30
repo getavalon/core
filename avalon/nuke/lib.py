@@ -128,7 +128,6 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
                     log.info("Updating: `{0}` to `{1}`".format(name, value))
                     node[name].setValue(str(value))
 
-
         # adding closing group knob
         knob = eval(
             "nuke.{type}('{name}', '{value}', {group})".format(**knobs[-1]))
@@ -181,40 +180,30 @@ def imprint(node, data):
     return node
 
 
-def ls_img_sequence(dirPath, one=None):
-    excluding_patterns = ['_broken_', '._', '/.', '.mov', '.jpeg', '.jpg']
-    sortedList = []
-    files = os.listdir(dirPath)
+def ls_img_sequence(path):
+
+    file = os.path.basename(path)
+    dir = os.path.dirname(path)
+    base, ext = os.path.splitext(file)
+    name, padding = os.path.splitext(base)
+
+    files = [f for f in os.listdir(dir)
+             if name in f
+             if ext in f]
 
     collections, reminder = clique.assemble(files)
 
     if len(collections) > 0:
-        for collection in collections:
-            head = collection.format("{head}")
-            padding = collection.format("{padding}") % 1
-            padding = '#' * len(padding)
-            tail = collection.format("{tail}")
-            file = head + padding + tail
+        head = collections[0].format("{head}")
+        padding = collections[0].format("{padding}") % 1
+        padding = '#' * len(padding)
+        tail = collections[0].format("{tail}")
+        file = head + padding + tail
 
-            # filter out all wrong files
-            exl_lst = []
-            for ex in excluding_patterns:
-                if ex in file:
-                    exl_lst.append(file)
-
-            # add only correct files
-            if file not in exl_lst:
-                sortedList.append({
-                    'path': os.path.join(dirPath,
-                                         file).replace('\\', '/'),
-                    'frames': collection.format("[{ranges}]")
-                })
-
-    if one:
-        log.info("__ sortedList: {}".format(sortedList))
-        return sortedList[0]
+        return {'path': os.path.join(dir, file).replace('\\', '/'),
+                'frames': collections[0].format("[{ranges}]")}
     else:
-        return sortedList
+        return False
 
 
 def fix_data_for_node_create(data):
