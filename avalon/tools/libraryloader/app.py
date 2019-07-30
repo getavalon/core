@@ -323,7 +323,7 @@ class Window(QtWidgets.QDialog):
 
     def _versionschanged(self):
 
-        subsets = self.data["widget"]["subsets"]
+        subsets = self.data["widgets"]["subsets"]
         selection = subsets.view.selectionModel()
 
         # Active must be in the selected rows otherwise we

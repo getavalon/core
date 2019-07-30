@@ -187,6 +187,7 @@ def ls_img_sequence(path):
     base, ext = os.path.splitext(file)
     name, padding = os.path.splitext(base)
 
+
     files = [f for f in os.listdir(dir)
              if name in f
              if ext in f]
