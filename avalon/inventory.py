@@ -222,9 +222,9 @@ def load(name):
         inventory = {"schema": "avalon-core:inventory-1.0"}
         for asset in io.find({"type": "asset", "parent": project["_id"]}):
             silo = asset["silo"]
-            if silo is None:
-                continue
             data = asset["data"]
+
+            data.pop("visualParent", None)  # Hide from manual editing
 
             if silo not in inventory:
                 inventory[silo] = list()
@@ -326,6 +326,7 @@ def _save_config_1_0(project_name, data):
     config["tasks"] = data.get("tasks", [])
     config["template"].update(data.get("template", {}))
     config["families"] = data.get("families", [])
+    config["groups"] = data.get("groups", [])
 
     schema.validate(document)
 

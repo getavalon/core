@@ -2,7 +2,7 @@ import collections
 
 from . import QtCore
 from . import qtawesome, style, io
-from . import TreeModel
+from . import TreeModel, Node
 
 
 class TasksModel(TreeModel):
