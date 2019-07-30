@@ -74,6 +74,13 @@ class NameWindow(QtWidgets.QDialog):
         self.ok_button.pressed.connect(self.on_ok_pressed)
         self.cancel_button.pressed.connect(self.on_cancel_pressed)
 
+        # Allow "Enter" key to accept the save.
+        self.ok_button.setDefault(True)
+
+        # Force default focus to comment, some hosts didn't automatically
+        # apply focus to this line edit (e.g. Houdini)
+        self.comment_lineedit.setFocus()
+
         self.refresh()
 
     def on_version_spinbox_changed(self, value):
