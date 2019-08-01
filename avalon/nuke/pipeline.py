@@ -318,8 +318,8 @@ def reset_frame_range():
     asset = io.find_one({"name": asset, "type": "asset"})
 
     try:
-        edit_in = int(asset["data"]["fstart"])
-        edit_out = int(asset["data"]["fend"])
+        frame_start = int(asset["data"]["frameStart"])
+        frame_end = int(asset["data"]["frameEnd"])
     except KeyError:
         log.warning(
             "Frame range not set! No edit information found for "
@@ -327,8 +327,8 @@ def reset_frame_range():
         )
         return
 
-    nuke.root()["first_frame"].setValue(edit_in)
-    nuke.root()["last_frame"].setValue(edit_out)
+    nuke.root()["first_frame"].setValue(frame_start)
+    nuke.root()["last_frame"].setValue(frame_end)
 
 
 def reset_frame_range_handles():
@@ -348,7 +348,7 @@ def reset_frame_range_handles():
     data = asset["data"]
 
     missing_cols = []
-    check_cols = ["fstart", "fend"]
+    check_cols = ["frameStart", "frameEnd"]
 
     for col in check_cols:
         if col not in data:
@@ -362,18 +362,18 @@ def reset_frame_range_handles():
         return
 
     handles = get_handles(asset)
-    edit_in = int(asset["data"]["fstart"]) - handles
-    edit_out = int(asset["data"]["fend"]) + handles
+    frame_start = int(asset["data"]["frameStart"]) - handles
+    frame_end = int(asset["data"]["frameEnd"]) + handles
 
-    nuke.root()["first_frame"].setValue(edit_in)
-    nuke.root()["last_frame"].setValue(edit_out)
+    nuke.root()["first_frame"].setValue(frame_start)
+    nuke.root()["last_frame"].setValue(frame_end)
 
     # setting active viewers
     vv = nuke.activeViewer().node()
     vv['frame_range_lock'].setValue(True)
     vv['frame_range'].setValue('{0}-{1}'.format(
-        int(asset["data"]["fstart"]),
-        int(asset["data"]["fend"]))
+        int(asset["data"]["frameStart"]),
+        int(asset["data"]["frameEnd"]))
     )
 
 
