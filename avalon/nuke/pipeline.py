@@ -403,8 +403,8 @@ def reset_resolution():
     project = io.find_one({"type": "project"})
 
     try:
-        width = project["data"].get("resolution_width", 1920)
-        height = project["data"].get("resolution_height", 1080)
+        width = project["data"].get("resolutionWidth", 1920)
+        height = project["data"].get("resolutionHeight", 1080)
     except KeyError:
         print(
             "No resolution information found for \"{0}\".".format(

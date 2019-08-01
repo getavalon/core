@@ -56,8 +56,8 @@ def reset_resolution():
     project = io.find_one({"type": "project"})
 
     try:
-        resolution_width = project["data"].get("resolution_width", 1920)
-        resolution_height = project["data"].get("resolution_height", 1080)
+        resolution_width = project["data"].get("resolutionWidth", 1920)
+        resolution_height = project["data"].get("resolutionHeight", 1080)
     except KeyError:
         cmds.warning("No resolution information found for %s"
                      % project["name"])
