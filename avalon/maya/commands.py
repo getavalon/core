@@ -18,18 +18,9 @@ def reset_frame_range():
     shot = io.find_one({"name": shot, "type": "asset"})
 
     try:
-<<<<<<< Updated upstream
-        edit_in = shot["data"].get("edit_in")
-        if edit_in is None:
-            edit_in = shot["data"]["fstart"]
-
-        edit_out = shot["data"].get("edit_out")
-        if edit_out is None:
-            edit_out = shot["data"]["fend"]
-=======
         frame_start = shot["data"]["frameStart"]
         frame_end = shot["data"]["frameEnd"]
->>>>>>> Stashed changes
+
     except KeyError:
         cmds.warning("No edit information found for %s" % shot["name"])
         return
