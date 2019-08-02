@@ -45,7 +45,7 @@ def add_publish_knob(node):
         divider = nuke.Text_Knob('')
         knob = nuke.Boolean_Knob("publish", "Publish")
         knob.setFlag(0x1000)
-        knob.setValue(False)
+        knob.setValue(True)
         node.addKnob(divider)
         node.addKnob(knob)
     return node
