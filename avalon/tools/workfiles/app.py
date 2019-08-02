@@ -456,7 +456,7 @@ def show(root=None):
                              "default from current host %s" % host.__name__)
 
     if not os.path.exists(root):
-        raise OSError("Root set for Work Files app does not exist: %s" % root)
+        os.makedirs(root)
 
     with parentlib.application():
         window = Window(root)
