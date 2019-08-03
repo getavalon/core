@@ -52,6 +52,8 @@ try:
                 "fonts/opensans/*.txt",
                 "fonts/opensans/*.ttf",
                 "vendor/jsonschema/schemas/*.json",
+                "vendor/qtawesome/fonts/*.ttf",
+                "vendor/qtawesome/fonts/*.json",
             ]
         },
         classifiers=classifiers,
