@@ -54,11 +54,6 @@ try:
                 "vendor/jsonschema/schemas/*.json",
             ]
         },
-        entry_points={
-            "console_scripts": [
-                "avalon = avalon.__main__:main",
-            ]
-        },
         classifiers=classifiers,
         install_requires=[
             "pymongo>=3.4,<3.9",
