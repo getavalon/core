@@ -51,6 +51,7 @@ try:
                 "style/rc/*.png",
                 "fonts/opensans/*.txt",
                 "fonts/opensans/*.ttf",
+                "vendor/jsonschema/schemas/*.json",
             ]
         },
         entry_points={
