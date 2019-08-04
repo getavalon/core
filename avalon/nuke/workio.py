@@ -14,16 +14,13 @@ def has_unsaved_changes():
 def save(filepath):
     path = filepath.replace("\\", "/")
     nuke.scriptSaveAs(path)
+    nuke.Root()["name"].setValue(path)
+    nuke.Root()["project_directory"].setValue(os.path.dirname(path))
+    nuke.Root().setModified(False)
 
 
 def open(filepath):
-    if nuke.Root().modified():
-        result = self.save_changes_prompt()
-
-        if result is None:
-            return False
-        if result:
-            nuke.scriptSave()
+    filepath = filepath.replace("\\", "/")
 
     # To remain in the same window, we have to clear the script and read
     # in the contents of the workfile.
@@ -32,7 +29,6 @@ def open(filepath):
     nuke.Root()["name"].setValue(filepath)
     nuke.Root()["project_directory"].setValue(os.path.dirname(filepath))
     nuke.Root().setModified(False)
-
     return True
 
 
@@ -43,11 +39,11 @@ def current_file():
     if current_file == 'Root':
         return None
 
-    return os.path.normpath(current_file)
+    return os.path.normpath(current_file).replace("\\", "/")
 
 
 def work_root():
 
     from avalon import api
 
-    return os.path.normpath(api.Session["AVALON_WORKDIR"])
+    return os.path.normpath(api.Session["AVALON_WORKDIR"]).replace("\\", "/")
