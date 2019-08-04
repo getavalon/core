@@ -14,6 +14,7 @@ from .widgets import (
     AssetWidget,
     AssetModel
 )
+from pypeapp import config
 
 module = sys.modules[__name__]
 module.window = None
@@ -177,7 +178,7 @@ class Window(QtWidgets.QDialog):
         # - if was not found or not set then returns first existing project
         # - returns `None` if any project was found in db
         name = None
-        presets = self.load_presets()
+        presets = config.get_presets()["tools"]["library_loader"]
         if self.show_projects:
             name = presets.get('default_project', None)
         if self.show_libraries and not name:
@@ -190,21 +191,6 @@ class Window(QtWidgets.QDialog):
         elif len(projects) > 0:
             return projects[0]
         return None
-
-    def load_presets(self):
-        from pype import lib as pypelib
-        import json
-        path_items = [
-            pypelib.get_presets_path(), 'tools', 'library_loader.json'
-        ]
-        filepath = os.path.sep.join(path_items)
-        data = dict()
-        try:
-            with open(filepath) as data_file:
-                data = json.load(data_file)
-        except Exception as e:
-            print('Failed to load presets file ({})'.format(e))
-        return data
 
     @property
     def current_project(self):
