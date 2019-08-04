@@ -33,7 +33,7 @@ with open(fname, "w") as f:
 
 try:
     setup(
-        name="avalon",
+        name="avalon-core",
         version=version,
         description=__doc__,
         long_description=__doc__,
