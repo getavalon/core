@@ -13,9 +13,7 @@
         "AVALON_PROJECT",
         "AVALON_ASSET",
         "AVALON_SILO",
-        "AVALON_TASK",
-        "AVALON_CONFIG",
-        "AVALON_WORKDIR"
+        "AVALON_CONFIG"
     ],
 
     "properties": {
