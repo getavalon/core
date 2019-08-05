@@ -123,6 +123,10 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         return self._format_version(value)
 
     def createEditor(self, parent, option, index):
+        node = index.data(SubsetsModel.NodeRole)
+        if node.get("isGroup"):
+            return
+
         editor = QtWidgets.QComboBox(parent)
 
         def commit_data():
