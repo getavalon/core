@@ -1,28 +1,27 @@
 import sys
 import time
 
-from ..projectmanager.widget import (
-    AssetWidget,
-    AssetModel,
-    preserve_selection,
-)
-
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io, style
 from .. import lib
 
-from .lib import (
+from .._models import AssetsModel
+from .._models.lib import (
     refresh_family_config,
     refresh_group_config,
-    get_active_group_config,
+    get_active_group_config
 )
-from .widgets import SubsetWidget, VersionWidget, FamilyListWidget
+from .._widgets import (
+    AssetWidget, SubsetWidget, VersionWidget, FamilyListWidget
+)
+from .._widgets.lib import preserve_selection
+
 
 module = sys.modules[__name__]
 module.window = None
 
 # Custom roles
-DocumentRole = AssetModel.DocumentRole
+DocumentRole = AssetsModel.DocumentRole
 
 
 class Window(QtWidgets.QDialog):

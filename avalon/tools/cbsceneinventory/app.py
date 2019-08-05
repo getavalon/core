@@ -9,16 +9,15 @@ from ... import io, api, style
 from .. import lib as tools_lib
 
 # todo(roy): refactor loading from other tools
-from ..projectmanager.widget import (
+from .._widgets.lib import (
     preserve_expanded_rows,
     preserve_selection,
     _iter_model_rows,
 )
-from ..cbloader.delegates import VersionDelegate
-from ..cbloader.lib import refresh_family_config
+from .._delegates import VersionDelegate
+from .._models import FilterProxyModel, InventoryModel
+from .._models.lib import refresh_family_config
 
-from .proxy import FilterProxyModel
-from .model import InventoryModel
 from .lib import switch_item
 
 DEFAULT_COLOR = "#fb9c15"

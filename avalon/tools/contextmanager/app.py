@@ -4,8 +4,8 @@ import logging
 import avalon.api as api
 
 from avalon.vendor.Qt import QtWidgets, QtCore
-from avalon.tools.projectmanager.widget import AssetWidget
-from avalon.tools.projectmanager.app import TasksModel
+from .._widgets import AssetWidget
+from .._models import TasksModel
 
 
 module = sys.modules[__name__]

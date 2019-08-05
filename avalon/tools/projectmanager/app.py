@@ -6,7 +6,7 @@ from .. import lib as parentlib
 from . import widget
 
 from .dialogs import TasksCreateDialog, AssetCreateDialog
-from .model import TasksModel
+from .._models import TasksModel
 
 module = sys.modules[__name__]
 module.window = None
