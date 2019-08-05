@@ -33,7 +33,7 @@ class App(QtWidgets.QDialog):
         accept_btn = QtWidgets.QPushButton("Accept")
 
         # Asset picker
-        assets = AssetWidget()
+        assets = AssetWidget(silo_creatable=False)
 
         # Task picker
         tasks_widgets = QtWidgets.QWidget()
