@@ -90,12 +90,12 @@ class AssetWidget(QtWidgets.QWidget):
     def _refresh_model(self):
 
         silo = self.get_current_silo()
-        with lib.preserve_expanded_rows(self.view,
-                                    column=0,
-                                    role=self.model.ObjectIdRole):
-            with lib.preserve_selection(self.view,
-                                    column=0,
-                                    role=self.model.ObjectIdRole):
+        with lib.preserve_expanded_rows(
+            self.view, column=0, role=self.model.ObjectIdRole
+        ):
+            with lib.preserve_selection(
+                self.view, column=0, role=self.model.ObjectIdRole
+            ):
                 self.model.set_silo(silo)
 
         self.assets_refreshed.emit()

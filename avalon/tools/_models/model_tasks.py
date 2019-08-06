@@ -14,7 +14,9 @@ class TasksModel(TreeModel):
         super(TasksModel, self).__init__()
         self._num_assets = 0
         self._icons = {
-            "__default__": qtawesome.icon("fa.male", color=style.colors.default)
+            "__default__": qtawesome.icon(
+                "fa.male", color=style.colors.default
+            )
         }
 
         self._get_task_icons()
@@ -26,8 +28,10 @@ class TasksModel(TreeModel):
         for task in tasks:
             icon_name = task.get("icon", None)
             if icon_name:
-                icon = qtawesome.icon("fa.{}".format(icon_name),
-                                    color=style.colors.default)
+                icon = qtawesome.icon(
+                    "fa.{}".format(icon_name),
+                    color=style.colors.default
+                )
                 self._icons[task["name"]] = icon
 
     def set_assets(self, asset_ids):
