@@ -19,8 +19,14 @@ def reset_frame_range():
 
     try:
 
-        frame_start = shot["data"].get("frameStart", shot["data"]["edit_in"])
-        frame_end = shot["data"].get("frameEnd", shot["data"]["edit_out"])
+        frame_start = shot["data"].get(
+            "frameStart",
+            shot["data"].get("edit_in")
+        )
+        frame_end = shot["data"].get(
+            "frameEnd",
+            shot["data"].get("edit_out")
+        )
     except KeyError:
         cmds.warning("No edit information found for %s" % shot["name"])
         return
