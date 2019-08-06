@@ -72,16 +72,17 @@ class SubsetsModel(TreeModel):
         version_data = version.get("data", dict())
 
         # Compute frame ranges (if data is present)
-        start = version_data.get("startFrame", None)
-        end = version_data.get("endFrame", None)
         handles = version_data.get("handles", None)
-        if start is not None and end is not None:
+        frame_start = version_data.get("frameStart", None)
+        frame_end = version_data.get("frameEnd", None)
+
+        if frame_start is not None and frame_end is not None:
             # Remove superfluous zeros from numbers (3.0 -> 3) to improve
             # readability for most frame ranges
-            start_clean = ('%f' % start).rstrip('0').rstrip('.')
-            end_clean = ('%f' % end).rstrip('0').rstrip('.')
+            start_clean = ('%f' % frame_start).rstrip('0').rstrip('.')
+            end_clean = ('%f' % frame_end).rstrip('0').rstrip('.')
             frames = "{0}-{1}".format(start_clean, end_clean)
-            duration = end - start + 1
+            duration = frame_end - frame_start + 1
         else:
             frames = None
             duration = None
@@ -99,8 +100,8 @@ class SubsetsModel(TreeModel):
             "familyLabel": family_config.get("label", family),
             "familyIcon": family_config.get('icon', None),
             "families": set(families),
-            "startFrame": start,
-            "endFrame": end,
+            "frameStart": frame_start,
+            "frameEnd": frame_end,
             "duration": duration,
             "handles": handles,
             "frames": frames,
