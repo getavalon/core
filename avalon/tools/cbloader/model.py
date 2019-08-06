@@ -72,8 +72,14 @@ class SubsetsModel(TreeModel):
         version_data = version.get("data", dict())
 
         # Compute frame ranges (if data is present)
-        frame_start = version_data.get("frameStart", None)
-        frame_end = version_data.get("frameEnd", None)
+        frame_start = version_data.get(
+            "frameStart",
+            version_data.get("startFrame", None)
+        )
+        frame_end = version_data.get(
+            "frameEnd",
+            version_data.get("endFrame", None)
+        )
 
         handle_start = version_data.get("handleStart", None)
         handle_end = version_data.get("handleEnd", None)
