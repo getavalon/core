@@ -5,11 +5,9 @@ from . import lib
 
 from .._models import (
     AssetsModel,
-    TreeModel,
-    Node,
     RecursiveSortFilterProxyModel
 )
-from .._views import AssetView, DeselectableTreeView
+from .._views import AssetView
 from .._widgets import SiloTabWidget
 
 

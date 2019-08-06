@@ -1,4 +1,4 @@
-from . import QtCore
+from . import QtCore, QtGui
 from . import qtawesome, io, style
 from . import TreeModel, Node
 
