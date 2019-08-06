@@ -25,6 +25,7 @@ __all__ = [
     "Qt",
     "QtCore",
     "QtWidgets",
+    "QtGui",
 
     "qtawesome",
     "io",

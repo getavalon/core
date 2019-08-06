@@ -149,9 +149,9 @@ class AssetsWidget(QtWidgets.QWidget):
 
         # Select
         mode = selection_model.Select | selection_model.Rows
-        for index in lib._iter_model_rows(self.proxy,
-                                      column=0,
-                                      include_root=False):
+        for index in lib._iter_model_rows(
+            self.proxy, column=0, include_root=False
+        ):
             data = index.data(self.model.NodeRole)
             name = data['name']
             if name in assets:
