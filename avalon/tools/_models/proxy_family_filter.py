@@ -3,11 +3,11 @@ from . import TreeModel, GroupMemberFilterProxyModel
 from . import lib
 
 
-class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
+class FamilyFilterProxyModel(GroupMemberFilterProxyModel):
     """Filters to specified families"""
 
     def __init__(self, *args, **kwargs):
-        super(FamiliesFilterProxyModel, self).__init__(*args, **kwargs)
+        super(FamilyFilterProxyModel, self).__init__(*args, **kwargs)
         self._families = set()
 
     def familyFilter(self):
@@ -60,4 +60,4 @@ class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
         else:
             self.setSortRole(model.SortDescendingRole)
 
-        super(FamiliesFilterProxyModel, self).sort(column, order)
+        super(FamilyFilterProxyModel, self).sort(column, order)

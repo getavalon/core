@@ -7,7 +7,7 @@ from . import TreeModel, Node
 log = logging.getLogger(__name__)
 
 
-class AssetsModel(TreeModel):
+class AssetModel(TreeModel):
     """A model listing assets in the silo in the active project.
 
     The assets are displayed in a treeview, they are visually parented by
@@ -25,7 +25,7 @@ class AssetsModel(TreeModel):
     ObjectIdRole = QtCore.Qt.UserRole + 3
 
     def __init__(self, silo=None, parent=None):
-        super(AssetsModel, self).__init__(parent=parent)
+        super(AssetModel, self).__init__(parent=parent)
 
         self._silo = None
 
@@ -141,4 +141,4 @@ class AssetsModel(TreeModel):
         if role == self.DocumentRole:
             return node.get("_document", None)
 
-        return super(AssetsModel, self).data(index, role)
+        return super(AssetModel, self).data(index, role)

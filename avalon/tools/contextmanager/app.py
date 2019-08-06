@@ -4,8 +4,8 @@ import logging
 import avalon.api as api
 
 from avalon.vendor.Qt import QtWidgets, QtCore
-from .._widgets import AssetWidget
-from .._models import TasksModel
+from .._widgets import AssetsWidget
+from .._models import TaskModel
 
 
 module = sys.modules[__name__]
@@ -33,7 +33,7 @@ class App(QtWidgets.QDialog):
         accept_btn = QtWidgets.QPushButton("Accept")
 
         # Asset picker
-        assets = AssetWidget(silo_creatable=False)
+        assets = AssetsWidget(silo_creatable=False)
 
         # Task picker
         tasks_widgets = QtWidgets.QWidget()
@@ -41,7 +41,7 @@ class App(QtWidgets.QDialog):
         tasks_layout = QtWidgets.QVBoxLayout(tasks_widgets)
         task_view = QtWidgets.QTreeView()
         task_view.setIndentation(0)
-        task_model = TasksModel()
+        task_model = TaskModel()
         task_view.setModel(task_model)
         tasks_layout.addWidget(task_view)
         tasks_layout.addWidget(accept_btn)

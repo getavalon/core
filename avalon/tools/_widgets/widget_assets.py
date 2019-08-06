@@ -4,18 +4,18 @@ from . import style
 from . import lib
 
 from .._models import (
-    AssetsModel,
+    AssetModel,
     RecursiveSortFilterProxyModel
 )
-from .._views import AssetView
-from .._widgets import SiloTabWidget
+from .._views import AssetsView
+from .._widgets import SilosTabWidget
 
 
-class AssetWidget(QtWidgets.QWidget):
+class AssetsWidget(QtWidgets.QWidget):
     """A Widget to display a tree of assets with filter
 
     To list the assets of the active project:
-        >>> # widget = AssetWidget()
+        >>> # widget = AssetsWidget()
         >>> # widget.refresh()
         >>> # widget.show()
 
@@ -27,7 +27,7 @@ class AssetWidget(QtWidgets.QWidget):
     current_changed = QtCore.Signal()    # on view current index change
 
     def __init__(self, silo_creatable=True, parent=None):
-        super(AssetWidget, self).__init__(parent=parent)
+        super(AssetsWidget, self).__init__(parent=parent)
         self.setContentsMargins(0, 0, 0, 0)
 
         layout = QtWidgets.QVBoxLayout(self)
@@ -37,7 +37,7 @@ class AssetWidget(QtWidgets.QWidget):
         # Header
         header = QtWidgets.QHBoxLayout()
 
-        silo = SiloTabWidget(silo_creatable=silo_creatable)
+        silo = SilosTabWidget(silo_creatable=silo_creatable)
 
         icon = qtawesome.icon("fa.refresh", color=style.colors.light)
         refresh = QtWidgets.QPushButton(icon, "")
@@ -48,11 +48,11 @@ class AssetWidget(QtWidgets.QWidget):
         header.addWidget(refresh)
 
         # Tree View
-        model = AssetsModel()
+        model = AssetModel()
         proxy = RecursiveSortFilterProxyModel()
         proxy.setSourceModel(model)
         proxy.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        view = AssetView()
+        view = AssetsView()
         view.setModel(proxy)
 
         filter = QtWidgets.QLineEdit()

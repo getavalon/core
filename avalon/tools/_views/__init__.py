@@ -3,7 +3,7 @@ from Qt import QtCore, QtWidgets
 
 
 from .view_tree_deselectable import DeselectableTreeView
-from .view_asset import AssetView
+from .view_assets import AssetsView
 
 
 __all__ = [
@@ -12,5 +12,5 @@ __all__ = [
     "QtWidgets",
 
     "DeselectableTreeView",
-    "AssetView"
+    "AssetsView"
 ]

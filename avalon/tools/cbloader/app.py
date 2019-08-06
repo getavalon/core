@@ -5,14 +5,14 @@ from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io, style
 from .. import lib
 
-from .._models import AssetsModel
+from .._models import AssetModel
 from .._models.lib import (
     refresh_family_config,
     refresh_group_config,
     get_active_group_config
 )
 from .._widgets import (
-    AssetWidget, SubsetWidget, VersionWidget, FamilyListWidget
+    AssetsWidget, SubsetsWidget, VersionWidget, FamiliesListWidget
 )
 from .._widgets.lib import preserve_selection
 
@@ -21,7 +21,7 @@ module = sys.modules[__name__]
 module.window = None
 
 # Custom roles
-DocumentRole = AssetsModel.DocumentRole
+DocumentRole = AssetModel.DocumentRole
 
 
 class Window(QtWidgets.QDialog):
@@ -44,9 +44,9 @@ class Window(QtWidgets.QDialog):
 
         container = QtWidgets.QWidget()
 
-        assets = AssetWidget(silo_creatable=False)
-        families = FamilyListWidget()
-        subsets = SubsetWidget()
+        assets = AssetsWidget(silo_creatable=False)
+        families = FamiliesListWidget()
+        subsets = SubsetsWidget()
         version = VersionWidget()
 
         # Create splitter to show / hide family filters

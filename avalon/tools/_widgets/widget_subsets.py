@@ -5,25 +5,25 @@ from . import pipeline, api, io
 
 from . import QtCore, QtWidgets
 from .._models import (
-    SubsetsModel, SubsetFilterProxyModel, FamiliesFilterProxyModel
+    SubsetModel, SubsetFilterProxyModel, FamilyFilterProxyModel
 )
 from .._delegates import PrettyTimeDelegate, VersionDelegate
 
 from .lib import preserve_selection
 
 
-class SubsetWidget(QtWidgets.QWidget):
+class SubsetsWidget(QtWidgets.QWidget):
     """A widget that lists the published subsets for an asset"""
 
     active_changed = QtCore.Signal()    # active index changed
     version_changed = QtCore.Signal()   # version state changed for a subset
 
     def __init__(self, enable_grouping=True, parent=None):
-        super(SubsetWidget, self).__init__(parent=parent)
+        super(SubsetsWidget, self).__init__(parent=parent)
 
-        model = SubsetsModel(grouping=enable_grouping)
+        model = SubsetModel(grouping=enable_grouping)
         proxy = SubsetFilterProxyModel()
-        family_proxy = FamiliesFilterProxyModel()
+        family_proxy = FamilyFilterProxyModel()
         family_proxy.setSourceModel(proxy)
 
         filter = QtWidgets.QLineEdit()

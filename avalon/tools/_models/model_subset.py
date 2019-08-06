@@ -4,7 +4,7 @@ from . import Node, TreeModel
 from . import lib
 
 
-class SubsetsModel(TreeModel):
+class SubsetModel(TreeModel):
     COLUMNS = ["subset",
                "family",
                "version",
@@ -19,7 +19,7 @@ class SubsetsModel(TreeModel):
     SortDescendingRole = QtCore.Qt.UserRole + 3
 
     def __init__(self, grouping=True, parent=None):
-        super(SubsetsModel, self).__init__(parent=parent)
+        super(SubsetModel, self).__init__(parent=parent)
         self._asset_id = None
         self._sorter = None
         self._grouping = grouping
@@ -46,7 +46,7 @@ class SubsetsModel(TreeModel):
                                    "parent": parent})
             self.set_version(index, version)
 
-        return super(SubsetsModel, self).setData(index, value, role)
+        return super(SubsetModel, self).setData(index, value, role)
 
     def set_version(self, index, version):
         """Update the version data of the given index.
@@ -200,7 +200,7 @@ class SubsetsModel(TreeModel):
                 order = node["inverseOrder"]
             else:
                 prefix = "0"
-                order = str(super(SubsetsModel,
+                order = str(super(SubsetModel,
                                   self).data(index, QtCore.Qt.DisplayRole))
             return prefix + order
 
@@ -212,11 +212,11 @@ class SubsetsModel(TreeModel):
                 order = node["order"]
             else:
                 prefix = "1"
-                order = str(super(SubsetsModel,
+                order = str(super(SubsetModel,
                                   self).data(index, QtCore.Qt.DisplayRole))
             return prefix + order
 
-        return super(SubsetsModel, self).data(index, role)
+        return super(SubsetModel, self).data(index, role)
 
     def flags(self, index):
         flags = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable

@@ -1,7 +1,7 @@
 from . import QtWidgets, QtCore, QtGui
 
 
-class SiloTabWidget(QtWidgets.QTabBar):
+class SilosTabWidget(QtWidgets.QTabBar):
     """Silo widget
 
     Allows to add a silo, with "+" tab.
@@ -17,7 +17,7 @@ class SiloTabWidget(QtWidgets.QTabBar):
     silo_added = QtCore.Signal(str)
 
     def __init__(self, silo_creatable=True, parent=None):
-        super(SiloTabWidget, self).__init__(parent=parent)
+        super(SilosTabWidget, self).__init__(parent=parent)
         self.silo_creatable = silo_creatable
         self._previous_tab_index = -1
         self.set_silos([])

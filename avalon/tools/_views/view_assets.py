@@ -2,7 +2,7 @@ from . import QtCore
 from . import DeselectableTreeView
 
 
-class AssetView(DeselectableTreeView):
+class AssetsView(DeselectableTreeView):
     """Item view.
 
     This implements a context menu.
@@ -10,7 +10,7 @@ class AssetView(DeselectableTreeView):
     """
 
     def __init__(self):
-        super(AssetView, self).__init__()
+        super(AssetsView, self).__init__()
         self.setIndentation(15)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.setHeaderHidden(True)

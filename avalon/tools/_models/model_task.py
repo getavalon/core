@@ -5,13 +5,13 @@ from . import qtawesome, style, io
 from . import TreeModel, Node
 
 
-class TasksModel(TreeModel):
+class TaskModel(TreeModel):
     """A model listing the tasks combined for a list of assets"""
 
     COLUMNS = ["name", "count"]
 
     def __init__(self):
-        super(TasksModel, self).__init__()
+        super(TaskModel, self).__init__()
         self._num_assets = 0
         self._icons = {
             "__default__": qtawesome.icon(
@@ -81,7 +81,7 @@ class TasksModel(TreeModel):
                 if section == 1:  # count column
                     return "count ({0})".format(self._num_assets)
 
-        return super(TasksModel, self).headerData(section, orientation, role)
+        return super(TaskModel, self).headerData(section, orientation, role)
 
     def data(self, index, role):
 
@@ -93,4 +93,4 @@ class TasksModel(TreeModel):
             if index.column() == 0:
                 return index.internalPointer()['icon']
 
-        return super(TasksModel, self).data(index, role)
+        return super(TaskModel, self).data(index, role)

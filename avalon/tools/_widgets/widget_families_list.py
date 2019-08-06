@@ -4,14 +4,14 @@ from . import io
 from .._models import lib as models_lib
 
 
-class FamilyListWidget(QtWidgets.QListWidget):
+class FamiliesListWidget(QtWidgets.QListWidget):
     """A Widget that lists all available families"""
 
     NameRole = QtCore.Qt.UserRole + 1
     active_changed = QtCore.Signal(list)
 
     def __init__(self, parent=None):
-        super(FamilyListWidget, self).__init__(parent=parent)
+        super(FamiliesListWidget, self).__init__(parent=parent)
 
         multi_select = QtWidgets.QAbstractItemView.ExtendedSelection
         self.setSelectionMode(multi_select)
