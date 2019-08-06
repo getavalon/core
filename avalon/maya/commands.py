@@ -17,7 +17,6 @@ def reset_frame_range():
     shot = api.Session["AVALON_ASSET"]
     shot = io.find_one({"name": shot, "type": "asset"})
 
-    shot_data = shot["data"]
     try:
 
         frame_start = shot["data"].get("frameStart", shot["data"]["edit_in"])
