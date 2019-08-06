@@ -21,10 +21,12 @@ def reset_frame_range():
 
         frame_start = shot["data"].get(
             "frameStart",
+            # backwards compatibility
             shot["data"].get("edit_in")
         )
         frame_end = shot["data"].get(
             "frameEnd",
+            # backwards compatibility
             shot["data"].get("edit_out")
         )
     except KeyError:
@@ -59,16 +61,14 @@ def reset_resolution():
 
     try:
         resolution_width = project["data"].get(
-            "resolutionWidth", project["data"].get(
-                "resolution_width",
-                1920
-            )
+            "resolutionWidth",
+            # backwards compatibility
+            project["data"].get("resolution_width", 1920)
         )
         resolution_height = project["data"].get(
-            "resolutionHeight", project["data"].get(
-                "resolution_height",
-                1080
-            )
+            "resolutionHeight",
+            # backwards compatibility
+            project["data"].get("resolution_height", 1080)
         )
     except KeyError:
         cmds.warning("No resolution information found for %s"

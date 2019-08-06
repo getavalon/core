@@ -74,10 +74,12 @@ class SubsetsModel(TreeModel):
         # Compute frame ranges (if data is present)
         frame_start = version_data.get(
             "frameStart",
+            # backwards compatibility
             version_data.get("startFrame", None)
         )
         frame_end = version_data.get(
             "frameEnd",
+            # backwards compatibility
             version_data.get("endFrame", None)
         )
 
