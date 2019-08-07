@@ -12,7 +12,6 @@ import weakref
 import inspect
 import traceback
 import importlib
-import acre
 
 from collections import OrderedDict
 
@@ -354,53 +353,35 @@ class Application(Action):
         project = io.find_one({"type": "project"})
         template = project["config"]["template"]["work"]
         workdir = _format_work_template(template, session)
-        session["AVALON_WORKDIR"] = os.path.normpath(workdir)
+        session["AVALON_WORKDIR"] = workdir
 
-        # dynamic environmnets
-        tools_attr = []
-        if session["AVALON_APP"] is not None:
-            tools_attr.append(session["AVALON_APP"])
-        if session["AVALON_APP_NAME"] is not None:
-            tools_attr.append(session["AVALON_APP_NAME"])
+        # Construct application environment from .toml config
+        app_environment = self.config.get("environment", {})
+        for key, value in app_environment.copy().items():
+            if isinstance(value, list):
+                # Treat list values as paths, e.g. PYTHONPATH=[]
+                app_environment[key] = os.pathsep.join(value)
 
-        # collect all the 'environment' attributes from parents
-        asset = io.find_one({"type": "asset"})
-        tools = self.find_tools(asset)
-        tools_attr.extend(tools)
-
-        tools_env = acre.get_tools(tools_attr)
-        dyn_env = acre.compute(tools_env)
-        dyn_env = acre.merge(dyn_env, current_env=dict(os.environ))
-        env = acre.append(dict(os.environ), dyn_env)
+            elif isinstance(value, six.string_types):
+                if lib.PY2:
+                    # Protect against unicode in the environment
+                    encoding = sys.getfilesystemencoding()
+                    app_environment[key] = value.encode(encoding)
+                else:
+                    app_environment[key] = value
+            else:
+                log.error(
+                    "%s: Unsupported environment reference in %s for %s"
+                    % (value, self.name, key)
+                )
 
         # Build environment
-        # env = os.environ.copy()
-        env.update(self.config.get("environment", {}))
-        # env.update(dyn_env)
+        env = os.environ.copy()
         env.update(session)
+        app_environment = self._format(app_environment, **env)
+        env.update(app_environment)
 
         return env
-
-    def find_tools(self, entity):
-        tools = []
-        if ('data' in entity and 'tools_env' in entity['data'] and
-        len(entity['data']['tools_env']) > 0):
-            tools = entity['data']['tools_env']
-
-        elif ('data' in entity and 'visualParent' in entity['data'] and
-        entity['data']['visualParent'] is not None):
-            tmp = io.find_one({
-                "_id": entity['data']['visualParent']
-            })
-            tools = self.find_tools(tmp)
-
-        project = io.find_one({"_id": entity['parent']})
-
-        if ('data' in project and 'tools_env' in project['data'] and
-        len(project['data']['tools_env']) > 0):
-            tools = project['data']['tools_env']
-
-        return tools
 
     def initialize(self, environment):
         """Initialize work directory"""
@@ -1020,10 +1001,10 @@ def _format_work_template(template, session=None):
 
     return template.format(**{
         "root": registered_root(),
-        "project": {"name": session["AVALON_PROJECT"]},
+        "project": session["AVALON_PROJECT"],
         "silo": session["AVALON_SILO"],
-        "asset": {"name": session["AVALON_ASSET"]},
-        "task": {"name": session["AVALON_TASK"]},
+        "asset": session["AVALON_ASSET"],
+        "task": session["AVALON_TASK"],
         "app": session["AVALON_APP"],
         "user": session.get("AVALON_USER", getpass.getuser())
     })
@@ -1221,15 +1202,15 @@ def get_representation_path(representation):
     template_publish = project["config"]["template"]["publish"]
     return template_publish.format(**{
         "root": registered_root(),
-        "project": {"name": project["name"]},
-        "asset": {"name": asset["name"]},
+        "project": project["name"],
+        "asset": asset["name"],
         "silo": asset["silo"],
         "subset": subset["name"],
         "version": version_["name"],
         "representation": representation["name"],
         "user": Session.get("AVALON_USER", getpass.getuser()),
         "app": Session.get("AVALON_APP", ""),
-        "task": {"name": Session.get("AVALON_TASK", "")}
+        "task": Session.get("AVALON_TASK", "")
     })
 
 
