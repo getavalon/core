@@ -51,7 +51,6 @@ def reload_pipeline():
     import avalon.nuke
     api.install(avalon.nuke)
 
-    _install_menu()
     _register_events()
 
 
@@ -449,6 +448,7 @@ def _on_task_changed(*args):
     # Update menu
     _uninstall_menu()
     _install_menu()
+
 
 
 @contextlib.contextmanager
