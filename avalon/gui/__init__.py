@@ -57,7 +57,7 @@ __all__ = [
 
     # Delegates
     "PrettyTimeDelegate",
-    "VersionDelegate"
+    "VersionDelegate",
 
     # Models
     "Node",
@@ -73,11 +73,11 @@ __all__ = [
     "RecursiveSortFilterProxyModel",
     "GroupMemberFilterProxyModel",
     "SubsetFilterProxyModel",
-    "FamilyFilterProxyModel"
+    "FamilyFilterProxyModel",
 
     # Views
     "DeselectableTreeView",
-    "AssetsView"
+    "AssetsView",
 
     # Widgets
     "SubsetsWidget",
