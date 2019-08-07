@@ -1,12 +1,10 @@
 import sys
 import logging
 
-import avalon.api as api
+from ... import api
 
-from avalon.vendor.Qt import QtWidgets, QtCore
-from .._widgets import AssetsWidget
-from .._models import TaskModel
-
+from ...vendor.Qt import QtWidgets, QtCore
+from ...gui import AssetsWidget, TaskModel
 
 module = sys.modules[__name__]
 module.window = None

@@ -5,18 +5,21 @@ from functools import partial
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ...vendor import qtawesome as qta
-from ... import io, api, style
+from ... import io, api
 from .. import lib as tools_lib
 
 # todo(roy): refactor loading from other tools
-from .._widgets.lib import (
+from ...gui.widgets.lib import (
     preserve_expanded_rows,
     preserve_selection,
     _iter_model_rows,
 )
-from .._delegates import VersionDelegate
-from .._models import FilterProxyModel, InventoryModel
-from .._models.lib import refresh_family_config
+from ...gui.lib import refresh_family_config
+from ...gui import (
+    style,
+    VersionDelegate,
+    FilterProxyModel, InventoryModel
+)
 
 from .lib import switch_item
 

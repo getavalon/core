@@ -1,4 +1,4 @@
-from . import QtWidgets, QtCore, QtGui
+from .. import QtWidgets, QtCore, QtGui
 
 
 class SilosTabWidget(QtWidgets.QTabBar):

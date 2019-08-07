@@ -1,6 +1,6 @@
-from . import QtCore
-from . import TreeModel, GroupMemberFilterProxyModel
-from . import lib
+from .. import QtCore
+from .. import TreeModel, GroupMemberFilterProxyModel
+from .. import lib as gui_lib
 
 
 class FamilyFilterProxyModel(GroupMemberFilterProxyModel):
@@ -41,7 +41,7 @@ class FamilyFilterProxyModel(GroupMemberFilterProxyModel):
 
         filterable_families = set()
         for name in families:
-            family_config = lib.get(lib.FAMILY_CONFIG, name)
+            family_config = gui_lib.get(gui_lib.FAMILY_CONFIG, name)
             if not family_config.get("hideFilter"):
                 filterable_families.add(name)
 

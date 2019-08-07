@@ -1,13 +1,13 @@
 import inspect
 
-from . import qtawesome
-from . import pipeline, api, io
+from .. import qtawesome
+from .. import pipeline, api, io
 
-from . import QtCore, QtWidgets
-from .._models import (
-    SubsetModel, SubsetFilterProxyModel, FamilyFilterProxyModel
+from .. import QtCore, QtWidgets
+from .. import (
+    SubsetModel, SubsetFilterProxyModel, FamilyFilterProxyModel,
+    PrettyTimeDelegate, VersionDelegate
 )
-from .._delegates import PrettyTimeDelegate, VersionDelegate
 
 from .lib import preserve_selection
 

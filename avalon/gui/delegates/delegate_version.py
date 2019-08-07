@@ -1,6 +1,6 @@
-from . import QtWidgets, QtCore
-from . import io
-from .._models import SubsetModel
+from .. import QtWidgets, QtCore
+from .. import io
+from .. import SubsetModel
 
 
 class VersionDelegate(QtWidgets.QStyledItemDelegate):

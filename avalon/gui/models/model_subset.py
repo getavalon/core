@@ -1,6 +1,6 @@
-from . import QtCore
-from . import qtawesome, style, io
-from . import Node, TreeModel
+from .. import QtCore
+from .. import qtawesome, style, io
+from .. import Node, TreeModel
 from . import lib
 
 

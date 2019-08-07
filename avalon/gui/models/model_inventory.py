@@ -2,11 +2,13 @@ import logging
 
 from collections import defaultdict
 
-from . import api, io, style, qtawesome
-from . import QtCore, QtGui
+from .. import api, io, style, qtawesome
+from .. import QtCore, QtGui
 
-from . import lib
-from . import TreeModel, Node
+from .. import TreeModel, Node
+
+from .lib import walk_hierarchy
+from .. import lib as gui_lib
 
 
 class InventoryModel(TreeModel):
@@ -53,7 +55,7 @@ class InventoryModel(TreeModel):
                     if self._hierarchy_view:
                         # If current group is not outdated, check if any
                         # outdated children.
-                        for _node in lib.walk_hierarchy(node):
+                        for _node in walk_hierarchy(node):
                             if outdated(_node):
                                 return self.CHILD_OUTDATED_COLOR
                 else:
@@ -61,7 +63,7 @@ class InventoryModel(TreeModel):
                     if self._hierarchy_view:
                         # Although this is not a group item, we still need
                         # to distinguish which one contain outdated child.
-                        for _node in lib.walk_hierarchy(node):
+                        for _node in walk_hierarchy(node):
                             if outdated(_node):
                                 return self.CHILD_OUTDATED_COLOR.darker(150)
 
@@ -228,8 +230,9 @@ class InventoryModel(TreeModel):
                     family = families[0]
 
             # Get the label and icon for the family if in configuration
-            family_config = lib.get(lib.FAMILY_CONFIG,
-                                             family)
+            family_config = gui_lib.get(
+                gui_lib.FAMILY_CONFIG, family
+            )
             family = family_config.get("label", family)
             family_icon = family_config.get("icon", None)
 

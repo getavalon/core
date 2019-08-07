@@ -1,8 +1,8 @@
 import collections
 
-from . import QtCore
-from . import qtawesome, style, io
-from . import TreeModel, Node
+from .. import QtCore
+from .. import qtawesome, style, io
+from .. import TreeModel, Node
 
 
 class TaskModel(TreeModel):

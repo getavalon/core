@@ -1,5 +1,5 @@
-from . import QtCore
-from . import Node
+from .. import QtCore
+from .. import Node
 
 
 class TreeModel(QtCore.QAbstractItemModel):

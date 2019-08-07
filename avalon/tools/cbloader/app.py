@@ -2,19 +2,17 @@ import sys
 import time
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import api, io, style
+from ... import api, io
 from .. import lib
 
-from .._models import AssetModel
-from .._models.lib import (
-    refresh_family_config,
-    refresh_group_config,
-    get_active_group_config
-)
-from .._widgets import (
+from ...gui import (
+    style,
+    AssetModel,
     AssetsWidget, SubsetsWidget, VersionWidget, FamiliesListWidget
 )
-from .._widgets.lib import preserve_selection
+from ...gui.lib import refresh_family_config
+from ...gui.models.lib import refresh_group_config, get_active_group_config
+from ...gui.widgets.lib import preserve_selection
 
 
 module = sys.modules[__name__]

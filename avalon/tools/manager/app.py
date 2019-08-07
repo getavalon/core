@@ -1,7 +1,8 @@
 import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import api, io, style
+from ... import api, io
+from ...gui import style
 from .. import lib
 
 module = sys.modules[__name__]

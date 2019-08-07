@@ -1,12 +1,11 @@
 import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import io, schema, api, style
-from .. import lib as parentlib
-from .._widgets import AssetsWidget
+from ... import io, schema, api
+from .. import lib as tools_lib
+from ...gui import style, AssetsWidget, TaskModel
 
 from .dialogs import TasksCreateDialog, AssetCreateDialog
-from .._models import TaskModel
 
 module = sys.modules[__name__]
 module.window = None
@@ -227,7 +226,7 @@ def show(root=None, debug=False, parent=None):
     if debug is True:
         io.install()
 
-    with parentlib.application():
+    with tools_lib.application():
         window = Window(parent)
         window.setStyleSheet(style.load_stylesheet())
         window.show()

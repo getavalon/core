@@ -1,5 +1,5 @@
-from . import QtWidgets
-from . import VersionTextEdit
+from .. import QtWidgets
+from .. import VersionTextEdit
 
 
 class VersionWidget(QtWidgets.QWidget):

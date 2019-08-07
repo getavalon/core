@@ -1,14 +1,14 @@
-from . import qtawesome
-from . import QtWidgets, QtCore
-from . import style
+from .. import qtawesome
+from .. import QtWidgets, QtCore
+from .. import style
 from . import lib
 
-from .._models import (
+from .. import (
     AssetModel,
-    RecursiveSortFilterProxyModel
+    RecursiveSortFilterProxyModel,
+    AssetsView,
+    SilosTabWidget
 )
-from .._views import AssetsView
-from .._widgets import SilosTabWidget
 
 
 class AssetsWidget(QtWidgets.QWidget):

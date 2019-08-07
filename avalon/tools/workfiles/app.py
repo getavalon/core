@@ -4,10 +4,10 @@ import getpass
 import re
 import shutil
 
-
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import style, io, api
-from .. import lib as parentlib
+from ...gui import style
+from ... import io, api
+from .. import lib as tools_lib
 
 
 class NameWindow(QtWidgets.QDialog):
@@ -465,7 +465,7 @@ def show(root=None):
     if not os.path.exists(root):
         raise OSError("Root set for Work Files app does not exist: %s" % root)
 
-    with parentlib.application():
+    with tools_lib.application():
         window = Window(root)
         window.setStyleSheet(style.load_stylesheet())
         window.exec_()

@@ -1,7 +1,7 @@
-from . import QtWidgets, QtCore
-from . import io
+from .. import QtWidgets, QtCore
+from .. import io
 
-from .._models import lib as models_lib
+from .. import lib as gui_lib
 
 
 class FamiliesListWidget(QtWidgets.QListWidget):
@@ -39,7 +39,7 @@ class FamiliesListWidget(QtWidgets.QListWidget):
         self.clear()
         for name in sorted(unique_families):
 
-            family = models_lib.get(models_lib.FAMILY_CONFIG, name)
+            family = gui_lib.get(gui_lib.FAMILY_CONFIG, name)
             if family.get("hideFilter"):
                 continue
 
