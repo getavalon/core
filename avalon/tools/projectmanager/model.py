@@ -191,8 +191,7 @@ class TasksModel(TreeModel):
         super(TasksModel, self).__init__()
         self._num_assets = 0
         self._icons = {
-            "__default__": awesome.icon("fa.folder-o",
-                                        color=style.colors.default)
+            "__default__": awesome.icon("fa.male", color=style.colors.default)
         }
 
         self._get_task_icons()
@@ -228,13 +227,6 @@ class TasksModel(TreeModel):
         for asset in assets:
             asset_tasks = asset.get("data", {}).get("tasks", [])
             tasks.update(asset_tasks)
-
-        # If no asset tasks are defined, use the project tasks.
-        if assets and not tasks:
-            project = io.find_one({"type": "project"})
-            tasks.update(
-                [task["name"] for task in project["config"].get("tasks", [])]
-            )
 
         self.clear()
         # delete empty strings from tasks

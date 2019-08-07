@@ -997,10 +997,9 @@ def update_current_task(task=None, asset=None, app=None):
     workdir = os.path.normpath(_format_work_template(template, _session))
 
     changed["AVALON_WORKDIR"] = workdir
-    try:
+
+    if not os.path.exists(workdir):
         os.makedirs(workdir)
-    except FileExistsError:
-        pass
 
     # Update the full session in one go to avoid half updates
     Session.update(changed)
