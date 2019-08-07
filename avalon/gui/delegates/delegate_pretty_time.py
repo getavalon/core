@@ -1,4 +1,4 @@
-from .. import QtWidgets
+from ...vendor.Qt import QtWidgets
 from .lib import pretty_timestamp
 
 

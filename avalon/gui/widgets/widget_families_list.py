@@ -1,6 +1,6 @@
-from .. import QtWidgets, QtCore
-from .. import io
+from ...vendor.Qt import QtWidgets, QtCore
 
+from ... import io
 from .. import lib as gui_lib
 
 

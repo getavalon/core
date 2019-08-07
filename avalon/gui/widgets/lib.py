@@ -1,8 +1,8 @@
 import contextlib
 import logging
 
-from .. import QtCore
-from .. import io
+from ...vendor.Qt import QtCore
+from ... import io
 
 log = logging.getLogger(__name__)
 

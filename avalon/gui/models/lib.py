@@ -1,6 +1,8 @@
-from .. import qtawesome
-from .. import QtCore
-from .. import io, style
+from ...vendor import qtawesome
+from ...vendor.Qt import QtCore
+
+from .. import style
+from ... import io
 
 GROUP_CONFIG = {}
 

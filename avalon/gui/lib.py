@@ -1,5 +1,5 @@
-from . import io, api
-from . import qtawesome
+from .. import io, api
+from ..vendor import qtawesome
 
 FAMILY_ICON_COLOR = "#0091B2"
 FAMILY_CONFIG = {}

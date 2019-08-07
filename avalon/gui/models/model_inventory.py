@@ -2,9 +2,11 @@ import logging
 
 from collections import defaultdict
 
-from .. import api, io, style, qtawesome
-from .. import QtCore, QtGui
+from ...vendor import qtawesome
+from ...vendor.Qt import QtCore, QtGui
+from ... import api, io
 
+from .. import style
 from .. import TreeModel, Node
 
 from .lib import walk_hierarchy

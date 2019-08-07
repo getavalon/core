@@ -1,8 +1,8 @@
 import pprint
 import datetime
 
-from .. import QtWidgets
-from .. import api, io
+from ...vendor.Qt import QtWidgets
+from ... import api, io
 
 
 class VersionTextEdit(QtWidgets.QTextEdit):

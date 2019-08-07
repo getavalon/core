@@ -1,6 +1,9 @@
 import logging
-from .. import QtCore, QtGui
-from .. import qtawesome, io, style
+from ...vendor import qtawesome
+from ...vendor.Qt import QtCore, QtGui
+
+from ... import io
+from .. import style
 from .. import TreeModel, Node
 
 log = logging.getLogger(__name__)

@@ -1,4 +1,4 @@
-from .. import QtCore
+from ...vendor.Qt import QtCore
 
 
 class ExactMatchesFilterProxyModel(QtCore.QSortFilterProxyModel):

@@ -1,5 +1,6 @@
-from .. import qtawesome
-from .. import QtWidgets, QtCore
+from ...vendor import qtawesome
+from ...vendor.Qt import QtWidgets, QtCore
+
 from .. import style
 from . import lib
 

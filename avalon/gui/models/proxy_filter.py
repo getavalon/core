@@ -1,5 +1,5 @@
 import re
-from .. import QtCore
+from ...vendor.Qt import QtCore
 from . import lib
 
 

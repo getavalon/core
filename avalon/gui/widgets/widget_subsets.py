@@ -1,9 +1,10 @@
 import inspect
 
-from .. import qtawesome
-from .. import pipeline, api, io
+from ...vendor import qtawesome
+from ...vendor.Qt import QtCore, QtWidgets
 
-from .. import QtCore, QtWidgets
+from ... import pipeline, api, io
+
 from .. import (
     SubsetModel, SubsetFilterProxyModel, FamilyFilterProxyModel,
     PrettyTimeDelegate, VersionDelegate

@@ -1,7 +1,3 @@
-from ..vendor import qtawesome
-from ..vendor.Qt import QtCore, QtWidgets, QtGui
-from .. import io, api, pipeline
-
 from . import style
 
 from . import lib
@@ -40,16 +36,6 @@ from .widgets.widget_version import VersionWidget
 
 
 __all__ = [
-    "QtCore",
-    "QtWidgets",
-    "QtGui",
-
-    "qtawesome",
-
-    "api",
-    "io",
-    "pipeline",
-
     "style",
 
     "lib",

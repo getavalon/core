@@ -1,7 +1,10 @@
 import collections
 
-from .. import QtCore
-from .. import qtawesome, style, io
+from ...vendor import qtawesome
+from ...vendor.Qt import QtCore
+
+from ... import io
+from .. import style
 from .. import TreeModel, Node
 
 
