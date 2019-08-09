@@ -138,7 +138,13 @@ class AssetWidget(QtWidgets.QWidget):
             self.select_assets(self.last_selection, key="_id")
 
     def _refresh_model(self):
+        self.expand_history = {}
+        self.last_selection = []
+
+        self._store_states()
         self.model.refresh()
+        self._restore_states()
+
         self.assets_refreshed.emit()
 
     def refresh(self):
