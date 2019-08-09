@@ -43,8 +43,8 @@
             "type": "object",
             "description": "Document metadata",
             "example": {
-                "startFrame": 1000,
-                "endFrame": 1201
+                "frameStart": 1000,
+                "frameEnd": 1201
             }
         }
     }

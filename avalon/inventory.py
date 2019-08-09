@@ -80,13 +80,13 @@ DEFAULTS = {
         "film": [
             {
                 "name": "shot1",
-                "edit_in": 1000,
-                "edit_out": 1143
+                "frameStart": 1000,
+                "frameEnd": 1143
             },
             {
                 "name": "shot2",
-                "edit_in": 1000,
-                "edit_out": 1081
+                "frameStart": 1000,
+                "frameEnd": 1081
             },
         ]
     }
