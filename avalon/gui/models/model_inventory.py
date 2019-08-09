@@ -7,7 +7,7 @@ from ...vendor.Qt import QtCore, QtGui
 from ... import api, io
 
 from .. import style
-from .. import TreeModel, Node
+from . import TreeModel, Node
 
 from .lib import walk_hierarchy
 from .. import lib as gui_lib

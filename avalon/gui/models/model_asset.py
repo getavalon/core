@@ -4,7 +4,7 @@ from ...vendor.Qt import QtCore, QtGui
 
 from ... import io
 from .. import style
-from .. import TreeModel, Node
+from . import TreeModel, Node
 
 log = logging.getLogger(__name__)
 

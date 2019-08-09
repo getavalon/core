@@ -1,5 +1,5 @@
 from ...vendor.Qt import QtCore
-from .. import TreeModel, GroupMemberFilterProxyModel
+from . import TreeModel, GroupMemberFilterProxyModel
 from .. import lib as gui_lib
 
 

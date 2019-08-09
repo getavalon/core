@@ -1,5 +1,5 @@
 from ...vendor.Qt import QtCore
-from .. import DeselectableTreeView
+from . import DeselectableTreeView
 
 
 class AssetsView(DeselectableTreeView):

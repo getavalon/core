@@ -3,7 +3,7 @@ from ...vendor.Qt import QtCore
 
 from ... import io
 from .. import style
-from .. import Node, TreeModel
+from . import Node, TreeModel
 from . import lib
 
 

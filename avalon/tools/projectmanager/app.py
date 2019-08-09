@@ -3,7 +3,10 @@ import sys
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import io, schema, api
 from .. import lib as tools_lib
-from ...gui import style, AssetsWidget, TaskModel
+
+from ...gui import style
+from ...gui.models import TaskModel
+from ...gui.widgets import AssetsWidget
 
 from .dialogs import TasksCreateDialog, AssetCreateDialog
 

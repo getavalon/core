@@ -4,7 +4,8 @@ import logging
 from ... import api
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ...gui import AssetsWidget, TaskModel
+from ...gui.models import TaskModel
+from ...gui.widgets import AssetsWidget
 
 module = sys.modules[__name__]
 module.window = None

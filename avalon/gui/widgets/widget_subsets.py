@@ -5,9 +5,9 @@ from ...vendor.Qt import QtCore, QtWidgets
 
 from ... import pipeline, api, io
 
-from .. import (
-    SubsetModel, SubsetFilterProxyModel, FamilyFilterProxyModel,
-    PrettyTimeDelegate, VersionDelegate
+from ..delegates import PrettyTimeDelegate, VersionDelegate
+from ..models import (
+    SubsetModel, SubsetFilterProxyModel, FamilyFilterProxyModel
 )
 
 from .lib import preserve_selection

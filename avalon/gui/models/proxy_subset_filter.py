@@ -1,4 +1,4 @@
-from .. import GroupMemberFilterProxyModel
+from . import GroupMemberFilterProxyModel
 
 
 class SubsetFilterProxyModel(GroupMemberFilterProxyModel):

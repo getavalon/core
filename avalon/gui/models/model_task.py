@@ -5,7 +5,7 @@ from ...vendor.Qt import QtCore
 
 from ... import io
 from .. import style
-from .. import TreeModel, Node
+from . import TreeModel, Node
 
 
 class TaskModel(TreeModel):

@@ -14,12 +14,10 @@ from ...gui.widgets.lib import (
     preserve_selection,
     _iter_model_rows,
 )
+from ...gui import style
 from ...gui.lib import refresh_family_config
-from ...gui import (
-    style,
-    VersionDelegate,
-    FilterProxyModel, InventoryModel
-)
+from ...gui.delegates import VersionDelegate
+from ...gui.models import FilterProxyModel, InventoryModel
 
 from .lib import switch_item
 

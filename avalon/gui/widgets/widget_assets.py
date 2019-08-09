@@ -4,12 +4,9 @@ from ...vendor.Qt import QtWidgets, QtCore
 from .. import style
 from . import lib
 
-from .. import (
-    AssetModel,
-    RecursiveSortFilterProxyModel,
-    AssetsView,
-    SilosTabWidget
-)
+from ..models import AssetModel, RecursiveSortFilterProxyModel
+from ..views import AssetsView
+from . import SilosTabWidget
 
 
 class AssetsWidget(QtWidgets.QWidget):

@@ -5,13 +5,15 @@ from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io
 from .. import lib
 
-from ...gui import (
-    style,
-    AssetModel,
+from ...gui import style
+from ...gui.lib import refresh_family_config
+
+from ...gui.models import AssetModel
+from ...gui.models.lib import refresh_group_config, get_active_group_config
+
+from ...gui.widgets import (
     AssetsWidget, SubsetsWidget, VersionWidget, FamiliesListWidget
 )
-from ...gui.lib import refresh_family_config
-from ...gui.models.lib import refresh_group_config, get_active_group_config
 from ...gui.widgets.lib import preserve_selection
 
 
