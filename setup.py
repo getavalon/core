@@ -46,11 +46,11 @@ try:
         package_data={
             "avalon": [
                 "schema/*.json",
-                "style/*.qrc",
-                "style/*.qss",
-                "style/rc/*.png",
-                "fonts/opensans/*.txt",
-                "fonts/opensans/*.ttf",
+                "gui/style/*.qrc",
+                "gui/style/*.qss",
+                "gui/style/rc/*.png",
+                "gui/style/fonts/opensans/*.txt",
+                "gui/style/fonts/opensans/*.ttf",
                 "vendor/jsonschema/schemas/*.json",
                 "vendor/qtawesome/fonts/*.ttf",
                 "vendor/qtawesome/fonts/*.json",
