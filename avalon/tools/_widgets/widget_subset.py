@@ -1,5 +1,6 @@
 import inspect
 
+from ...vendor import Qt
 from . import QtCore, QtWidgets
 from . import qtawesome, api, pipeline, io
 from .._models import (
@@ -89,7 +90,10 @@ class SubsetWidget(QtWidgets.QWidget):
 
         header = self.view.header()
         # Enforce the columns to fit the data (purely cosmetic)
-        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        if Qt.__binding__ in ("PySide2", "PyQt5"):
+            header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        else:
+            header.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.active_changed)
