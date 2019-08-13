@@ -108,8 +108,43 @@ class AssetWidget(QtWidgets.QWidget):
         output.extend(self.get_parents(parent))
         return output
 
+    def _store_states(self):
+        # Store expands
+        for index in _iter_model_rows(
+            self.proxy, column=0, include_root=False
+        ):
+            expanded = self.view.isExpanded(index)
+            item = index.data(AssetModel.NodeRole)
+            self.expand_history[str(item["_id"])] = expanded
+
+        # store selection
+        indexes = self.view.selectionModel().selectedIndexes()
+        # only single selection is allowed
+        for index in indexes:
+            self.last_selection.append(index.data(AssetModel.NodeRole)["_id"])
+
+    def _restore_states(self):
+        if self.expand_history:
+            for index in _iter_model_rows(
+                self.proxy, column=0, include_root=False
+            ):
+                item = index.data(AssetModel.NodeRole)
+                expanded = self.expand_history.get(str(item.get("_id", "")))
+                if expanded is None:
+                    continue
+                self.view.setExpanded(index, expanded)
+
+        if self.last_selection:
+            self.select_assets(self.last_selection, key="_id")
+
     def _refresh_model(self):
+        self.expand_history = {}
+        self.last_selection = []
+
+        self._store_states()
         self.model.refresh()
+        self._restore_states()
+
         self.assets_refreshed.emit()
 
     def refresh(self):
@@ -129,7 +164,7 @@ class AssetWidget(QtWidgets.QWidget):
         rows = selection.selectedRows()
         return [row.data(self.model.ObjectIdRole) for row in rows]
 
-    def select_assets(self, assets, expand=True):
+    def select_assets(self, assets, expand=True, key="name"):
         """Select assets by name.
 
         Args:
@@ -142,8 +177,12 @@ class AssetWidget(QtWidgets.QWidget):
         """
         # TODO: Instead of individual selection optimize for many assets
 
-        assert isinstance(assets,
-                          (tuple, list)), "Assets must be list or tuple"
+        assert isinstance(
+            assets, (tuple, list)
+        ), "Assets must be list or tuple"
+
+        # convert to list - tuple cant be modified
+        assets = list(assets)
 
         # Clear selection
         selection_model = self.view.selectionModel()
@@ -154,13 +193,22 @@ class AssetWidget(QtWidgets.QWidget):
         for index in _iter_model_rows(
             self.proxy, column=0, include_root=False
         ):
-            data = index.data(self.model.NodeRole)
-            name = data['name']
-            if name in assets:
-                selection_model.select(index, mode)
+            # stop iteration if there are no assets to process
+            if not assets:
+                break
 
-                if expand:
-                    self.view.expand(index)
+            value = index.data(self.model.NodeRole).get(key)
+            if value not in assets:
+                continue
 
-                # Set the currently active index
-                self.view.setCurrentIndex(index)
+            # Remove processed asset
+            assets.pop(assets.index(value))
+
+            selection_model.select(index, mode)
+
+            if expand:
+                # Expand parent index
+                self.view.expand(self.proxy.parent(index))
+
+            # Set the currently active index
+            self.view.setCurrentIndex(index)
