@@ -178,7 +178,7 @@ class Window(QtWidgets.QDialog):
         # - if was not found or not set then returns first existing project
         # - returns `None` if any project was found in db
         name = None
-        presets = config.get_presets()["tools"]["library_loader"]
+        presets = config.get_presets()["tools"].get("library_loader", {})
         if self.show_projects:
             name = presets.get('default_project', None)
         if self.show_libraries and not name:

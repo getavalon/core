@@ -2,11 +2,11 @@ import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import io, schema, api, style
-from .. import lib as parentlib
-from . import widget
+from .. import lib as tools_lib
 
 from .dialogs import TasksCreateDialog, AssetCreateDialog
-from .model import TasksModel
+from ..gui.widgets import AssetsWidget
+from ..gui.models import TaskModel
 
 module = sys.modules[__name__]
 module.window = None
@@ -28,7 +28,7 @@ class Window(QtWidgets.QDialog):
         assets_widgets = QtWidgets.QWidget()
         assets_widgets.setContentsMargins(0, 0, 0, 0)
         assets_layout = QtWidgets.QVBoxLayout(assets_widgets)
-        assets = widget.AssetWidget()
+        assets = AssetsWidget()
         assets.view.setSelectionMode(assets.view.ExtendedSelection)
         add_asset = QtWidgets.QPushButton("Add asset")
         assets_layout.addWidget(assets)
@@ -42,7 +42,7 @@ class Window(QtWidgets.QDialog):
         label.setFixedHeight(28)
         task_view = QtWidgets.QTreeView()
         task_view.setIndentation(0)
-        task_model = TasksModel()
+        task_model = TaskModel()
         task_view.setModel(task_model)
         add_task = QtWidgets.QPushButton("Add task")
         tasks_layout.addWidget(label)
@@ -236,7 +236,7 @@ def show(root=None, debug=False, parent=None):
     if debug is True:
         io.install()
 
-    with parentlib.application():
+    with tools_lib.application():
         window = Window(parent)
         window.setStyleSheet(style.load_stylesheet())
         window.show()
