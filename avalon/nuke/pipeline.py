@@ -93,6 +93,8 @@ def containerise(node,
     log.info("data_imprint: {}".format(data_imprint))
 
     lib.set_avalon_knob_data(node, data_imprint)
+    
+    return node
 
 
 def parse_container(node):
