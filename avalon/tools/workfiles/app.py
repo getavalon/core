@@ -4,10 +4,9 @@ import getpass
 import re
 import shutil
 
-
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import style, io, api
-from .. import lib as parentlib
+from .. import lib as tools_lib
 
 
 class NameWindow(QtWidgets.QDialog):
@@ -458,7 +457,7 @@ def show(root=None):
     if not os.path.exists(root):
         os.makedirs(root)
 
-    with parentlib.application():
+    with tools_lib.application():
         window = Window(root)
         window.setStyleSheet(style.load_stylesheet())
         window.exec_()

@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import collections
 from functools import partial
 import re
 
@@ -9,19 +10,16 @@ from ...vendor import qtawesome as qta
 from ... import io, api, style
 from .. import lib as tools_lib
 
-# todo(roy): refactor loading from other tools
-from ..projectmanager.widget import (
+from ..gui.delegates import VersionDelegate
+from ..gui.models import FilterProxyModel, InventoryModel
+
+from ..gui.lib import refresh_family_config
+from ..gui.widgets.lib import (
     preserve_expanded_rows,
     preserve_selection,
-    _iter_model_rows,
+    _iter_model_rows
 )
-from .._delegates import VersionDelegate
-from ..cbloader.lib import refresh_family_config
-
-from .proxy import FilterProxyModel
-from .model import InventoryModel
 from .lib import switch_item
-import collections
 
 DEFAULT_COLOR = "#fb9c15"
 

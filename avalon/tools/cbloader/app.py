@@ -5,16 +5,16 @@ from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io, style
 from .. import lib
 
-from .._models import AssetModel
-from .._models.lib import (
-    refresh_family_config,
+from ..gui.models import AssetModel
+from ..gui.widgets import (
+    SubsetsWidget, VersionWidget, FamiliesListWidget, AssetsWidget
+)
+from ..gui.lib import refresh_family_config
+from ..gui.models.lib import (
     refresh_group_config,
-    get_active_group_config,
+    get_active_group_config
 )
-from .._widgets import (
-    SubsetWidget, VersionWidget, FamilyListWidget, AssetWidget
-)
-from .._widgets.lib import preserve_selection
+from ..gui.widgets.lib import preserve_selection
 
 module = sys.modules[__name__]
 module.window = None
@@ -43,9 +43,9 @@ class Window(QtWidgets.QDialog):
 
         container = QtWidgets.QWidget()
 
-        assets = AssetWidget(silo_creatable=False)
-        families = FamilyListWidget()
-        subsets = SubsetWidget(parent=self)
+        assets = AssetsWidget(silo_creatable=False)
+        families = FamiliesListWidget()
+        subsets = SubsetsWidget(parent=self)
         version = VersionWidget()
 
         # Create splitter to show / hide family filters
@@ -255,7 +255,7 @@ class Window(QtWidgets.QDialog):
             self._refresh()
 
         asset_widget = self.data['model']['assets']
-        asset_widget.select_assets([asset], expand=True)
+        asset_widget.select_assets(asset)
 
     def echo(self, message):
         widget = self.data["label"]["message"]
