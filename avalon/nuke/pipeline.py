@@ -243,8 +243,8 @@ def _install_menu():
         creator,
         # publish,
         workfiles,
-        cbloader,
-        cbsceneinventory,
+        loader,
+        sceneinventory,
         contextmanager
     )
     # for now we are using `lite` version
@@ -263,9 +263,9 @@ def _install_menu():
 
     menu.addSeparator()
     menu.addCommand("Create...", creator.show)
-    menu.addCommand("Load...", cbloader.show)
+    menu.addCommand("Load...", loader.show)
     menu.addCommand("Publish...", publish.show)
-    menu.addCommand("Manage...", cbsceneinventory.show)
+    menu.addCommand("Manage...", sceneinventory.show)
 
     menu.addSeparator()
     menu.addCommand("Work Files...",
