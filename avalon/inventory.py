@@ -80,13 +80,13 @@ DEFAULTS = {
         "film": [
             {
                 "name": "shot1",
-                "edit_in": 1000,
-                "edit_out": 1143
+                "frameStart": 1000,
+                "frameEnd": 1143
             },
             {
                 "name": "shot2",
-                "edit_in": 1000,
-                "edit_out": 1081
+                "frameStart": 1000,
+                "frameEnd": 1081
             },
         ]
     }
@@ -326,6 +326,7 @@ def _save_config_1_0(project_name, data):
     config["tasks"] = data.get("tasks", [])
     config["template"].update(data.get("template", {}))
     config["families"] = data.get("families", [])
+    config["groups"] = data.get("groups", [])
 
     schema.validate(document)
 

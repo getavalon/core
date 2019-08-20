@@ -27,6 +27,14 @@ $ . test_docker.sh
 
 <br>
 
+### Contributing
+
+See [CONTRIBUTING.md](https://github.com/getavalon/core/blob/master/CONTRIBUTING.md) for a summary of guidelines for how you can contribute to Avalon.
+
+Also visit [the chat](https://gitter.im/getavalon/Lobby) for a direct connection with current developers.
+
+<br>
+
 ### Code convention
 
 Below are some of the standard practices applied to this repositories.
