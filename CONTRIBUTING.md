@@ -112,6 +112,7 @@ As a user of Avalon, if there is something you find in any contained submodule t
 
 **Rules**
 
+- APIs are for *client* use, and should not be used internally. Use internally results in cyclic dependencies and tight coupling between every module exposed by API to any internal module referencing it.
 - `api.py` and host-APIs are *additive*, meaning nothing is ever removed.
 - Members `api.py` and host-APIs are guaranteed to remain stable and unchanged *forever*, with two exceptions.
 	1. Avalon is incremented from X.0 to Y.0, as per [semantic versioning](https://semver.org)
