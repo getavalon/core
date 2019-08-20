@@ -138,7 +138,8 @@ def preserve_selection(tree_view,
                 selection_model.select(index, flags)
 
             if current_index_value and value == current_index_value:
-                tree_view.setCurrentIndex(index)
+                selection_model.setCurrentIndex(index,
+                                                selection_model.NoUpdate)
 
 
 def _list_project_silos():
@@ -318,8 +319,9 @@ class SiloTabWidget(QtWidgets.QTabBar):
     silo_changed = QtCore.Signal(str)
     silo_added = QtCore.Signal(str)
 
-    def __init__(self, parent=None):
+    def __init__(self, silo_creatable=True, parent=None):
         super(SiloTabWidget, self).__init__(parent=parent)
+        self.silo_creatable = silo_creatable
         self._previous_tab_index = -1
         self.set_silos([])
 
@@ -338,7 +340,7 @@ class SiloTabWidget(QtWidgets.QTabBar):
 
         # If it's the last tab
         num = self.count()
-        if index == num - 1:
+        if self.silo_creatable and index == num - 1:
             self.on_add_silo()
             self.setCurrentIndex(self._previous_tab_index)
             return
@@ -372,8 +374,9 @@ class SiloTabWidget(QtWidgets.QTabBar):
         for silo in sorted(silos):
             self.addTab(silo)
 
-        # Add the "+" tab
-        self.addTab("+")
+        if self.silo_creatable:
+            # Add the "+" tab
+            self.addTab("+")
 
         self.set_current_silo(current_silo)
         self.blockSignals(False)
@@ -460,7 +463,7 @@ class AssetWidget(QtWidgets.QWidget):
     selection_changed = QtCore.Signal()  # on view selection change
     current_changed = QtCore.Signal()    # on view current index change
 
-    def __init__(self, parent=None):
+    def __init__(self, silo_creatable=True, parent=None):
         super(AssetWidget, self).__init__(parent=parent)
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -471,7 +474,7 @@ class AssetWidget(QtWidgets.QWidget):
         # Header
         header = QtWidgets.QHBoxLayout()
 
-        silo = SiloTabWidget()
+        silo = SiloTabWidget(silo_creatable=silo_creatable)
 
         icon = awesome.icon("fa.refresh", color=style.colors.light)
         refresh = QtWidgets.QPushButton(icon, "")

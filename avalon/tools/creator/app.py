@@ -1,4 +1,4 @@
-import os
+
 import sys
 import inspect
 
@@ -16,6 +16,8 @@ HelpRole = QtCore.Qt.UserRole + 2
 FamilyRole = QtCore.Qt.UserRole + 3
 ExistsRole = QtCore.Qt.UserRole + 4
 PluginRole = QtCore.Qt.UserRole + 5
+
+Separator = "---separator---"
 
 
 class Window(QtWidgets.QDialog):
@@ -45,6 +47,7 @@ class Window(QtWidgets.QDialog):
         asset = QtWidgets.QLineEdit()
         name = QtWidgets.QLineEdit()
         result = QtWidgets.QLineEdit()
+        result.setStyleSheet("color: gray;")
         result.setEnabled(False)
 
         # region Menu for default subset names
@@ -165,6 +168,9 @@ class Window(QtWidgets.QDialog):
         # Build new action group
         group = QtWidgets.QActionGroup(button)
         for name in default_names:
+            if name == Separator:
+                menu.addSeparator()
+                continue
             action = group.addAction(name)
             menu.addAction(action)
 
@@ -180,7 +186,6 @@ class Window(QtWidgets.QDialog):
         asset_name = self.data["Asset"]
         subset = self.data["Subset"]
         result = self.data["Result"]
-        button = self.data["Create Button"]
 
         item = listing.currentItem()
         subset_name = subset.text()
@@ -202,9 +207,20 @@ class Window(QtWidgets.QDialog):
                                                "$options": "i"},
                                       "parent": {"$in": asset_ids}}) or []
 
-            # Get all subsets' their description name, "Default", "High", "Low"
-            subsets = [subset["name"].split(family)[-1] for subset in subsets]
-            self._build_menu(subsets)
+            # Get all subsets' their subset name, "Default", "High", "Low"
+            existed_subsets = [sub["name"].split(family)[-1]
+                               for sub in subsets]
+
+            if plugin.defaults and isinstance(plugin.defaults, list):
+                defaults = plugin.defaults[:] + [Separator]
+                lowered = [d.lower() for d in plugin.defaults]
+                for sub in [s for s in existed_subsets
+                            if s.lower() not in lowered]:
+                    defaults.append(sub)
+            else:
+                defaults = existed_subsets
+
+            self._build_menu(defaults)
 
             # Update the result
             if subset_name:
@@ -244,8 +260,12 @@ class Window(QtWidgets.QDialog):
         if plugin is None:
             return
 
-        label = "Default"
-        name.setText(label)
+        if plugin.defaults and isinstance(plugin.defaults, list):
+            default = plugin.defaults[0]
+        else:
+            default = "Default"
+
+        name.setText(default)
 
         self.on_data_changed()
 
@@ -299,22 +319,19 @@ class Window(QtWidgets.QDialog):
         result = self.data["Result"]
 
         item = listing.currentItem()
-        useselection_chk = self.data["Use Selection Checkbox"]
-
-        if item is not None:
-            subset_name = result.text()
-            asset = asset.text()
-            family = item.data(FamilyRole)
-        else:
+        if item is None:
             return
+
+        subset_name = result.text()
+        asset = asset.text()
+        family = item.data(FamilyRole)
+        use_selection = self.data["Use Selection Checkbox"].isChecked()
 
         try:
             api.create(subset_name,
                        asset,
                        family,
-                       options={"useSelection":
-                                useselection_chk.checkState()}
-                       )
+                       options={"useSelection": use_selection})
 
         except NameError as e:
             self.echo(e)
@@ -323,6 +340,8 @@ class Window(QtWidgets.QDialog):
         except (TypeError, RuntimeError, KeyError, AssertionError) as e:
             self.echo("Program error: %s" % str(e))
             raise
+
+        self.echo("Created %s .." % subset_name)
 
     def echo(self, message):
         widget = self.data["Error Message"]

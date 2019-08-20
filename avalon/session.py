@@ -102,13 +102,8 @@ class _Session(dict):
         config = project["config"]
         template = config["template"]["work"]
 
-        environment = dict(os.environ, **self)
-
         # Application READS from environment..
-        application = lib.get_application(
-            name=self["AVALON_APP"],
-            environment=environment
-        )
+        application = lib.get_application(name=self["AVALON_APP"])
 
         self["AVALON_WORKDIR"] = template.format(
             root=self["AVALON_PROJECTS"],

@@ -53,6 +53,32 @@
                 "required": ["name"]
             }
         },
+        "families": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "icon": {"type": "string"},
+                    "label": {"type": "string"},
+                    "hideFilter": {"type": "boolean"}
+                },
+                "required": ["name"]
+            }
+        },
+        "groups": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "icon": {"type": "string"},
+                    "color": {"type": "string"},
+                    "order": {"type": ["integer", "number"]}
+                },
+                "required": ["name"]
+            }
+        },
         "copy": {
             "type": "object"
         }

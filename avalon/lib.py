@@ -141,8 +141,16 @@ def which_app(app):
     return None
 
 
-def get_application(name, environment=None):
-    environment = environment or os.environ
+def get_application(name):
+    """Find the application .toml and parse it.
+
+    Arguments:
+        name (str): The name of the application to search.
+
+    Returns:
+        dict: The parsed application from the .toml settings.
+
+    """
     application_definition = which_app(name)
 
     if application_definition is None:
@@ -160,48 +168,6 @@ def get_application(name, environment=None):
             toml.TomlDecodeError) as e:
         log_.error("%s was invalid." % application_definition)
         raise
-
-    executable = which(app.get("executable", name))
-
-    if executable is None:
-        raise ValueError(
-            "'%s' not found on your PATH\n%s"
-            % (app["executable"], os.getenv("PATH"))
-        )
-
-    try:
-        app = dict_format(app, **environment)
-    except KeyError as e:
-        log_.error(
-            "One of the {variables} defined in the application "
-            "definition wasn't found in this session.\n"
-            "The variable was %s " % e
-        )
-        log_.error(json.dumps(environment, indent=4, sort_keys=True))
-
-        raise ValueError(
-            "This is typically a bug in the pipeline, "
-            "ask your developer.")
-
-    # Ingest application environment
-    environment = app.get("environment", {})
-    for key, value in environment.copy().items():
-        if isinstance(value, list):
-            # Treat list values as paths, e.g. PYTHONPATH=[]
-            environment[key] = os.pathsep.join(value)
-
-        elif isinstance(value, six.string_types):
-            if PY2:
-                # Protect against unicode in the environment
-                encoding = sys.getfilesystemencoding()
-                environment[key] = value.encode(encoding)
-            else:
-                environment[key] = value
-        else:
-            log_.error(
-                "%s: Unsupported environment reference in %s for %s"
-                % (value, name, key)
-            )
 
     return app
 
@@ -277,7 +243,9 @@ def modules_from_path(path):
 
     path = os.path.normpath(path)
 
-    assert os.path.isdir(path), "%s is not a directory" % path
+    if not os.path.isdir(path):
+        log_.warning("%s is not a directory" % path)
+        return []
 
     modules = []
     for fname in os.listdir(path):

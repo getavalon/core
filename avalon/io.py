@@ -135,6 +135,9 @@ def _from_environment():
             # Path to working directory
             ("AVALON_WORKDIR", None),
 
+            # Optional path to scenes directory (see Work Files API)
+            ("AVALON_SCENEDIR", None),
+
             # Name of current Config
             # TODO(marcus): Establish a suitable default config
             ("AVALON_CONFIG", "no_config"),
@@ -220,6 +223,22 @@ def requires_install(f):
     return decorated
 
 
+def auto_reconnect(f):
+    """Handling auto reconnect in 3 retry times"""
+    @functools.wraps(f)
+    def decorated(*args, **kwargs):
+        for retry in range(3):
+            try:
+                return f(*args, **kwargs)
+            except pymongo.errors.AutoReconnect:
+                log.error("Reconnecting..")
+                time.sleep(0.1)
+        else:
+            raise
+
+    return decorated
+
+
 @requires_install
 def active_project():
     """Return the name of the active project"""
@@ -239,15 +258,21 @@ def projects():
         list of project documents
 
     """
+    @auto_reconnect
+    def find_project(project):
+        return self._database[project].find_one({"type": "project"})
 
-    for project in self._database.collection_names():
+    @auto_reconnect
+    def collections():
+        return self._database.collection_names()
+    collection_names = collections()
+
+    for project in collection_names:
         if project in ("system.indexes",):
             continue
 
         # Each collection will have exactly one project document
-        document = self._database[project].find_one({
-            "type": "project"
-        })
+        document = find_project(project)
 
         if document is not None:
             yield document
@@ -299,12 +324,14 @@ def locate(path):
     return parent
 
 
+@auto_reconnect
 def insert_one(item):
     assert isinstance(item, dict), "item must be of type <dict>"
     schema.validate(item)
     return self._database[Session["AVALON_PROJECT"]].insert_one(item)
 
 
+@auto_reconnect
 def insert_many(items, ordered=True):
     # check if all items are valid
     assert isinstance(items, list), "`items` must be of type <list>"
@@ -317,6 +344,7 @@ def insert_many(items, ordered=True):
         ordered=ordered)
 
 
+@auto_reconnect
 def find(filter, projection=None, sort=None):
     return self._database[Session["AVALON_PROJECT"]].find(
         filter=filter,
@@ -325,6 +353,7 @@ def find(filter, projection=None, sort=None):
     )
 
 
+@auto_reconnect
 def find_one(filter, projection=None, sort=None):
     assert isinstance(filter, dict), "filter must be <dict>"
 
@@ -335,31 +364,37 @@ def find_one(filter, projection=None, sort=None):
     )
 
 
+@auto_reconnect
 def save(*args, **kwargs):
     return self._database[Session["AVALON_PROJECT"]].save(
         *args, **kwargs)
 
 
+@auto_reconnect
 def replace_one(filter, replacement):
     return self._database[Session["AVALON_PROJECT"]].replace_one(
         filter, replacement)
 
 
+@auto_reconnect
 def update_many(filter, update):
     return self._database[Session["AVALON_PROJECT"]].update_many(
         filter, update)
 
 
+@auto_reconnect
 def distinct(*args, **kwargs):
     return self._database[Session["AVALON_PROJECT"]].distinct(
         *args, **kwargs)
 
 
+@auto_reconnect
 def drop(*args, **kwargs):
     return self._database[Session["AVALON_PROJECT"]].drop(
         *args, **kwargs)
 
 
+@auto_reconnect
 def delete_many(*args, **kwargs):
     return self._database[Session["AVALON_PROJECT"]].delete_many(
         *args, **kwargs)

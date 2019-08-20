@@ -401,10 +401,22 @@ def containerise(name,
     main_container = cmds.ls(AVALON_CONTAINERS, type="objectSet")
     if not main_container:
         main_container = cmds.sets(empty=True, name=AVALON_CONTAINERS)
+
+        # Implement #399: Maya 2019+ hide AVALON_CONTAINERS on creation..
+        if cmds.attributeQuery("hiddenInOutliner",
+                               node=main_container,
+                               exists=True):
+            cmds.setAttr(main_container + ".hiddenInOutliner", True)
     else:
         main_container = main_container[0]
 
     cmds.sets(container, addElement=main_container)
+
+    # Implement #399: Maya 2019+ hide containers in outliner
+    if cmds.attributeQuery("hiddenInOutliner",
+                           node=container,
+                           exists=True):
+        cmds.setAttr(container + ".hiddenInOutliner", True)
 
     return container
 
@@ -500,11 +512,12 @@ class Creator(api.Creator):
     def process(self):
         nodes = list()
 
-        if (self.options or {}).get("useSelection"):
-            nodes = cmds.ls(selection=True)
+        with lib.undo_chunk():
+            if (self.options or {}).get("useSelection"):
+                nodes = cmds.ls(selection=True)
 
-        instance = cmds.sets(nodes, name=self.name)
-        lib.imprint(instance, self.data)
+            instance = cmds.sets(nodes, name=self.name)
+            lib.imprint(instance, self.data)
 
         return instance
 

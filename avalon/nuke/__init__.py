@@ -8,10 +8,19 @@ from .lib import (
     add_publish_knob,
     ls_img_sequence,
     maintained_selection,
-    get_node_path
+    get_node_path,
 )
+
+from .workio import (
+    file_extensions,
+    has_unsaved_changes,
+    save,
+    open,
+    current_file,
+    work_root,
+)
+
 from .pipeline import (
-    reload_pipeline,
     install,
     uninstall,
 
@@ -24,7 +33,9 @@ from .pipeline import (
     parse_container,
     update_container,
 
+    # Experimental
     viewer_update_and_undo_stop,
+    reload_pipeline,
 )
 
 __all__ = [
@@ -37,15 +48,22 @@ __all__ = [
 
     "Creator",
 
+    "file_extensions",
+    "has_unsaved_changes",
+    "save",
+    "open",
+    "current_file",
+    "work_root",
+
     "containerise",
     "parse_container",
     "update_container",
 
+    # Experimental
     "viewer_update_and_undo_stop",
 
     "add_publish_knob",
     "ls_img_sequence",
     "maintained_selection",
     "get_node_path",
-
 ]
