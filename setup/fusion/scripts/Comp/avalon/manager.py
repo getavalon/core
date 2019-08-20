@@ -1,6 +1,6 @@
 import avalon.api
 import avalon.fusion
-import avalon.tools.cbsceneinventory as tool
+import avalon.tools.sceneinventory as tool
 
 
 avalon.api.install(avalon.fusion)

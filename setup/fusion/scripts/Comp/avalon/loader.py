@@ -1,6 +1,6 @@
 import avalon.api
 import avalon.fusion
-import avalon.tools.cbloader as tool
+import avalon.tools.loader as tool
 
 
 avalon.api.install(avalon.fusion)
