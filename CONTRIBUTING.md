@@ -14,6 +14,11 @@ If you have an idea for a new or missing feature, you can submit a GitHub issue 
 | 2 | **Motivation** | Why does it need to exist? What made you think of it? Feel free to elaborate, the more we understand the more able we will be to figure out the best solution, or point towards an existing (but not so visible) solution.
 | 3 | **Implementation** | Optional. Got an idea of how to implement it, but would like to talk about it first? This is a great place to do just that.
 
+**But First**
+
+1. [Search](https://github.com/getavalon/core/issues) for whether the feature you seek has already been requested and/or implemented
+1. [Ask](https://gitter.im/getavalon/Lobby) whether what you seek to do can be done.
+
 **Examples**
 
 - [#385](https://github.com/getavalon/core/issues/385)
