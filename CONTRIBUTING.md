@@ -120,3 +120,12 @@ As a user of Avalon, if there is something you find in any contained submodule t
 With this in mind, exposed members should be kept to a minimal and be appropriately general. Remember, once something is added to an API, there is no going back. Clients can expect members of an API to work forever and not break their code.
 
 Because Avalon and Avalon's API is both written in Python, it can sometimes be difficult to separate between what is an API, and what is internal, but think of it this way; you couldn't import the C++ files that make Qt, or DLLs that make OpenGL. Only the interface is accessible to you, that's what enables these frameworks to evolve and improve, without breaking code that depend on it.
+
+**Examples**
+
+| Bad | Good
+|:-----|:--------
+| `api.asset_or_shot_data(document)` | `api.data()`
+| `api.open_file_from_last_week()` | `api.open_file(fname)`
+| `api.install_with_delay()` | `api.install()`
+| `api.log_welcome_message()` | `api.log_message("welcome")`
