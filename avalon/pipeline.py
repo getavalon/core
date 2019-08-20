@@ -820,7 +820,13 @@ def debug_host():
             yield container
 
     host.__dict__.update({
-        "ls": ls
+        "ls": ls,
+        "open": lambda fname: None,
+        "save": lambda fname: None,
+        "current_file": lambda: os.path.expanduser("~/temp.txt"),
+        "has_unsaved_changes": lambda: False,
+        "work_root": lambda: os.path.expanduser("~/temp"),
+        "file_extensions": lambda: ["txt"],
     })
 
     return host
@@ -876,7 +882,6 @@ def create(name, asset, family, options=None, data=None):
         except Exception as e:
             log.warning(e)
             continue
-
         plugins.append(plugin)
 
     assert plugins, "No Creator plug-ins were run, this is a bug"
@@ -998,11 +1003,13 @@ def _format_work_template(template, session=None):
         "root": registered_root(),
         "project": session["AVALON_PROJECT"],
         "silo": session["AVALON_SILO"],
-        "hierarchy": session['AVALON_HIERARCHY'],
         "asset": session["AVALON_ASSET"],
         "task": session["AVALON_TASK"],
         "app": session["AVALON_APP"],
-        "user": session.get("AVALON_USER", getpass.getuser())
+
+        # Optional
+        "user": session.get("AVALON_USER", getpass.getuser()),
+        "hierarchy": session.get("AVALON_HIERARCHY"),
     })
 
 
@@ -1201,50 +1208,83 @@ def get_representation_path(representation):
 
     """
 
-    output = None
-    try:
-        # format representation template with context if path wasn't a success
-        if output is None:
-            template = representation['data']['template']
-            fill_data = representation['context']
-            fill_data["root"] = registered_root()
-            path = template.format(**fill_data)
-            pathdir = os.path.dirname(path)
-            if os.path.isdir(pathdir):
-                output = path
+    def path_from_represenation():
+        try:
+            template = representation["data"]["template"]
 
-        if output is None:
-            version_, subset, asset, project = io.parenthood(representation)
-            template = project["config"]["template"]["publish"]
-            path = template.format(**{
-                "root": registered_root(),
-                "project": project["name"],
-                "asset": asset["name"],
-                "silo": asset["silo"],
-                "subset": subset["name"],
-                "version": version_["name"],
-                "representation": representation["name"],
-                "user": Session.get("AVALON_USER", getpass.getuser()),
-                "app": Session.get("AVALON_APP", ""),
-                "task": Session.get("AVALON_TASK", "")
-            })
-            pathdir = os.path.dirname(path)
-            if os.path.isdir(pathdir):
-                output = path
-    finally:
-        if output is not None:
-            return output
-
-        # get path from attribute on the representation
-        if 'path' in representation['data']:
-            path = representation['data']['path']
-            pathdir = os.path.dirname(path)
-            if os.path.isdir(pathdir):
-                output = path
-        else:
+        except KeyError:
             return None
 
+        try:
+            context = representation["context"]
+            context["root"] = registered_root()
+            path = template.format(**context)
 
+        except KeyError:
+            # Template references unavailable data
+            return None
+
+        dirname = os.path.dirname(path)
+        if os.path.isdir(dirname):
+            return os.path.normpath(dirname)
+
+    def path_from_config():
+        try:
+            version_, subset, asset, project = io.parenthood(representation)
+        except ValueError:
+            log.debug(
+                "Representation %s wasn't found in database, "
+                "like a bug" % representation["name"]
+            )
+            return None
+
+        try:
+            template = project["config"]["template"]["publish"]
+        except KeyError:
+            log.debug(
+                "No template in project %s, "
+                "likely a bug" % project["name"]
+            )
+            return None
+
+        # Cannot fail, required members only
+        data = {
+            "root": registered_root(),
+            "project": project["name"],
+            "asset": asset["name"],
+            "silo": asset["silo"],
+            "subset": subset["name"],
+            "version": version_["name"],
+            "representation": representation["name"],
+            "user": Session.get("AVALON_USER", getpass.getuser()),
+            "app": Session.get("AVALON_APP", ""),
+            "task": Session.get("AVALON_TASK", "")
+        }
+
+        try:
+            path = template.format(**data)
+        except KeyError as e:
+            log.debug("Template references unavailable data: %s" % e)
+            return None
+
+        dirname = os.path.dirname(path)
+        if os.path.isdir(dirname):
+            return os.path.normpath(dirname)
+
+    def path_from_data():
+        if "path" not in representation["data"]:
+            return None
+
+        path = representation["data"]["path"]
+        dirname = os.path.dirname(path)
+        if os.path.isdir(dirname):
+            return os.path.normpath(dirname)
+
+    return (
+        path_from_represenation() or
+        path_from_config() or
+        path_from_data()
+    )
 
 
 def is_compatible_loader(Loader, context):

@@ -1,4 +1,5 @@
 *.egg-info
+*.dist-info
 dist
 cover
 .coverage

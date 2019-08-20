@@ -115,11 +115,19 @@ def export_alembic(nodes,
 
     Arguments:
         nodes (list): Long names of nodes to cache
+
         file (str): Absolute path to output destination
+
         frame_range (tuple, optional): Start- and end-frame of cache,
             default to current animation range.
-        uv_write (bool, optional): Whether or not to include UVs,
+
+        write_uv (bool, optional): Whether or not to include UVs,
             default to True
+
+        write_visibility (bool, optional): Turn on to store the visibility
+        state of objects in the Alembic file. Otherwise, all objects are
+        considered visible, default to True
+
         attribute_prefix (str, optional): Include all user-defined
             attributes with this prefix.
 
@@ -162,6 +170,17 @@ def export_alembic(nodes,
     print("mel.eval('%s')" % mel_cmd)
 
     return mel.eval(mel_cmd)
+
+
+@contextlib.contextmanager
+def undo_chunk():
+    """Open a undo chunk during context."""
+
+    try:
+        cmds.undoInfo(openChunk=True)
+        yield
+    finally:
+        cmds.undoInfo(closeChunk=True)
 
 
 def imprint(node, data):
@@ -428,7 +447,10 @@ def lsattr(attr, value=None):
     """
 
     if value is None:
-        return cmds.ls("*.%s" % attr)
+        return cmds.ls("*.%s" % attr,
+                       recursive=True,
+                       objectsOnly=True,
+                       long=True)
     return lsattrs({attr: value})
 
 
@@ -439,12 +461,13 @@ def lsattrs(attrs):
         attrs (dict): Name and value pairs of expected matches
 
     Example:
-        >> lsattr("age")  # Return nodes with attribute `age`
-        >> lsattr({"age": 5})  # Return nodes with an `age` of 5
-        >> # Return nodes with both `age` and `color` of 5 and blue
-        >> lsattr({"age": 5, "color": "blue"})
+        >> # Return nodes with an `age` of five.
+        >> lsattr({"age": "five"})
+        >> # Return nodes with both `age` and `color` of five and blue.
+        >> lsattr({"age": "five", "color": "blue"})
 
-    Returns a list.
+    Return:
+         list: matching nodes.
 
     """
 
@@ -457,8 +480,8 @@ def lsattrs(attrs):
     try:
         selection_list.add("*.{0}".format(first_attr),
                            searchChildNamespaces=True)
-    except RuntimeError, e:
-        if str(e).endswith("Object does not exist"):
+    except RuntimeError as exc:
+        if str(exc).endswith("Object does not exist"):
             return []
 
     matches = set()

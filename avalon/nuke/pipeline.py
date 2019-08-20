@@ -1,42 +1,164 @@
-"""Pipeline functionality specifically for Nuke
+import os
+from collections import OrderedDict
+import importlib
+from .. import api, io, schema
 
-Hi Arvid!
+import contextlib
+from pyblish import api as pyblish
+from ..vendor import toml
+import logging
+import nuke
+from . import lib
 
-I've pre-filled this module with the functions you'll need to
-implement in order to get the Creator, Loader and Manager
-running in Nuke.
+from ..pipeline import AVALON_CONTAINER_ID
 
-Have a look at the docstring for each function, and refer back
-to the Maya implementation which resides in a similar file but
-under the `maya/` directory.
+log = logging.getLogger(__name__)
 
-"""
+AVALON_CONFIG = os.environ["AVALON_CONFIG"]
 
 
-def install():
-    """Install Nuke-specific functionality of avalon-core.
+def reload_pipeline():
+    """Attempt to reload pipeline at run-time.
 
-    This is where you install menus and register families, data
-    and loaders into Nuke.
+    CAUTION: This is primarily for development and debugging purposes.
 
-    It is called automatically when installing via `api.install(nuke)`.
+    """
 
-    See the Maya equivalent for inspiration on how to implement this.
+    import importlib
+
+    api.uninstall()
+    _uninstall_menu()
+
+    for module in ("avalon.io",
+                   "avalon.lib",
+                   "avalon.pipeline",
+                   "avalon.nuke.pipeline",
+                   "avalon.nuke.lib",
+                   "avalon.tools.loader.app",
+                   "avalon.tools.creator.app",
+                   "avalon.tools.manager.app",
+
+                   "avalon.api",
+                   "avalon.tools",
+                   "avalon.nuke",
+                   "{}".format(AVALON_CONFIG),
+                   "{}.lib".format(AVALON_CONFIG)):
+        log.info("Reloading module: {}...".format(module))
+        module = importlib.import_module(module)
+        importlib.reload(module)
+
+    import avalon.nuke
+    api.install(avalon.nuke)
+
+    _install_menu()
+    _register_events()
+
+
+def containerise(node,
+                 name,
+                 namespace,
+                 context,
+                 loader=None,
+                 data=None):
+    """Bundle `nodes` into an assembly and imprint it with metadata
+
+    Containerisation enables a tracking of version, author and origin
+    for loaded assets.
+
+    Arguments:
+        node (object): The node in Nuke to imprint as container,
+        usually a Reader.
+        name (str): Name of resulting assembly
+        namespace (str): Namespace under which to host container
+        context (dict): Asset information
+        loader (str, optional): Name of node used to produce this container.
+
+    Returns:
+        Node
 
     """
 
+    data_imprint = OrderedDict({
+        "schema": "avalon-core:container-2.0",
+        "id": AVALON_CONTAINER_ID,
+        "name": str(name),
+        "namespace": str(namespace),
+        "loader": str(loader),
+        "representation": str(context["representation"]["_id"]),
+    })
 
-def uninstall():
-    """Uninstall all tha was installed
+    if data:
+        {data_imprint.update({k: v}) for k, v in data.items()}
 
-    This is where you undo everything that was done in `install()`.
-    That means, removing menus, deregistering families and  data
-    and everything. It should be as though `install()` was never run,
-    because odds are calling this function means the user is interested
-    in re-installing shortly afterwards. If, for example, he has been
-    modifying the menu or registered families.
+    log.info("data: {}".format(data_imprint))
+
+    lib.add_avalon_tab_knob(node)
+
+    node['avalon'].setValue(toml.dumps(data_imprint))
+
+    return node
+
+
+def parse_container(node, validate=True):
+    """Returns containerised data of a node
+
+    This reads the imprinted data from `containerise`.
 
     """
+
+    raw_text_data = node['avalon'].value()
+    data = toml.loads(raw_text_data, _dict=dict)
+
+    if not isinstance(data, dict):
+        return
+
+    # Store the node's name
+    data["objectName"] = node["name"].value()
+
+    if validate:
+        schema.validate(data)
+
+    return data
+
+
+def update_container(node, keys=dict()):
+    """Returns node with updateted containder data
+
+    Arguments:
+        node (object): The node in Nuke to imprint as container,
+        keys (dict): data which should be updated
+
+    Returns:
+        node (object): nuke node with updated container data
+    """
+
+    container = parse_container(node)
+
+    for key, value in container.items():
+        try:
+            container[key] = keys[key]
+        except KeyError:
+            pass
+
+    node['avalon'].setValue('')
+    node['avalon'].setValue(toml.dumps(container))
+
+    return node
+
+
+class Creator(api.Creator):
+    def process(self):
+        nodes = nuke.allNodes()
+
+        if (self.options or {}).get("useSelection"):
+            nodes = nuke.selectedNodes()
+
+        instance = [n for n in nodes
+                    if n["name"].value() in self.name] or None
+
+        instance = lib.imprint(instance, self.data)
+
+        return instance
 
 
 def ls():
@@ -48,65 +170,212 @@ def ls():
 
     See the `container.json` schema for details on how it should look,
     and the Maya equivalent, which is in `avalon.maya.pipeline`
+    """
+    all_nodes = nuke.allNodes(recurseGroups=True)
+
+    # TODO: add readgeo, readcamera, readimage
+    reads = [n for n in all_nodes if n.Class() == 'Read']
+
+    for r in reads:
+        container = parse_container(r)
+        if container:
+            yield container
+
+
+def install(config):
+    """Install Nuke-specific functionality of avalon-core.
+
+    This is where you install menus and register families, data
+    and loaders into Nuke.
+
+    It is called automatically when installing via `api.install(nuke)`.
+
+    See the Maya equivalent for inspiration on how to implement this.
 
     """
 
-    yield {}
+    _install_menu()
+    _register_events()
+
+    pyblish.register_host("nuke")
+    # Trigger install on the config's "nuke" package
+    config = find_host_config(config)
+
+    if hasattr(config, "install"):
+        config.install()
+
+    log.info("config.nuke installed")
 
 
-def load(asset, subset, version=-1, representation=None):
-    """Load data into Maya
+def find_host_config(config):
+    try:
+        config = importlib.import_module(config.__name__ + ".nuke")
+    except ImportError as exc:
+        if str(exc) != "No module name {}".format(config.__name__ + ".nuke"):
+            raise
+        config = None
 
-    This function takes an asset from the Loader GUI and
-    imports it into Nuke.
-
-    The function takes `asset`, which is a dictionary following the
-    `asset.json` schema, a `subset` of the `subset.json` schema and
-    an integer version number and a representation.
-
-    Again, on terminology, see the Terminology chapter in the
-    documentation, it'll have info on these for you.
-
-    """
-
-    return ""
+    return config
 
 
-def create(name, family, options=None):
-    """Create new instance
+def uninstall(config):
+    """Uninstall all tha was installed
 
-    This function is called when a user has finished using the
-    Creator GUI. It is given a (str) name, a (str) family and
-    an optional dictionary of options. You can safely ignore
-    the options for a first run and come back to it once
-    everything works well.
-
-    """
-
-    return ""
-
-
-def update(container, version=-1):
-    """Update an existing `container` to `version`
-
-    From the Container Manager, once a user chooses to
-    update from one version to another, this function is
-    called.
-
-    It takes a `container`, which is a dictionary of the
-    `container.json` schema, and an integer version.
+    This is where you undo everything that was done in `install()`.
+    That means, removing menus, deregistering families and  data
+    and everything. It should be as though `install()` was never run,
+    because odds are calling this function means the user is interested
+    in re-installing shortly afterwards. If, for example, he has been
+    modifying the menu or registered families.
 
     """
+    config = find_host_config(config)
+    if hasattr(config, "uninstall"):
+        config.uninstall()
+
+    _uninstall_menu()
+
+    pyblish.deregister_host("nuke")
 
 
-def remove(container):
-    """Remove an existing `container` from Nuke scene
+def _install_menu():
+    from ..tools import (
+        creator,
+        # publish,
+        workfiles,
+        cbloader,
+        cbsceneinventory,
+        contextmanager
+    )
+    # for now we are using `lite` version
+    # TODO: just for now untill qml in Nuke will be fixed (pyblish-qml#301)
+    import pyblish_lite as publish
 
-    In the Container Manager, when a user chooses to remove
-    a container they've previously imported, this function is
-    called.
+    # Create menu
+    menubar = nuke.menu("Nuke")
+    menu = menubar.addMenu(api.Session["AVALON_LABEL"])
 
-    You'll need to ensure all nodes that cale along with the
-    loaded asset is removed here.
+    label = "{0}, {1}".format(
+        api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"]
+    )
+    context_menu = menu.addMenu(label)
+    context_menu.addCommand("Set Context", contextmanager.show)
 
-    """
+    menu.addSeparator()
+    menu.addCommand("Create...", creator.show)
+    menu.addCommand("Load...", cbloader.show)
+    menu.addCommand("Publish...", publish.show)
+    menu.addCommand("Manage...", cbsceneinventory.show)
+
+    menu.addSeparator()
+    menu.addCommand("Work Files...",
+                    lambda: workfiles.show(
+                        os.environ["AVALON_WORKDIR"]
+                    )
+                    )
+
+    menu.addSeparator()
+    menu.addCommand("Reset Frame Range", reset_frame_range)
+    menu.addCommand("Reset Resolution", reset_resolution)
+
+    menu.addSeparator()
+    menu.addCommand("Reload Pipeline", reload_pipeline)
+
+
+def _uninstall_menu():
+    menubar = nuke.menu("Nuke")
+    menubar.removeItem(api.Session["AVALON_LABEL"])
+
+
+def reset_frame_range():
+    """Set frame range to current asset"""
+
+    fps = float(api.Session.get("AVALON_FPS", 25))
+
+    nuke.root()["fps"].setValue(fps)
+    asset = api.Session["AVALON_ASSET"]
+    asset = io.find_one({"name": asset, "type": "asset"})
+
+    try:
+        edit_in = asset["data"]["fstart"]
+        edit_out = asset["data"]["fend"]
+    except KeyError:
+        log.warning(
+            "Frame range not set! No edit information found for "
+            "\"{0}\".".format(asset["name"])
+        )
+        return
+
+    nuke.root()["first_frame"].setValue(edit_in)
+    nuke.root()["last_frame"].setValue(edit_out)
+
+
+def reset_resolution():
+    """Set resolution to project resolution."""
+    project = io.find_one({"type": "project"})
+
+    try:
+        width = project["data"].get("resolution_width", 1920)
+        height = project["data"].get("resolution_height", 1080)
+    except KeyError:
+        print(
+            "No resolution information found for \"{0}\".".format(
+                project["name"]
+            )
+        )
+        return
+
+    current_width = nuke.root()["format"].value().width()
+    current_height = nuke.root()["format"].value().height()
+
+    if width != current_width or height != current_height:
+
+        fmt = None
+        for f in nuke.formats():
+            if f.width() == width and f.height() == height:
+                fmt = f.name()
+
+        if not fmt:
+            nuke.addFormat(
+                "{0} {1} {2}".format(int(width), int(height), project["name"])
+            )
+            fmt = project["name"]
+
+        nuke.root()["format"].setValue(fmt)
+
+
+def publish():
+    """Shorthand to publish from within host"""
+    import pyblish.util
+    return pyblish.util.publish()
+
+
+def _register_events():
+
+    api.on("taskChanged", _on_task_changed)
+    log.info("Installed event callback for 'taskChanged'..")
+
+
+def _on_task_changed(*args):
+
+    # Update menu
+    _uninstall_menu()
+    _install_menu()
+
+
+@contextlib.contextmanager
+def viewer_update_and_undo_stop():
+    """Lock viewer from updating and stop recording undo steps"""
+    try:
+        # nuke = getattr(sys.modules["__main__"], "nuke", None)
+        # lock all connections between nodes
+        # nuke.Root().knob('lock_connections').setValue(1)
+
+        # stop active viewer to update any change
+        nuke.activeViewer().stop()
+        nuke.Undo.disable()
+        yield
+    finally:
+        # nuke.Root().knob('lock_connections').setValue(0)
+        # nuke.activeViewer().start()
+        nuke.Undo.enable()

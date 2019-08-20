@@ -115,8 +115,7 @@ def _install_menu():
         creator,
         loader,
         publish,
-        cbloader,
-        cbsceneinventory,
+        sceneinventory,
         contextmanager
     )
 
@@ -153,22 +152,16 @@ def _install_menu():
         cmds.menuItem("Create...",
                       command=lambda *args: creator.show(parent=self._parent))
 
-        if api.Session.get("AVALON_EARLY_ADOPTER"):
-            cmds.menuItem("Load...",
-                          command=lambda *args:
-                          cbloader.show(parent=self._parent,
-                                        use_context=True))
-        else:
-            cmds.menuItem("Load...",
-                          command=lambda *args:
-                          loader.show(parent=self._parent))
+        cmds.menuItem("Load...",
+                      command=lambda *args: loader.show(parent=self._parent,
+                                                        use_context=True))
 
         cmds.menuItem("Publish...",
                       command=lambda *args: publish.show(parent=self._parent),
                       image=publish.ICON)
 
         cmds.menuItem("Manage...",
-                      command=lambda *args: cbsceneinventory.show(
+                      command=lambda *args: sceneinventory.show(
                           parent=self._parent))
 
         cmds.menuItem(divider=True)
@@ -221,19 +214,17 @@ def reload_pipeline(*args):
                    "avalon.maya.interactive",
                    "avalon.maya.pipeline",
                    "avalon.maya.lib",
-                   "avalon.tools.loader.app",
                    "avalon.tools.creator.app",
-                   "avalon.tools.manager.app",
 
                    # NOTE(marcus): These have circular depenendencies
                    #               that is preventing reloadability
-                   # "avalon.tools.cbloader.delegates",
-                   # "avalon.tools.cbloader.model",
-                   # "avalon.tools.cbloader.widgets",
-                   # "avalon.tools.cbloader.app",
-                   # "avalon.tools.cbsceneinventory.model",
-                   # "avalon.tools.cbsceneinventory.proxy",
-                   # "avalon.tools.cbsceneinventory.app",
+                   # "avalon.tools.loader.delegates",
+                   # "avalon.tools.loader.model",
+                   # "avalon.tools.loader.widgets",
+                   # "avalon.tools.loader.app",
+                   # "avalon.tools.sceneinventory.model",
+                   # "avalon.tools.sceneinventory.proxy",
+                   # "avalon.tools.sceneinventory.app",
                    # "avalon.tools.projectmanager.dialogs",
                    # "avalon.tools.projectmanager.lib",
                    # "avalon.tools.projectmanager.model",
@@ -401,10 +392,22 @@ def containerise(name,
     main_container = cmds.ls(AVALON_CONTAINERS, type="objectSet")
     if not main_container:
         main_container = cmds.sets(empty=True, name=AVALON_CONTAINERS)
+
+        # Implement #399: Maya 2019+ hide AVALON_CONTAINERS on creation..
+        if cmds.attributeQuery("hiddenInOutliner",
+                               node=main_container,
+                               exists=True):
+            cmds.setAttr(main_container + ".hiddenInOutliner", True)
     else:
         main_container = main_container[0]
 
     cmds.sets(container, addElement=main_container)
+
+    # Implement #399: Maya 2019+ hide containers in outliner
+    if cmds.attributeQuery("hiddenInOutliner",
+                           node=container,
+                           exists=True):
+        cmds.setAttr(container + ".hiddenInOutliner", True)
 
     return container
 
@@ -500,11 +503,12 @@ class Creator(api.Creator):
     def process(self):
         nodes = list()
 
-        if (self.options or {}).get("useSelection"):
-            nodes = cmds.ls(selection=True)
+        with lib.undo_chunk():
+            if (self.options or {}).get("useSelection"):
+                nodes = cmds.ls(selection=True)
 
-        instance = cmds.sets(nodes, name=self.data["subset"])
-        lib.imprint(instance, self.data)
+            instance = cmds.sets(nodes, name=self.name)
+            lib.imprint(instance, self.data)
 
         return instance
 

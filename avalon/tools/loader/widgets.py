@@ -8,7 +8,13 @@ from ... import io
 from ... import api
 from ... import pipeline
 
-from .model import SubsetsModel, FamiliesFilterProxyModel
+from ..projectmanager.widget import preserve_selection
+
+from .model import (
+    SubsetsModel,
+    SubsetFilterProxyModel,
+    FamiliesFilterProxyModel,
+)
 from .delegates import PrettyTimeDelegate, VersionDelegate
 from . import lib
 
@@ -19,19 +25,26 @@ class SubsetWidget(QtWidgets.QWidget):
     active_changed = QtCore.Signal()    # active index changed
     version_changed = QtCore.Signal()   # version state changed for a subset
 
-    def __init__(self, parent=None):
+    def __init__(self, enable_grouping=True, parent=None):
         super(SubsetWidget, self).__init__(parent=parent)
 
-        model = SubsetsModel()
-        proxy = QtCore.QSortFilterProxyModel()
+        model = SubsetsModel(grouping=enable_grouping)
+        proxy = SubsetFilterProxyModel()
         family_proxy = FamiliesFilterProxyModel()
         family_proxy.setSourceModel(proxy)
 
         filter = QtWidgets.QLineEdit()
         filter.setPlaceholderText("Filter subsets..")
 
+        groupable = QtWidgets.QCheckBox("Enable Grouping")
+        groupable.setChecked(enable_grouping)
+
+        top_bar_layout = QtWidgets.QHBoxLayout()
+        top_bar_layout.addWidget(filter)
+        top_bar_layout.addWidget(groupable)
+
         view = QtWidgets.QTreeView()
-        view.setIndentation(5)
+        view.setIndentation(20)
         view.setStyleSheet("""
             QTreeView::item{
                 padding: 5px 1px;
@@ -51,7 +64,7 @@ class SubsetWidget(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(filter)
+        layout.addLayout(top_bar_layout)
         layout.addWidget(view)
 
         view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
@@ -64,6 +77,9 @@ class SubsetWidget(QtWidgets.QWidget):
             "delegates": {
                 "version": version_delegate,
                 "time": time_delegate
+            },
+            "state": {
+                "groupable": groupable
             }
         }
 
@@ -81,17 +97,32 @@ class SubsetWidget(QtWidgets.QWidget):
         self.view.setModel(self.family_proxy)
         self.view.customContextMenuRequested.connect(self.on_context_menu)
 
+        header = self.view.header()
+        # Enforce the columns to fit the data (purely cosmetic)
+        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.active_changed)
 
         version_delegate.version_changed.connect(self.version_changed)
 
+        groupable.stateChanged.connect(self.set_grouping)
+
         self.filter.textChanged.connect(self.proxy.setFilterRegExp)
+        self.filter.textChanged.connect(self.view.expandAll)
 
         self.model.refresh()
 
         # Expose this from the widget as a method
         self.set_family_filters = self.family_proxy.setFamiliesFilter
+
+    def is_groupable(self):
+        return self.data["state"]["groupable"].checkState()
+
+    def set_grouping(self, state):
+        with preserve_selection(tree_view=self.view,
+                                current_index=False):
+            self.model.set_grouping(state)
 
     def on_context_menu(self, point):
 
@@ -99,11 +130,15 @@ class SubsetWidget(QtWidgets.QWidget):
         if not point_index.isValid():
             return
 
+        node = point_index.data(self.model.NodeRole)
+        if node.get("isGroup"):
+            return
+
         # Get all representation->loader combinations available for the
         # index under the cursor, so we can list the user the options.
         available_loaders = api.discover(api.Loader)
         loaders = list()
-        node = point_index.data(self.model.NodeRole)
+
         version_id = node['version_document']['_id']
         representations = io.find({"type": "representation",
                                    "parent": version_id})
@@ -188,6 +223,9 @@ class SubsetWidget(QtWidgets.QWidget):
         # Trigger
         for row in rows:
             node = row.data(self.model.NodeRole)
+            if node.get("isGroup"):
+                continue
+
             version_id = node["version_document"]["_id"]
             representation = io.find_one({"type": "representation",
                                           "name": representation_name,
@@ -204,6 +242,39 @@ class SubsetWidget(QtWidgets.QWidget):
             except pipeline.IncompatibleLoaderError as exc:
                 self.echo(exc)
                 continue
+
+    def selected_subsets(self):
+        selection = self.view.selectionModel()
+        rows = selection.selectedRows(column=0)
+
+        subsets = list()
+        for row in rows:
+            node = row.data(self.model.NodeRole)
+            if not node.get("isGroup"):
+                subsets.append(node)
+
+        return subsets
+
+    def group_subsets(self, name, asset_id, nodes):
+        field = "data.subsetGroup"
+
+        if name:
+            update = {"$set": {field: name}}
+            self.echo("Group subsets to '%s'.." % name)
+        else:
+            update = {"$unset": {field: ""}}
+            self.echo("Ungroup subsets..")
+
+        subsets = list()
+        for node in nodes:
+            subsets.append(node["subset"])
+
+        filter = {
+            "type": "subset",
+            "parent": asset_id,
+            "name": {"$in": subsets},
+        }
+        io.update_many(filter, update)
 
     def echo(self, message):
         print(message)
@@ -385,6 +456,9 @@ class FamilyListWidget(QtWidgets.QListWidget):
         for name in sorted(unique_families):
 
             family = lib.get(lib.FAMILY_CONFIG, name)
+            if family.get("hideFilter"):
+                continue
+
             label = family.get("label", name)
             icon = family.get("icon", None)
 
