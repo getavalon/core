@@ -47,8 +47,8 @@ It's hard to make an exact checklist out of these, as it depends on the particul
 
 Here's a few things to keep in mind as you contribute code to Avalon. The overall goal is getting code merged as quickly as possible. Ambiguity cause delays, treat written English as code; it should be clear and concise. 
 
-1. Every new line of code needs purpose and motivation
-1. Every removed line of code needs a reason
+1. Every new line of code needs purpose and motivation, preferably in the shape of an issue, alternatively as a linked topic in chat. The goal is giving future developers (ourselves included) an understanding of why something was done the way that it was.
+1. Every removed line of code needs a reason; but if you do manage to remove code without breaking things, you're a star and most welcome to contribute.
 
 **Description**
 
@@ -67,13 +67,12 @@ Here are a few things to keep in mind with regards to code quality.
 | 1A | **Minimal indirection** | In order to cope with the cognitive overhead of traversing code, keep relevant code together.
 | 1B | **Only separate what is shared** | If a function is only ever used by one module, it should become part of that module. Likewise for modules used by a package.
 | 1C | **Prefer fewer large modules to many small** | Whenever you import a module, you create a dependency. The less of those there are, the better. That means no modules with just a single class.
-| 1D | **Upward and lateral imports** | A module may reach up and sideways in the package hierarchy, but not down. E.g. `maya\lib.py` may reach `avalon\io.py`, but `io.py` may not reach into `maya`.
+| 1D | **Upward and lateral imports** | A module may reach up and sideways in the package hierarchy, but not down. E.g. `avalon/maya/lib.py` may reach `avalon/io.py`, but `io.py` may not reach into `maya`.
 | 1E | **Shallow dependency tree** | Avoid traversing more than 3 levels anywhere, unless there is good reason. 3 is plenty.
 | 1F | **Group by dependency, not type** | That is, if 6 modules share code, they should share a package. If 12 functions are used by a single module, they should be part of that module.
-| 2 | **No Subjective Code** | To avoid bikeshedding, avoid submitting code that without a right nor wrong answer. Sometimes, there's a missing space or underscore somewhere
-| 3A | **Namespaces are good** | Do not duplicate namespaces, e.g. `avalon.gui.models.model_subset` where "model" appears twice.
-| 3B | **Namespaces are good** | Do not import functions or classes, import modules and keep their namespace. E.g. `QtWidgets.QPushButton` is better than `QPushButton`.
-| 3C | **Namespaces are good** | Do not consolidate multiple modules into one, with the exception of `api.py`. Doing so makes it difficult to understand where things come from and where to look for them. `api.py` is different because it is the API; users are not supposed to know where code resides internally as that is implementation detail.
+| 2A | **Namespaces are good** | Do not duplicate namespaces, e.g. `avalon.gui.models.model_subset` where "model" appears twice.
+| 2B | **Namespaces are good** | Do not import functions or classes, import modules and keep their namespace. E.g. `QtWidgets.QPushButton` is better than `QPushButton`.
+| 2C | **Namespaces are good** | Do not consolidate multiple modules into one, with the exception of `api.py`. Doing so makes it difficult to understand where things come from and where to look for them. `api.py` is different because it is the API; users are not supposed to know where code resides internally as that is implementation detail.
 
 **Examples**
 
