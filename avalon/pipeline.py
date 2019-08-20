@@ -159,17 +159,8 @@ class Loader(list):
     order = 0
 
     def __init__(self, context):
-        template = context["project"]["config"]["template"]["publish"]
-        data = {
-            key: value["name"]
-            for key, value in context.items()
-        }
-
-        data["root"] = registered_root()
-        data["silo"] = context["asset"]["silo"]
-
-        fname = template.format(**data)
-        self.fname = fname
+        representation = context['representation']
+        self.fname = get_representation_path(representation)
 
     def load(self, context, name=None, namespace=None, options=None):
         """Load asset via database
@@ -352,7 +343,7 @@ class Application(Action):
         project = io.find_one({"type": "project"})
         template = project["config"]["template"]["work"]
         workdir = _format_work_template(template, session)
-        session["AVALON_WORKDIR"] = workdir
+        session["AVALON_WORKDIR"] = os.path.normpath(workdir)
 
         # Construct application environment from .toml config
         app_environment = self.config.get("environment", {})
@@ -959,8 +950,7 @@ def update_current_task(task=None, asset=None, app=None):
     # Update silo when asset changed
     if "AVALON_ASSET" in changed:
         asset_document = io.find_one({"name": changed["AVALON_ASSET"],
-                                      "type": "asset"},
-                                     projection={"silo": True})
+                                      "type": "asset"})
         assert asset_document, "Asset must exist"
         changed["AVALON_SILO"] = asset_document["silo"]
 
@@ -971,6 +961,12 @@ def update_current_task(task=None, asset=None, app=None):
     _session = Session.copy()
     _session.update(changed)
     changed["AVALON_WORKDIR"] = _format_work_template(template, _session)
+
+    parents = asset_document['data'].get('parents', [])
+    hierarchy = ""
+    if len(parents) > 0:
+        hierarchy = os.path.sep.join(parents)
+    changed['AVALON_HIERARCHY'] = hierarchy
 
     # Update the full session in one go to avoid half updates
     Session.update(changed)
@@ -1010,7 +1006,10 @@ def _format_work_template(template, session=None):
         "asset": session["AVALON_ASSET"],
         "task": session["AVALON_TASK"],
         "app": session["AVALON_APP"],
-        "user": session.get("AVALON_USER", getpass.getuser())
+
+        # Optional
+        "user": session.get("AVALON_USER", getpass.getuser()),
+        "hierarchy": session.get("AVALON_HIERARCHY"),
     })
 
 
@@ -1194,6 +1193,13 @@ def switch(container, representation):
 def get_representation_path(representation):
     """Get filename from representation document
 
+    There are three ways of getting the path from representation which are
+    tried in following sequence until successful.
+    1. Get template from representation['data']['template'] and data from
+       representation['context']. Then format template with the data.
+    2. Get template from project['config'] and format it with default data set
+    3. Get representation['data']['path'] and use it directly
+
     Args:
         representation(dict): representation document from the database
 
@@ -1202,20 +1208,83 @@ def get_representation_path(representation):
 
     """
 
-    version_, subset, asset, project = io.parenthood(representation)
-    template_publish = project["config"]["template"]["publish"]
-    return template_publish.format(**{
-        "root": registered_root(),
-        "project": project["name"],
-        "asset": asset["name"],
-        "silo": asset["silo"],
-        "subset": subset["name"],
-        "version": version_["name"],
-        "representation": representation["name"],
-        "user": Session.get("AVALON_USER", getpass.getuser()),
-        "app": Session.get("AVALON_APP", ""),
-        "task": Session.get("AVALON_TASK", "")
-    })
+    def path_from_represenation():
+        try:
+            template = representation["data"]["template"]
+
+        except KeyError:
+            return None
+
+        try:
+            context = representation["context"]
+            context["root"] = registered_root()
+            path = template.format(**context)
+
+        except KeyError:
+            # Template references unavailable data
+            return None
+
+        dirname = os.path.dirname(path)
+        if os.path.isdir(dirname):
+            return os.path.normpath(dirname)
+
+    def path_from_config():
+        try:
+            version_, subset, asset, project = io.parenthood(representation)
+        except ValueError:
+            log.debug(
+                "Representation %s wasn't found in database, "
+                "like a bug" % representation["name"]
+            )
+            return None
+
+        try:
+            template = project["config"]["template"]["publish"]
+        except KeyError:
+            log.debug(
+                "No template in project %s, "
+                "likely a bug" % project["name"]
+            )
+            return None
+
+        # Cannot fail, required members only
+        data = {
+            "root": registered_root(),
+            "project": project["name"],
+            "asset": asset["name"],
+            "silo": asset["silo"],
+            "subset": subset["name"],
+            "version": version_["name"],
+            "representation": representation["name"],
+            "user": Session.get("AVALON_USER", getpass.getuser()),
+            "app": Session.get("AVALON_APP", ""),
+            "task": Session.get("AVALON_TASK", "")
+        }
+
+        try:
+            path = template.format(**data)
+        except KeyError as e:
+            log.debug("Template references unavailable data: %s" % e)
+            return None
+
+        dirname = os.path.dirname(path)
+        if os.path.isdir(dirname):
+            return os.path.normpath(dirname)
+
+    def path_from_data():
+        if "path" not in representation["data"]:
+            return None
+
+        path = representation["data"]["path"]
+        dirname = os.path.dirname(path)
+        if os.path.isdir(dirname):
+            return os.path.normpath(dirname)
+
+    return (
+        path_from_represenation() or
+        path_from_config() or
+        path_from_data()
+    )
 
 
 def is_compatible_loader(Loader, context):
