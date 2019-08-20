@@ -160,7 +160,6 @@ class Loader(list):
 
     def __init__(self, context):
         template = context["project"]["config"]["template"]["publish"]
-
         data = {
             key: value["name"]
             for key, value in context.items()
@@ -830,7 +829,13 @@ def debug_host():
             yield container
 
     host.__dict__.update({
-        "ls": ls
+        "ls": ls,
+        "open": lambda fname: None,
+        "save": lambda fname: None,
+        "current_file": lambda: os.path.expanduser("~/temp.txt"),
+        "has_unsaved_changes": lambda: False,
+        "work_root": lambda: os.path.expanduser("~/temp"),
+        "file_extensions": lambda: ["txt"],
     })
 
     return host
@@ -886,7 +891,6 @@ def create(name, asset, family, options=None, data=None):
         except Exception as e:
             log.warning(e)
             continue
-
         plugins.append(plugin)
 
     assert plugins, "No Creator plug-ins were run, this is a bug"

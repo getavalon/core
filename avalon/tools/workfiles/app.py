@@ -222,9 +222,13 @@ class NameWindow(QtWidgets.QDialog):
         }
 
         self.template = "{task[name]}_v{version:0>4}<_{comment}>"
+
         templates = self.data["project"]["config"]["template"]
+
         if "workfile" in templates:
             self.template = templates["workfile"]
+
+        self.extensions = {"maya": ".ma", "nuke": ".nk"}
 
 
 class Window(QtWidgets.QDialog):
@@ -236,6 +240,7 @@ class Window(QtWidgets.QDialog):
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
 
         self.root = root
+
         if self.root is None:
             self.root = os.getcwd()
 
@@ -301,7 +306,6 @@ class Window(QtWidgets.QDialog):
         self.resize(400, 550)
 
     def get_name(self):
-
         window = NameWindow(self.root)
         window.setStyleSheet(style.load_stylesheet())
         window.exec_()
@@ -338,6 +342,15 @@ class Window(QtWidgets.QDialog):
 
         self.list.setMinimumWidth(self.list.sizeHintForColumn(0) + 30)
 
+    def save_as_maya(self, file_path):
+        from maya import cmds
+        cmds.file(rename=file_path)
+        cmds.file(save=True, type="mayaAscii")
+
+    def save_as_nuke(self, file_path):
+        import nuke
+        nuke.scriptSaveAs(file_path)
+
     def save_changes_prompt(self):
         messagebox = QtWidgets.QMessageBox()
         messagebox.setWindowFlags(QtCore.Qt.FramelessWindowHint)
@@ -360,7 +373,6 @@ class Window(QtWidgets.QDialog):
             return None
 
     def open(self, filepath):
-
         host = self.host
         if host.has_unsaved_changes():
             result = self.save_changes_prompt()
@@ -438,7 +450,7 @@ class Window(QtWidgets.QDialog):
         self.close()
 
 
-def show(root=None):
+def show(root=None, debug=False):
     """Show Work Files GUI"""
 
     host = api.registered_host()
@@ -446,7 +458,13 @@ def show(root=None):
         raise RuntimeError("No registered host.")
 
     # Verify the host has implemented the api for Work Files
-    required = ["open", "save", "current_file", "work_root"]
+    required = ["open",
+                "save",
+                "current_file",
+                "has_unsaved_changes",
+                "work_root",
+                "file_extensions",
+                ]
     missing = []
     for name in required:
         if not hasattr(host, name):
@@ -465,7 +483,18 @@ def show(root=None):
     if not os.path.exists(root):
         raise OSError("Root set for Work Files app does not exist: %s" % root)
 
+    if debug:
+        api.Session["AVALON_ASSET"] = "Mock"
+        api.Session["AVALON_TASK"] = "Testing"
+
     with parentlib.application():
         window = Window(root)
         window.setStyleSheet(style.load_stylesheet())
-        window.exec_()
+
+        if debug:
+            # Enable closing in standalone
+            window.show()
+
+        else:
+            # Cause modal dialog
+            window.exec_()
