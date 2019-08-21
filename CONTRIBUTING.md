@@ -80,7 +80,7 @@ Here are a few things to keep in mind with regards to code etiquette.
 
 | # |          | Description
 |--|:---------|:-
-| C1 | Loose coupling | Prefer code with few dependencies
+| C1 | Loose coupling | Prefer code with few dependencies. Try and make functions run even if every other function around it failed.
 | C2 | Code reuse | Sharing code is great, just keep in mind that the ugly twin of code reuse is tight coupling. For example, sharing a widget between two windows creates a tight coupling between the two windows. If one breaks, so does the other. Sometimes reuse is appropriate, other times duplication is.
 | C3 | Testable code | Avoid implicit dependencies from within function, especially to calls into the OS or database. For example, a function that takes a `representation` dictionary and returns a path could operate entirely with only the data provided. Once it requires access to disk or database, it becomes that much harder to test, and therefore fragile
 | C4 | Prefer doctests | To unit- and integration-tests. If functionality can be tested directly from within its own docstring, the better. The result is self-contained functions whereby tests also double-serve as examples for the user.
