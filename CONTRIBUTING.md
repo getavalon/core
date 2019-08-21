@@ -55,7 +55,7 @@ Here's a few things to keep in mind as you contribute code to Avalon. The overal
 1. Every new line of code needs purpose and motivation, preferably in the shape of an issue, alternatively as a linked topic in chat. The goal is giving future developers (ourselves included) an understanding of why something was done the way that it was.
 1. Every removed line of code needs a reason; but if you do manage to remove code without breaking things, you're a star and most welcome to contribute.
 
-**Description**
+##### Description
 
 When you present your PR, here's what you need to do.
 
@@ -65,7 +65,7 @@ When you present your PR, here's what you need to do.
 
 <br>
 
-**Code Quality - Etiquette**
+##### Code Quality - Etiquette
 
 Here are a few things to keep in mind with regards to code etiquette.
 
@@ -76,7 +76,7 @@ Here are a few things to keep in mind with regards to code etiquette.
 
 <br>
 
-**Code Quality - Complexity**
+##### Code Quality - Complexity
 
 | # |          | Description
 |--|:---------|:-
@@ -88,7 +88,7 @@ Here are a few things to keep in mind with regards to code etiquette.
 
 <br>
 
-**Code Quality - Architecture**
+##### Code Quality - Architecture
 
 Less obvious, but equally important guidelines for high-level code quality.
 
