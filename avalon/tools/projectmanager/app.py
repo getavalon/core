@@ -175,7 +175,8 @@ class Window(QtWidgets.QDialog):
         model = self.data["model"]["assets"]
         selected = model.get_selected_assets()
         for asset_id in selected:
-            asset = io.find_one({"_id": asset_id})
+            _filter = {"_id": asset_id}
+            asset = io.find_one(_filter)
             asset_tasks = asset.get("data", {}).get("tasks", [])
             for task in tasks:
                 if task not in asset_tasks:
@@ -185,7 +186,7 @@ class Window(QtWidgets.QDialog):
             asset['data']['tasks'] = asset_tasks
 
             schema.validate(asset)
-            io.save(asset)
+            io.replace_one(_filter, asset)
 
         # Refresh the tasks model
         self.on_asset_changed()
