@@ -2,7 +2,7 @@ import datetime
 import pprint
 import inspect
 
-from ...vendor.Qt import QtWidgets, QtCore
+from ...vendor.Qt import QtWidgets, QtCore, QtCompat
 from ...vendor import qtawesome
 from ... import io
 from ... import api
@@ -99,7 +99,8 @@ class SubsetWidget(QtWidgets.QWidget):
 
         header = self.view.header()
         # Enforce the columns to fit the data (purely cosmetic)
-        header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        QtCompat.setSectionResizeMode(
+            header, QtWidgets.QHeaderView.ResizeToContents)
 
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.active_changed)
