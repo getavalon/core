@@ -1,4 +1,4 @@
-"""Host API required by Work Files tool"""
+"""Host API required Work Files tool"""
 import os
 import nuke
 
@@ -8,37 +8,40 @@ def file_extensions():
 
 
 def has_unsaved_changes():
-    return nuke.Root().modified()
+    return nuke.root().modified()
 
 
 def save(filepath):
-    nuke.scriptSaveAs(filepath)
+    path = filepath.replace("\\", "/")
+    nuke.scriptSaveAs(path)
+    nuke.Root()["name"].setValue(path)
+    nuke.Root()["project_directory"].setValue(os.path.dirname(path))
+    nuke.Root().setModified(False)
 
 
 def open(filepath):
+    filepath = filepath.replace("\\", "/")
+
+    # To remain in the same window, we have to clear the script and read
+    # in the contents of the workfile.
     nuke.scriptClear()
-    nuke.scriptOpen(filepath)
+    nuke.scriptReadFile(filepath)
+    nuke.Root()["name"].setValue(filepath)
+    nuke.Root()["project_directory"].setValue(os.path.dirname(filepath))
+    nuke.Root().setModified(False)
     return True
 
 
 def current_file():
     current_file = nuke.root().name()
-    normalised = os.path.normpath(current_file)
 
     # Unsaved current file
-    if nuke.Root().name() == 'Root':
-        return "NOT SAVED"
+    if current_file == 'Root':
+        return None
 
-    return normalised
+    return os.path.normpath(current_file).replace("\\", "/")
 
 
 def work_root():
     from avalon import Session
-
-    work_dir = Session["AVALON_WORKDIR"]
-    scene_dir = Session.get("AVALON_SCENEDIR")
-
-    if scene_dir:
-        return os.path.join(work_dir, scene_dir)
-    else:
-        return work_dir
+    return os.path.normpath(Session["AVALON_WORKDIR"]).replace("\\", "/")
