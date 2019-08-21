@@ -7,7 +7,7 @@ from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io, style
 from .. import lib
 
-from .lib import refresh_family_config
+from .lib import refresh_family_config, refresh_group_config
 from .widgets import SubsetWidget, VersionWidget, FamilyListWidget
 
 module = sys.modules[__name__]
@@ -103,8 +103,6 @@ class Window(QtWidgets.QDialog):
         assets.selection_changed.connect(self.on_assetschanged)
         subsets.active_changed.connect(self.on_subsetschanged)
         subsets.version_changed.connect(self.on_versionschanged)
-
-        refresh_family_config()
 
         # Defaults
         self.resize(1330, 700)
@@ -317,6 +315,11 @@ def show(debug=False, parent=None, use_context=False):
         module.project = any_project["name"]
 
     with lib.application():
+
+        # TODO: Global state, remove these
+        refresh_family_config()
+        refresh_group_config()
+
         window = Window(parent)
         window.setStyleSheet(style.load_stylesheet())
         window.show()
