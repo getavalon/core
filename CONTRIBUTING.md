@@ -1,8 +1,26 @@
-# Contribution Guidelines
+### Contribution Guidelines
 
-Hi and welcome to Avalon! Here are some guidelines for how you can help advance the project.
+Thanks for considering making a contribution to Avalon!
+
+![image](https://user-images.githubusercontent.com/2152766/63447058-3dc1d480-c433-11e9-8f7d-215a956192a6.png)
+
+Here are some guidelines for how you can help.
+
+**Table of Contents**
+
+- [Making Feature Requests](#feature-request)
+- [Reporting a Bug](#bug)
+- [Submitting a Pull-Request](#pull-request)
+	- [Rules](#rules)
+	- [Description](#description)
+	- [Etiquette](#code-quality--etiquette)
+	- [Complexity](#code-quality--complexity)
+	- [Architecture](#code-quality--architecture)
+- [API](#api)
 
 <br>
+
+<img align=right src=https://user-images.githubusercontent.com/2152766/63447163-6f3aa000-c433-11e9-90a1-febdeadc9d8e.png>
 
 ### Feature Request
 
@@ -27,6 +45,8 @@ If you have an idea for a new or missing feature, you can submit a GitHub issue 
 
 <br>
 
+<img align=right src=https://user-images.githubusercontent.com/2152766/63447114-592cdf80-c433-11e9-9216-905361ef5495.png>
+
 ### Bug
 
 When you run into bugs, you can submit an issue. In order for it to be resolved quickly, a bug report should contain:
@@ -48,9 +68,15 @@ It's hard to make an exact checklist out of these, as it depends on the particul
 
 <br>
 
+<img align=right src=https://user-images.githubusercontent.com/2152766/63447191-824d7000-c433-11e9-853d-cdc19ef5cd1b.png>
+
 ### Pull Request
 
-Here's a few things to keep in mind as you contribute code to Avalon. The overall goal is getting code merged as quickly as possible. Ambiguity cause delays, treat written English as code; it should be clear and concise. 
+Here's what to keep in mind as you contribute code to Avalon. The overall goal is getting code merged as quickly as possible. Ambiguity cause delays, treat written English as code; it should be clear and concise. 
+
+> <img width=60 align=left src=https://user-images.githubusercontent.com/2152766/63446193-aad46a80-c431-11e9-8141-73597bda233a.png> Unlike issues, PRs fall under much stricter scrutiny. But don't let the amount of guidelines discourage you. You are not meant to know these by heart anymore than you are your local laws. Like laws however they will be referred back to during review and should hold up in anything actually merged into the codebase. So do glance over them, but remember to have fun!
+
+##### Rules
 
 1. Every new line of code needs purpose and motivation, preferably in the shape of an issue, alternatively as a linked topic in chat. The goal is giving future developers (ourselves included) an understanding of why something was done the way that it was.
 1. Every removed line of code needs a reason; but if you do manage to remove code without breaking things, you're a star and most welcome to contribute.
@@ -112,6 +138,8 @@ Less obvious, but equally important guidelines for high-level code quality.
 - **Good**: https://github.com/getavalon/core/pull/403, minimal, clear goal
 
 <br>
+
+<img align=right src=https://user-images.githubusercontent.com/2152766/63447271-a4df8900-c433-11e9-811f-372270f00e9f.png>
 
 ### API
 
