@@ -112,6 +112,7 @@ def uninstall(config):
 
 def _install_menu():
     from ..tools import (
+        projectmanager,
         creator,
         loader,
         publish,
@@ -138,7 +139,7 @@ def _install_menu():
                                      subMenu=True)
 
         cmds.menuItem("setCurrentContext",
-                      label="Set Context",
+                      label="Edit Context..",
                       parent=context_menu,
                       command=lambda *args: contextmanager.show(
                           parent=self._parent
@@ -168,15 +169,24 @@ def _install_menu():
 
         cmds.menuItem("Work Files", command=launch_workfiles_app)
 
-        cmds.menuItem("System",
-                      label="System",
-                      tearOff=True,
+        system = cmds.menuItem("System",
+                               label="System",
+                               tearOff=True,
+                               subMenu=True,
+                               parent=self._menu)
+
+        cmds.menuItem("Project Manager",
+                      command=lambda *args: projectmanager.show(
+                        parent=self._parent))
+
+        cmds.menuItem("Reinstall Avalon",
+                      label="Reinstall Avalon",
                       subMenu=True,
-                      parent=self._menu)
+                      parent=system)
 
-        cmds.menuItem("Reload Pipeline", command=reload_pipeline)
+        cmds.menuItem("Confirm", command=reload_pipeline)
 
-        cmds.setParent("..", menu=True)
+        cmds.setParent(self._menu, menu=True)
 
         cmds.menuItem("Reset Frame Range",
                       command=interactive.reset_frame_range)
