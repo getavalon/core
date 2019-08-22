@@ -156,7 +156,7 @@ As a user of Avalon, if there is something you find in any contained submodule t
 - `api.py` and host-APIs are *additive*, meaning nothing is ever removed.
 - Members `api.py` and host-APIs are guaranteed to remain stable and unchanged *forever*, with two exceptions.
 	1. Avalon is incremented from X.0 to Y.0, as per [semantic versioning](https://semver.org)
-	2. Excruciating circumstances compels a breaking change to be made, for example someone's life is at stake
+	2. Extenuating circumstances compels a breaking change to be made, for example someone's life is at stake
 
 With this in mind, exposed members should be kept to a minimal and be appropriately general. Remember, once something is added to an API, there is no going back. Clients can expect members of an API to work forever and not break their code.
 
