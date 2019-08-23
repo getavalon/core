@@ -134,10 +134,13 @@ class TreeModel(QtCore.QAbstractItemModel):
         super(TreeModel, self).headerData(section, orientation, role)
 
     def flags(self, index):
-        return (
-            QtCore.Qt.ItemIsEnabled |
-            QtCore.Qt.ItemIsSelectable
-        )
+        flags = QtCore.Qt.ItemIsEnabled
+
+        node = index.internalPointer()
+        if node.get("enabled", True):
+            flags |= QtCore.Qt.ItemIsSelectable
+
+        return flags
 
     def parent(self, index):
 
@@ -232,16 +235,28 @@ class TasksModel(TreeModel):
         self.beginResetModel()
 
         default_icon = self._icons["__default__"]
-        for task, count in sorted(tasks.items()):
-            icon = self._icons.get(task, default_icon)
 
+        if not tasks:
             node = Node({
-                "name": task,
-                "count": count,
-                "icon": icon
+                "name": "No task",
+                "count": 0,
+                "icon": default_icon,
+                "enabled": False,
             })
 
             self.add_child(node)
+
+        else:
+            for task, count in sorted(tasks.items()):
+                icon = self._icons.get(task, default_icon)
+
+                node = Node({
+                    "name": task,
+                    "count": count,
+                    "icon": icon
+                })
+
+                self.add_child(node)
 
         self.endResetModel()
 
