@@ -1,5 +1,5 @@
 {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "http://json-schema.org/draft-04/schema#",
 
     "title": "avalon-core:container-1.0",
     "description": "A loaded asset",
@@ -28,7 +28,7 @@
         "id": {
             "description": "Identifier for finding object in host",
             "type": "string",
-            "const": "pyblish.mindbender.container",
+            "enum": ["pyblish.mindbender.container"],
             "example": "pyblish.mindbender.container"
         },
         "objectName": {
