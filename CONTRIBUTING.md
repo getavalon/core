@@ -95,10 +95,12 @@ When you present your PR, here's what you need to do.
 
 Here are a few things to keep in mind with regards to code etiquette.
 
-| # |          | Description
-|--|:---------|:-
+| # |          | Description | Example
+|---|:---------|:------------|---
 | E1 | PEP8 | All code must be PEP8 compatible, that means snake_case, spaces not tabs [and more](https://www.python.org/dev/peps/pep-0008/)
 | E2 | flake8 | All code must pass [flake8](http://flake8.pycqa.org/en/latest/). Recommend you use a linter for your text editor, such as `SublimeLinter-flake8`
+| E3 | Optimise for reading | Not writing. Code is read 10+ times more often than it is written.
+| E4 | Use UK English | Neither is correct, one is better than two | [Example](#e3)
 
 <br>
 
@@ -170,3 +172,44 @@ Because Avalon and Avalon's API is both written in Python, it can sometimes be d
 | `api.open_file_from_last_week()` | `api.open_file(fname)`
 | `api.install_with_delay()` | `api.install()`
 | `api.log_welcome_message()` | `api.log_message("welcome")`
+
+<br>
+
+### Examples
+
+##### E3
+
+Optimise for reading, which means preserve import namespaces, do not shorten arguments or variables.
+
+<table>
+	<tr>
+	</tr>
+	<tr>
+		<td>Bad</th>
+		<td>
+
+```py
+from long_module_name import LongClassName as L
+...
+bs = [L(n="Button%s" % i) for i in range(3)]
+```
+
+</td>
+<tr>
+</tr>
+</tr>
+	<tr>
+		<td>Good</td>
+<td>
+
+```py
+import long_module_name
+...
+button1 = long_module_name.LongClassName(name="Button1")
+button2 = long_module_name.LongClassName(name="Button2")
+button3 = long_module_name.LongClassName(name="Button3")
+```
+
+</td>
+</tr>
+</table>
