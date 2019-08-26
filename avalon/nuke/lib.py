@@ -3,7 +3,7 @@ import contextlib
 import nuke
 import re
 import logging
-import toml
+from ..vendor import clique
 
 log = logging.getLogger(__name__)
 
@@ -23,24 +23,168 @@ def maintained_selection():
         yield
     finally:
         # unselect all selection in case there is some
-        current_seletion = nuke.selectedNodes()
-        [n['selected'].setValue(False) for n in current_seletion]
+        [n['selected'].setValue(False) for n in nodes]
         # and select all previously selected nodes
         if previous_selection:
-            [n['selected'].setValue(True) for n in previous_selection]
+            [n['selected'].setValue(True)
+             for n in nodes
+             if n.name() in previous_selection]
 
 
-def add_avalon_tab_knob(node):
-    """Adding a tab and a knob into a node
+def reset_selection():
+    """Deselect all selected nodes
+    """
+    nodes = nuke.allNodes()
+    [n['selected'].setValue(False) for n in nodes]
+
+
+def select_nodes(nodes):
+    """Selects all inputed nodes
+
+    Arguments:
+        nodes (list): nuke nodes to be selected
+    """
+    assert isinstance(nodes, (list, tuple)), "nodes has to be list or tuple"
+
+    [n['selected'].setValue(True) for n in nodes]
+
+
+def add_publish_knob(node):
+    '''Adds Publish node to node
+
+    Arguments:
+        node (obj): nuke node to be processed
+
+    Returns:
+        node (obj): processed nuke node
+    '''
+    if "publish" not in node.knobs():
+        divider = nuke.Text_Knob('')
+        knob = nuke.Boolean_Knob("publish", "Publish", True)
+        knob.setFlag(0x1000)
+        node.addKnob(divider)
+        node.addKnob(knob)
+    return node
+
+
+def set_avalon_knob_data(node, data={}, prefix="ak:"):
+    """ Sets a data into nodes's avalon knob
+
+    Arguments:
+        node (obj): Nuke node to imprint with data,
+        data ( dict): Data to be imprinted into AvalonTab
+        prefix (str, optional): filtering prefix
+
+    Returns:
+        node (obj)
+
+    Examples:
+        data = {
+            'asset': 'sq020sh0280',
+            'family': 'render',
+            'subset': 'subsetMain'
+        }
+    """
+    knobs = [
+        {"name": 'AvalonTab', "value": '', "type": "Tab_Knob"},
+        {"name": 'begin', "value": 'Avalon data group',
+            "type": "Tab_Knob", "group": 2},
+        {"name": '__divider__'},
+        {"name": 'avalon_data', "value": 'Warning! Do not change following data!',
+            "type": "Text_Knob"},
+        {"name": '__divider__'},
+        {"name": 'begin', "value": 'Avalon data group',
+            "type": "Tab_Knob", "group": -1}
+    ]
+    non_hiden = ["asset", "subset", "name", "namespace"]
+
+    try:
+        # create Avalon Tab and basic knobs
+        for k in knobs[:-1]:
+            if not k.get("group"):
+                if "__divider__" in k["name"]:
+                    knob = nuke.Text_Knob("")
+                    node.addKnob(knob)
+                elif k["name"] not in node.knobs().keys():
+                    knob = eval("nuke.{type}('{name}')".format(**k))
+                    node.addKnob(knob)
+                    try:
+                        knob.setValue(k['value'])
+                    except TypeError as E:
+                        print(E)
+            else:
+                if k["name"] not in node.knobs().keys():
+                    knob = eval(
+                        "nuke.{type}('{name}', '{value}', {group})".format(**k))
+                    node.addKnob(knob)
+
+        # add avalon knobs for imprinting data
+        for k, v in data.items():
+            label = k
+            name = prefix + label
+            value = str(v)
+            if label in non_hiden:
+                if name not in node.knobs().keys():
+                    log.info("Setting: `{0}` to `{1}`".format(name, value))
+                    knob = eval("nuke.String_Knob('{name}', '{label}', '{value}')".format(
+                        name=name,
+                        label=label,
+                        value=value
+                    ))
+                    node.addKnob(knob)
+                else:
+                    log.info("Updating: `{0}` to `{1}`".format(name, value))
+                    node[name].setValue(value)
+            else:
+                if name not in node.knobs().keys():
+                    log.info("Setting: `{0}` to `{1}`".format(name, value))
+                    knob = eval("nuke.Text_Knob('{name}', '{label}', '{value}')".format(
+                        name=name,
+                        label=label,
+                        value=value
+                    ))
+                    node.addKnob(knob)
+                else:
+                    log.info("Updating: `{0}` to `{1}`".format(name, value))
+                    node[name].setValue(str(value))
+
+        # adding closing group knob
+        knob = eval(
+            "nuke.{type}('{name}', '{value}', {group})".format(**knobs[-1]))
+        node.addKnob(knob)
+
+        return node
+
+    except Exception as e:
+        log.warning("Failed to add Avalon data to node: `{}`".format(e))
+        return False
+
+
+def get_avalon_knob_data(node, prefix="ak:"):
+    """ Gets a data from nodes's avalon knob
+
+    Arguments:
+        node (obj): Nuke node to search for data,
+        prefix (str, optional): filtering prefix
+
+    Returns:
+        data (dict)
     """
     try:
-        node['avalon'].value()
-    except Exception:
-        tab = nuke.Tab_Knob("Avalon")
-        uk = nuke.Text_Knob('avalon', 'avalon data')
-        node.addKnob(tab)
-        node.addKnob(uk)
-        log.info("created new user knob avalon")
+        # check if data available on the node
+        test = node['avalon_data'].value()
+    except Exception as e:
+        # if it doesn't then create it
+        log.debug("Creating avalon knob: `{}`".format(e))
+        node = set_avalon_knob_data(node)
+        return get_avalon_knob_data(node)
+
+    # get data from filtered knobs
+    data = {k.replace(prefix, ''): node[k].value()
+            for k in node.knobs().keys()
+            if prefix in k}
+
+    return data
 
 
 def imprint(node, data):
@@ -48,28 +192,58 @@ def imprint(node, data):
     also including publish knob
 
     Arguments:
-        node (list or obj): A nuke's node object either in list or individual
+        node (obj): A nuke's node object
         data (dict): Any data which needst to be imprinted
+
+    Returns:
+        node (obj)
+
+    Examples:
+        data = {
+            'asset': 'sq020sh0280',
+            'family': 'render',
+            'subset': 'subsetMain'
+        }
     """
-    if not node:
-        return
-    if isinstance(node, list):
-        node = node[0]
-
-    add_avalon_tab_knob(node)
-    add_publish_knob(node)
-    node['avalon'].setValue(toml.dumps(data))
+    node = set_avalon_knob_data(node, data)
+    node = add_publish_knob(node)
 
     return node
 
 
-def add_publish_knob(node):
-    if "publish" not in node.knobs():
-        knob = nuke.Boolean_Knob("publish", "Publish")
-        knob.setFlag(0x1000)
-        knob.setValue(False)
-        node.addKnob(knob)
-    return node
+def ls_img_sequence(path):
+    """Listing all available coherent image sequence from path
+
+    Arguments:
+        path (str): A nuke's node object
+
+    Returns:
+        data (dict): with nuke formated path and frameranges
+    """
+    file = os.path.basename(path)
+    dir = os.path.dirname(path)
+    base, ext = os.path.splitext(file)
+    name, padding = os.path.splitext(base)
+
+    # populate list of files
+    files = [f for f in os.listdir(dir)
+             if name in f
+             if ext in f]
+
+    # create collection from list of files
+    collections, reminder = clique.assemble(files)
+
+    if len(collections) > 0:
+        head = collections[0].format("{head}")
+        padding = collections[0].format("{padding}") % 1
+        padding = '#' * len(padding)
+        tail = collections[0].format("{tail}")
+        file = head + padding + tail
+
+        return {'path': os.path.join(dir, file).replace('\\', '/'),
+                'frames': collections[0].format("[{ranges}]")}
+    else:
+        return False
 
 
 def fix_data_for_node_create(data):

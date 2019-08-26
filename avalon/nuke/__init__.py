@@ -9,6 +9,9 @@ from .lib import (
     ls_img_sequence,
     maintained_selection,
     get_node_path,
+    get_avalon_knob_data,
+    set_avalon_knob_data,
+    imprint
 )
 
 from .workio import (
@@ -57,6 +60,9 @@ __all__ = [
     # Experimental
     "viewer_update_and_undo_stop",
 
+    "imprint",
+    "get_avalon_knob_data",
+    "set_avalon_knob_data",
     "add_publish_knob",
     "ls_img_sequence",
     "maintained_selection",
