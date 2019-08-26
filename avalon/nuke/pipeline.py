@@ -320,27 +320,57 @@ def _uninstall_menu():
     menubar.removeItem(api.Session["AVALON_LABEL"])
 
 
-def reset_frame_range():
-    """Set frame range to current asset"""
+def reset_frame_range_handles():
+    """ Set frame range to current asset
+        Also it will set a Viewer range with
+        displayed handles
+    """
 
     fps = float(api.Session.get("AVALON_FPS", 25))
 
     nuke.root()["fps"].setValue(fps)
-    asset = api.Session["AVALON_ASSET"]
-    asset = io.find_one({"name": asset, "type": "asset"})
+    name = api.Session["AVALON_ASSET"]
+    asset = io.find_one({"name": name, "type": "asset"})
+    asset_data = asset.get("data")
 
-    try:
-        edit_in = asset["data"]["fstart"]
-        edit_out = asset["data"]["fend"]
-    except KeyError:
-        log.warning(
-            "Frame range not set! No edit information found for "
-            "\"{0}\".".format(asset["name"])
-        )
+    if not asset_data:
+        msg = "Asset {} don't have set any 'data'".format(name)
+        log.warning(msg)
+        nuke.message(msg)
         return
 
-    nuke.root()["first_frame"].setValue(edit_in)
-    nuke.root()["last_frame"].setValue(edit_out)
+    handles = get_handles(asset)
+
+    frame_start = int(asset_data.get(
+        "frameStart",
+        asset_data.get("edit_in")))
+
+    frame_end = int(asset_data.get(
+        "frameEnd",
+        asset_data.get("edit_out")))
+
+    if not all([frame_start, frame_end]):
+        missing = ", ".join(["frame_start", "frame_end"])
+        msg = "'{}' are not set for asset '{}'!".format(missing, name)
+        log.warning(msg)
+        nuke.message(msg)
+        return
+
+    frame_start -= handles
+    frame_end += handles
+
+    nuke.root()["first_frame"].setValue(frame_start)
+    nuke.root()["last_frame"].setValue(frame_end)
+
+    # setting active viewers
+    vv = nuke.activeViewer().node()
+    vv['frame_range_lock'].setValue(True)
+    vv['frame_range'].setValue('{0}-{1}'.format(
+        int(asset_data["frameStart"]),
+        int(asset_data["frameEnd"]))
+    )
+
+
 def get_handles(asset):
     """ Gets handles data
 
