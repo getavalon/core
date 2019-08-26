@@ -60,21 +60,21 @@ def containerise(node,
                  context,
                  loader=None,
                  data=None):
-    """Bundle `nodes` into an assembly and imprint it with metadata
+    """Bundle `node` into an assembly and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
     for loaded assets.
 
     Arguments:
-        node (object): The node in Nuke to imprint as container,
-        usually a Reader.
+        node (obj): Nuke's node object to imprint as container,
+                    usually a Reader.
         name (str): Name of resulting assembly
         namespace (str): Namespace under which to host container
         context (dict): Asset information
         loader (str, optional): Name of node used to produce this container.
 
     Returns:
-        Node
+        node (obj): containerised nuke's node object
 
     """
 
@@ -102,12 +102,14 @@ def containerise(node,
 def parse_container(node, validate=True):
     """Returns containerised data of a node
 
-    This reads the imprinted data from `containerise`.
+    Reads the imprinted data from `containerise`.
 
+    Arguments:
+        node (obj): Nuke's node object to read imprinted data
+
+    Returns:
+        container (dict): imprinted container data
     """
-
-    raw_text_data = node['avalon'].value()
-    data = toml.loads(raw_text_data, _dict=dict)
 
     if not isinstance(data, dict):
         return
@@ -147,6 +149,8 @@ def update_container(node, keys=dict()):
 
 
 class Creator(api.Creator):
+    """Creator class wrapper
+    """
     def process(self):
         nodes = nuke.allNodes()
 
@@ -219,7 +223,7 @@ def find_host_config(config):
 
 
 def uninstall(config):
-    """Uninstall all tha was installed
+    """Uninstall all that was previously installed
 
     This is where you undo everything that was done in `install()`.
     That means, removing menus, deregistering families and  data
@@ -239,6 +243,8 @@ def uninstall(config):
 
 
 def _install_menu():
+    """Installing Avalon menu to Nuke
+    """
     from ..tools import (
         creator,
         # publish,
@@ -283,6 +289,8 @@ def _install_menu():
 
 
 def _uninstall_menu():
+    """Uninstalling Avalon menu to Nuke
+    """
     menubar = nuke.menu("Nuke")
     menubar.removeItem(api.Session["AVALON_LABEL"])
 

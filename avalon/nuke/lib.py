@@ -10,6 +10,14 @@ log = logging.getLogger(__name__)
 
 @contextlib.contextmanager
 def maintained_selection():
+    """Maintain selection during context
+
+    Example:
+        >>> with maintained_selection():
+        ...     node['selected'].setValue(True)
+        >>> print(node['selected'].value())
+        False
+    """
     previous_selection = nuke.selectedNodes()
     try:
         yield
@@ -65,6 +73,8 @@ def add_publish_knob(node):
 
 
 def fix_data_for_node_create(data):
+    """Fixing data to be used for nuke knobs
+    """
     for k, v in data.items():
 
         data[k] = str(v)
@@ -79,6 +89,15 @@ def fix_data_for_node_create(data):
 
 
 def add_write_node(name, **kwarg):
+    """Adding nuke write node
+
+    Arguments:
+        name (str): nuke node name
+        kwarg (attrs): data for nuke knobs
+
+    Returns:
+        node (obj): nuke write node
+    """
     frame_range = kwarg.get("frame_range", None)
 
     w = nuke.createNode(
@@ -109,24 +128,24 @@ def add_write_node(name, **kwarg):
 def get_node_path(path, padding=4):
     """Get filename for the Nuke write with padded number as '#'
 
-    >>> get_frame_path("test.exr")
-    ('test', 4, '.exr')
-
-    >>> get_frame_path("filename.#####.tif")
-    ('filename.', 5, '.tif')
-
-    >>> get_frame_path("foobar##.tif")
-    ('foobar', 2, '.tif')
-
-    >>> get_frame_path("foobar_%08d.tif")
-    ('foobar_', 8, '.tif')
-
-    Args:
+    Arguments:
         path (str): The path to render to.
 
     Returns:
         tuple: head, padding, tail (extension)
 
+    Examples:
+        >>> get_frame_path("test.exr")
+        ('test', 4, '.exr')
+
+        >>> get_frame_path("filename.#####.tif")
+        ('filename.', 5, '.tif')
+
+        >>> get_frame_path("foobar##.tif")
+        ('foobar', 2, '.tif')
+
+        >>> get_frame_path("foobar_%08d.tif")
+        ('foobar_', 8, '.tif')
     """
     filename, ext = os.path.splitext(path)
 
