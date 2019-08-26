@@ -263,15 +263,12 @@ def _install_menu():
     """
     from ..tools import (
         creator,
-        # publish,
+        publish,
         workfiles,
-        loader,
-        sceneinventory,
+        cbloader,
+        cbsceneinventory,
         contextmanager
     )
-    # for now we are using `lite` version
-    # TODO: just for now untill qml in Nuke will be fixed (pyblish-qml#301)
-    import pyblish_lite as publish
 
     # Create menu
     menubar = nuke.menu("Nuke")
@@ -284,24 +281,28 @@ def _install_menu():
     context_menu.addCommand("Set Context", contextmanager.show)
 
     menu.addSeparator()
-    menu.addCommand("Create...", creator.show)
-    menu.addCommand("Load...", loader.show)
-    menu.addCommand("Publish...", publish.show)
-    menu.addCommand("Manage...", sceneinventory.show)
-
-    menu.addSeparator()
     menu.addCommand("Work Files...",
                     lambda: workfiles.show(
                         os.environ["AVALON_WORKDIR"]
                     )
                     )
+    menu.addSeparator()
+    menu.addCommand("Create...", creator.show)
+    menu.addCommand(
+        "Load...", command=lambda *args:
+        cbloader.show(use_context=True)
+    )
+    menu.addCommand("Publish...", publish.show)
+    menu.addCommand("Manage...", cbsceneinventory.show)
 
     menu.addSeparator()
-    menu.addCommand("Reset Frame Range", reset_frame_range)
+    menu.addCommand("Reset Frame Range", reset_frame_range_handles)
     menu.addCommand("Reset Resolution", reset_resolution)
 
-    menu.addSeparator()
-    menu.addCommand("Reload Pipeline", reload_pipeline)
+    # add reload pipeline only in debug mode
+    if bool(os.getenv("NUKE_DEBUG")):
+        menu.addSeparator()
+        menu.addCommand("Reload Pipeline", reload_pipeline)
 
 
 def _uninstall_menu():
