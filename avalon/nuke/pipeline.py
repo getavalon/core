@@ -191,13 +191,14 @@ def ls():
     See the `container.json` schema for details on how it should look,
     and the Maya equivalent, which is in `avalon.maya.pipeline`
     """
-    all_nodes = nuke.allNodes(recurseGroups=True)
+    all_nodes = nuke.allNodes(recurseGroups=False)
 
     # TODO: add readgeo, readcamera, readimage
-    reads = [n for n in all_nodes if n.Class() == 'Read']
+    nodes = [n for n in all_nodes]
 
-    for r in reads:
-        container = parse_container(r)
+    for n in nodes:
+        log.debug("name: `{}`".format(n.name()))
+        container = parse_container(n)
         if container:
             yield container
 
