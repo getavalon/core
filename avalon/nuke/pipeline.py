@@ -1,16 +1,12 @@
 import os
-from collections import OrderedDict
-import importlib
-from .. import api, io, schema
-
-import contextlib
-from pyblish import api as pyblish
-from ..vendor import toml
 import logging
-import nuke
+import contextlib
+import importlib
+from collections import OrderedDict
+from pyblish import api as pyblish
+from .. import api, io
 from . import lib
-
-from ..pipeline import AVALON_CONTAINER_ID
+import nuke
 
 log = logging.getLogger(__name__)
 
