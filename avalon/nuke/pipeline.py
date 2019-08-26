@@ -80,7 +80,7 @@ def containerise(node,
 
     data_imprint = OrderedDict({
         "schema": "avalon-core:container-2.0",
-        "id": AVALON_CONTAINER_ID,
+        "id": "pyblish.avalon.container",
         "name": str(name),
         "namespace": str(namespace),
         "loader": str(loader),
@@ -90,11 +90,9 @@ def containerise(node,
     if data:
         {data_imprint.update({k: v}) for k, v in data.items()}
 
-    log.info("data: {}".format(data_imprint))
+    log.debug("Data for Imprint: {}".format(data_imprint))
 
-    lib.add_avalon_tab_knob(node)
-
-    node['avalon'].setValue(toml.dumps(data_imprint))
+    lib.set_avalon_knob_data(node, data_imprint)
 
     return node
 
@@ -134,7 +132,23 @@ def update_container(node, keys=dict()):
         node (object): nuke node with updated container data
     """
 
-    container = parse_container(node)
+    data = lib.get_avalon_knob_data(node)
+
+    if not isinstance(data, dict):
+        return
+
+    # If not all required data return the empty container
+    required = ['schema', 'id', 'name',
+                'namespace', 'objectName', 'representation', 'version']
+    container = dict()
+
+    # check if key in data
+    for k in required:
+        if not data.get(k, 0):
+            # if not then create the key in container and data
+            data[k] = 0
+
+    container = {key: data[key] for key in data}
 
     for key, value in container.items():
         try:
@@ -142,8 +156,7 @@ def update_container(node, keys=dict()):
         except KeyError:
             pass
 
-    node['avalon'].setValue('')
-    node['avalon'].setValue(toml.dumps(container))
+    node = lib.set_avalon_knob_data(node, container)
 
     return node
 
