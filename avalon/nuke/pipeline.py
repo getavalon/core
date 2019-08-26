@@ -39,7 +39,7 @@ def reload_pipeline():
         log.info("Reloading module: {}...".format(module))
 
         module = importlib.import_module(module)
-        reload(module)
+        importlib.reload(module)
 
     import avalon.nuke
     api.install(avalon.nuke)

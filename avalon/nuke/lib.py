@@ -18,6 +18,7 @@ def maintained_selection():
         >>> print(node['selected'].value())
         False
     """
+    nodes = nuke.allNodes()
     previous_selection = nuke.selectedNodes()
     try:
         yield
@@ -88,13 +89,15 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
     knobs = [
         {"name": 'AvalonTab', "value": '', "type": "Tab_Knob"},
         {"name": 'begin', "value": 'Avalon data group',
-            "type": "Tab_Knob", "group": 2},
+         "type": "Tab_Knob", "group": 2},
         {"name": '__divider__'},
-        {"name": 'avalon_data', "value": 'Warning! Do not change following data!',
-            "type": "Text_Knob"},
+        {"name": 'avalon_data',
+         "value": 'Warning! Do not change following data!',
+         "type": "Text_Knob"},
         {"name": '__divider__'},
-        {"name": 'begin', "value": 'Avalon data group',
-            "type": "Tab_Knob", "group": -1}
+        {"name": 'begin',
+         "value": 'Avalon data group',
+         "type": "Tab_Knob", "group": -1}
     ]
     non_hiden = ["asset", "subset", "name", "namespace"]
 
@@ -126,11 +129,12 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
             if label in non_hiden:
                 if name not in node.knobs().keys():
                     log.info("Setting: `{0}` to `{1}`".format(name, value))
-                    knob = eval("nuke.String_Knob('{name}', '{label}', '{value}')".format(
-                        name=name,
-                        label=label,
-                        value=value
-                    ))
+                    knob = eval(
+                        "nuke.String_Knob('{name}','{label}','{value}')".format(
+                            name=name,
+                            label=label,
+                            value=value
+                        ))
                     node.addKnob(knob)
                 else:
                     log.info("Updating: `{0}` to `{1}`".format(name, value))
@@ -138,11 +142,12 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
             else:
                 if name not in node.knobs().keys():
                     log.info("Setting: `{0}` to `{1}`".format(name, value))
-                    knob = eval("nuke.Text_Knob('{name}', '{label}', '{value}')".format(
-                        name=name,
-                        label=label,
-                        value=value
-                    ))
+                    knob = eval(
+                        "nuke.Text_Knob('{name}','{label}','{value}')".format(
+                            name=name,
+                            label=label,
+                            value=value
+                            ))
                     node.addKnob(knob)
                 else:
                     log.info("Updating: `{0}` to `{1}`".format(name, value))
@@ -173,6 +178,7 @@ def get_avalon_knob_data(node, prefix="ak:"):
     try:
         # check if data available on the node
         test = node['avalon_data'].value()
+        log.debug("Only testing if data avalable: `{}`".format(test))
     except Exception as e:
         # if it doesn't then create it
         log.debug("Creating avalon knob: `{}`".format(e))
