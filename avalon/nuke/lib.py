@@ -129,12 +129,14 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
             if label in non_hiden:
                 if name not in node.knobs().keys():
                     log.info("Setting: `{0}` to `{1}`".format(name, value))
-                    knob = eval(
-                        "nuke.String_Knob('{name}','{label}','{value}')".format(
-                            name=name,
-                            label=label,
-                            value=value
-                        ))
+                    knob = eval((
+                        "nuke.String_Knob('{name}','{label}',"
+                        "'{value}')"
+                    ).format(
+                        name=name,
+                        label=label,
+                        value=value
+                    ))
                     node.addKnob(knob)
                 else:
                     log.info("Updating: `{0}` to `{1}`".format(name, value))
@@ -142,12 +144,14 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
             else:
                 if name not in node.knobs().keys():
                     log.info("Setting: `{0}` to `{1}`".format(name, value))
-                    knob = eval(
-                        "nuke.Text_Knob('{name}','{label}','{value}')".format(
-                            name=name,
-                            label=label,
-                            value=value
-                            ))
+                    knob = eval((
+                        "nuke.Text_Knob('{name}','{label}',"
+                        "'{value}')"
+                    ).format(
+                        name=name,
+                        label=label,
+                        value=value
+                    ))
                     node.addKnob(knob)
                 else:
                     log.info("Updating: `{0}` to `{1}`".format(name, value))
