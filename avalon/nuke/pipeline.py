@@ -231,7 +231,7 @@ def find_host_config(config):
     try:
         config = importlib.import_module(config.__name__ + ".nuke")
     except ImportError as exc:
-        if str(exc) != "No module name {}".format(config.__name__ + ".nuke"):
+        if str(exc) != "No module named {}".format("nuke"):
             raise
         config = None
 
