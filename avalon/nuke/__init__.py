@@ -49,13 +49,6 @@ __all__ = [
 
     "Creator",
 
-    "file_extensions",
-    "has_unsaved_changes",
-    "save",
-    "open",
-    "current_file",
-    "work_root",
-
     "containerise",
     "parse_container",
     "update_container",
@@ -68,4 +61,12 @@ __all__ = [
     "ls_img_sequence",
     "maintained_selection",
     "get_node_path",
+
+    # Workfiles API
+    "open",
+    "save",
+    "current_file",
+    "has_unsaved_changes",
+    "file_extensions",
+    "work_root"
 ]
