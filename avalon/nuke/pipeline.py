@@ -459,12 +459,11 @@ def _on_task_changed(*args):
 def viewer_update_and_undo_stop():
     """Lock viewer from updating and stop recording undo steps"""
     try:
-        # nuke = getattr(sys.modules["__main__"], "nuke", None)
-        # lock all connections between nodes
-        # nuke.Root().knob('lock_connections').setValue(1)
-
         # stop active viewer to update any change
-        nuke.activeViewer().stop()
+        try:
+            nuke.activeViewer().stop()
+        except Exception as e:
+            log.warning("No available active Viewer: `{}`".format(e))
         nuke.Undo.disable()
         yield
     finally:
