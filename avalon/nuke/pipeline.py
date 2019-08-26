@@ -25,28 +25,25 @@ def reload_pipeline():
     api.uninstall()
     _uninstall_menu()
 
-    for module in ("avalon.io",
+    for module in ("avalon.api",
+                   "avalon.io",
                    "avalon.lib",
                    "avalon.pipeline",
-                   "avalon.nuke.pipeline",
-                   "avalon.nuke.lib",
-                   "avalon.tools.loader.app",
-                   "avalon.tools.creator.app",
-                   "avalon.tools.manager.app",
-
-                   "avalon.api",
                    "avalon.tools",
                    "avalon.nuke",
-                   "{}".format(AVALON_CONFIG),
-                   "{}.lib".format(AVALON_CONFIG)):
+                   "avalon.nuke.pipeline",
+                   "avalon.nuke.lib",
+                   "avalon.nuke.workio"
+                   ):
+
         log.info("Reloading module: {}...".format(module))
+
         module = importlib.import_module(module)
-        importlib.reload(module)
+        reload(module)
 
     import avalon.nuke
     api.install(avalon.nuke)
 
-    _install_menu()
     _register_events()
 
 
