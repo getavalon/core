@@ -118,8 +118,10 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
                         print(E)
             else:
                 if k["name"] not in node.knobs().keys():
-                    knob = eval(
-                        "nuke.{type}('{name}', '{value}', {group})".format(**k))
+                    knob = eval((
+                        "nuke.{type}('{name}',"
+                        "'{value}', {group})"
+                    ).format(**k))
                     node.addKnob(knob)
 
         # add avalon knobs for imprinting data
