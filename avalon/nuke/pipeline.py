@@ -393,16 +393,20 @@ def get_handles(asset):
 def reset_resolution():
     """Set resolution to project resolution."""
     project = io.find_one({"type": "project"})
+    p_data = project["data"]
 
-    try:
-        width = project["data"].get("resolution_width", 1920)
-        height = project["data"].get("resolution_height", 1080)
-    except KeyError:
-        print(
-            "No resolution information found for \"{0}\".".format(
-                project["name"]
-            )
-        )
+    width = p_data.get("resolution_width",
+                       p_data.get("resolutionWidth"))
+    height = p_data.get("resolution_height",
+                        p_data.get("resolutionHeight"))
+
+    if not all([width, height]):
+        missing = ", ".join(["width", "height"])
+        msg = "No resolution information `{0}` found for '{1}'.".format(
+            missing,
+            project["name"])
+        log.warning(msg)
+        nuke.message(msg)
         return
 
     current_width = nuke.root()["format"].value().width()
