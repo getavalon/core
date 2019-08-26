@@ -294,7 +294,6 @@ def add_write_node(name, **kwarg):
         w["first"].setValue(frame_range[0])
         w["last"].setValue(frame_range[1])
 
-    log.info(w)
     return w
 
 
