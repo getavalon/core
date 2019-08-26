@@ -1,5 +1,5 @@
 {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "http://json-schema.org/draft-04/schema#",
 
     "title": "avalon-core:version-2.0",
     "description": "An individual version",
@@ -20,13 +20,13 @@
         "schema": {
             "description": "The schema associated with this document",
             "type": "string",
-            "const": "avalon-core:version-2.0",
+            "enum": ["avalon-core:version-2.0"],
             "example": "avalon-core:version-2.0"
         },
         "type": {
             "description": "The type of document",
             "type": "string",
-            "const": "version",
+            "enum": ["version"],
             "example": "version"
         },
         "parent": {

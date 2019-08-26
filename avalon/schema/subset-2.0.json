@@ -1,5 +1,5 @@
 {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "http://json-schema.org/draft-04/schema#",
 
     "title": "avalon-core:subset-2.0",
     "description": "A container of instances",
@@ -20,13 +20,13 @@
         "schema": {
             "description": "The schema associated with this document",
             "type": "string",
-            "const": "avalon-core:subset-2.0",
+            "enum": ["avalon-core:subset-2.0"],
             "example": "avalon-core:subset-2.0"
         },
         "type": {
             "description": "The type of document",
             "type": "string",
-            "const": "subset",
+            "enum": ["subset"],
             "example": "subset"
         },
         "parent": {
@@ -43,8 +43,8 @@
             "type": "object",
             "description": "Document metadata",
             "example": {
-                "startFrame": 1000,
-                "endFrame": 1201
+                "frameStart": 1000,
+                "frameEnd": 1201
             }
         }
     }

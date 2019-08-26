@@ -49,10 +49,10 @@ def current_file():
 
 
 def work_root():
-    from avalon import api
+    from avalon import Session
 
-    work_dir = api.Session["AVALON_WORKDIR"]
-    scene_dir = api.Session.get("AVALON_SCENEDIR")
+    work_dir = Session["AVALON_WORKDIR"]
+    scene_dir = Session.get("AVALON_SCENEDIR")
     if scene_dir:
         return os.path.join(work_dir, scene_dir)
     else:

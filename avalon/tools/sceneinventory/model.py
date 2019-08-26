@@ -9,7 +9,7 @@ from ...vendor import qtawesome as qta
 from .lib import walk_hierarchy
 
 # todo(roy): refactor loading from other tools
-from ..cbloader import lib as cbloader_lib
+from ..loader import lib as loader_lib
 from ..projectmanager.model import (
     TreeModel, Node
 )
@@ -234,8 +234,8 @@ class InventoryModel(TreeModel):
                     family = families[0]
 
             # Get the label and icon for the family if in configuration
-            family_config = cbloader_lib.get(cbloader_lib.FAMILY_CONFIG,
-                                             family)
+            family_config = loader_lib.get(loader_lib.FAMILY_CONFIG,
+                                           family)
             family = family_config.get("label", family)
             family_icon = family_config.get("icon", None)
 

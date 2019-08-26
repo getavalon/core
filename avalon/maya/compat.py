@@ -18,7 +18,7 @@ def remove_googleapiclient():
     """Check if the compatibility must be maintained
 
     The Maya 2018 version tries to import the `http` module from
-    Maya2018\plug-ins\MASH\scripts\googleapiclient\http.py in stead of the
+    Maya2018/plug-ins/MASH/scripts/googleapiclient/http.py in stead of the
     module from six.py. This import conflict causes a crash Avalon's publisher.
     This is due to Autodesk adding paths to the PYTHONPATH environment variable
     which contain modules instead of only packages.
@@ -92,7 +92,7 @@ def load(Loader,
         suffix="_",
     )
 
-    # TODO(roy): add compatibility check, see `tools.cbloader.lib`
+    # TODO(roy): add compatibility check, see `tools.loader.lib`
 
     Loader.log.info(
         "Running '%s' on '%s'" % (Loader.__name__, asset["name"])
