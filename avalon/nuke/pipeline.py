@@ -90,7 +90,7 @@ def containerise(node,
     return node
 
 
-def parse_container(node, validate=True):
+def parse_container(node):
     """Returns containerised data of a node
 
     Reads the imprinted data from `containerise`.
@@ -101,17 +101,27 @@ def parse_container(node, validate=True):
     Returns:
         container (dict): imprinted container data
     """
+    data = lib.get_avalon_knob_data(node)
 
     if not isinstance(data, dict):
         return
 
+    # If not all required data return the empty container
+    required = ['schema', 'id', 'name',
+                'namespace', 'loader', 'representation']
+
+    if not all(key in data for key in required):
+        return
+
+    container = {key: data[key] for key in required}
+
     # Store the node's name
-    data["objectName"] = node["name"].value()
+    container["objectName"] = node["name"].value()
 
-    if validate:
-        schema.validate(data)
+    # Store reference to the node object
+    container["_node"] = node
 
-    return data
+    return container
 
 
 def update_container(node, keys=dict()):
