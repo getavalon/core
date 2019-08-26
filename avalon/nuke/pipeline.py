@@ -316,6 +316,32 @@ def reset_frame_range():
 
     nuke.root()["first_frame"].setValue(edit_in)
     nuke.root()["last_frame"].setValue(edit_out)
+def get_handles(asset):
+    """ Gets handles data
+
+    Arguments:
+        asset (dict): avalon asset entity
+
+    Returns:
+        handles (int)
+    """
+    data = asset["data"]
+    if "handles" in data and data["handles"] is not None:
+        return int(data["handles"])
+
+    parent_asset = None
+    if "visualParent" in data:
+        vp = data["visualParent"]
+        if vp is not None:
+            parent_asset = io.find_one({"_id": io.ObjectId(vp)})
+
+    if parent_asset is None:
+        parent_asset = io.find_one({"_id": io.ObjectId(asset['parent'])})
+
+    if parent_asset is not None:
+        return get_handles(parent_asset)
+    else:
+        return 0
 
 
 def reset_resolution():

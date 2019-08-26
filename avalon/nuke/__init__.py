@@ -32,6 +32,7 @@ from .pipeline import (
     containerise,
     parse_container,
     update_container,
+    get_handles,
 
     # Experimental
     viewer_update_and_undo_stop,
@@ -58,6 +59,7 @@ __all__ = [
     "containerise",
     "parse_container",
     "update_container",
+    "get_handles",
 
     # Experimental
     "viewer_update_and_undo_stop",
