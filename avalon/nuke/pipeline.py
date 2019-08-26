@@ -168,15 +168,15 @@ class Creator(api.Creator):
     """Creator class wrapper
     """
     def process(self):
-        nodes = nuke.allNodes()
-
         if (self.options or {}).get("useSelection"):
             nodes = nuke.selectedNodes()
 
-        instance = [n for n in nodes
-                    if n["name"].value() in self.name] or None
+        if len(nodes) > 0:
+            node = nodes[0]
+        elif len(nodes) > 1:
+            nuke.message("Please select only one node")
 
-        instance = lib.imprint(instance, self.data)
+        instance = lib.imprint(node, self.data)
 
         return instance
 
