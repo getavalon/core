@@ -4,9 +4,11 @@ import contextlib
 import importlib
 from collections import OrderedDict
 from pyblish import api as pyblish
+from ..pipeline import AVALON_CONTAINER_ID
 from .. import api, io, schema
 from . import lib
 import nuke
+
 
 log = logging.getLogger(__name__)
 
@@ -73,7 +75,7 @@ def containerise(node,
 
     data_imprint = OrderedDict({
         "schema": "avalon-core:container-2.0",
-        "id": "pyblish.avalon.container",
+        "id": AVALON_CONTAINER_ID,
         "name": str(name),
         "namespace": str(namespace),
         "loader": str(loader),
