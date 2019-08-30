@@ -4,7 +4,7 @@ import contextlib
 import importlib
 from collections import OrderedDict
 from pyblish import api as pyblish
-from .. import api, io
+from .. import api, io, schema
 from . import lib
 import nuke
 
@@ -90,7 +90,7 @@ def containerise(node,
     return node
 
 
-def parse_container(node):
+def parse_container(node, validate=True):
     """Returns containerised data of a node
 
     Reads the imprinted data from `containerise`.
@@ -102,6 +102,9 @@ def parse_container(node):
         container (dict): imprinted container data
     """
     data = lib.get_avalon_knob_data(node)
+
+    if validate:
+        schema.validate(data)
 
     if not isinstance(data, dict):
         return
