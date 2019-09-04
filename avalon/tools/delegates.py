@@ -1,4 +1,4 @@
-from ..vendor import QtWidgets
+from ..vendor.Qt import QtWidgets, QtCore
 from .. import io
 
 from .models import TreeModel
@@ -20,8 +20,8 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         return self._format_version(value)
 
     def createEditor(self, parent, option, index):
-        node = index.data(SubsetsModel.NodeRole)
-        if node.get("isGroup"):
+        item = index.data(TreeModel.ItemRole)
+        if item.get("isGroup"):
             return
 
         editor = QtWidgets.QComboBox(parent)
@@ -49,8 +49,8 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         assert isinstance(value, int), "Version is not `int`"
 
         # Add all available versions to the editor
-        node = index.data(TreeModel.ItemRole)
-        parent_id = node['version_document']['parent']
+        item = index.data(TreeModel.ItemRole)
+        parent_id = item['version_document']['parent']
         versions = io.find({"type": "version", "parent": parent_id},
                            sort=[("name", 1)])
         index = 0

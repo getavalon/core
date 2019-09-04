@@ -10,6 +10,7 @@ from .projectmanager.model import RecursiveSortFilterProxyModel
 from .models import AssetModel
 from .views import DeselectableTreeView
 from ..vendor import qtawesome as awesome
+from ..vendor.Qt import QtWidgets, QtCore
 
 from .. import style
 from .. import io
