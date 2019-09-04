@@ -47,7 +47,7 @@ class TreeModel(QtCore.QAbstractItemModel):
             return index.internalPointer()
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
-        """Change the data on the nodes.
+        """Change the data on the items.
 
         Returns:
             bool: Whether the edit was successful
@@ -93,13 +93,13 @@ class TreeModel(QtCore.QAbstractItemModel):
     def parent(self, index):
 
         item = index.internalPointer()
-        parent_node = item.parent()
+        parent_item = item.parent()
 
         # If it has no parents we return invalid
-        if parent_node == self._root_item or not parent_node:
+        if parent_item == self._root_item or not parent_item:
             return QtCore.QModelIndex()
 
-        return self.createIndex(parent_node.row(), 0, parent_node)
+        return self.createIndex(parent_item.row(), 0, parent_item)
 
     def index(self, row, column, parent):
         """Return index for row/column under parent"""
@@ -115,11 +115,11 @@ class TreeModel(QtCore.QAbstractItemModel):
         else:
             return QtCore.QModelIndex()
 
-    def add_child(self, node, parent=None):
+    def add_child(self, item, parent=None):
         if parent is None:
             parent = self._root_item
 
-        parent.add_child(node)
+        parent.add_child(item)
 
     def column_name(self, column):
         """Return column key by index"""
@@ -174,13 +174,13 @@ class Item(dict):
     def row(self):
         """
         Returns:
-             int: Index of this node under parent"""
+             int: Index of this item under parent"""
         if self._parent is not None:
             siblings = self.parent().children()
             return siblings.index(self)
 
     def add_child(self, child):
-        """Add a child to this node"""
+        """Add a child to this item"""
         child._parent = self
         self._children.append(child)
 
@@ -237,26 +237,26 @@ class TasksModel(TreeModel):
         default_icon = self._icons["__default__"]
 
         if not tasks:
-            node = Item({
+            item = Item({
                 "name": "No task",
                 "count": 0,
                 "icon": default_icon,
                 "enabled": False,
             })
 
-            self.add_child(node)
+            self.add_child(item)
 
         else:
             for task, count in sorted(tasks.items()):
                 icon = self._icons.get(task, default_icon)
 
-                node = Item({
+                item = Item({
                     "name": task,
                     "count": count,
                     "icon": icon
                 })
 
-                self.add_child(node)
+                self.add_child(item)
 
         self.endResetModel()
 
@@ -344,7 +344,7 @@ class AssetModel(TreeModel):
             # store for the asset for optimization
             deprecated = "deprecated" in tags
 
-            node = Item({
+            item = Item({
                 "_id": asset['_id'],
                 "name": asset["name"],
                 "label": label,
@@ -353,10 +353,10 @@ class AssetModel(TreeModel):
                 "deprecated": deprecated,
                 "_document": asset
             })
-            self.add_child(node, parent=parent)
+            self.add_child(item, parent=parent)
 
             # Add asset's children recursively
-            self._add_hierarchy(node)
+            self._add_hierarchy(item)
 
     def refresh(self):
         """Refresh the data for the model."""
@@ -375,14 +375,14 @@ class AssetModel(TreeModel):
         if not index.isValid():
             return
 
-        node = index.internalPointer()
+        item = index.internalPointer()
         if role == QtCore.Qt.DecorationRole:        # icon
 
             column = index.column()
             if column == self.Name:
 
                 # Allow a custom icon and custom icon color to be defined
-                data = node["_document"]["data"]
+                data = item["_document"]["data"]
                 icon = data.get("icon", None)
                 color = data.get("color", style.colors.default)
 
@@ -394,7 +394,7 @@ class AssetModel(TreeModel):
                     icon = "folder" if has_children else "folder-o"
 
                 # Make the color darker when the asset is deprecated
-                if node.get("deprecated", False):
+                if item.get("deprecated", False):
                     color = QtGui.QColor(color).darker(250)
 
                 try:
@@ -409,13 +409,13 @@ class AssetModel(TreeModel):
                 return
 
         if role == QtCore.Qt.ForegroundRole:        # font color
-            if "deprecated" in node.get("tags", []):
+            if "deprecated" in item.get("tags", []):
                 return QtGui.QColor(style.colors.light).darker(250)
 
         if role == self.ObjectIdRole:
-            return node.get("_id", None)
+            return item.get("_id", None)
 
         if role == self.DocumentRole:
-            return node.get("_document", None)
+            return item.get("_document", None)
 
         return super(AssetModel, self).data(index, role)

@@ -35,11 +35,11 @@ class InventoryModel(TreeModel):
         if not index.isValid():
             return
 
-        node = index.internalPointer()
+        item = index.internalPointer()
 
         if role == QtCore.Qt.FontRole:
             # Make top-level entries bold
-            if node.get("isGroupNode"):  # group-item
+            if item.get("isGroupNode"):  # group-item
                 font = QtGui.QFont()
                 font.setBold(True)
                 return font
@@ -50,14 +50,14 @@ class InventoryModel(TreeModel):
             key = self.COLUMNS[index.column()]
             outdated = (lambda n: n.get("version") != n.get("highest_version"))
             if key == "version":  # version
-                if node.get("isGroupNode"):  # group-item
-                    if outdated(node):
+                if item.get("isGroupNode"):  # group-item
+                    if outdated(item):
                         return self.OUTDATED_COLOR
 
                     if self._hierarchy_view:
                         # If current group is not outdated, check if any
                         # outdated children.
-                        for _node in walk_hierarchy(node):
+                        for _node in walk_hierarchy(item):
                             if outdated(_node):
                                 return self.CHILD_OUTDATED_COLOR
                 else:
@@ -65,31 +65,31 @@ class InventoryModel(TreeModel):
                     if self._hierarchy_view:
                         # Although this is not a group item, we still need
                         # to distinguish which one contain outdated child.
-                        for _node in walk_hierarchy(node):
+                        for _node in walk_hierarchy(item):
                             if outdated(_node):
                                 return self.CHILD_OUTDATED_COLOR.darker(150)
 
                     return self.GRAYOUT_COLOR
 
-            if key == "Name" and not node.get("isGroupNode"):
+            if key == "Name" and not item.get("isGroupNode"):
                 return self.GRAYOUT_COLOR
 
         # Add icons
         if role == QtCore.Qt.DecorationRole:
             if index.column() == 0:
                 # Override color
-                color = node.get("color", style.colors.default)
-                if node.get("isGroupNode"):  # group-item
+                color = item.get("color", style.colors.default)
+                if item.get("isGroupNode"):  # group-item
                     return qta.icon("fa.folder", color=color)
                 else:
                     return qta.icon("fa.file-o", color=color)
 
             if index.column() == 3:
                 # Family icon
-                return node.get("familyIcon", None)
+                return item.get("familyIcon", None)
 
         if role == self.UniqueRole:
-            return node["representation"] + node.get("objectName", "<none>")
+            return item["representation"] + item.get("objectName", "<none>")
 
         return super(InventoryModel, self).data(index, role)
 

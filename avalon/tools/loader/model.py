@@ -42,8 +42,8 @@ class SubsetsModel(TreeModel):
         # Trigger additional edit when `version` column changed
         # because it also updates the information in other columns
         if index.column() == 2:
-            node = index.internalPointer()
-            parent = node["_id"]
+            item = index.internalPointer()
+            parent = item["_id"]
             version = io.find_one({"name": value,
                                    "type": "version",
                                    "parent": parent})
@@ -61,8 +61,8 @@ class SubsetsModel(TreeModel):
         if not index.isValid():
             return
 
-        node = index.internalPointer()
-        assert version['parent'] == node['_id'], ("Version does not "
+        item = index.internalPointer()
+        assert version['parent'] == item['_id'], ("Version does not "
                                                   "belong to subset")
 
         # Get the data from the version
@@ -102,7 +102,7 @@ class SubsetsModel(TreeModel):
         family = families[0]
         family_config = lib.get(lib.FAMILY_CONFIG, family)
 
-        node.update({
+        item.update({
             "version": version['name'],
             "version_document": version,
             "author": version_data.get("author", None),
@@ -132,7 +132,7 @@ class SubsetsModel(TreeModel):
         active_groups = lib.get_active_group_config(asset_id)
 
         # Generate subset group nodes
-        group_nodes = dict()
+        group_items = dict()
 
         if self._grouping:
             for data in active_groups:
@@ -141,13 +141,13 @@ class SubsetsModel(TreeModel):
                 group.update({"subset": name, "isGroup": True, "childRow": 0})
                 group.update(data)
 
-                group_nodes[name] = group
+                group_items[name] = group
                 self.add_child(group)
 
         filter = {"type": "subset", "parent": asset_id}
 
         # Process subsets
-        row = len(group_nodes)
+        row = len(group_items)
         for subset in io.find(filter):
 
             last_version = io.find_one({"type": "version",
@@ -162,7 +162,7 @@ class SubsetsModel(TreeModel):
 
             group_name = subset["data"].get("subsetGroup")
             if self._grouping and group_name:
-                group = group_nodes[group_name]
+                group = group_items[group_name]
                 parent = group
                 parent_index = self.createIndex(0, 0, group)
                 row_ = group["childRow"]
@@ -173,10 +173,10 @@ class SubsetsModel(TreeModel):
                 row_ = row
                 row += 1
 
-            node = Item()
-            node.update(data)
+            item = Item()
+            item.update(data)
 
-            self.add_child(node, parent=parent)
+            self.add_child(item, parent=parent)
 
             # Set the version information
             index = self.index(row_, 0, parent=parent_index)
@@ -192,30 +192,30 @@ class SubsetsModel(TreeModel):
         if role == QtCore.Qt.DisplayRole:
             if index.column() == 1:
                 # Show familyLabel instead of family
-                node = index.internalPointer()
-                return node.get("familyLabel", None)
+                item = index.internalPointer()
+                return item.get("familyLabel", None)
 
         if role == QtCore.Qt.DecorationRole:
 
             # Add icon to subset column
             if index.column() == 0:
-                node = index.internalPointer()
-                if node.get("isGroup"):
-                    return node["icon"]
+                item = index.internalPointer()
+                if item.get("isGroup"):
+                    return item["icon"]
                 else:
                     return self._icons["subset"]
 
             # Add icon to family column
             if index.column() == 1:
-                node = index.internalPointer()
-                return node.get("familyIcon", None)
+                item = index.internalPointer()
+                return item.get("familyIcon", None)
 
         if role == self.SortDescendingRole:
-            node = index.internalPointer()
-            if node.get("isGroup"):
+            item = index.internalPointer()
+            if item.get("isGroup"):
                 # Ensure groups be on top when sorting by descending order
                 prefix = "1"
-                order = node["inverseOrder"]
+                order = item["inverseOrder"]
             else:
                 prefix = "0"
                 order = str(super(SubsetsModel,
@@ -223,11 +223,11 @@ class SubsetsModel(TreeModel):
             return prefix + order
 
         if role == self.SortAscendingRole:
-            node = index.internalPointer()
-            if node.get("isGroup"):
+            item = index.internalPointer()
+            if item.get("isGroup"):
                 # Ensure groups be on top when sorting by ascending order
                 prefix = "0"
-                order = node["order"]
+                order = item["order"]
             else:
                 prefix = "1"
                 order = str(super(SubsetsModel,
@@ -286,8 +286,8 @@ class SubsetFilterProxyModel(GroupMemberFilterProxyModel):
         index = model.index(row,
                             self.filterKeyColumn(),
                             parent)
-        node = index.internalPointer()
-        if node.get("isGroup"):
+        item = index.internalPointer()
+        if item.get("isGroup"):
             return self.filter_accepts_group(index, model)
         else:
             return super(SubsetFilterProxyModel,
@@ -323,12 +323,12 @@ class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
             return True
 
         # Get the node data and validate
-        node = model.data(index, TreeModel.ItemRole)
+        item = model.data(index, TreeModel.ItemRole)
 
-        if node.get("isGroup"):
+        if item.get("isGroup"):
             return self.filter_accepts_group(index, model)
 
-        families = node.get("families", [])
+        families = item.get("families", [])
 
         filterable_families = set()
         for name in families:
