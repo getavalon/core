@@ -695,7 +695,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
     def _get_subsets(self):
         # Filter subsets by asset in dropdown
         if self._assets_box.currentText() != "":
-            parents = []
+            parents = list()
             parents.append(io.find_one({
                 'type': 'asset',
                 'name': self._assets_box.currentText()
