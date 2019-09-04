@@ -1,7 +1,7 @@
 import logging
 import collections
 
-from ..vendor.Qt import QtCore
+from ..vendor.Qt import QtCore, QtGui
 from ..vendor import qtawesome as awesome
 from .. import io
 from .. import style
