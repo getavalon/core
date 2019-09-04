@@ -14,8 +14,7 @@ provides a bridge between the file-based project inventory and configuration.
 
 """
 
-
-from avalon import schema, io
+from ... import schema, io
 
 
 def create_asset(data):
