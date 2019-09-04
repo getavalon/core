@@ -359,5 +359,5 @@ def is_filtering_recursible():
     (NOTE) Recursive filtering was introduced in Qt 5.10.
 
     """
-    return hasattr(Qt.QtCore.QSortFilterProxyModel,
+    return hasattr(QtCore.QSortFilterProxyModel,
                    "setRecursiveFilteringEnabled")
