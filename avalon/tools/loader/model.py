@@ -6,6 +6,16 @@ from ..models import TreeModel, Item
 from .. import lib as tools_lib
 
 
+def is_filtering_recursible():
+    """Does Qt binding support recursive filtering for QSortFilterProxyModel?
+
+    (NOTE) Recursive filtering was introduced in Qt 5.10.
+
+    """
+    return hasattr(QtCore.QSortFilterProxyModel,
+                   "setRecursiveFilteringEnabled")
+
+
 class SubsetsModel(TreeModel):
     columns = ["subset",
                "family",
@@ -354,13 +364,3 @@ class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
             self.setSortRole(model.SortDescendingRole)
 
         super(FamiliesFilterProxyModel, self).sort(column, order)
-
-
-def is_filtering_recursible():
-    """Does Qt binding support recursive filtering for QSortFilterProxyModel?
-
-    (NOTE) Recursive filtering was introduced in Qt 5.10.
-
-    """
-    return hasattr(QtCore.QSortFilterProxyModel,
-                   "setRecursiveFilteringEnabled")
