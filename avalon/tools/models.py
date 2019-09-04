@@ -3,7 +3,7 @@ import logging
 import collections
 
 from ..vendor.Qt import QtCore, QtGui
-from ..vendor import qtawesome as awesome
+from ..vendor import qtawesome
 from .. import io
 from .. import style
 
@@ -194,7 +194,8 @@ class TasksModel(TreeModel):
         super(TasksModel, self).__init__()
         self._num_assets = 0
         self._icons = {
-            "__default__": awesome.icon("fa.male", color=style.colors.default)
+            "__default__": qtawesome.icon("fa.male",
+                                          color=style.colors.default)
         }
 
         self._get_task_icons()
@@ -206,8 +207,8 @@ class TasksModel(TreeModel):
         for task in tasks:
             icon_name = task.get("icon", None)
             if icon_name:
-                icon = awesome.icon("fa.{}".format(icon_name),
-                                    color=style.colors.default)
+                icon = qtawesome.icon("fa.{}".format(icon_name),
+                                      color=style.colors.default)
                 self._icons[task["name"]] = icon
 
     def set_assets(self, asset_ids):
@@ -399,7 +400,7 @@ class AssetModel(TreeModel):
 
                 try:
                     key = "fa.{0}".format(icon)  # font-awesome key
-                    icon = awesome.icon(key, color=color)
+                    icon = qtawesome.icon(key, color=color)
                     return icon
                 except Exception as exception:
                     # Log an error message instead of erroring out completely

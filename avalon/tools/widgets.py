@@ -7,7 +7,7 @@ from .lib import (
 )
 from .models import AssetModel, RecursiveSortFilterProxyModel
 from .views import DeselectableTreeView
-from ..vendor import qtawesome as awesome
+from ..vendor import qtawesome
 from ..vendor.Qt import QtWidgets, QtCore, QtGui
 
 from .. import style
@@ -44,7 +44,7 @@ class AssetWidget(QtWidgets.QWidget):
 
         silo = SiloTabWidget(silo_creatable=silo_creatable)
 
-        icon = awesome.icon("fa.refresh", color=style.colors.light)
+        icon = qtawesome.icon("fa.refresh", color=style.colors.light)
         refresh = QtWidgets.QPushButton(icon, "")
         refresh.setToolTip("Refresh items")
 

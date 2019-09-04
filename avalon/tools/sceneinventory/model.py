@@ -4,7 +4,7 @@ from collections import defaultdict
 
 from ... import api, io, style
 from ...vendor.Qt import QtCore, QtGui
-from ...vendor import qtawesome as qta
+from ...vendor import qtawesome
 
 from .. import lib as tools_lib
 from ..models import TreeModel, Item
@@ -79,9 +79,9 @@ class InventoryModel(TreeModel):
                 # Override color
                 color = item.get("color", style.colors.default)
                 if item.get("isGroupNode"):  # group-item
-                    return qta.icon("fa.folder", color=color)
+                    return qtawesome.icon("fa.folder", color=color)
                 else:
-                    return qta.icon("fa.file-o", color=color)
+                    return qtawesome.icon("fa.file-o", color=color)
 
             if index.column() == 3:
                 # Family icon

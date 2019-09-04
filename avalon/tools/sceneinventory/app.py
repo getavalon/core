@@ -4,7 +4,7 @@ import logging
 from functools import partial
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ...vendor import qtawesome as qta
+from ...vendor import qtawesome
 from ... import io, api, style
 
 from .. import lib as tools_lib
@@ -72,7 +72,7 @@ class View(QtWidgets.QTreeView):
                 api.update(item, -1)
             self.data_changed.emit()
 
-        update_icon = qta.icon("fa.angle-double-up", color=DEFAULT_COLOR)
+        update_icon = qtawesome.icon("fa.angle-double-up", color=DEFAULT_COLOR)
         updatetolatest_action = QtWidgets.QAction(update_icon,
                                                   "Update to latest",
                                                   menu)
@@ -80,7 +80,7 @@ class View(QtWidgets.QTreeView):
             lambda: _on_update_to_latest(items))
 
         # set version
-        set_version_icon = qta.icon("fa.hashtag", color=DEFAULT_COLOR)
+        set_version_icon = qtawesome.icon("fa.hashtag", color=DEFAULT_COLOR)
         set_version_action = QtWidgets.QAction(set_version_icon,
                                                "Set version",
                                                menu)
@@ -88,7 +88,7 @@ class View(QtWidgets.QTreeView):
             lambda: self.show_version_dialog(items))
 
         # switch asset
-        switch_asset_icon = qta.icon("fa.sitemap", color=DEFAULT_COLOR)
+        switch_asset_icon = qtawesome.icon("fa.sitemap", color=DEFAULT_COLOR)
         switch_asset_action = QtWidgets.QAction(switch_asset_icon,
                                                 "Switch Asset",
                                                 menu)
@@ -96,21 +96,21 @@ class View(QtWidgets.QTreeView):
             lambda: self.show_switch_dialog(items))
 
         # remove
-        remove_icon = qta.icon("fa.remove", color=DEFAULT_COLOR)
+        remove_icon = qtawesome.icon("fa.remove", color=DEFAULT_COLOR)
         remove_action = QtWidgets.QAction(remove_icon, "Remove items", menu)
         remove_action.triggered.connect(
             lambda: self.show_remove_warning_dialog(items))
 
         # go back to flat view
         if self._hierarchy_view:
-            back_to_flat_icon = qta.icon("fa.list", color=DEFAULT_COLOR)
+            back_to_flat_icon = qtawesome.icon("fa.list", color=DEFAULT_COLOR)
             back_to_flat_action = QtWidgets.QAction(back_to_flat_icon,
                                                     "Back to Full-View",
                                                     menu)
             back_to_flat_action.triggered.connect(self.leave_hierarchy)
 
         # send items to hierarchy view
-        enter_hierarchy_icon = qta.icon("fa.indent", color="#d8d8d8")
+        enter_hierarchy_icon = qtawesome.icon("fa.indent", color="#d8d8d8")
         enter_hierarchy_action = QtWidgets.QAction(enter_hierarchy_icon,
                                                    "Cherry-Pick (Hierarchy)",
                                                    menu)
@@ -148,7 +148,7 @@ class View(QtWidgets.QTreeView):
             for action in custom_actions:
 
                 color = action.color or DEFAULT_COLOR
-                icon = qta.icon("fa.%s" % action.icon, color=color)
+                icon = qtawesome.icon("fa.%s" % action.icon, color=color)
                 action_item = QtWidgets.QAction(icon, action.label, submenu)
                 action_item.triggered.connect(
                     partial(self.process_custom_action, action, items))
@@ -490,7 +490,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         subset_layout = QtWidgets.QVBoxLayout()
         repre_layout = QtWidgets.QVBoxLayout()
 
-        accept_icon = qta.icon("fa.check", color="white")
+        accept_icon = qtawesome.icon("fa.check", color="white")
         accept_btn = QtWidgets.QPushButton()
         accept_btn.setIcon(accept_icon)
         accept_btn.setFixedWidth(24)
@@ -846,7 +846,7 @@ class Window(QtWidgets.QDialog):
         outdated_only.setToolTip("Show outdated files only")
         outdated_only.setChecked(False)
 
-        icon = qta.icon("fa.refresh", color="white")
+        icon = qtawesome.icon("fa.refresh", color="white")
         refresh_button = QtWidgets.QPushButton()
         refresh_button.setIcon(icon)
 

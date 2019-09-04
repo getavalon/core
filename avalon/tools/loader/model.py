@@ -1,6 +1,6 @@
 from ... import io, style
 from ...vendor.Qt import QtCore
-from ...vendor import qtawesome as qta
+from ...vendor import qtawesome
 
 from ..models import TreeModel, Item
 from .. import lib as tools_lib
@@ -35,8 +35,8 @@ class SubsetsModel(TreeModel):
         self._asset_id = None
         self._sorter = None
         self._grouping = grouping
-        self._icons = {"subset": qta.icon("fa.file-o",
-                                          color=style.colors.default)}
+        self._icons = {"subset": qtawesome.icon("fa.file-o",
+                                                color=style.colors.default)}
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id

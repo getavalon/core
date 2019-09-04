@@ -1,5 +1,5 @@
 from ... import io
-from ...vendor import qtawesome as qta
+from ...vendor import qtawesome
 from ...vendor.Qt import QtWidgets, QtCore
 
 from . import lib
@@ -25,7 +25,7 @@ class TasksCreateDialog(QtWidgets.QDialog):
 
         footer = QtWidgets.QHBoxLayout()
         cancel = QtWidgets.QPushButton("Cancel")
-        create = QtWidgets.QPushButton(qta.icon("fa.plus", color="grey"),
+        create = QtWidgets.QPushButton(qtawesome.icon("fa.plus", color="grey"),
                                        "Create")
         footer.addWidget(create)
         footer.addWidget(cancel)
@@ -82,7 +82,7 @@ class AssetCreateDialog(QtWidgets.QDialog):
         name.setReadOnly(True)
         name.setStyleSheet("background-color: #333333;")  # greyed out
 
-        icon = qta.icon("fa.plus", color="grey")
+        icon = qtawesome.icon("fa.plus", color="grey")
         add_asset = QtWidgets.QPushButton(icon, "Add")
         add_asset.setAutoDefault(True)
 
