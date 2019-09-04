@@ -15,7 +15,7 @@ from .lib import walk_hierarchy
 class InventoryModel(TreeModel):
     """The model for the inventory"""
 
-    COLUMNS = ["Name", "version", "count", "family", "objectName"]
+    columns = ["Name", "version", "count", "family", "objectName"]
 
     OUTDATED_COLOR = QtGui.QColor(235, 30, 30)
     CHILD_OUTDATED_COLOR = QtGui.QColor(200, 160, 30)

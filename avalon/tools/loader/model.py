@@ -7,7 +7,7 @@ from .. import lib as tools_lib
 
 
 class SubsetsModel(TreeModel):
-    COLUMNS = ["subset",
+    columns = ["subset",
                "family",
                "version",
                "time",
