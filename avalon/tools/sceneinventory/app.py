@@ -864,7 +864,7 @@ class Window(QtWidgets.QDialog):
 
         # apply delegates
         version_delegate = VersionDelegate(self)
-        column = model.COLUMNS.index("version")
+        column = model.columns.index("version")
         view.setItemDelegateForColumn(column, version_delegate)
 
         layout.addLayout(control_layout)

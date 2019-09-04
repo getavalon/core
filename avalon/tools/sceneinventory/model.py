@@ -46,7 +46,7 @@ class InventoryModel(TreeModel):
         if role == QtCore.Qt.ForegroundRole:
             # Set the text color to the OUTDATED_COLOR when the
             # collected version is not the same as the highest version
-            key = self.COLUMNS[index.column()]
+            key = self.columns[index.column()]
             outdated = (lambda n: n.get("version") != n.get("highest_version"))
             if key == "version":  # version
                 if item.get("isGroupNode"):  # group-item
