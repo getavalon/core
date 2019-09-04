@@ -5,9 +5,7 @@ from .lib import (
     preserve_selection,
     iter_model_rows
 )
-# todo: fix this import
-from .projectmanager.model import RecursiveSortFilterProxyModel
-from .models import AssetModel
+from .models import AssetModel, RecursiveSortFilterProxyModel
 from .views import DeselectableTreeView
 from ..vendor import qtawesome as awesome
 from ..vendor.Qt import QtWidgets, QtCore, QtGui

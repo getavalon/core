@@ -18,7 +18,6 @@ from .model import (
     FamiliesFilterProxyModel,
 )
 from .delegates import PrettyTimeDelegate
-from . import lib
 
 
 class SubsetWidget(QtWidgets.QWidget):
