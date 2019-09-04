@@ -20,9 +20,9 @@ class AssetWidget(QtWidgets.QWidget):
     """A Widget to display a tree of assets with filter
 
     To list the assets of the active project:
-        >>> widget = AssetWidget()
-        >>> widget.refresh()
-        >>> widget.show()
+        >>> # widget = AssetWidget()
+        >>> # widget.refresh()
+        >>> # widget.show()
 
     """
 
