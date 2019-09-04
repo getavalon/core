@@ -54,7 +54,10 @@ class SubsetsModel(TreeModel):
         """Update the version data of the given index.
 
         Arguments:
-            version (dict) Version document in the database. """
+            index (QtCore.QModelIndex): The model index.
+            version (dict) Version document in the database.
+
+        """
 
         assert isinstance(index, QtCore.QModelIndex)
         if not index.isValid():

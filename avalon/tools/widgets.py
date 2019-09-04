@@ -266,7 +266,6 @@ class SiloTabWidget(QtWidgets.QTabBar):
 
         Args:
             silo (str or int): The silo name or index.
-            emit (bool): Whether to emit the change signals
 
         """
 

@@ -200,6 +200,8 @@ class InventoryModel(TreeModel):
 
         Args:
             items (generator): the items to be processed as returned by `ls()`
+            parent (Item, optional): Set this item as parent for the added
+              items when provided. Defaults to the root of the model.
 
         Returns:
             node.Item: root node which has children added based on the data

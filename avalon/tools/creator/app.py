@@ -415,7 +415,7 @@ class FamilyDescriptionWidget(QtWidgets.QWidget):
         """Update elements to display information of a family item.
 
         Args:
-            family (dict): A family item as registered with name, help and icon
+            item (dict): A family item as registered with name, help and icon
 
         Returns:
             None
@@ -445,11 +445,10 @@ def show(debug=False, parent=None):
     """Display asset creator GUI
 
     Arguments:
-        creator (func, optional): Callable function, passed `name`,
-            `family` and `use_selection`, defaults to `creator`
-            defined in :mod:`pipeline`
         debug (bool, optional): Run loader in debug-mode,
             defaults to False
+        parent (QtCore.QObject, optional): When provided parent the interface
+            to this QObject.
 
     """
 
