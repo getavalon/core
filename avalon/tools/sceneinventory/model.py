@@ -5,11 +5,12 @@ from collections import defaultdict
 from ... import api, io, style
 from ...vendor.Qt import QtCore, QtGui
 from ...vendor import qtawesome as qta
-from .lib import walk_hierarchy
 
 # todo(roy): refactor loading from other tools
 from ..loader import lib as loader_lib
 from ..models import TreeModel, Item
+
+from .lib import walk_hierarchy
 
 
 class InventoryModel(TreeModel):

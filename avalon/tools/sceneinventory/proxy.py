@@ -1,5 +1,7 @@
 import re
+
 from ...vendor.Qt import QtCore
+
 from .lib import walk_hierarchy
 
 

@@ -1,6 +1,7 @@
 from ... import io
 from ...vendor import qtawesome as qta
 from ...vendor.Qt import QtWidgets, QtCore
+
 from . import lib
 
 

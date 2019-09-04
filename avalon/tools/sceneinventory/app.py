@@ -6,8 +6,8 @@ from functools import partial
 from ...vendor.Qt import QtWidgets, QtCore
 from ...vendor import qtawesome as qta
 from ... import io, api, style
-from .. import lib as tools_lib
 
+from .. import lib as tools_lib
 from ..lib import (
     iter_model_rows,
     preserve_expanded_rows,

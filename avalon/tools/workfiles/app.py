@@ -4,9 +4,9 @@ import getpass
 import re
 import shutil
 
-
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import style, io, api
+
 from .. import lib as parentlib
 
 
