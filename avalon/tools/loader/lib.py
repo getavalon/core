@@ -1,3 +1,5 @@
+# todo: fix loader lib being imported across multiple tools
+# todo: fix icon cache being unclear and magical, see discussion in PR #426
 from ...vendor import qtawesome, Qt
 from ... import io, api, style
 

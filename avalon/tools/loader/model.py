@@ -2,10 +2,7 @@ from ... import io, style
 from ...vendor.Qt import QtCore
 from ...vendor import qtawesome as qta
 
-from ..projectmanager.model import (
-    TreeModel,
-    Node
-)
+from ..models import TreeModel, Item
 
 from . import lib
 
@@ -140,7 +137,7 @@ class SubsetsModel(TreeModel):
         if self._grouping:
             for data in active_groups:
                 name = data.pop("name")
-                group = Node()
+                group = Item()
                 group.update({"subset": name, "isGroup": True, "childRow": 0})
                 group.update(data)
 
@@ -176,7 +173,7 @@ class SubsetsModel(TreeModel):
                 row_ = row
                 row += 1
 
-            node = Node()
+            node = Item()
             node.update(data)
 
             self.add_child(node, parent=parent)
@@ -326,7 +323,7 @@ class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
             return True
 
         # Get the node data and validate
-        node = model.data(index, TreeModel.NodeRole)
+        node = model.data(index, TreeModel.ItemRole)
 
         if node.get("isGroup"):
             return self.filter_accepts_group(index, model)

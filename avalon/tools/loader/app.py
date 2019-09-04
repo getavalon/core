@@ -1,11 +1,9 @@
 import sys
 import time
 
-from ..projectmanager.widget import (
-    AssetWidget,
-    AssetModel,
-    preserve_selection,
-)
+from ..models import AssetModel
+from ..widgets import AssetWidget
+from ..lib import preserve_selection
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io, style

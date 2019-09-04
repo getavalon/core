@@ -8,13 +8,13 @@ from ...vendor import qtawesome as qta
 from ... import io, api, style
 from .. import lib as tools_lib
 
-# todo(roy): refactor loading from other tools
-from ..projectmanager.widget import (
+from ..lib import (
+    iter_model_rows,
     preserve_expanded_rows,
-    preserve_selection,
-    _iter_model_rows,
+    preserve_selection
 )
-from ..loader.delegates import VersionDelegate
+from ..delegates import VersionDelegate
+# todo(roy): refactor loading from other tools
 from ..loader.lib import refresh_family_config
 
 from .proxy import FilterProxyModel
@@ -249,8 +249,8 @@ class View(QtWidgets.QTreeView):
             "toggle": selection_model.Toggle,
         }[options.get("mode", "select")]
 
-        for item in _iter_model_rows(model, 0):
-            node = item.data(InventoryModel.NodeRole)
+        for item in iter_model_rows(model, 0):
+            node = item.data(InventoryModel.ItemRole)
             if node.get("isGroupNode"):
                 continue
 
@@ -287,7 +287,7 @@ class View(QtWidgets.QTreeView):
 
         # Extend to the sub-items
         all_indices = self.extend_to_children(indices)
-        nodes = [dict(i.data(InventoryModel.NodeRole)) for i in all_indices
+        nodes = [dict(i.data(InventoryModel.ItemRole)) for i in all_indices
                  if i.parent().isValid()]
 
         if self._hierarchy_view:

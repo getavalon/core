@@ -1,4 +1,3 @@
-
 import logging
 
 from collections import defaultdict
@@ -10,9 +9,7 @@ from .lib import walk_hierarchy
 
 # todo(roy): refactor loading from other tools
 from ..loader import lib as loader_lib
-from ..projectmanager.model import (
-    TreeModel, Node
-)
+from ..models import TreeModel, Item
 
 
 class InventoryModel(TreeModel):
@@ -142,7 +139,7 @@ class InventoryModel(TreeModel):
                     # Parent not in selection, this is root item.
                     item["parent"] = None
 
-            parents = [self._root_node]
+            parents = [self._root_item]
 
             # The length of `items` array is the maximum depth that a
             # hierarchy could be.
@@ -205,7 +202,7 @@ class InventoryModel(TreeModel):
             items (generator): the items to be processed as returned by `ls()`
 
         Returns:
-            node.Node: root node which has children added based on the data
+            node.Item: root node which has children added based on the data
         """
 
         self.beginResetModel()
@@ -247,7 +244,7 @@ class InventoryModel(TreeModel):
             }, sort=[("name", -1)])
 
             # create the group header
-            group_node = Node()
+            group_node = Item()
             group_node["Name"] = "%s_%s: (%s)" % (asset["name"],
                                                   subset["name"],
                                                   representation["name"])
@@ -262,7 +259,7 @@ class InventoryModel(TreeModel):
             self.add_child(group_node, parent=parent)
 
             for item in group_items:
-                item_node = Node()
+                item_node = Item()
                 item_node.update(item)
 
                 # store the current version on the item
@@ -277,4 +274,4 @@ class InventoryModel(TreeModel):
 
         self.endResetModel()
 
-        return self._root_node
+        return self._root_item

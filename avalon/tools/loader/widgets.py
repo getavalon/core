@@ -8,14 +8,15 @@ from ... import io
 from ... import api
 from ... import pipeline
 
-from ..projectmanager.widget import preserve_selection
+from ..lib import preserve_selection
+from ..delegates import VersionDelegate
 
 from .model import (
     SubsetsModel,
     SubsetFilterProxyModel,
     FamiliesFilterProxyModel,
 )
-from .delegates import PrettyTimeDelegate, VersionDelegate
+from .delegates import PrettyTimeDelegate
 from . import lib
 
 
@@ -131,7 +132,7 @@ class SubsetWidget(QtWidgets.QWidget):
         if not point_index.isValid():
             return
 
-        node = point_index.data(self.model.NodeRole)
+        node = point_index.data(self.model.ItemRole)
         if node.get("isGroup"):
             return
 
@@ -223,7 +224,7 @@ class SubsetWidget(QtWidgets.QWidget):
 
         # Trigger
         for row in rows:
-            node = row.data(self.model.NodeRole)
+            node = row.data(self.model.ItemRole)
             if node.get("isGroup"):
                 continue
 
@@ -250,7 +251,7 @@ class SubsetWidget(QtWidgets.QWidget):
 
         subsets = list()
         for row in rows:
-            node = row.data(self.model.NodeRole)
+            node = row.data(self.model.ItemRole)
             if not node.get("isGroup"):
                 subsets.append(node)
 

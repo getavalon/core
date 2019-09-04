@@ -2,11 +2,12 @@ import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import io, schema, api, style
+
 from .. import lib as parentlib
-from . import widget
+from ..widgets import AssetWidget
+from ..models import TasksModel
 
 from .dialogs import TasksCreateDialog, AssetCreateDialog
-from .model import TasksModel
 
 module = sys.modules[__name__]
 module.window = None
@@ -28,7 +29,7 @@ class Window(QtWidgets.QDialog):
         assets_widgets = QtWidgets.QWidget()
         assets_widgets.setContentsMargins(0, 0, 0, 0)
         assets_layout = QtWidgets.QVBoxLayout(assets_widgets)
-        assets = widget.AssetWidget()
+        assets = AssetWidget()
         assets.view.setSelectionMode(assets.view.ExtendedSelection)
         add_asset = QtWidgets.QPushButton("Add asset")
         assets_layout.addWidget(assets)
