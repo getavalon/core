@@ -11,11 +11,10 @@ from .. import lib as tools_lib
 from ..lib import (
     iter_model_rows,
     preserve_expanded_rows,
-    preserve_selection
+    preserve_selection,
+    refresh_family_config_cache
 )
 from ..delegates import VersionDelegate
-# todo(roy): refactor loading from other tools
-from ..loader.lib import refresh_family_config
 
 from .proxy import FilterProxyModel
 from .model import InventoryModel
@@ -904,7 +903,7 @@ class Window(QtWidgets.QDialog):
         self.view.setColumnWidth(3, 150)  # family
         self.view.setColumnWidth(4, 100)  # namespace
 
-        refresh_family_config()
+        refresh_family_config_cache()
 
     def refresh(self):
         with preserve_expanded_rows(tree_view=self.view,

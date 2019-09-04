@@ -9,6 +9,7 @@ from ... import api
 from ... import pipeline
 
 from ..lib import preserve_selection
+from .. import lib as tools_lib
 from ..delegates import VersionDelegate
 
 from .model import (
@@ -457,7 +458,7 @@ class FamilyListWidget(QtWidgets.QListWidget):
         self.clear()
         for name in sorted(unique_families):
 
-            family = lib.get(lib.FAMILY_CONFIG, name)
+            family = tools_lib.get_family_cached_config(name)
             if family.get("hideFilter"):
                 continue
 

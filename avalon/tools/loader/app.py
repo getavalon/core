@@ -9,10 +9,10 @@ from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io, style
 from .. import lib
 
-from .lib import (
-    refresh_family_config,
-    refresh_group_config,
-    get_active_group_config,
+from ..lib import (
+    refresh_family_config_cache,
+    refresh_group_config_cache,
+    get_active_group_config
 )
 from .widgets import SubsetWidget, VersionWidget, FamilyListWidget
 
@@ -433,8 +433,8 @@ def show(debug=False, parent=None, use_context=False):
     with lib.application():
 
         # TODO: Global state, remove these
-        refresh_family_config()
-        refresh_group_config()
+        refresh_family_config_cache()
+        refresh_group_config_cache()
 
         window = Window(parent)
         window.setStyleSheet(style.load_stylesheet())

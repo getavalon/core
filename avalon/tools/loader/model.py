@@ -3,8 +3,7 @@ from ...vendor.Qt import QtCore
 from ...vendor import qtawesome as qta
 
 from ..models import TreeModel, Item
-
-from . import lib
+from .. import lib as tools_lib
 
 
 class SubsetsModel(TreeModel):
@@ -100,7 +99,7 @@ class SubsetsModel(TreeModel):
 
         families = version_data.get("families", [None])
         family = families[0]
-        family_config = lib.get(lib.FAMILY_CONFIG, family)
+        family_config = tools_lib.get_family_cached_config(family)
 
         item.update({
             "version": version['name'],
@@ -129,7 +128,7 @@ class SubsetsModel(TreeModel):
 
         asset_id = self._asset_id
 
-        active_groups = lib.get_active_group_config(asset_id)
+        active_groups = tools_lib.get_active_group_config(asset_id)
 
         # Generate subset group nodes
         group_items = dict()
@@ -254,7 +253,7 @@ class GroupMemberFilterProxyModel(QtCore.QSortFilterProxyModel):
 
     """
 
-    if lib.is_filtering_recursible():
+    if is_filtering_recursible():
         def _is_group_acceptable(self, index, node):
             # (NOTE) With the help of `RecursiveFiltering` feature from
             #        Qt 5.10, group always not be accepted by default.
@@ -332,7 +331,7 @@ class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
 
         filterable_families = set()
         for name in families:
-            family_config = lib.get(lib.FAMILY_CONFIG, name)
+            family_config = tools_lib.get_family_cached_config(name)
             if not family_config.get("hideFilter"):
                 filterable_families.add(name)
 
@@ -352,3 +351,13 @@ class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
             self.setSortRole(model.SortDescendingRole)
 
         super(FamiliesFilterProxyModel, self).sort(column, order)
+
+
+def is_filtering_recursible():
+    """Does Qt binding support recursive filtering for QSortFilterProxyModel?
+
+    (NOTE) Recursive filtering was introduced in Qt 5.10.
+
+    """
+    return hasattr(Qt.QtCore.QSortFilterProxyModel,
+                   "setRecursiveFilteringEnabled")
