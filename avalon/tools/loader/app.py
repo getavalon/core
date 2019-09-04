@@ -202,7 +202,7 @@ class Window(QtWidgets.QDialog):
         if active:
             rows = selection.selectedRows(column=active.column())
             if active in rows:
-                node = active.data(subsets.model.NodeRole)
+                node = active.data(subsets.model.ItemRole)
                 if node is not None and not node.get("isGroup"):
                     version = node['version_document']['_id']
 
