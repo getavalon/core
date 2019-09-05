@@ -203,7 +203,7 @@ class TasksModel(TreeModel):
     def _get_task_icons(self):
         # Get the project configured icons from database
         project = io.find_one({"type": "project"})
-        tasks = project['config'].get('tasks', [])
+        tasks = project["config"].get("tasks", [])
         for task in tasks:
             icon_name = task.get("icon", None)
             if icon_name:
@@ -280,7 +280,7 @@ class TasksModel(TreeModel):
         # Add icon to the first column
         if role == QtCore.Qt.DecorationRole:
             if index.column() == 0:
-                return index.internalPointer()['icon']
+                return index.internalPointer()["icon"]
 
         return super(TasksModel, self).data(index, role)
 
@@ -326,30 +326,30 @@ class AssetModel(TreeModel):
         if parent is None:
             # if not a parent find all that are parented to the project
             # or do *not* have a visualParent field at all
-            find_data['$or'] = [
-                {'data.visualParent': {'$exists': False}},
-                {'data.visualParent': None}
+            find_data["$or"] = [
+                {"data.visualParent": {"$exists": False}},
+                {"data.visualParent": None}
             ]
         else:
-            find_data["data.visualParent"] = parent['_id']
+            find_data["data.visualParent"] = parent["_id"]
 
-        assets = io.find(find_data).sort('name', 1)
+        assets = io.find(find_data).sort("name", 1)
 
         for asset in assets:
 
             # get label from data, otherwise use name
             data = asset.get("data", {})
-            label = data.get("label", asset['name'])
+            label = data.get("label", asset["name"])
             tags = data.get("tags", [])
 
             # store for the asset for optimization
             deprecated = "deprecated" in tags
 
             item = Item({
-                "_id": asset['_id'],
+                "_id": asset["_id"],
                 "name": asset["name"],
                 "label": label,
-                "type": asset['type'],
+                "type": asset["type"],
                 "tags": ", ".join(tags),
                 "deprecated": deprecated,
                 "_document": asset

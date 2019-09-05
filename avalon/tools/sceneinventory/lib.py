@@ -54,7 +54,7 @@ def switch_item(container,
 
     version = io.find_one({"type": "version",
                            "parent": subset["_id"]},
-                          sort=[('name', -1)])
+                          sort=[("name", -1)])
 
     assert version, "Could not find a version for {}.{}".format(
         asset_name, subset_name

@@ -34,7 +34,7 @@ def pretty_date(t, now=None, strftime="%b %d %Y %H:%M"):
 
     # future (consider as just now)
     if day_diff < 0:
-        return 'just now'
+        return "just now"
 
     # history
     if day_diff == 0:

@@ -480,9 +480,9 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self._representations_box = SearchComboBox(
             placeholder="<representation>")
 
-        self._asset_label = QtWidgets.QLabel('')
-        self._subset_label = QtWidgets.QLabel('')
-        self._repre_label = QtWidgets.QLabel('')
+        self._asset_label = QtWidgets.QLabel("")
+        self._subset_label = QtWidgets.QLabel("")
+        self._repre_label = QtWidgets.QLabel("")
 
         main_layout = QtWidgets.QVBoxLayout()
         context_layout = QtWidgets.QHBoxLayout()
@@ -587,11 +587,11 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         subset_label = default
         repre_label = default
 
-        if self._assets_box.currentText() != '':
+        if self._assets_box.currentText() != "":
             asset_label = self._assets_box.currentText()
-        if self._subsets_box.currentText() != '':
+        if self._subsets_box.currentText() != "":
             subset_label = self._subsets_box.currentText()
-        if self._representations_box.currentText() != '':
+        if self._representations_box.currentText() != "":
             repre_label = self._representations_box.currentText()
 
         self._asset_label.setText(asset_label)
@@ -641,7 +641,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                     "type": "version",
                     "parent": subset["_id"]
                 },
-                sort=[('name', -1)]
+                sort=[("name", -1)]
             )
             if version is None:
                 repre_ok = False
@@ -655,22 +655,22 @@ class SwitchAssetDialog(QtWidgets.QDialog):
             if repre is None:
                 repre_ok = False
 
-        asset_sheet = ''
-        subset_sheet = ''
-        repre_sheet = ''
-        accept_sheet = ''
-        error_msg = '*Please select'
+        asset_sheet = ""
+        subset_sheet = ""
+        repre_sheet = ""
+        accept_sheet = ""
+        error_msg = "*Please select"
         if asset_ok is False:
-            asset_sheet = 'border: 1px solid red;'
+            asset_sheet = "border: 1px solid red;"
             self._asset_label.setText(error_msg)
         if subset_ok is False:
-            subset_sheet = 'border: 1px solid red;'
+            subset_sheet = "border: 1px solid red;"
             self._subset_label.setText(error_msg)
         if repre_ok is False:
-            repre_sheet = 'border: 1px solid red;'
+            repre_sheet = "border: 1px solid red;"
             self._repre_label.setText(error_msg)
         if asset_ok and subset_ok and repre_ok:
-            accept_sheet = 'border: 1px solid green;'
+            accept_sheet = "border: 1px solid green;"
 
         self._assets_box.setStyleSheet(asset_sheet)
         self._subsets_box.setStyleSheet(subset_sheet)
@@ -681,13 +681,13 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
     def _get_assets(self):
         filtered_assets = []
-        for asset in io.find({'type': 'asset'}):
+        for asset in io.find({"type": "asset"}):
             subsets = io.find({
-                'type': 'subset',
-                'parent': asset['_id']
+                "type": "subset",
+                "parent": asset["_id"]
             })
             for subs in subsets:
-                filtered_assets.append(asset['name'])
+                filtered_assets.append(asset["name"])
                 break
 
         return filtered_assets
@@ -697,8 +697,8 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         if self._assets_box.currentText() != "":
             parents = list()
             parents.append(io.find_one({
-                'type': 'asset',
-                'name': self._assets_box.currentText()
+                "type": "asset",
+                "name": self._assets_box.currentText()
             }))
 
             return self._get_document_names("subset", parents)
@@ -716,12 +716,12 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         possible_subsets = None
         for asset in assets:
             subsets = io.find({
-                'type': 'subset',
-                'parent': asset['_id']
+                "type": "subset",
+                "parent": asset["_id"]
             })
             asset_subsets = set()
             for subset in subsets:
-                asset_subsets.add(subset['name'])
+                asset_subsets.add(subset["name"])
 
             if possible_subsets is None:
                 possible_subsets = asset_subsets
@@ -738,16 +738,16 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
             for subset in subsets:
                 entity = io.find_one({
-                    'type': 'subset',
-                    'name': subset
+                    "type": "subset",
+                    "name": subset
                 })
 
                 entity = io.find_one(
                     {
-                        'type': 'version',
-                        'parent': entity['_id']
+                        "type": "version",
+                        "parent": entity["_id"]
                     },
-                    sort=[('name', -1)]
+                    sort=[("name", -1)]
                 )
                 if entity not in parents:
                     parents.append(entity)
@@ -766,12 +766,12 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         possible_repres = None
         for version in versions:
             representations = io.find({
-                'type': 'representation',
-                'parent': version['_id']
+                "type": "representation",
+                "parent": version["_id"]
             })
             repres = set()
             for repre in representations:
-                repres.add(repre['name'])
+                repres.add(repre["name"])
 
             if possible_repres is None:
                 possible_repres = repres

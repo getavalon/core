@@ -256,8 +256,8 @@ def refresh_family_config_cache():
                           projection={"config.families": True})
 
     assert project, "Project not found!"
-    families = project['config'].get("families", [])
-    families = {family['name']: family for family in families}
+    families = project["config"].get("families", [])
+    families = {family["name"]: family for family in families}
 
     # Check if any family state are being overwritten by the configuration
     default_state = api.data.get("familiesStateDefault", True)
@@ -269,10 +269,10 @@ def refresh_family_config_cache():
         # Set family icon
         icon = family.get("icon", None)
         if icon:
-            family['icon'] = qtawesome.icon("fa.{}".format(icon),
+            family["icon"] = qtawesome.icon("fa.{}".format(icon),
                                             color=FAMILY_ICON_COLOR)
         else:
-            family['icon'] = default_icon
+            family["icon"] = default_icon
 
         # Update state
         state = not default_state if name in toggled else default_state

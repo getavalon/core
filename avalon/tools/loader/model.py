@@ -74,7 +74,7 @@ class SubsetsModel(TreeModel):
             return
 
         item = index.internalPointer()
-        assert version['parent'] == item['_id'], ("Version does not "
+        assert version["parent"] == item["_id"], ("Version does not "
                                                   "belong to subset")
 
         # Get the data from the version
@@ -102,8 +102,8 @@ class SubsetsModel(TreeModel):
         if frame_start is not None and frame_end is not None:
             # Remove superfluous zeros from numbers (3.0 -> 3) to improve
             # readability for most frame ranges
-            start_clean = ('%f' % frame_start).rstrip('0').rstrip('.')
-            end_clean = ('%f' % frame_end).rstrip('0').rstrip('.')
+            start_clean = ("%f" % frame_start).rstrip("0").rstrip(".")
+            end_clean = ("%f" % frame_end).rstrip("0").rstrip(".")
             frames = "{0}-{1}".format(start_clean, end_clean)
             duration = frame_end - frame_start + 1
         else:
@@ -115,13 +115,13 @@ class SubsetsModel(TreeModel):
         family_config = tools_lib.get_family_cached_config(family)
 
         item.update({
-            "version": version['name'],
+            "version": version["name"],
             "version_document": version,
             "author": version_data.get("author", None),
             "time": version_data.get("time", None),
             "family": family,
             "familyLabel": family_config.get("label", family),
-            "familyIcon": family_config.get('icon', None),
+            "familyIcon": family_config.get("icon", None),
             "families": set(families),
             "frameStart": frame_start,
             "frameEnd": frame_end,

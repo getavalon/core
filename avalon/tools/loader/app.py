@@ -180,10 +180,10 @@ class Window(QtWidgets.QDialog):
             return
 
         document = asset_item.data(DocumentRole)
-        subsets_model.set_asset(document['_id'])
+        subsets_model.set_asset(document["_id"])
 
         # Clear the version information on asset change
-        self.data['model']['version'].set_version(None)
+        self.data["model"]["version"].set_version(None)
 
         self.data["state"]["context"]["asset"] = document["name"]
         self.data["state"]["context"]["assetId"] = document["_id"]
@@ -204,9 +204,9 @@ class Window(QtWidgets.QDialog):
             if active in rows:
                 node = active.data(subsets.model.ItemRole)
                 if node is not None and not node.get("isGroup"):
-                    version = node['version_document']['_id']
+                    version = node["version_document"]["_id"]
 
-        self.data['model']['version'].set_version(version)
+        self.data["model"]["version"].set_version(version)
 
     def _set_context(self, context, refresh=True):
         """Set the selection in the interface using a context.
@@ -243,7 +243,7 @@ class Window(QtWidgets.QDialog):
             # scheduled refresh and the silo tabs are not shown.
             self._refresh()
 
-        asset_widget = self.data['model']['assets']
+        asset_widget = self.data["model"]["assets"]
         asset_widget.set_silo(silo)
         asset_widget.select_assets([asset], expand=True)
 
@@ -441,8 +441,8 @@ def show(debug=False, parent=None, use_context=False):
         window.show()
 
         if use_context:
-            context = {"asset": api.Session['AVALON_ASSET'],
-                       "silo": api.Session['AVALON_SILO']}
+            context = {"asset": api.Session["AVALON_ASSET"],
+                       "silo": api.Session["AVALON_SILO"]}
             window.set_context(context, refresh=True)
         else:
             window.refresh()

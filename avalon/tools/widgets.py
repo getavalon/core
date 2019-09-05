@@ -162,7 +162,7 @@ class AssetWidget(QtWidgets.QWidget):
                                      column=0,
                                      include_root=False):
             data = index.data(self.model.ItemRole)
-            name = data['name']
+            name = data["name"]
             if name in assets:
                 selection_model.select(index, mode)
 
@@ -322,6 +322,6 @@ def _list_project_silos():
 
     if not silos:
         project = io.find_one({"type": "project"})
-        log.warning("Project '%s' has no active silos", project['name'])
+        log.warning("Project '%s' has no active silos", project["name"])
 
     return list(sorted(silos))

@@ -139,8 +139,8 @@ class Window(QtWidgets.QDialog):
         create_btn.setEnabled(False)
 
     def _on_state_changed(self, state):
-        self.state['valid'] = state
-        self.data['Create Button'].setEnabled(state)
+        self.state["valid"] = state
+        self.data["Create Button"].setEnabled(state)
 
     def _build_menu(self, default_names):
         """Create optional predefined subset names
@@ -311,7 +311,7 @@ class Window(QtWidgets.QDialog):
     def on_create(self):
 
         # Do not allow creation in an invalid state
-        if not self.state['valid']:
+        if not self.state["valid"]:
             return
 
         asset = self.data["Asset"]

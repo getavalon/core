@@ -50,15 +50,15 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
 
         # Add all available versions to the editor
         item = index.data(TreeModel.ItemRole)
-        parent_id = item['version_document']['parent']
+        parent_id = item["version_document"]["parent"]
         versions = io.find({"type": "version", "parent": parent_id},
                            sort=[("name", 1)])
         index = 0
         for i, version in enumerate(versions):
-            label = self._format_version(version['name'])
+            label = self._format_version(version["name"])
             editor.addItem(label, userData=version)
 
-            if version['name'] == value:
+            if version["name"] == value:
                 index = i
 
         editor.setCurrentIndex(index)  # Will trigger index-change signal
@@ -68,4 +68,4 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
     def setModelData(self, editor, model, index):
         """Apply the integer version back in the model"""
         version = editor.itemData(editor.currentIndex())
-        model.setData(index, version['name'])
+        model.setData(index, version["name"])
