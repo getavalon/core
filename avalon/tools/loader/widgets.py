@@ -56,11 +56,11 @@ class SubsetWidget(QtWidgets.QWidget):
 
         # Set view delegates
         version_delegate = VersionDelegate()
-        column = model.columns.index("version")
+        column = model.Columns.index("version")
         view.setItemDelegateForColumn(column, version_delegate)
 
         time_delegate = PrettyTimeDelegate()
-        column = model.columns.index("time")
+        column = model.Columns.index("time")
         view.setItemDelegateForColumn(column, time_delegate)
 
         layout = QtWidgets.QVBoxLayout(self)

@@ -15,7 +15,7 @@ from .lib import walk_hierarchy
 class InventoryModel(TreeModel):
     """The model for the inventory"""
 
-    columns = ["Name", "version", "count", "family", "objectName"]
+    Columns = ["Name", "version", "count", "family", "objectName"]
 
     OUTDATED_COLOR = QtGui.QColor(235, 30, 30)
     CHILD_OUTDATED_COLOR = QtGui.QColor(200, 160, 30)
@@ -46,7 +46,7 @@ class InventoryModel(TreeModel):
         if role == QtCore.Qt.ForegroundRole:
             # Set the text color to the OUTDATED_COLOR when the
             # collected version is not the same as the highest version
-            key = self.columns[index.column()]
+            key = self.Columns[index.column()]
             outdated = (lambda n: n.get("version") != n.get("highest_version"))
             if key == "version":  # version
                 if item.get("isGroupNode"):  # group-item

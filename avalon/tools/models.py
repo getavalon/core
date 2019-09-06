@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 class TreeModel(QtCore.QAbstractItemModel):
 
-    columns = list()
+    Columns = list()
     ItemRole = QtCore.Qt.UserRole + 1
 
     def __init__(self, parent=None):
@@ -28,7 +28,7 @@ class TreeModel(QtCore.QAbstractItemModel):
         return item.childCount()
 
     def columnCount(self, parent):
-        return len(self.columns)
+        return len(self.Columns)
 
     def data(self, index, role):
 
@@ -40,7 +40,7 @@ class TreeModel(QtCore.QAbstractItemModel):
             item = index.internalPointer()
             column = index.column()
 
-            key = self.columns[column]
+            key = self.Columns[column]
             return item.get(key, None)
 
         if role == self.ItemRole:
@@ -58,7 +58,7 @@ class TreeModel(QtCore.QAbstractItemModel):
 
                 item = index.internalPointer()
                 column = index.column()
-                key = self.columns[column]
+                key = self.Columns[column]
                 item[key] = value
 
                 # passing `list()` for PyQt5 (see PYSIDE-462)
@@ -71,13 +71,13 @@ class TreeModel(QtCore.QAbstractItemModel):
 
     def setColumns(self, keys):
         assert isinstance(keys, (list, tuple))
-        self.columns = keys
+        self.Columns = keys
 
     def headerData(self, section, orientation, role):
 
         if role == QtCore.Qt.DisplayRole:
-            if section < len(self.columns):
-                return self.columns[section]
+            if section < len(self.Columns):
+                return self.Columns[section]
 
         super(TreeModel, self).headerData(section, orientation, role)
 
@@ -124,8 +124,8 @@ class TreeModel(QtCore.QAbstractItemModel):
     def column_name(self, column):
         """Return column key by index"""
 
-        if column < len(self.columns):
-            return self.columns[column]
+        if column < len(self.Columns):
+            return self.Columns[column]
 
     def clear(self):
         self.beginResetModel()
@@ -188,7 +188,7 @@ class Item(dict):
 class TasksModel(TreeModel):
     """A model listing the tasks combined for a list of assets"""
 
-    columns = ["name", "count"]
+    Columns = ["name", "count"]
 
     def __init__(self):
         super(TasksModel, self).__init__()
@@ -294,7 +294,7 @@ class AssetModel(TreeModel):
 
     """
 
-    columns = ["label"]
+    Columns = ["label"]
     Name = 0
     Deprecated = 2
     ObjectId = 3
