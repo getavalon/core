@@ -8,6 +8,8 @@ from ...vendor.Qt import QtWidgets, QtCore
 from ... import style, io, api
 
 from .. import lib as parentlib
+from ..widgets import AssetWidget
+from ..models import TasksModel
 
 
 class NameWindow(QtWidgets.QDialog):
@@ -231,81 +233,156 @@ class NameWindow(QtWidgets.QDialog):
         self.extensions = {"maya": ".ma", "nuke": ".nk"}
 
 
-class Window(QtWidgets.QDialog):
+class ContextBreadcrumb(QtWidgets.QWidget):
+    """Horizontal widget showing current avalon project, asset and task."""
+
+    def __init__(self, *args):
+        QtWidgets.QWidget.__init__(self, *args)
+
+        self.widgets = {
+            "project": QtWidgets.QLabel(),
+            "asset": QtWidgets.QLabel(),
+            "task": QtWidgets.QLabel()
+        }
+
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.addWidget(self.widgets["project"])
+        layout.addWidget(QtWidgets.QLabel(u"\u25B6"))
+        layout.addWidget(self.widgets["asset"])
+        layout.addWidget(QtWidgets.QLabel(u"\u25B6"))
+        layout.addWidget(self.widgets["task"])
+        layout.addStretch()
+
+        for name in ["project", "asset", "task"]:
+            self.widgets[name].setStyleSheet("QLabel{ font-size: 12pt; }")
+
+        self.refresh()  # initialize
+
+    def refresh(self):
+
+        self.widgets["project"].setText(api.Session["AVALON_PROJECT"])
+        self.widgets["asset"].setText(api.Session["AVALON_ASSET"])
+        self.widgets["task"].setText(api.Session["AVALON_TASK"])
+
+
+class TasksWidget(QtWidgets.QWidget):
+    def __init__(self):
+        super(TasksWidget, self).__init__()
+        self.setContentsMargins(0, 0, 0, 0)
+
+        view = QtWidgets.QTreeView()
+        view.setIndentation(0)
+        model = TasksModel()
+        view.setModel(model)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(view)
+
+        # Hide the default tasks "count" as we don't need that data here.
+        view.setColumnHidden(1, True)
+
+        self.models = {
+            "tasks": model
+        }
+
+        self.widgets = {
+            "view": view,
+        }
+
+
+class Window(QtWidgets.QMainWindow):
     """Work Files Window"""
+    title = "Work Files"
 
     def __init__(self, root=None):
         super(Window, self).__init__()
-        self.setWindowTitle("Work Files")
+        self.setWindowTitle(self.title)
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
 
+        # Setup
         self.root = root
-
         if self.root is None:
             self.root = os.getcwd()
 
         self.host = api.registered_host()
 
-        self.layout = QtWidgets.QVBoxLayout()
-        self.setLayout(self.layout)
+        pages = {
+            "home": QtWidgets.QWidget()
+        }
 
-        # Display current context
-        # todo: context should update on update task
-        label = u"<b>Asset</b> {0} \u25B6 <b>Task</b> {1}".format(
-            api.Session["AVALON_ASSET"],
-            api.Session["AVALON_TASK"]
-        )
-        self.context_label = QtWidgets.QLabel(label)
-        self.context_label.setStyleSheet("QLabel{ font-size: 12pt; }")
-        self.layout.addWidget(self.context_label)
+        widgets = {
+            "pages": QtWidgets.QStackedWidget(),
+            "header": ContextBreadcrumb(),
+            "body": QtWidgets.QWidget(),
+            "assets": AssetWidget(),
+            "tasks": TasksWidget(),
+            "files": QtWidgets.QWidget(),
+            "fileList": QtWidgets.QListWidget(),
+            "fileDuplicate": QtWidgets.QPushButton("Duplicate"),
+            "fileOpen": QtWidgets.QPushButton("Open"),
+            "fileBrowse": QtWidgets.QPushButton("Browse"),
+            "fileCurrent": QtWidgets.QLabel(),
+            "fileSave": QtWidgets.QPushButton("Save As")
+        }
+
+        self.setCentralWidget(widgets["pages"])
+        widgets["pages"].addWidget(pages["home"])
+
+        # Build homepage
+        layout = QtWidgets.QVBoxLayout(pages["home"])
+        layout.addWidget(widgets["header"])
+        layout.addWidget(widgets["body"])
+
+        # Build body
+        layout = QtWidgets.QHBoxLayout(widgets["body"])
+        layout.addWidget(widgets["assets"])
+        layout.addWidget(widgets["tasks"])
+        layout.addWidget(widgets["files"])
+
+        # Build buttons widget for files widget
+        buttons = QtWidgets.QWidget()
+        layout = QtWidgets.QHBoxLayout(buttons)
+        layout.addWidget(widgets["fileDuplicate"])
+        layout.addWidget(widgets["fileOpen"])
+        layout.addWidget(widgets["fileBrowse"])
+
+        # Build files widgets
+        layout = QtWidgets.QVBoxLayout(widgets["files"])
+        layout.addWidget(widgets["fileList"])
+        layout.addWidget(buttons)
 
         separator = QtWidgets.QFrame()
         separator.setFrameShape(QtWidgets.QFrame.HLine)
         separator.setFrameShadow(QtWidgets.QFrame.Plain)
-        self.layout.addWidget(separator)
+        layout.addWidget(separator)
 
-        self.list = QtWidgets.QListWidget()
-        self.layout.addWidget(self.list)
+        layout.addWidget(widgets["fileCurrent"])
+        layout.addWidget(widgets["fileSave"])
 
-        buttons_layout = QtWidgets.QHBoxLayout()
-        self.duplicate_button = QtWidgets.QPushButton("Duplicate")
-        buttons_layout.addWidget(self.duplicate_button)
-        self.open_button = QtWidgets.QPushButton("Open")
-        buttons_layout.addWidget(self.open_button)
-        self.browse_button = QtWidgets.QPushButton("Browse")
-        buttons_layout.addWidget(self.browse_button)
-        self.layout.addLayout(buttons_layout)
+        widgets["fileDuplicate"].pressed.connect(self.on_duplicate_pressed)
+        widgets["fileOpen"].pressed.connect(self.on_open_pressed)
+        widgets["fileList"].doubleClicked.connect(self.on_open_pressed)
+        widgets["fileBrowse"].pressed.connect(self.on_browse_pressed)
+        widgets["fileSave"].pressed.connect(self.on_save_as_pressed)
 
-        separator = QtWidgets.QFrame()
-        separator.setFrameShape(QtWidgets.QFrame.HLine)
-        separator.setFrameShadow(QtWidgets.QFrame.Sunken)
-        self.layout.addWidget(separator)
+        # Force focus on the open button by default, required for Houdini.
+        widgets["fileOpen"].setFocus()
 
-        current_file = self.host.current_file()
-        if current_file:
-            current_label = os.path.basename(current_file)
-        else:
-            current_label = "<unsaved>"
-        current_file_label = QtWidgets.QLabel("Current File: " + current_label)
-        self.layout.addWidget(current_file_label)
+        # Connect signals
+        widgets["assets"].current_changed.connect(self.on_asset_changed)
 
-        buttons_layout = QtWidgets.QHBoxLayout()
-        self.save_as_button = QtWidgets.QPushButton("Save As")
-        buttons_layout.addWidget(self.save_as_button)
-        self.layout.addLayout(buttons_layout)
-
-        self.duplicate_button.pressed.connect(self.on_duplicate_pressed)
-        self.open_button.pressed.connect(self.on_open_pressed)
-        self.list.doubleClicked.connect(self.on_open_pressed)
-        self.browse_button.pressed.connect(self.on_browse_pressed)
-        self.save_as_button.pressed.connect(self.on_save_as_pressed)
-
-        self.open_button.setFocus()
+        self.widgets = widgets
 
         self.refresh()
         self.resize(400, 550)
 
-    def get_name(self):
+    def get_filename(self):
+        """Show save dialog to define filename for save or duplicate
+
+        Returns:
+            str: The filename to create.
+
+        """
         window = NameWindow(self.root)
         window.setStyleSheet(style.load_stylesheet())
         window.exec_()
@@ -313,7 +390,17 @@ class Window(QtWidgets.QDialog):
         return window.get_result()
 
     def refresh(self):
-        self.list.clear()
+
+        # Refresh asset widget
+        self.widgets["assets"].refresh()
+
+        # Refresh current scene label
+        current = self.host.current_file() or "<unsaved>"
+        self.widgets["fileCurrent"].setText("Current File: %s" % current)
+
+        # Refresh files list
+        list = self.widgets["fileList"]
+        list.clear()
 
         modified = []
         extensions = set(self.host.file_extensions())
@@ -325,31 +412,23 @@ class Window(QtWidgets.QDialog):
             if extensions and os.path.splitext(f)[1] not in extensions:
                 continue
 
-            self.list.addItem(f)
+            list.addItem(f)
             modified.append(os.path.getmtime(path))
 
         # Select last modified file
-        if self.list.count():
-            item = self.list.item(modified.index(max(modified)))
+        if list.count():
+            item = list.item(modified.index(max(modified)))
             item.setSelected(True)
 
             # Scroll list so item is visible
-            QtCore.QTimer.singleShot(100, lambda: self.list.scrollToItem(item))
+            callback = lambda: self.widgets["fileList"].scrollToItem(item)
+            QtCore.QTimer.singleShot(100, callback)
 
-            self.duplicate_button.setEnabled(True)
+            self.widgets["fileDuplicate"].setEnabled(True)
         else:
-            self.duplicate_button.setEnabled(False)
+            self.widgets["fileDuplicate"].setEnabled(False)
 
-        self.list.setMinimumWidth(self.list.sizeHintForColumn(0) + 30)
-
-    def save_as_maya(self, file_path):
-        from maya import cmds
-        cmds.file(rename=file_path)
-        cmds.file(save=True, type="mayaAscii")
-
-    def save_as_nuke(self, file_path):
-        import nuke
-        nuke.scriptSaveAs(file_path)
+        list.setMinimumWidth(list.sizeHintForColumn(0) + 30)
 
     def save_changes_prompt(self):
         messagebox = QtWidgets.QMessageBox()
@@ -392,13 +471,13 @@ class Window(QtWidgets.QDialog):
         return host.open(filepath)
 
     def on_duplicate_pressed(self):
-        work_file = self.get_name()
+        work_file = self.get_filename()
 
         if not work_file:
             return
 
         src = os.path.join(
-            self.root, self.list.selectedItems()[0].text()
+            self.root, self.widgets["fileList"].selectedItems()[0].text()
         )
         dst = os.path.join(
             self.root, work_file
@@ -409,7 +488,7 @@ class Window(QtWidgets.QDialog):
 
     def on_open_pressed(self):
 
-        selection = self.list.selectedItems()
+        selection = self.widgets["fileList"].selectedItems()
         if not selection:
             print("No file selected to open..")
             return
@@ -439,7 +518,7 @@ class Window(QtWidgets.QDialog):
         self.close()
 
     def on_save_as_pressed(self):
-        work_file = self.get_name()
+        work_file = self.get_filename()
 
         if not work_file:
             return
@@ -448,6 +527,10 @@ class Window(QtWidgets.QDialog):
         self.host.save(file_path)
 
         self.close()
+
+    def on_asset_changed(self):
+        asset = self.widgets["assets"].get_active_asset()
+        self.widgets["tasks"].models["tasks"].set_assets([asset])
 
 
 def show(root=None, debug=False):
@@ -488,6 +571,7 @@ def show(root=None, debug=False):
         api.Session["AVALON_TASK"] = "Testing"
 
     with parentlib.application():
+        global window
         window = Window(root)
         window.setStyleSheet(style.load_stylesheet())
 
@@ -497,4 +581,5 @@ def show(root=None, debug=False):
 
         else:
             # Cause modal dialog
-            window.exec_()
+            # todo: force modal again
+            window.show()
