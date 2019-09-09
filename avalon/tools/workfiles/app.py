@@ -276,6 +276,7 @@ class TasksWidget(QtWidgets.QWidget):
         view.setModel(model)
 
         layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(view)
 
         # Hide the default tasks "count" as we don't need that data here.
@@ -288,6 +289,62 @@ class TasksWidget(QtWidgets.QWidget):
         self.widgets = {
             "view": view,
         }
+
+        self._last_selected_task = None
+
+    def set_asset(self, asset_id):
+
+        # Try and preserve the last selected task and reselect it
+        # after switching assets. If there's no currently selected
+        # asset keep whatever the "last selected" was prior to it.
+        current = self.get_current_task()
+        if current:
+            self._last_selected_task = current
+
+        self.models["tasks"].set_assets([asset_id])
+
+        if self._last_selected_task:
+            self.select_task(self._last_selected_task)
+
+    def select_task(self, task):
+        """Select a task by name.
+
+        If the task does not exist in the current model then selection is only
+        cleared.
+
+        Args:
+            task (str): Name of the task to select.
+
+        """
+
+        # Clear selection
+        view = self.widgets["view"]
+        model = view.model()
+        selection_model = view.selectionModel()
+        selection_model.clearSelection()
+
+        # Select the task
+        mode = selection_model.Select | selection_model.Rows
+        for row in range(model.rowCount(QtCore.QModelIndex())):
+            index = model.index(row, 0, QtCore.QModelIndex())
+            name = index.data(QtCore.Qt.DisplayRole)
+            if name == task:
+                selection_model.select(index, mode)
+
+                # Set the currently active index
+                view.setCurrentIndex(index)
+
+    def get_current_task(self):
+        """Return name of task at current index (selected)
+
+        Returns:
+            str: Name of the current task.
+
+        """
+        view = self.widgets["view"]
+        index = view.currentIndex()
+        index = index.sibling(index.row(), 0)  # ensure column zero for name
+        return index.data(QtCore.Qt.DisplayRole)
 
 
 class Window(QtWidgets.QMainWindow):
@@ -314,7 +371,7 @@ class Window(QtWidgets.QMainWindow):
             "pages": QtWidgets.QStackedWidget(),
             "header": ContextBreadcrumb(),
             "body": QtWidgets.QWidget(),
-            "assets": AssetWidget(),
+            "assets": AssetWidget(silo_creatable=False),
             "tasks": TasksWidget(),
             "files": QtWidgets.QWidget(),
             "fileList": QtWidgets.QListWidget(),
@@ -342,6 +399,7 @@ class Window(QtWidgets.QMainWindow):
         # Build buttons widget for files widget
         buttons = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(buttons)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(widgets["fileDuplicate"])
         layout.addWidget(widgets["fileOpen"])
         layout.addWidget(widgets["fileBrowse"])
@@ -374,7 +432,25 @@ class Window(QtWidgets.QMainWindow):
         self.widgets = widgets
 
         self.refresh()
-        self.resize(400, 550)
+        self.resize(750, 500)
+
+    def set_context(self, context):
+
+        if "asset" in context:
+            asset = context["asset"]
+            asset_document = io.find_one({"name": asset,
+                                          "type": "asset"})
+
+            # Set silo
+            silo = asset_document["data"].get("silo")
+            if self.widgets["assets"].get_current_silo() != silo:
+                self.widgets["assets"].set_silo(silo)
+
+            # Select the asset
+            self.widgets["assets"].select_assets([asset], expand=True)
+
+        if "task" in context:
+            self.widgets["tasks"].select_task(context["task"])
 
     def get_filename(self):
         """Show save dialog to define filename for save or duplicate
@@ -530,8 +606,7 @@ class Window(QtWidgets.QMainWindow):
 
     def on_asset_changed(self):
         asset = self.widgets["assets"].get_active_asset()
-        self.widgets["tasks"].models["tasks"].set_assets([asset])
-
+        self.widgets["tasks"].set_asset(asset)
 
 def show(root=None, debug=False):
     """Show Work Files GUI"""
@@ -578,8 +653,10 @@ def show(root=None, debug=False):
         if debug:
             # Enable closing in standalone
             window.show()
+            return window
 
         else:
             # Cause modal dialog
             # todo: force modal again
             window.show()
+            return window
