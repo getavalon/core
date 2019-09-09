@@ -13,75 +13,108 @@ from ..models import TasksModel
 
 
 class NameWindow(QtWidgets.QDialog):
-    """Name Window"""
+    """Name Window to define a unique filename inside a root folder
+
+    The filename will be based on the "workfile" template defined in the
+    project["config"]["template"].
+
+    """
 
     def __init__(self, root):
         super(NameWindow, self).__init__()
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
 
         self.result = None
-        self.setup(root)
+        self.root = root
+        self.host = api.registered_host()
+        self.work_file = None
 
-        self.layout = QtWidgets.QVBoxLayout()
-        self.setLayout(self.layout)
+        # Get work file name
+        self.data = {
+            "project": io.find_one(
+                {"name": api.Session["AVALON_PROJECT"], "type": "project"}
+            ),
+            "asset": io.find_one(
+                {"name": api.Session["AVALON_ASSET"], "type": "asset"}
+            ),
+            "task": {
+                "name": api.Session["AVALON_TASK"].lower(),
+                "label": api.Session["AVALON_TASK"]
+            },
+            "version": 1,
+            "user": getpass.getuser(),
+            "comment": ""
+        }
 
-        grid_layout = QtWidgets.QGridLayout()
+        # Define work files template
+        templates = self.data["project"]["config"]["template"]
+        template = templates.get("workfile",
+                                 "{task[name]}_v{version:0>4}<_{comment}>")
+        self.template = template
 
-        label = QtWidgets.QLabel("Version:")
-        grid_layout.addWidget(label, 0, 0)
-        self.version_spinbox = QtWidgets.QSpinBox()
-        self.version_spinbox.setMinimum(1)
-        self.version_spinbox.setMaximum(9999)
-        self.version_checkbox = QtWidgets.QCheckBox("Next Available Version")
-        self.version_checkbox.setCheckState(QtCore.Qt.CheckState(2))
-        layout = QtWidgets.QHBoxLayout()
-        layout.addWidget(self.version_spinbox)
-        layout.addWidget(self.version_checkbox)
-        grid_layout.addLayout(layout, 0, 1)
-        # Since the version can be padded with "{version:0>4}" we only search
-        # for "{version".
-        if "{version" not in self.template:
-            label.setVisible(False)
-            self.version_spinbox.setVisible(False)
-            self.version_checkbox.setVisible(False)
+        # Build version
+        version = QtWidgets.QWidget()
+        version_spinbox = QtWidgets.QSpinBox()
+        version_spinbox.setMinimum(1)
+        version_spinbox.setMaximum(9999)
+        version_checkbox = QtWidgets.QCheckBox("Next Available Version")
+        version_checkbox.setCheckState(QtCore.Qt.CheckState(2))
+        layout = QtWidgets.QHBoxLayout(version)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(version_spinbox)
+        layout.addWidget(version_checkbox)
 
-        label = QtWidgets.QLabel("Comment:")
-        grid_layout.addWidget(label, 1, 0)
-        self.comment_lineedit = QtWidgets.QLineEdit()
-        if "{comment}" not in self.template:
-            label.setVisible(False)
-            self.comment_lineedit.setVisible(False)
-        grid_layout.addWidget(self.comment_lineedit, 1, 1)
+        # Build comment
+        comment = QtWidgets.QLineEdit()
 
-        grid_layout.addWidget(QtWidgets.QLabel("Preview:"), 2, 0)
-        self.label = QtWidgets.QLabel("File name")
-        grid_layout.addWidget(self.label, 2, 1)
+        # Build preview
+        preview = QtWidgets.QLabel("Preview filename")
 
-        self.layout.addLayout(grid_layout)
+        # Build buttons
+        buttons = QtWidgets.QWidget()
+        layout = QtWidgets.QHBoxLayout(buttons)
+        ok_button = QtWidgets.QPushButton("Ok")
+        cancel_button = QtWidgets.QPushButton("Cancel")
+        layout.addWidget(ok_button)
+        layout.addWidget(cancel_button)
 
-        layout = QtWidgets.QHBoxLayout()
-        self.ok_button = QtWidgets.QPushButton("Ok")
-        layout.addWidget(self.ok_button)
-        self.cancel_button = QtWidgets.QPushButton("Cancel")
-        layout.addWidget(self.cancel_button)
-        self.layout.addLayout(layout)
+        # Build inputs
+        inputs = QtWidgets.QWidget()
+        layout = QtWidgets.QFormLayout(inputs)
+        layout.addRow("Version:", version)
+        layout.addRow("Comment:", comment)
+        layout.addRow("Preview:", preview)
 
-        self.version_spinbox.valueChanged.connect(
+        # Build layout
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(inputs)
+        layout.addWidget(buttons)
+
+        version_spinbox.valueChanged.connect(
             self.on_version_spinbox_changed
         )
-        self.version_checkbox.stateChanged.connect(
+        version_checkbox.stateChanged.connect(
             self.on_version_checkbox_changed
         )
-        self.comment_lineedit.textChanged.connect(self.on_comment_changed)
-        self.ok_button.pressed.connect(self.on_ok_pressed)
-        self.cancel_button.pressed.connect(self.on_cancel_pressed)
+        comment.textChanged.connect(self.on_comment_changed)
+        ok_button.pressed.connect(self.on_ok_pressed)
+        cancel_button.pressed.connect(self.on_cancel_pressed)
 
         # Allow "Enter" key to accept the save.
-        self.ok_button.setDefault(True)
+        ok_button.setDefault(True)
 
         # Force default focus to comment, some hosts didn't automatically
         # apply focus to this line edit (e.g. Houdini)
-        self.comment_lineedit.setFocus()
+        comment.setFocus()
+
+        self.widgets = {
+            "preview": preview,
+            "comment": comment,
+            "versionValue": version_spinbox,
+            "versionCheck": version_checkbox,
+            "okButton": ok_button,
+            "cancelButton": cancel_button
+        }
 
         self.refresh()
 
@@ -145,8 +178,19 @@ class NameWindow(QtWidgets.QDialog):
         return work_file
 
     def refresh(self):
-        if self.version_checkbox.isChecked():
-            self.version_spinbox.setEnabled(False)
+
+        # Since the version can be padded with "{version:0>4}" we only search
+        # for "{version".
+        if "{version" not in self.template:
+            version.setVisible(False)
+
+        # Build comment
+        comment = QtWidgets.QLineEdit()
+        if "{comment}" not in self.template:
+            comment.setVisible(False)
+
+        if self.widgets["versionCheck"].isChecked():
+            self.widgets["versionValue"].setEnabled(False)
 
             # Find matching files
             files = os.listdir(self.root)
@@ -185,52 +229,24 @@ class NameWindow(QtWidgets.QDialog):
                 "This is a bug, file exists: %s" % path
 
         else:
-            self.version_spinbox.setEnabled(True)
-            self.data["version"] = self.version_spinbox.value()
+            self.widgets["versionValue"].setEnabled(True)
+            self.data["version"] = self.widgets["versionValue"].value()
 
         self.work_file = self.get_work_file()
 
-        self.label.setText(
+        preview = self.widgets["preview"]
+        ok = self.widgets["okButton"]
+        preview.setText(
             "<font color='green'>{0}</font>".format(self.work_file)
         )
         if os.path.exists(os.path.join(self.root, self.work_file)):
-            self.label.setText(
+            preview.setText(
                 "<font color='red'>Cannot create \"{0}\" because file exists!"
                 "</font>".format(self.work_file)
             )
-            self.ok_button.setEnabled(False)
+            ok.setEnabled(False)
         else:
-            self.ok_button.setEnabled(True)
-
-    def setup(self, root):
-        self.root = root
-        self.host = api.registered_host()
-
-        # Get work file name
-        self.data = {
-            "project": io.find_one(
-                {"name": api.Session["AVALON_PROJECT"], "type": "project"}
-            ),
-            "asset": io.find_one(
-                {"name": api.Session["AVALON_ASSET"], "type": "asset"}
-            ),
-            "task": {
-                "name": api.Session["AVALON_TASK"].lower(),
-                "label": api.Session["AVALON_TASK"]
-            },
-            "version": 1,
-            "user": getpass.getuser(),
-            "comment": ""
-        }
-
-        self.template = "{task[name]}_v{version:0>4}<_{comment}>"
-
-        templates = self.data["project"]["config"]["template"]
-
-        if "workfile" in templates:
-            self.template = templates["workfile"]
-
-        self.extensions = {"maya": ".ma", "nuke": ".nk"}
+            ok.setEnabled(True)
 
 
 class ContextBreadcrumb(QtWidgets.QWidget):
@@ -607,6 +623,7 @@ class Window(QtWidgets.QMainWindow):
     def on_asset_changed(self):
         asset = self.widgets["assets"].get_active_asset()
         self.widgets["tasks"].set_asset(asset)
+
 
 def show(root=None, debug=False):
     """Show Work Files GUI"""
