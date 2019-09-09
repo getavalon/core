@@ -3,7 +3,7 @@ from ...vendor.Qt import QtCore
 from ...vendor import qtawesome
 
 from ..models import TreeModel, Item
-from .. import lib as tools_lib
+from .. import lib
 
 
 def is_filtering_recursible():
@@ -112,7 +112,7 @@ class SubsetsModel(TreeModel):
 
         families = version_data.get("families", [None])
         family = families[0]
-        family_config = tools_lib.get_family_cached_config(family)
+        family_config = lib.get_family_cached_config(family)
 
         item.update({
             "version": version["name"],
@@ -141,7 +141,7 @@ class SubsetsModel(TreeModel):
 
         asset_id = self._asset_id
 
-        active_groups = tools_lib.get_active_group_config(asset_id)
+        active_groups = lib.get_active_group_config(asset_id)
 
         # Generate subset group nodes
         group_items = dict()
@@ -344,7 +344,7 @@ class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
 
         filterable_families = set()
         for name in families:
-            family_config = tools_lib.get_family_cached_config(name)
+            family_config = lib.get_family_cached_config(name)
             if not family_config.get("hideFilter"):
                 filterable_families.add(name)
 

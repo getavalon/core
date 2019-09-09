@@ -1,10 +1,7 @@
 import logging
 
-from .lib import (
-    preserve_expanded_rows,
-    preserve_selection,
-    iter_model_rows
-)
+from . import lib
+
 from .models import AssetModel, RecursiveSortFilterProxyModel
 from .views import DeselectableTreeView
 from ..vendor import qtawesome
@@ -97,12 +94,12 @@ class AssetWidget(QtWidgets.QWidget):
     def _refresh_model(self):
 
         silo = self.get_current_silo()
-        with preserve_expanded_rows(self.view,
-                                    column=0,
-                                    role=self.model.ObjectIdRole):
-            with preserve_selection(self.view,
-                                    column=0,
-                                    role=self.model.ObjectIdRole):
+        with lib.preserve_expanded_rows(self.view,
+                                        column=0,
+                                        role=self.model.ObjectIdRole):
+            with lib.preserve_selection(self.view,
+                                        column=0,
+                                        role=self.model.ObjectIdRole):
                 self.model.set_silo(silo)
 
         self.assets_refreshed.emit()
@@ -158,9 +155,9 @@ class AssetWidget(QtWidgets.QWidget):
 
         # Select
         mode = selection_model.Select | selection_model.Rows
-        for index in iter_model_rows(self.proxy,
-                                     column=0,
-                                     include_root=False):
+        for index in lib.iter_model_rows(self.proxy,
+                                         column=0,
+                                         include_root=False):
             data = index.data(self.model.ItemRole)
             name = data["name"]
             if name in assets:

@@ -8,12 +8,6 @@ from ...vendor import qtawesome
 from ... import io, api, style
 
 from .. import lib as tools_lib
-from ..lib import (
-    iter_model_rows,
-    preserve_expanded_rows,
-    preserve_selection,
-    refresh_family_config_cache
-)
 from ..delegates import VersionDelegate
 
 from .proxy import FilterProxyModel
@@ -248,7 +242,7 @@ class View(QtWidgets.QTreeView):
             "toggle": selection_model.Toggle,
         }[options.get("mode", "select")]
 
-        for item in iter_model_rows(model, 0):
+        for item in tools_lib.iter_model_rows(model, 0):
             node = item.data(InventoryModel.ItemRole)
             if node.get("isGroupNode"):
                 continue
@@ -903,14 +897,14 @@ class Window(QtWidgets.QDialog):
         self.view.setColumnWidth(3, 150)  # family
         self.view.setColumnWidth(4, 100)  # namespace
 
-        refresh_family_config_cache()
+        tools_lib.refresh_family_config_cache()
 
     def refresh(self):
-        with preserve_expanded_rows(tree_view=self.view,
-                                    role=self.model.UniqueRole):
-            with preserve_selection(tree_view=self.view,
-                                    role=self.model.UniqueRole,
-                                    current_index=False):
+        with tools_lib.preserve_expanded_rows(tree_view=self.view,
+                                              role=self.model.UniqueRole):
+            with tools_lib.preserve_selection(tree_view=self.view,
+                                              role=self.model.UniqueRole,
+                                              current_index=False):
                 if self.view._hierarchy_view:
                     self.model.refresh(selected=self.view._selected)
                 else:

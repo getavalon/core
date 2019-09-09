@@ -9,7 +9,7 @@ from ...vendor import qtawesome
 from .. import lib as tools_lib
 from ..models import TreeModel, Item
 
-from .lib import walk_hierarchy
+from . import lib
 
 
 class InventoryModel(TreeModel):
@@ -56,7 +56,7 @@ class InventoryModel(TreeModel):
                     if self._hierarchy_view:
                         # If current group is not outdated, check if any
                         # outdated children.
-                        for _node in walk_hierarchy(item):
+                        for _node in lib.walk_hierarchy(item):
                             if outdated(_node):
                                 return self.CHILD_OUTDATED_COLOR
                 else:
@@ -64,7 +64,7 @@ class InventoryModel(TreeModel):
                     if self._hierarchy_view:
                         # Although this is not a group item, we still need
                         # to distinguish which one contain outdated child.
-                        for _node in walk_hierarchy(item):
+                        for _node in lib.walk_hierarchy(item):
                             if outdated(_node):
                                 return self.CHILD_OUTDATED_COLOR.darker(150)
 

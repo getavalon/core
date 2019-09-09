@@ -74,8 +74,7 @@ def switch_item(container,
 
 
 def walk_hierarchy(node):
-    """Recursively yield group node
-    """
+    """Recursively yield group node"""
     for child in node.children():
         if child.get("isGroupNode"):
             yield child
