@@ -20,9 +20,9 @@ class NameWindow(QtWidgets.QDialog):
 
     """
 
-    def __init__(self, root):
-        super(NameWindow, self).__init__()
-        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+    def __init__(self, parent, root):
+        super(NameWindow, self).__init__(parent=parent)
+        self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
 
         self.result = None
         self.root = root
@@ -110,6 +110,7 @@ class NameWindow(QtWidgets.QDialog):
         self.widgets = {
             "preview": preview,
             "comment": comment,
+            "version": version,
             "versionValue": version_spinbox,
             "versionCheck": version_checkbox,
             "okButton": ok_button,
@@ -182,12 +183,13 @@ class NameWindow(QtWidgets.QDialog):
         # Since the version can be padded with "{version:0>4}" we only search
         # for "{version".
         if "{version" not in self.template:
-            version.setVisible(False)
+            # todo: hide the full row
+            self.widgets["version"].setVisible(False)
 
         # Build comment
-        comment = QtWidgets.QLineEdit()
         if "{comment}" not in self.template:
-            comment.setVisible(False)
+            # todo: hide the full row
+            self.widgets["comment"].setVisible(False)
 
         if self.widgets["versionCheck"].isChecked():
             self.widgets["versionValue"].setEnabled(False)
@@ -475,8 +477,8 @@ class Window(QtWidgets.QMainWindow):
             str: The filename to create.
 
         """
-        window = NameWindow(self.root)
-        window.setStyleSheet(style.load_stylesheet())
+        window = NameWindow(parent=self,
+                            root=self.root)
         window.exec_()
 
         return window.get_result()
