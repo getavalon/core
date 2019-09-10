@@ -2,11 +2,12 @@ import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import io, schema, api, style
-from .. import lib as parentlib
-from . import widget
+
+from .. import lib as tools_lib
+from ..widgets import AssetWidget
+from ..models import TasksModel
 
 from .dialogs import TasksCreateDialog, AssetCreateDialog
-from .model import TasksModel
 
 module = sys.modules[__name__]
 module.window = None
@@ -28,7 +29,7 @@ class Window(QtWidgets.QDialog):
         assets_widgets = QtWidgets.QWidget()
         assets_widgets.setContentsMargins(0, 0, 0, 0)
         assets_layout = QtWidgets.QVBoxLayout(assets_widgets)
-        assets = widget.AssetWidget()
+        assets = AssetWidget()
         assets.view.setSelectionMode(assets.view.ExtendedSelection)
         add_asset = QtWidgets.QPushButton("Add asset")
         assets_layout.addWidget(assets)
@@ -133,7 +134,7 @@ class Window(QtWidgets.QDialog):
             # This is to allow quick continuing of typing a new asset name
             # whenever the user created one; this way we can press the "ENTER"
             # key to add an asset and continue typing for the next.
-            dialog.data['label']['label'].setFocus()
+            dialog.data["label"]["label"].setFocus()
 
         def _on_current_asset_changed():
             """Callback on current asset changed in item widget.
@@ -183,7 +184,7 @@ class Window(QtWidgets.QDialog):
                     asset_tasks.append(task)
 
             # Update the field
-            asset['data']['tasks'] = asset_tasks
+            asset["data"]["tasks"] = asset_tasks
 
             schema.validate(asset)
             io.replace_one(_filter, asset)
@@ -202,7 +203,7 @@ class Window(QtWidgets.QDialog):
 
         model = self.data["model"]["assets"]
         selected = model.get_selected_assets()
-        self.data['model']['tasks'].set_assets(selected)
+        self.data["model"]["tasks"].set_assets(selected)
 
     def on_silo_changed(self, silo):
         """Callback on asset silo changed"""
@@ -216,6 +217,8 @@ def show(root=None, debug=False, parent=None):
     Arguments:
         debug (bool, optional): Run loader in debug-mode,
             defaults to False
+        parent (QtCore.QObject, optional): When provided parent the interface
+            to this QObject.
 
     """
 
@@ -228,7 +231,7 @@ def show(root=None, debug=False, parent=None):
     if debug is True:
         io.install()
 
-    with parentlib.application():
+    with tools_lib.application():
         window = Window(parent)
         window.setStyleSheet(style.load_stylesheet())
         window.show()

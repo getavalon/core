@@ -1,12 +1,11 @@
 import sys
 import logging
 
-import avalon.api as api
+from ... import api
 
-from avalon.vendor.Qt import QtWidgets, QtCore
-from avalon.tools.projectmanager.widget import AssetWidget
-from avalon.tools.projectmanager.app import TasksModel
-
+from ...vendor.Qt import QtWidgets, QtCore
+from ..widgets import AssetWidget
+from ..models import TasksModel
 
 module = sys.modules[__name__]
 module.window = None
@@ -109,7 +108,7 @@ class App(QtWidgets.QDialog):
 
     def _get_selected_asset_name(self):
         asset_index = self._assets.get_active_index()
-        asset_data = asset_index.data(self._assets.model.NodeRole)
+        asset_data = asset_index.data(self._assets.model.ItemRole)
         if not asset_data or not isinstance(asset_data, dict):
             return
 

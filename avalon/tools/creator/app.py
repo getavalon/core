@@ -1,4 +1,3 @@
-
 import sys
 import inspect
 
@@ -6,6 +5,7 @@ from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ...vendor import qtawesome
 from ...vendor import six
 from ... import api, io, style
+
 from .. import lib
 
 module = sys.modules[__name__]
@@ -139,8 +139,8 @@ class Window(QtWidgets.QDialog):
         create_btn.setEnabled(False)
 
     def _on_state_changed(self, state):
-        self.state['valid'] = state
-        self.data['Create Button'].setEnabled(state)
+        self.state["valid"] = state
+        self.data["Create Button"].setEnabled(state)
 
     def _build_menu(self, default_names):
         """Create optional predefined subset names
@@ -311,7 +311,7 @@ class Window(QtWidgets.QDialog):
     def on_create(self):
 
         # Do not allow creation in an invalid state
-        if not self.state['valid']:
+        if not self.state["valid"]:
             return
 
         asset = self.data["Asset"]
@@ -415,7 +415,7 @@ class FamilyDescriptionWidget(QtWidgets.QWidget):
         """Update elements to display information of a family item.
 
         Args:
-            family (dict): A family item as registered with name, help and icon
+            item (dict): A family item as registered with name, help and icon
 
         Returns:
             None
@@ -445,11 +445,10 @@ def show(debug=False, parent=None):
     """Display asset creator GUI
 
     Arguments:
-        creator (func, optional): Callable function, passed `name`,
-            `family` and `use_selection`, defaults to `creator`
-            defined in :mod:`pipeline`
         debug (bool, optional): Run loader in debug-mode,
             defaults to False
+        parent (QtCore.QObject, optional): When provided parent the interface
+            to this QObject.
 
     """
 

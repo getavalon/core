@@ -4,10 +4,10 @@ import getpass
 import re
 import shutil
 
-
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import style, io, api
-from .. import lib as parentlib
+
+from .. import lib as tools_lib
 
 
 class NameWindow(QtWidgets.QDialog):
@@ -487,7 +487,7 @@ def show(root=None, debug=False):
         api.Session["AVALON_ASSET"] = "Mock"
         api.Session["AVALON_TASK"] = "Testing"
 
-    with parentlib.application():
+    with tools_lib.application():
         window = Window(root)
         window.setStyleSheet(style.load_stylesheet())
 
