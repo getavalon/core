@@ -3,13 +3,17 @@ import os
 import getpass
 import re
 import shutil
+import logging
 
 from ...vendor.Qt import QtWidgets, QtCore
+from ...vendor import qtawesome
 from ... import style, io, api
 
 from .. import lib as parentlib
 from ..widgets import AssetWidget
 from ..models import TasksModel
+
+log = logging.getLogger(__name__)
 
 
 class NameWindow(QtWidgets.QDialog):
@@ -25,8 +29,8 @@ class NameWindow(QtWidgets.QDialog):
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
 
         self.result = None
-        self.root = root
         self.host = api.registered_host()
+        self.root = self.host.work_root()
         self.work_file = None
 
         # Get work file name
@@ -257,30 +261,53 @@ class ContextBreadcrumb(QtWidgets.QWidget):
     def __init__(self, *args):
         QtWidgets.QWidget.__init__(self, *args)
 
+        self.context = {}
         self.widgets = {
+            "projectIcon": QtWidgets.QLabel(),
+            "assetIcon": QtWidgets.QLabel(),
             "project": QtWidgets.QLabel(),
             "asset": QtWidgets.QLabel(),
-            "task": QtWidgets.QLabel()
+            "task": QtWidgets.QLabel(),
+            "taskIcon": QtWidgets.QLabel(),
         }
 
         layout = QtWidgets.QHBoxLayout(self)
+        layout.addWidget(self.widgets["projectIcon"])
         layout.addWidget(self.widgets["project"])
         layout.addWidget(QtWidgets.QLabel(u"\u25B6"))
+        layout.addWidget(self.widgets["assetIcon"])
         layout.addWidget(self.widgets["asset"])
         layout.addWidget(QtWidgets.QLabel(u"\u25B6"))
+        layout.addWidget(self.widgets["taskIcon"])
         layout.addWidget(self.widgets["task"])
         layout.addStretch()
 
         for name in ["project", "asset", "task"]:
             self.widgets[name].setStyleSheet("QLabel{ font-size: 12pt; }")
 
-        self.refresh()  # initialize
-
     def refresh(self):
 
-        self.widgets["project"].setText(api.Session["AVALON_PROJECT"])
-        self.widgets["asset"].setText(api.Session["AVALON_ASSET"])
-        self.widgets["task"].setText(api.Session["AVALON_TASK"])
+        self.context = {
+            "project": api.Session["AVALON_PROJECT"],
+            "asset": api.Session["AVALON_ASSET"],
+            "task": api.Session["AVALON_TASK"]
+        }
+
+        # Refresh labels
+        for key, value in self.context.items():
+            self.widgets[key].setText(value)
+
+        # todo: match icons from database when supplied
+        icons = {
+            "projectIcon": "fa.map",
+            "assetIcon": "fa.plus-square",
+            "taskIcon": "fa.male"
+        }
+
+        for key, value in icons.items():
+            icon = qtawesome.icon(value,
+                                  color=style.colors.default).pixmap(18, 18)
+            self.widgets[key].setPixmap(icon)
 
 
 class TasksWidget(QtWidgets.QWidget):
@@ -365,20 +392,23 @@ class TasksWidget(QtWidgets.QWidget):
         return index.data(QtCore.Qt.DisplayRole)
 
 
+class FilesWidget(QtWidgets.QWidget):
+    """A widget displaying files that allows to save"""
+    # todo: separate out the files display from window
+    pass
+
+
 class Window(QtWidgets.QMainWindow):
     """Work Files Window"""
     title = "Work Files"
 
-    def __init__(self, root=None):
+    def __init__(self):
         super(Window, self).__init__()
         self.setWindowTitle(self.title)
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
 
         # Setup
-        self.root = root
-        if self.root is None:
-            self.root = os.getcwd()
-
+        self.root = None
         self.host = api.registered_host()
 
         pages = {
@@ -438,6 +468,9 @@ class Window(QtWidgets.QMainWindow):
         widgets["fileDuplicate"].pressed.connect(self.on_duplicate_pressed)
         widgets["fileOpen"].pressed.connect(self.on_open_pressed)
         widgets["fileList"].doubleClicked.connect(self.on_open_pressed)
+        widgets["tasks"].widgets["view"].doubleClicked.connect(
+            self.on_task_pressed
+        )
         widgets["fileBrowse"].pressed.connect(self.on_browse_pressed)
         widgets["fileSave"].pressed.connect(self.on_save_as_pressed)
 
@@ -485,12 +518,17 @@ class Window(QtWidgets.QMainWindow):
 
     def refresh(self):
 
+        self.root = self.host.work_root()
+
         # Refresh asset widget
         self.widgets["assets"].refresh()
 
         # Refresh current scene label
-        current = self.host.current_file() or "<unsaved>"
+        current = os.path.basename(self.host.current_file()) or "<unsaved>"
         self.widgets["fileCurrent"].setText("Current File: %s" % current)
+
+        # Refresh breadcrumbs
+        self.widgets["header"].refresh()
 
         # Refresh files list
         list = self.widgets["fileList"]
@@ -498,16 +536,20 @@ class Window(QtWidgets.QMainWindow):
 
         modified = []
         extensions = set(self.host.file_extensions())
-        for f in sorted(os.listdir(self.root)):
-            path = os.path.join(self.root, f)
-            if os.path.isdir(path):
-                continue
 
-            if extensions and os.path.splitext(f)[1] not in extensions:
-                continue
+        if os.path.exists(self.root):
+            for f in sorted(os.listdir(self.root)):
+                path = os.path.join(self.root, f)
+                if os.path.isdir(path):
+                    continue
 
-            list.addItem(f)
-            modified.append(os.path.getmtime(path))
+                if extensions and os.path.splitext(f)[1] not in extensions:
+                    continue
+
+                list.addItem(f)
+                modified.append(os.path.getmtime(path))
+        else:
+            log.warning("Work root does not exist: %s" % self.root)
 
         # Select last modified file
         if list.count():
@@ -620,15 +662,41 @@ class Window(QtWidgets.QMainWindow):
         file_path = os.path.join(self.root, work_file)
         self.host.save(file_path)
 
+        self.refresh()
+
         self.close()
 
     def on_asset_changed(self):
         asset = self.widgets["assets"].get_active_asset()
         self.widgets["tasks"].set_asset(asset)
 
+    def on_task_pressed(self):
+
+        asset_id = self.widgets["assets"].get_active_asset()
+        if not asset_id:
+            log.warning("No asset selected.")
+            return
+
+        task_name = self.widgets["tasks"].get_current_task()
+        if not task_name:
+            log.warning("No task selected.")
+            return
+
+        # Get the asset name from asset id.
+        asset = io.find_one({"_id": io.ObjectId(asset_id), "type": "asset"})
+        if not asset:
+            log.error("Invalid asset id: %s" % asset_id)
+            return
+
+        asset_name = asset["name"]
+        api.update_current_task(task=task_name, asset=asset_name)
+
+        self.refresh()
+
 
 def show(root=None, debug=False):
     """Show Work Files GUI"""
+    # todo: remove `root` argument to show()
 
     host = api.registered_host()
     if host is None:
@@ -650,23 +718,13 @@ def show(root=None, debug=False):
         raise RuntimeError("Host is missing required Work Files interfaces: "
                            "%s (host: %s)" % (", ".join(missing), host))
 
-    # Allow to use a Host's default root.
-    if root is None:
-        root = host.work_root()
-        if not root:
-            raise ValueError("Root not given and no root returned by "
-                             "default from current host %s" % host.__name__)
-
-    if not os.path.exists(root):
-        raise OSError("Root set for Work Files app does not exist: %s" % root)
-
     if debug:
         api.Session["AVALON_ASSET"] = "Mock"
         api.Session["AVALON_TASK"] = "Testing"
 
     with parentlib.application():
         global window
-        window = Window(root)
+        window = Window()
         window.setStyleSheet(style.load_stylesheet())
 
         if debug:
