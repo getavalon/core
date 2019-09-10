@@ -557,7 +557,10 @@ class Window(QtWidgets.QMainWindow):
             item.setSelected(True)
 
             # Scroll list so item is visible
-            callback = lambda: self.widgets["fileList"].scrollToItem(item)
+            def callback():
+                """Delayed callback to scroll to the item"""
+                self.widgets["fileList"].scrollToItem(item)
+
             QtCore.QTimer.singleShot(100, callback)
 
             self.widgets["fileDuplicate"].setEnabled(True)
