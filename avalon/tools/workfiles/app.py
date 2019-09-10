@@ -531,8 +531,8 @@ class Window(QtWidgets.QMainWindow):
         self.widgets["header"].refresh()
 
         # Refresh files list
-        list = self.widgets["fileList"]
-        list.clear()
+        file_list = self.widgets["fileList"]
+        file_list.clear()
 
         modified = []
         extensions = set(self.host.file_extensions())
@@ -546,14 +546,14 @@ class Window(QtWidgets.QMainWindow):
                 if extensions and os.path.splitext(f)[1] not in extensions:
                     continue
 
-                list.addItem(f)
+                file_list.addItem(f)
                 modified.append(os.path.getmtime(path))
         else:
             log.warning("Work root does not exist: %s" % self.root)
 
         # Select last modified file
-        if list.count():
-            item = list.item(modified.index(max(modified)))
+        if file_list.count():
+            item = file_list.item(modified.index(max(modified)))
             item.setSelected(True)
 
             # Scroll list so item is visible
@@ -567,7 +567,7 @@ class Window(QtWidgets.QMainWindow):
         else:
             self.widgets["fileDuplicate"].setEnabled(False)
 
-        list.setMinimumWidth(list.sizeHintForColumn(0) + 30)
+        file_list.setMinimumWidth(file_list.sizeHintForColumn(0) + 30)
 
     def save_changes_prompt(self):
         messagebox = QtWidgets.QMessageBox()
