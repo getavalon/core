@@ -1294,7 +1294,11 @@ def is_compatible_loader(Loader, context):
         bool
 
     """
-    families = context["version"]["data"]["families"]
+    if context["subset"]["schema"] == "avalon-core:subset-3.0":
+        families = context["subset"]["data"]["families"]
+    else:
+        families = context["version"]["data"]["families"]
+
     representation = context["representation"]
     has_family = ("*" in Loader.families or
                   any(family in Loader.families for family in families))

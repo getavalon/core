@@ -110,7 +110,11 @@ class SubsetsModel(TreeModel):
             frames = None
             duration = None
 
-        families = version_data.get("families", [None])
+        if item["schema"] == "avalon-core:subset-3.0":
+            families = item["data"]["families"]
+        else:
+            families = version_data.get("families", [None])
+
         family = families[0]
         family_config = lib.get_family_cached_config(family)
 

@@ -228,7 +228,11 @@ class InventoryModel(TreeModel):
             # Get the primary family
             family = version["data"].get("family", "")
             if not family:
-                families = version["data"].get("families", [])
+                if subset["schema"] == "avalon-core:subset-3.0":
+                    families = subset["data"]["families"]
+                else:
+                    families = version["data"].get("families", [])
+
                 if families:
                     family = families[0]
 
