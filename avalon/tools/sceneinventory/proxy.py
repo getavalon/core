@@ -2,7 +2,7 @@ import re
 
 from ...vendor.Qt import QtCore
 
-from .lib import walk_hierarchy
+from . import lib
 
 
 class FilterProxyModel(QtCore.QSortFilterProxyModel):
@@ -99,7 +99,7 @@ class FilterProxyModel(QtCore.QSortFilterProxyModel):
             return True
 
         elif self._hierarchy_view:
-            for _node in walk_hierarchy(node):
+            for _node in lib.walk_hierarchy(node):
                 if outdated(_node):
                     return True
             return False

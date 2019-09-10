@@ -8,7 +8,6 @@ from ... import io
 from ... import api
 from ... import pipeline
 
-from ..lib import preserve_selection
 from .. import lib as tools_lib
 from ..delegates import VersionDelegate
 
@@ -122,8 +121,8 @@ class SubsetWidget(QtWidgets.QWidget):
         return self.data["state"]["groupable"].checkState()
 
     def set_grouping(self, state):
-        with preserve_selection(tree_view=self.view,
-                                current_index=False):
+        with tools_lib.preserve_selection(tree_view=self.view,
+                                          current_index=False):
             self.model.set_grouping(state)
 
     def on_context_menu(self, point):

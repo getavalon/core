@@ -3,7 +3,7 @@ import sys
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import io, schema, api, style
 
-from .. import lib as parentlib
+from .. import lib as tools_lib
 from ..widgets import AssetWidget
 from ..models import TasksModel
 
@@ -231,7 +231,7 @@ def show(root=None, debug=False, parent=None):
     if debug is True:
         io.install()
 
-    with parentlib.application():
+    with tools_lib.application():
         window = Window(parent)
         window.setStyleSheet(style.load_stylesheet())
         window.show()

@@ -9,7 +9,7 @@ from ...vendor.Qt import QtWidgets, QtCore
 from ...vendor import qtawesome
 from ... import style, io, api
 
-from .. import lib as parentlib
+from .. import lib as tools_lib
 from ..widgets import AssetWidget
 from ..models import TasksModel
 
@@ -662,8 +662,6 @@ class Window(QtWidgets.QMainWindow):
         file_path = os.path.join(self.root, work_file)
         self.host.save(file_path)
 
-        self.refresh()
-
         self.close()
 
     def on_asset_changed(self):
@@ -722,7 +720,7 @@ def show(root=None, debug=False):
         api.Session["AVALON_ASSET"] = "Mock"
         api.Session["AVALON_TASK"] = "Testing"
 
-    with parentlib.application():
+    with tools_lib.application():
         global window
         window = Window()
         window.setStyleSheet(style.load_stylesheet())

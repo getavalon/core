@@ -1,19 +1,13 @@
 import sys
 import time
 
-from ..models import AssetModel
-from ..widgets import AssetWidget
-from ..lib import preserve_selection
-
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io, style
+
+from ..models import AssetModel
+from ..widgets import AssetWidget
 from .. import lib
 
-from ..lib import (
-    refresh_family_config_cache,
-    refresh_group_config_cache,
-    get_active_group_config
-)
 from .widgets import SubsetWidget, VersionWidget, FamilyListWidget
 
 module = sys.modules[__name__]
@@ -356,8 +350,8 @@ class SubsetGroupingDialog(QtWidgets.QDialog):
         if group:
             group.deleteLater()
 
-        active_groups = get_active_group_config(self.asset_id,
-                                                include_predefined=True)
+        active_groups = lib.get_active_group_config(self.asset_id,
+                                                    include_predefined=True)
         # Build new action group
         group = QtWidgets.QActionGroup(button)
         for data in sorted(active_groups, key=lambda x: x["order"]):
@@ -378,8 +372,8 @@ class SubsetGroupingDialog(QtWidgets.QDialog):
         name = self.name.text().strip()
         self.subsets.group_subsets(name, self.asset_id, self.items)
 
-        with preserve_selection(tree_view=self.subsets.view,
-                                current_index=False):
+        with lib.preserve_selection(tree_view=self.subsets.view,
+                                    current_index=False):
             self.grouped.emit()
             self.close()
 
@@ -433,8 +427,8 @@ def show(debug=False, parent=None, use_context=False):
     with lib.application():
 
         # TODO: Global state, remove these
-        refresh_family_config_cache()
-        refresh_group_config_cache()
+        lib.refresh_family_config_cache()
+        lib.refresh_group_config_cache()
 
         window = Window(parent)
         window.setStyleSheet(style.load_stylesheet())

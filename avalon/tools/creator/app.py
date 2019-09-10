@@ -1,4 +1,3 @@
-
 import sys
 import inspect
 
@@ -6,6 +5,7 @@ from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ...vendor import qtawesome
 from ...vendor import six
 from ... import api, io, style
+
 from .. import lib
 
 module = sys.modules[__name__]
