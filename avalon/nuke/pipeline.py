@@ -1,16 +1,12 @@
 import os
-import sys
-from collections import OrderedDict
-from bson.objectid import ObjectId
-import importlib
-from .. import api, io
-import contextlib
-from pyblish import api as pyblish
-from ..vendor import toml
 import logging
-import nuke
+import contextlib
+import importlib
+from collections import OrderedDict
+from pyblish import api as pyblish
+from .. import api, io
 from . import lib
-
+import nuke
 
 log = logging.getLogger(__name__)
 
@@ -21,7 +17,6 @@ def reload_pipeline():
     """Attempt to reload pipeline at run-time.
 
     CAUTION: This is primarily for development and debugging purposes.
-
     """
 
     import importlib
@@ -60,21 +55,21 @@ def containerise(node,
                  context,
                  loader=None,
                  data=None):
-    """Bundle `nodes` into an assembly and imprint it with metadata
+    """Bundle `node` into an assembly and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
     for loaded assets.
 
     Arguments:
-        node (object): The node in Nuke to imprint as container,
-        usually a Reader.
+        node (obj): Nuke's node object to imprint as container,
+                    usually a Reader.
         name (str): Name of resulting assembly
         namespace (str): Namespace under which to host container
         context (dict): Asset information
         loader (str, optional): Name of node used to produce this container.
 
     Returns:
-        None
+        node (obj): containerised nuke's node object
 
     """
 
@@ -90,18 +85,23 @@ def containerise(node,
     if data:
         {data_imprint.update({k: v}) for k, v in data.items()}
 
-    log.info("data_imprint: {}".format(data_imprint))
+    log.debug("Imprinting data: {}".format(data_imprint))
 
     lib.set_avalon_knob_data(node, data_imprint)
-    
+
     return node
 
 
 def parse_container(node):
     """Returns containerised data of a node
 
-    This reads the imprinted data from `containerise`.
+    Reads the imprinted data from `containerise`.
 
+    Arguments:
+        node (obj): Nuke's node object to read imprinted data
+
+    Returns:
+        container (dict): imprinted container data
     """
     data = lib.get_avalon_knob_data(node)
 
@@ -167,16 +167,18 @@ def update_container(node, keys=dict()):
 
 
 class Creator(api.Creator):
+    """Creator cass wrapper
+    """
     def process(self):
-        nodes = nuke.allNodes()
-
         if (self.options or {}).get("useSelection"):
             nodes = nuke.selectedNodes()
 
-        instance = [n for n in nodes
-                    if n["name"].value() in self.name] or None
+        if len(nodes) > 0:
+            node = nodes[0]
+        elif len(nodes) > 1:
+            nuke.message("Please select only one node")
 
-        instance = lib.imprint(instance, self.data)
+        instance = lib.imprint(node, self.data)
 
         return instance
 
@@ -193,11 +195,10 @@ def ls():
     """
     all_nodes = nuke.allNodes(recurseGroups=False)
 
-    # TODO: add readgeo, readcamera, readimage
     nodes = [n for n in all_nodes]
 
     for n in nodes:
-        log.info("__ name node ls: `{}`".format(n.name()))
+        log.debug("Listing node: `{}`".format(n.name()))
         container = parse_container(n)
         if container:
             yield container
@@ -225,7 +226,7 @@ def install(config):
     if hasattr(config, "install"):
         config.install()
 
-    log.info("config.nuke installed")
+    log.info("{}.nuke installed".format(config.__name__))
 
 
 def find_host_config(config):
@@ -240,7 +241,7 @@ def find_host_config(config):
 
 
 def uninstall(config):
-    """Uninstall all tha was installed
+    """Uninstall all that was previously installed
 
     This is where you undo everything that was done in `install()`.
     That means, removing menus, deregistering families and  data
@@ -260,6 +261,8 @@ def uninstall(config):
 
 
 def _install_menu():
+    """Installing Avalon menu to Nuke
+    """
     from ..tools import (
         creator,
         publish,
@@ -388,10 +391,10 @@ def get_handles(asset):
     if "visualParent" in data:
         vp = data["visualParent"]
         if vp is not None:
-            parent_asset = io.find_one({"_id": ObjectId(vp)})
+            parent_asset = io.find_one({"_id": io.ObjectId(vp)})
 
     if parent_asset is None:
-        parent_asset = io.find_one({"_id": ObjectId(asset['parent'])})
+        parent_asset = io.find_one({"_id": io.ObjectId(asset['parent'])})
 
     if parent_asset is not None:
         return get_handles(parent_asset)
