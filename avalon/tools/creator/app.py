@@ -232,7 +232,7 @@ class Window(QtWidgets.QDialog):
         else:
             self._build_menu([])
             item.setData(ExistsRole, False)
-            self.echo("'%s' not found .." % asset_name)
+            self.echo("Asset '%s' not found .." % asset_name)
 
         # Update the valid state
         valid = (
