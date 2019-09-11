@@ -233,7 +233,7 @@ class Window(QtWidgets.QDialog):
                 message = "Empty subset name .."
             elif subset_name in existed_subsets:
                 subset.setStyleSheet("border-color: #4E76BB;")
-                message = "Existed subset, appending next version."
+                message = "Existing subset, appending next version."
             else:  # New subset
                 subset.setStyleSheet("border-color: #7AAB8F;")
                 message = "New subset, creating first version."
