@@ -193,7 +193,7 @@ class Window(QtWidgets.QDialog):
 
         # Get the assets from the database which match with the name
         assets_db = io.find(filter={"type": "asset"}, projection={"name": 1})
-        assets = [asset for asset in assets_db if asset_name in asset["name"]]
+        assets = [asset for asset in assets_db if asset_name == asset["name"]]
 
         if assets:
             # Get plugin and family
