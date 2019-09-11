@@ -191,6 +191,14 @@ class Window(QtWidgets.QDialog):
         subset_name = subset.text()
         asset_name = asset_name.text()
 
+        # Early exit if no asset name
+        if not asset_name.strip():
+            self._build_menu([])
+            item.setData(ExistsRole, False)
+            self.echo("Asset name is required ..")
+            self.stateChanged.emit(False)
+            return
+
         # Get the assets from the database which match with the name
         assets_db = io.find(filter={"type": "asset"}, projection={"name": 1})
         assets = [asset for asset in assets_db if asset_name == asset["name"]]
@@ -237,7 +245,6 @@ class Window(QtWidgets.QDialog):
         # Update the valid state
         valid = (
             subset_name.strip() != "" and
-            asset_name.strip() != "" and
             item.data(QtCore.Qt.ItemIsEnabled) and
             item.data(ExistsRole)
         )
