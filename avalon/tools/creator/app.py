@@ -227,6 +227,7 @@ class Window(QtWidgets.QDialog):
                 subset_name = subset_name[0].upper() + subset_name[1:]
             result.setText("{}{}".format(family, subset_name))
 
+            # Indicate subset existence
             if not subset_name:
                 subset.setStyleSheet("border-color: #3A3939;")
             elif subset_name in existed_subsets:
