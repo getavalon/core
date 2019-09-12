@@ -56,70 +56,59 @@ class NameWindow(QtWidgets.QDialog):
                                  "{task[name]}_v{version:0>4}<_{comment}>")
         self.template = template
 
+        self.widgets = {
+            "preview": QtWidgets.QLabel("Preview filename"),
+            "comment": QtWidgets.QLineEdit(),
+            "version": QtWidgets.QWidget(),
+            "versionValue": QtWidgets.QSpinBox(),
+            "versionCheck": QtWidgets.QCheckBox("Next Available Version"),
+            "inputs": QtWidgets.QWidget(),
+            "buttons": QtWidgets.QWidget(),
+            "okButton": QtWidgets.QPushButton("Ok"),
+            "cancelButton": QtWidgets.QPushButton("Cancel")
+        }
+
         # Build version
-        version = QtWidgets.QWidget()
-        version_spinbox = QtWidgets.QSpinBox()
-        version_spinbox.setMinimum(1)
-        version_spinbox.setMaximum(9999)
-        version_checkbox = QtWidgets.QCheckBox("Next Available Version")
-        version_checkbox.setCheckState(QtCore.Qt.CheckState(2))
-        layout = QtWidgets.QHBoxLayout(version)
+        self.widgets["versionValue"].setMinimum(1)
+        self.widgets["versionValue"].setMaximum(9999)
+        self.widgets["versionCheck"].setCheckState(QtCore.Qt.CheckState(2))
+        layout = QtWidgets.QHBoxLayout(self.widgets["version"])
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(version_spinbox)
-        layout.addWidget(version_checkbox)
-
-        # Build comment
-        comment = QtWidgets.QLineEdit()
-
-        # Build preview
-        preview = QtWidgets.QLabel("Preview filename")
+        layout.addWidget(self.widgets["versionValue"])
+        layout.addWidget(self.widgets["versionCheck"])
 
         # Build buttons
-        buttons = QtWidgets.QWidget()
-        layout = QtWidgets.QHBoxLayout(buttons)
-        ok_button = QtWidgets.QPushButton("Ok")
-        cancel_button = QtWidgets.QPushButton("Cancel")
-        layout.addWidget(ok_button)
-        layout.addWidget(cancel_button)
+        layout = QtWidgets.QHBoxLayout(self.widgets["buttons"])
+        layout.addWidget(self.widgets["okButton"])
+        layout.addWidget(self.widgets["cancelButton"])
 
         # Build inputs
-        inputs = QtWidgets.QWidget()
-        layout = QtWidgets.QFormLayout(inputs)
-        layout.addRow("Version:", version)
-        layout.addRow("Comment:", comment)
-        layout.addRow("Preview:", preview)
+        layout = QtWidgets.QFormLayout(self.widgets["inputs"])
+        layout.addRow("Version:", self.widgets["version"])
+        layout.addRow("Comment:", self.widgets["comment"])
+        layout.addRow("Preview:", self.widgets["preview"])
 
         # Build layout
         layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(inputs)
-        layout.addWidget(buttons)
+        layout.addWidget(self.widgets["inputs"])
+        layout.addWidget(self.widgets["buttons"])
 
-        version_spinbox.valueChanged.connect(
+        self.widgets["versionValue"].valueChanged.connect(
             self.on_version_spinbox_changed
         )
-        version_checkbox.stateChanged.connect(
+        self.widgets["versionCheck"].stateChanged.connect(
             self.on_version_checkbox_changed
         )
-        comment.textChanged.connect(self.on_comment_changed)
-        ok_button.pressed.connect(self.on_ok_pressed)
-        cancel_button.pressed.connect(self.on_cancel_pressed)
+        self.widgets["comment"].textChanged.connect(self.on_comment_changed)
+        self.widgets["okButton"].pressed.connect(self.on_ok_pressed)
+        self.widgets["cancelButton"].pressed.connect(self.on_cancel_pressed)
 
         # Allow "Enter" key to accept the save.
-        ok_button.setDefault(True)
+        self.widgets["okButton"].setDefault(True)
 
         # Force default focus to comment, some hosts didn't automatically
         # apply focus to this line edit (e.g. Houdini)
-        comment.setFocus()
-
-        self.widgets = {
-            "preview": preview,
-            "comment": comment,
-            "version": version,
-            "versionValue": version_spinbox,
-            "versionCheck": version_checkbox,
-            "okButton": ok_button,
-            "cancelButton": cancel_button
-        }
+        self.widgets["comment"].setFocus()
 
         self.refresh()
 
@@ -524,7 +513,8 @@ class Window(QtWidgets.QMainWindow):
         self.widgets["assets"].refresh()
 
         # Refresh current scene label
-        current = os.path.basename(self.host.current_file()) or "<unsaved>"
+        filepath = self.host.current_file()
+        current = os.path.basename(filepath) if filepath else "<unsaved>"
         self.widgets["fileCurrent"].setText("Current File: %s" % current)
 
         # Refresh breadcrumbs
