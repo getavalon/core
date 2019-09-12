@@ -316,48 +316,53 @@ class AssetModel(TreeModel):
         if refresh:
             self.refresh()
 
-    def _add_hierarchy(self, parent=None):
+    def _add_hierarchy(self, parent=None, assets={}):
 
         # Find the assets under the parent
-        find_data = {
-            "type": "asset",
-            "silo": self._silo,
-        }
+        current_assets = []
         if parent is None:
-            # if not a parent find all that are parented to the project
-            # or do *not* have a visualParent field at all
-            find_data["$or"] = [
-                {"data.visualParent": {"$exists": False}},
-                {"data.visualParent": None}
-            ]
+            db_assets = io.find({
+                "type": "asset",
+                "silo": self._silo
+            }).sort('name', 1)
+            assets = {}
+            for asset in db_assets:
+                parent_id = asset.get("data", {}).get("visualParent")
+                if parent_id:
+                    if parent_id not in assets:
+                        assets[parent_id] = []
+                    assets[parent_id].append(asset)
+                else:
+                    current_assets.append(asset)
         else:
-            find_data["data.visualParent"] = parent["_id"]
+            if parent["_id"] in assets:
+                current_assets = assets.pop(parent["_id"])
 
-        assets = io.find(find_data).sort("name", 1)
-
-        for asset in assets:
-
+        for asset in current_assets:
             # get label from data, otherwise use name
             data = asset.get("data", {})
-            label = data.get("label", asset["name"])
+            label = data.get("label", asset['name'])
             tags = data.get("tags", [])
 
             # store for the asset for optimization
             deprecated = "deprecated" in tags
 
-            item = Item({
-                "_id": asset["_id"],
+            node = Node({
+                "_id": asset['_id'],
                 "name": asset["name"],
                 "label": label,
-                "type": asset["type"],
+                "type": asset['type'],
                 "tags": ", ".join(tags),
                 "deprecated": deprecated,
                 "_document": asset
             })
-            self.add_child(item, parent=parent)
+            self.add_child(node, parent=parent)
 
             # Add asset's children recursively
-            self._add_hierarchy(item)
+            if asset['_id'] in assets:
+                assets = self._add_hierarchy(node, assets)
+
+        return assets
 
     def refresh(self):
         """Refresh the data for the model."""
