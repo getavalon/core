@@ -1,5 +1,6 @@
 import sys
 import inspect
+import re
 
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ...vendor import qtawesome
@@ -238,12 +239,19 @@ class Window(QtWidgets.QDialog):
             if not subset_name:
                 subset.setStyleSheet("")
                 message = "Empty subset name .."
+
             elif subset_name in existed_subsets:
                 subset.setStyleSheet("border-color: #4E76BB;")
                 message = "Existing subset, appending next version."
-            else:  # New subset
+
+            elif re.match("^[a-zA-Z0-9_.]*$", subset_name):
                 subset.setStyleSheet("border-color: #7AAB8F;")
                 message = "New subset, creating first version."
+
+            else:
+                subset.setStyleSheet("border-color: #C84747;")
+                message = "Invalid subset name .."
+                subset_name = ""
 
             item.setData(ExistsRole, True)
             self.echo(message)
