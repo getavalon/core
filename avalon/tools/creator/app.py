@@ -227,8 +227,19 @@ class Window(QtWidgets.QDialog):
                 subset_name = subset_name[0].upper() + subset_name[1:]
             result.setText("{}{}".format(family, subset_name))
 
+            # Indicate subset existence
+            if not subset_name:
+                subset.setStyleSheet("")
+                message = "Empty subset name .."
+            elif subset_name in existed_subsets:
+                subset.setStyleSheet("border-color: #4E76BB;")
+                message = "Existing subset, appending next version."
+            else:  # New subset
+                subset.setStyleSheet("border-color: #7AAB8F;")
+                message = "New subset, creating first version."
+
             item.setData(ExistsRole, True)
-            self.echo("Ready ..")
+            self.echo(message)
         else:
             self._build_menu([])
             item.setData(ExistsRole, False)
