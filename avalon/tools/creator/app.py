@@ -235,6 +235,8 @@ class Window(QtWidgets.QDialog):
                 subset_name = subset_name[0].upper() + subset_name[1:]
             result.setText("{}{}".format(family, subset_name))
 
+            re_valid = re.compile("^[a-zA-Z0-9_.]*$")
+
             # Indicate subset existence
             if not subset_name:
                 subset.setStyleSheet("")
@@ -244,13 +246,21 @@ class Window(QtWidgets.QDialog):
                 subset.setStyleSheet("border-color: #4E76BB;")
                 message = "Existing subset, appending next version."
 
-            elif re.match("^[a-zA-Z0-9_.]*$", subset_name):
+            elif re_valid.match(subset_name):
                 subset.setStyleSheet("border-color: #7AAB8F;")
                 message = "New subset, creating first version."
 
             else:
+                invalid_chars = set()
+                for char in subset_name:
+                    if char == " ":
+                        invalid_chars.add("' '")
+                        continue
+                    if not re_valid.match(char):
+                        invalid_chars.add(char)
+
                 subset.setStyleSheet("border-color: #C84747;")
-                message = "Invalid subset name .."
+                message = "Invalid character: %s" % ", ".join(invalid_chars)
                 subset_name = ""
 
             item.setData(ExistsRole, True)
