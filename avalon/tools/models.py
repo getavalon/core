@@ -324,7 +324,7 @@ class AssetModel(TreeModel):
             db_assets = io.find({
                 "type": "asset",
                 "silo": self._silo
-            }).sort('name', 1)
+            }).sort("name", 1)
             assets = {}
             for asset in db_assets:
                 parent_id = asset.get("data", {}).get("visualParent")
@@ -341,17 +341,17 @@ class AssetModel(TreeModel):
         for asset in current_assets:
             # get label from data, otherwise use name
             data = asset.get("data", {})
-            label = data.get("label", asset['name'])
+            label = data.get("label", asset["name"])
             tags = data.get("tags", [])
 
             # store for the asset for optimization
             deprecated = "deprecated" in tags
 
             node = Node({
-                "_id": asset['_id'],
+                "_id": asset["_id"],
                 "name": asset["name"],
                 "label": label,
-                "type": asset['type'],
+                "type": asset["type"],
                 "tags": ", ".join(tags),
                 "deprecated": deprecated,
                 "_document": asset
@@ -359,7 +359,7 @@ class AssetModel(TreeModel):
             self.add_child(node, parent=parent)
 
             # Add asset's children recursively
-            if asset['_id'] in assets:
+            if asset["_id"] in assets:
                 assets = self._add_hierarchy(node, assets)
 
         return assets
