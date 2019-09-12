@@ -191,21 +191,28 @@ class Window(QtWidgets.QDialog):
         subset_name = subset.text()
         asset_name = asset_name.text()
 
-        # Get the assets from the database which match with the name
-        assets_db = io.find(filter={"type": "asset"}, projection={"name": 1})
-        assets = [asset for asset in assets_db if asset_name in asset["name"]]
+        # Early exit if no asset name
+        if not asset_name.strip():
+            self._build_menu([])
+            item.setData(ExistsRole, False)
+            self.echo("Asset name is required ..")
+            self.stateChanged.emit(False)
+            return
 
-        if assets:
+        # Get the asset from the database which match with the name
+        asset = io.find_one({"name": asset_name, "type": "asset"},
+                            projection={"_id": 1})
+
+        if asset:
             # Get plugin and family
             plugin = item.data(PluginRole)
             family = plugin.family.rsplit(".", 1)[-1]
 
             # Get all subsets of the current asset
-            asset_ids = [asset["_id"] for asset in assets]
             subsets = io.find(filter={"type": "subset",
                                       "name": {"$regex": "{}*".format(family),
                                                "$options": "i"},
-                                      "parent": {"$in": asset_ids}}) or []
+                                      "parent": asset["_id"]}) or []
 
             # Get all subsets' their subset name, "Default", "High", "Low"
             existed_subsets = [sub["name"].split(family)[-1]
@@ -243,12 +250,11 @@ class Window(QtWidgets.QDialog):
         else:
             self._build_menu([])
             item.setData(ExistsRole, False)
-            self.echo("'%s' not found .." % asset_name)
+            self.echo("Asset '%s' not found .." % asset_name)
 
         # Update the valid state
         valid = (
             subset_name.strip() != "" and
-            asset_name.strip() != "" and
             item.data(QtCore.Qt.ItemIsEnabled) and
             item.data(ExistsRole)
         )
