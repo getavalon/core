@@ -316,30 +316,21 @@ class AssetModel(TreeModel):
         if refresh:
             self.refresh()
 
-    def _add_hierarchy(self, parent=None, assets=None):
+    def _add_hierarchy(self, assets, parent=None):
+        """Add the assets that are related to the parent as children items.
 
-        # Find the assets under the parent
-        current_assets = []
-        if assets is None:
-            db_assets = io.find({
-                "type": "asset",
-                "silo": self._silo
-            }).sort("name", 1)
-            assets = {}
-            for asset in db_assets:
-                parent_id = asset.get("data", {}).get("visualParent")
-                if parent_id:
-                    if parent_id not in assets:
-                        assets[parent_id] = []
-                    assets[parent_id].append(asset)
-                else:
-                    current_assets.append(asset)
+        Args:
+            assets (dict): All assets in the currently active silo stored
+                by key/value
 
-        if parent is not None:
-            # clean up for case that assets are None
-            current_assets = []
-            if parent["_id"] in assets:
-                current_assets = assets.pop(parent["_id"])
+        Note: This method does *not* query the database. These instead are
+              queried in a single batch upfront as an optimization to reduce
+              database queries. Resulting in up to 10x speed increase.
+
+        """
+
+        parent_id = parent["_id"] if parent else None
+        current_assets = assets.get(parent_id, list())
 
         for asset in current_assets:
             # get label from data, otherwise use name
@@ -363,7 +354,7 @@ class AssetModel(TreeModel):
 
             # Add asset's children recursively
             if asset["_id"] in assets:
-                assets = self._add_hierarchy(item, assets)
+                assets = self._add_hierarchy(assets, parent=item)
 
         return assets
 
@@ -373,7 +364,23 @@ class AssetModel(TreeModel):
         self.clear()
         self.beginResetModel()
         if self._silo:
-            self._add_hierarchy(parent=None)
+
+            # Get all assets in current silo sorted by name
+            db_assets = io.find({
+                "type": "asset",
+                "silo": self._silo
+            }).sort("name", 1)
+
+            # Group the assets by their visual parent's id
+            assets_by_parent = collections.defaultdict(list)
+            for asset in db_assets:
+                parent_id = asset.get("data", {}).get("visualParent") or None
+                assets_by_parent[parent_id].append(asset)
+
+            # Build the hierarchical tree items recursively
+            self._add_hierarchy(assets_by_parent,
+                                parent=None)
+
         self.endResetModel()
 
     def flags(self, index):
