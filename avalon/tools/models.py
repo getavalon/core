@@ -319,13 +319,16 @@ class AssetModel(TreeModel):
     def _add_hierarchy(self, assets, parent=None):
         """Add the assets that are related to the parent as children items.
 
+        This method does *not* query the database. These instead are queried
+        in a single batch upfront as an optimization to reduce database
+        queries. Resulting in up to 10x speed increase.
+
         Args:
             assets (dict): All assets in the currently active silo stored
                 by key/value
 
-        Note: This method does *not* query the database. These instead are
-              queried in a single batch upfront as an optimization to reduce
-              database queries. Resulting in up to 10x speed increase.
+        Returns:
+            None
 
         """
 
@@ -352,11 +355,9 @@ class AssetModel(TreeModel):
             })
             self.add_child(item, parent=parent)
 
-            # Add asset's children recursively
+            # Add asset's children recursively if it has children
             if asset["_id"] in assets:
-                assets = self._add_hierarchy(assets, parent=item)
-
-        return assets
+                self._add_hierarchy(assets, parent=item)
 
     def refresh(self):
         """Refresh the data for the model."""
