@@ -316,11 +316,11 @@ class AssetModel(TreeModel):
         if refresh:
             self.refresh()
 
-    def _add_hierarchy(self, parent=None, assets={}):
+    def _add_hierarchy(self, parent=None, assets=None):
 
         # Find the assets under the parent
         current_assets = []
-        if parent is None:
+        if assets is None:
             db_assets = io.find({
                 "type": "asset",
                 "silo": self._silo
@@ -334,7 +334,10 @@ class AssetModel(TreeModel):
                     assets[parent_id].append(asset)
                 else:
                     current_assets.append(asset)
-        else:
+
+        if parent is not None:
+            # clean up for case that assets are None
+            current_assets = []
             if parent["_id"] in assets:
                 current_assets = assets.pop(parent["_id"])
 
@@ -347,7 +350,7 @@ class AssetModel(TreeModel):
             # store for the asset for optimization
             deprecated = "deprecated" in tags
 
-            node = Node({
+            item = Item({
                 "_id": asset["_id"],
                 "name": asset["name"],
                 "label": label,
@@ -356,11 +359,11 @@ class AssetModel(TreeModel):
                 "deprecated": deprecated,
                 "_document": asset
             })
-            self.add_child(node, parent=parent)
+            self.add_child(item, parent=parent)
 
             # Add asset's children recursively
             if asset["_id"] in assets:
-                assets = self._add_hierarchy(node, assets)
+                assets = self._add_hierarchy(item, assets)
 
         return assets
 
