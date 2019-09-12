@@ -199,21 +199,20 @@ class Window(QtWidgets.QDialog):
             self.stateChanged.emit(False)
             return
 
-        # Get the assets from the database which match with the name
-        assets_db = io.find(filter={"type": "asset"}, projection={"name": 1})
-        assets = [asset for asset in assets_db if asset_name == asset["name"]]
+        # Get the asset from the database which match with the name
+        asset = io.find_one({"name": asset_name, "type": "asset"},
+                            projection={"_id": 1})
 
-        if assets:
+        if asset:
             # Get plugin and family
             plugin = item.data(PluginRole)
             family = plugin.family.rsplit(".", 1)[-1]
 
             # Get all subsets of the current asset
-            asset_ids = [asset["_id"] for asset in assets]
             subsets = io.find(filter={"type": "subset",
                                       "name": {"$regex": "{}*".format(family),
                                                "$options": "i"},
-                                      "parent": {"$in": asset_ids}}) or []
+                                      "parent": asset["_id"]}) or []
 
             # Get all subsets' their subset name, "Default", "High", "Low"
             existed_subsets = [sub["name"].split(family)[-1]
