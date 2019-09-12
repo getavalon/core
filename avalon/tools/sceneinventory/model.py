@@ -226,15 +226,19 @@ class InventoryModel(TreeModel):
             asset = io.find_one({"_id": subset["parent"]})
 
             # Get the primary family
-            family = version["data"].get("family", "")
-            if not family:
-                families = version["data"].get("families", [])
-                if families:
-                    family = families[0]
+            no_family = ""
+            if subset["schema"] == "avalon-core:subset-3.0":
+                families = subset["data"]["families"]
+                prim_family = families[0] if families else no_family
+            else:
+                prim_family = version["data"].get("family")
+                if not prim_family:
+                    families = version["data"].get("families")
+                    prim_family = families[0] if families else no_family
 
             # Get the label and icon for the family if in configuration
-            family_config = tools_lib.get_family_cached_config(family)
-            family = family_config.get("label", family)
+            family_config = tools_lib.get_family_cached_config(prim_family)
+            family = family_config.get("label", prim_family)
             family_icon = family_config.get("icon", None)
 
             # Store the highest available version so the model can know
