@@ -14,8 +14,8 @@ from .lib import (
 from .workio import (
     file_extensions,
     has_unsaved_changes,
-    save,
-    open,
+    save_file,
+    open_file,
     current_file,
     work_root,
 )
@@ -50,8 +50,8 @@ __all__ = [
 
     "file_extensions",
     "has_unsaved_changes",
-    "save",
-    "open",
+    "save_file",
+    "open_file",
     "current_file",
     "work_root",
 

@@ -383,13 +383,13 @@ class Window(QtWidgets.QDialog):
 
             if result:
                 # Save current scene, continue to open file
-                host.save(host.current_file())
+                host.save_file(host.current_file())
 
             else:
                 # Don't save, continue to open file
                 pass
 
-        return host.open(filepath)
+        return host.open_file(filepath)
 
     def on_duplicate_pressed(self):
         work_file = self.get_name()
@@ -445,7 +445,7 @@ class Window(QtWidgets.QDialog):
             return
 
         file_path = os.path.join(self.root, work_file)
-        self.host.save(file_path)
+        self.host.save_file(file_path)
 
         self.close()
 

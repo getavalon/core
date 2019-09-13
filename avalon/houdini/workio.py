@@ -12,7 +12,7 @@ def has_unsaved_changes():
     return hou.hipFile.hasUnsavedChanges()
 
 
-def save(filepath):
+def save_file(filepath):
 
     # Force forwards slashes to avoid segfault
     filepath = filepath.replace("\\", "/")
@@ -23,7 +23,7 @@ def save(filepath):
     return filepath
 
 
-def open(filepath):
+def open_file(filepath):
 
     # Force forwards slashes to avoid segfault
     filepath = filepath.replace("\\", "/")
