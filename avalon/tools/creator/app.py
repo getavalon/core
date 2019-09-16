@@ -21,6 +21,91 @@ PluginRole = QtCore.Qt.UserRole + 5
 Separator = "---separator---"
 
 
+class SubsetNameValidator(QtGui.QRegExpValidator):
+
+    invalid = QtCore.Signal(set)
+    pattern = "^[a-zA-Z0-9_.]*$"
+
+    def __init__(self):
+        reg = QtCore.QRegExp(self.pattern)
+        super(SubsetNameValidator, self).__init__(reg)
+
+    def validate(self, input, pos):
+        results = super(SubsetNameValidator, self).validate(input, pos)
+        if results[0] == self.Invalid:
+            self.invalid.emit(self.invalid_chars(input))
+        return results
+
+    def invalid_chars(self, input):
+        invalid = set()
+        re_valid = re.compile(self.pattern)
+        for char in input:
+            if char == " ":
+                invalid.add("' '")
+                continue
+            if not re_valid.match(char):
+                invalid.add(char)
+        return invalid
+
+
+class SubsetNameLineEdit(QtWidgets.QLineEdit):
+
+    report = QtCore.Signal(str)
+    colors = {
+        "empty": (QtGui.QColor("#78879b"), ""),
+        "exists": (QtGui.QColor("#4E76BB"), "border-color: #4E76BB;"),
+        "new": (QtGui.QColor("#7AAB8F"), "border-color: #7AAB8F;"),
+    }
+
+    def __init__(self, *args, **kwargs):
+        super(SubsetNameLineEdit, self).__init__(*args, **kwargs)
+
+        validator = SubsetNameValidator()
+        self.setValidator(validator)
+        self.setToolTip("Only alphanumeric characters (A-Z a-z 0-9), "
+                        "'_' and '.' are allowed.")
+
+        self._cstatus = None
+        self.animation = QtCore.QPropertyAnimation(self, "cstatus", self)
+        self.animation.setEasingCurve(QtCore.QEasingCurve.InCubic)
+        self.animation.setDuration(300)
+        self.animation.setStartValue(QtGui.QColor("#C84747"))
+
+        validator.invalid.connect(self.on_invalid)
+
+    def on_invalid(self, invalid):
+        message = "Invalid character: %s" % ", ".join(invalid)
+        self.report.emit(message)
+        self.animation.stop()
+        self.animation.start()
+
+    def as_empty(self):
+        self._set_border("empty")
+        self.report.emit("Empty subset name ..")
+
+    def as_exists(self):
+        self._set_border("exists")
+        self.report.emit("Existing subset, appending next version.")
+
+    def as_new(self):
+        self._set_border("new")
+        self.report.emit("New subset, creating first version.")
+
+    def _set_border(self, status):
+        qcolor, style = self.colors[status]
+        self.animation.setEndValue(qcolor)
+        self.setStyleSheet(style)
+
+    def _get_cstatus(self):
+        return self._cstatus
+
+    def _set_cstatus(self, color):
+        self._cstatus = color
+        self.setStyleSheet("border-color: %s;" % color.name())
+
+    cstatus = QtCore.Property(QtGui.QColor, _get_cstatus, _set_cstatus)
+
+
 class Window(QtWidgets.QDialog):
 
     stateChanged = QtCore.Signal(bool)
@@ -46,7 +131,7 @@ class Window(QtWidgets.QDialog):
 
         listing = QtWidgets.QListWidget()
         asset = QtWidgets.QLineEdit()
-        name = QtWidgets.QLineEdit()
+        name = SubsetNameLineEdit()
         result = QtWidgets.QLineEdit()
         result.setStyleSheet("color: gray;")
         result.setEnabled(False)
@@ -128,6 +213,7 @@ class Window(QtWidgets.QDialog):
         create_btn.clicked.connect(self.on_create)
         name.returnPressed.connect(self.on_create)
         name.textChanged.connect(self.on_data_changed)
+        name.report.connect(self.echo)
         asset.textChanged.connect(self.on_data_changed)
         listing.currentItemChanged.connect(self.on_selection_changed)
         listing.currentItemChanged.connect(header.set_item)
@@ -235,36 +321,16 @@ class Window(QtWidgets.QDialog):
                 subset_name = subset_name[0].upper() + subset_name[1:]
             result.setText("{}{}".format(family, subset_name))
 
-            re_valid = re.compile("^[a-zA-Z0-9_.]*$")
-
             # Indicate subset existence
             if not subset_name:
-                subset.setStyleSheet("")
-                message = "Empty subset name .."
-
+                subset.as_empty()
             elif subset_name in existed_subsets:
-                subset.setStyleSheet("border-color: #4E76BB;")
-                message = "Existing subset, appending next version."
-
-            elif re_valid.match(subset_name):
-                subset.setStyleSheet("border-color: #7AAB8F;")
-                message = "New subset, creating first version."
-
+                subset.as_exists()
             else:
-                invalid_chars = set()
-                for char in subset_name:
-                    if char == " ":
-                        invalid_chars.add("' '")
-                        continue
-                    if not re_valid.match(char):
-                        invalid_chars.add(char)
-
-                subset.setStyleSheet("border-color: #C84747;")
-                message = "Invalid character: %s" % ", ".join(invalid_chars)
-                subset_name = ""
+                subset.as_new()
 
             item.setData(ExistsRole, True)
-            self.echo(message)
+
         else:
             self._build_menu([])
             item.setData(ExistsRole, False)
