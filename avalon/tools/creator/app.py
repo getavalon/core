@@ -65,11 +65,15 @@ class SubsetNameLineEdit(QtWidgets.QLineEdit):
         self.setToolTip("Only alphanumeric characters (A-Z a-z 0-9), "
                         "'_' and '.' are allowed.")
 
-        self._cstatus = None
-        self.animation = QtCore.QPropertyAnimation(self, "cstatus", self)
-        self.animation.setEasingCurve(QtCore.QEasingCurve.InCubic)
-        self.animation.setDuration(300)
-        self.animation.setStartValue(QtGui.QColor("#C84747"))
+        self._status_color = None
+
+        anim = QtCore.QPropertyAnimation()
+        anim.setTargetObject(self)
+        anim.setPropertyName("status_color")
+        anim.setEasingCurve(QtCore.QEasingCurve.InCubic)
+        anim.setDuration(300)
+        anim.setStartValue(QtGui.QColor("#C84747"))  # `Invalid` status color
+        self.animation = anim
 
         validator.invalid.connect(self.on_invalid)
 
@@ -96,14 +100,16 @@ class SubsetNameLineEdit(QtWidgets.QLineEdit):
         self.animation.setEndValue(qcolor)
         self.setStyleSheet(style)
 
-    def _get_cstatus(self):
-        return self._cstatus
+    def _get_status_color(self):
+        return self._status_color
 
-    def _set_cstatus(self, color):
-        self._cstatus = color
+    def _set_status_color(self, color):
+        self._status_color = color
         self.setStyleSheet("border-color: %s;" % color.name())
 
-    cstatus = QtCore.Property(QtGui.QColor, _get_cstatus, _set_cstatus)
+    status_color = QtCore.Property(QtGui.QColor,
+                                   _get_status_color,
+                                   _set_status_color)
 
 
 class Window(QtWidgets.QDialog):
