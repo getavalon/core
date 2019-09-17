@@ -821,8 +821,8 @@ def debug_host():
 
     host.__dict__.update({
         "ls": ls,
-        "open": lambda fname: None,
-        "save": lambda fname: None,
+        "open_file": lambda fname: None,
+        "save_file": lambda fname: None,
         "current_file": lambda: os.path.expanduser("~/temp.txt"),
         "has_unsaved_changes": lambda: False,
         "work_root": lambda: os.path.expanduser("~/temp"),
