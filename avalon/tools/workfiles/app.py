@@ -458,8 +458,8 @@ def show(root=None, debug=False):
         raise RuntimeError("No registered host.")
 
     # Verify the host has implemented the api for Work Files
-    required = ["open",
-                "save",
+    required = ["open_file",
+                "save_file",
                 "current_file",
                 "has_unsaved_changes",
                 "work_root",
