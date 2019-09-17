@@ -93,3 +93,7 @@ __all__ = [
     "suspended_refresh",
 
 ]
+
+# Backwards API compatibility
+open = open_file
+save = save_file

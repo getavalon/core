@@ -67,3 +67,7 @@ __all__ = [
     "maintained_selection",
     "get_node_path",
 ]
+
+# Backwards API compatibility
+open = open_file
+save = save_file

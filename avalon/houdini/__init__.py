@@ -53,3 +53,7 @@ __all__ = [
     "maintained_selection",
     "unique_name"
 ]
+
+# Backwards API compatibility
+open = open_file
+save = save_file
