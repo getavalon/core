@@ -6,19 +6,14 @@ from functools import partial
 import re
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ...vendor import qtawesome as qta
+from ...vendor import qtawesome
 from ... import io, api, style
+
 from .. import lib as tools_lib
+from ..delegates import VersionDelegate
 
-from ..gui.delegates import VersionDelegate
-from ..gui.models import FilterProxyModel, InventoryModel
-
-from ..gui.lib import refresh_family_config
-from ..gui.widgets.lib import (
-    preserve_expanded_rows,
-    preserve_selection,
-    _iter_model_rows
-)
+from .proxy import FilterProxyModel
+from .model import InventoryModel
 from .lib import switch_item
 
 DEFAULT_COLOR = "#fb9c15"
@@ -73,7 +68,7 @@ class View(QtWidgets.QTreeView):
                 api.update(item, -1)
             self.data_changed.emit()
 
-        update_icon = qta.icon("fa.angle-double-up", color=DEFAULT_COLOR)
+        update_icon = qtawesome.icon("fa.angle-double-up", color=DEFAULT_COLOR)
         updatetolatest_action = QtWidgets.QAction(update_icon,
                                                   "Update to latest",
                                                   menu)
@@ -81,7 +76,7 @@ class View(QtWidgets.QTreeView):
             lambda: _on_update_to_latest(items))
 
         # set version
-        set_version_icon = qta.icon("fa.hashtag", color=DEFAULT_COLOR)
+        set_version_icon = qtawesome.icon("fa.hashtag", color=DEFAULT_COLOR)
         set_version_action = QtWidgets.QAction(set_version_icon,
                                                "Set version",
                                                menu)
@@ -89,7 +84,7 @@ class View(QtWidgets.QTreeView):
             lambda: self.show_version_dialog(items))
 
         # switch asset
-        switch_asset_icon = qta.icon("fa.sitemap", color=DEFAULT_COLOR)
+        switch_asset_icon = qtawesome.icon("fa.sitemap", color=DEFAULT_COLOR)
         switch_asset_action = QtWidgets.QAction(switch_asset_icon,
                                                 "Switch Asset",
                                                 menu)
@@ -97,21 +92,21 @@ class View(QtWidgets.QTreeView):
             lambda: self.show_switch_dialog(items))
 
         # remove
-        remove_icon = qta.icon("fa.remove", color=DEFAULT_COLOR)
+        remove_icon = qtawesome.icon("fa.remove", color=DEFAULT_COLOR)
         remove_action = QtWidgets.QAction(remove_icon, "Remove items", menu)
         remove_action.triggered.connect(
             lambda: self.show_remove_warning_dialog(items))
 
         # go back to flat view
         if self._hierarchy_view:
-            back_to_flat_icon = qta.icon("fa.list", color=DEFAULT_COLOR)
+            back_to_flat_icon = qtawesome.icon("fa.list", color=DEFAULT_COLOR)
             back_to_flat_action = QtWidgets.QAction(back_to_flat_icon,
                                                     "Back to Full-View",
                                                     menu)
             back_to_flat_action.triggered.connect(self.leave_hierarchy)
 
         # send items to hierarchy view
-        enter_hierarchy_icon = qta.icon("fa.indent", color="#d8d8d8")
+        enter_hierarchy_icon = qtawesome.icon("fa.indent", color="#d8d8d8")
         enter_hierarchy_action = QtWidgets.QAction(enter_hierarchy_icon,
                                                    "Cherry-Pick (Hierarchy)",
                                                    menu)
@@ -149,7 +144,7 @@ class View(QtWidgets.QTreeView):
             for action in custom_actions:
 
                 color = action.color or DEFAULT_COLOR
-                icon = qta.icon("fa.%s" % action.icon, color=color)
+                icon = qtawesome.icon("fa.%s" % action.icon, color=color)
                 action_item = QtWidgets.QAction(icon, action.label, submenu)
                 action_item.triggered.connect(
                     partial(self.process_custom_action, action, items))
@@ -249,7 +244,7 @@ class View(QtWidgets.QTreeView):
             "toggle": selection_model.Toggle,
         }[options.get("mode", "select")]
 
-        for item in _iter_model_rows(model, 0):
+        for item in tools_lib.iter_model_rows(model, 0):
             item = item.data(InventoryModel.ItemRole)
             if item.get("isGroupItem"):
                 continue
@@ -473,9 +468,9 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
     is_lod = False
     LOD_REGEX = re.compile(r"_(LOD\d+)")
-    LOD_MARK = '(LODs)'
-    LOD_SPLITTER = '_'
-    LOD_NOT_LOD = '< without LOD >'
+    LOD_MARK = "(LODs)"
+    LOD_SPLITTER = "_"
+    LOD_NOT_LOD = "< without LOD >"
 
     def __init__(self, parent=None, items=None):
         QtWidgets.QDialog.__init__(self, parent)
@@ -493,10 +488,10 @@ class SwitchAssetDialog(QtWidgets.QDialog):
             placeholder="<representation>"
         )
 
-        self._asset_label = QtWidgets.QLabel('')
-        self._subset_label = QtWidgets.QLabel('')
-        self._lod_label = QtWidgets.QLabel('')
-        self._repre_label = QtWidgets.QLabel('')
+        self._asset_label = QtWidgets.QLabel("")
+        self._subset_label = QtWidgets.QLabel("")
+        self._lod_label = QtWidgets.QLabel("")
+        self._repre_label = QtWidgets.QLabel("")
 
         main_layout = QtWidgets.QVBoxLayout()
         context_layout = QtWidgets.QHBoxLayout()
@@ -505,7 +500,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         lod_layout = QtWidgets.QVBoxLayout()
         repre_layout = QtWidgets.QVBoxLayout()
 
-        accept_icon = qta.icon("fa.check", color="white")
+        accept_icon = qtawesome.icon("fa.check", color="white")
         accept_btn = QtWidgets.QPushButton()
         accept_btn.setIcon(accept_icon)
         accept_btn.setFixedWidth(24)
@@ -587,6 +582,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
             self.fill_check = False
             self._subsets_box.populate(subsets)
             self.fill_check = True
+
             if (last_subset != "" and last_subset in list(subsets)):
                 index = None
                 for i in range(self._subsets_box.count()):
@@ -610,16 +606,16 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
     def _compute_is_lod(self):
         is_lod = True
-        if self._assets_box.currentText() != '':
+        if self._assets_box.currentText() != "":
             asset = io.find_one({
-                'type': 'asset',
-                'name': self._assets_box.currentText()
+                "type": "asset",
+                "name": self._assets_box.currentText()
             })
-            subsets = io.find({'parent': asset['_id']})
+            subsets = io.find({"parent": asset["_id"]})
             is_lod = False
             for subset in subsets:
                 lod_regex_result = re.search(
-                    self.LOD_REGEX, subset['name']
+                    self.LOD_REGEX, subset["name"]
                 )
                 # If had at least one LOD subset
                 if lod_regex_result:
@@ -629,33 +625,33 @@ class SwitchAssetDialog(QtWidgets.QDialog):
             for item in self._items:
                 if is_lod is False:
                     break
-                _id = io.ObjectId(item['representation'])
-                repre = io.find_one({'_id': _id})
-                version = io.find_one({'_id': repre['parent']})
-                subset = io.find_one({'_id': version['parent']})
+                _id = io.ObjectId(item["representation"])
+                repre = io.find_one({"_id": _id})
+                version = io.find_one({"_id": repre["parent"]})
+                subset = io.find_one({"_id": version["parent"]})
 
                 lod_regex_result = re.search(
-                    self.LOD_REGEX, subset['name']
+                    self.LOD_REGEX, subset["name"]
                 )
                 if lod_regex_result:
                     continue
 
-                if self._assets_box.currentText() == '':
-                    parent = subset['parent']
+                if self._assets_box.currentText() == "":
+                    parent = subset["parent"]
                 else:
                     asset = io.find_one({
-                        'type': 'asset',
-                        'name': self._assets_box.currentText()
+                        "type": "asset",
+                        "name": self._assets_box.currentText()
                     })
-                    parent = asset['_id']
+                    parent = asset["_id"]
                 # check if exists lod subset with same name
                 lod_subsets = []
-                for sub in io.find({'parent': parent}):
-                    name = sub['name']
+                for sub in io.find({"parent": parent}):
+                    name = sub["name"]
                     lod_regex_result = re.search(self.LOD_REGEX, name)
                     if not lod_regex_result:
                         continue
-                    if name.startswith(subset['name']):
+                    if name.startswith(subset["name"]):
                         lod_subsets.append(name)
                 if len(lod_subsets) == 0:
                     is_lod = False
@@ -670,7 +666,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self.fill_check = False
         self._representations_box.populate(representations)
 
-        if (last_repre != '' and last_repre in list(representations)):
+        if (last_repre != "" and last_repre in list(representations)):
             index = None
             for i in range(self._representations_box.count()):
                 if last_repre == self._representations_box.itemText(i):
@@ -685,7 +681,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         subset_text = self._subsets_box.currentText()
         last_lod = self._lods_box.currentText()
 
-        if subset_text != '':
+        if subset_text != "":
             is_lod = self.LOD_MARK in subset_text
             # self.is_lod = is_lod
             self._lods_box.setVisible(is_lod)
@@ -700,39 +696,39 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                 return
 
         lods = set()
-        if asset_text != '' and subset_text != '':
-            subset_part = subset_text.replace(self.LOD_MARK, '')
+        if asset_text != "" and subset_text != "":
+            subset_part = subset_text.replace(self.LOD_MARK, "")
             asset = io.find_one({
-                'type': 'asset',
-                'name': asset_text
+                "type": "asset",
+                "name": asset_text
             })
             subsets = io.find({
-                'type': 'subset',
-                'parent': asset['_id']
+                "type": "subset",
+                "parent": asset["_id"]
             })
             for subset in subsets:
-                if not subset['name'].startswith(subset_part):
+                if not subset["name"].startswith(subset_part):
                     continue
-                lod_regex_result = re.search(self.LOD_REGEX, subset['name'])
+                lod_regex_result = re.search(self.LOD_REGEX, subset["name"])
                 if lod_regex_result:
                     lod = lod_regex_result.group(0).replace(
-                        self.LOD_SPLITTER, ''
+                        self.LOD_SPLITTER, ""
                     )
                 else:
                     lod = self.LOD_NOT_LOD
                 lods.add(lod)
 
-        elif asset_text != '':
+        elif asset_text != "":
             asset = io.find_one({
-                'type': 'asset',
-                'name': asset_text
+                "type": "asset",
+                "name": asset_text
             })
             subsets = io.find({
-                'type': 'subset',
-                'parent': asset['_id']
+                "type": "subset",
+                "parent": asset["_id"]
             })
             subset_names, groups = self._group_lods(
-                sorted(subsets.distinct('name'))
+                sorted(subsets.distinct("name"))
             )
             is_lod = True
             for name in subset_names:
@@ -760,7 +756,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                     lods = sub_lods
 
         else:
-            subset_part = subset_text.replace(self.LOD_MARK, '')
+            subset_part = subset_text.replace(self.LOD_MARK, "")
             for item in self._items:
                 item_lods = set()
                 _id = io.ObjectId(item["representation"])
@@ -770,16 +766,16 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                 })
                 version, subset, asset, project = io.parenthood(representation)
                 subsets = io.find({
-                    'type': 'subset',
-                    'parent': asset['_id']
+                    "type": "subset",
+                    "parent": asset["_id"]
                 })
                 for subset in subsets:
-                    if not subset['name'].startswith(subset_part):
+                    if not subset["name"].startswith(subset_part):
                         continue
-                    lod_regex_result = re.search(self.LOD_REGEX, subset['name'])
+                    lod_regex_result = re.search(self.LOD_REGEX, subset["name"])
                     if lod_regex_result:
                         lod = lod_regex_result.group(0).replace(
-                            self.LOD_SPLITTER, ''
+                            self.LOD_SPLITTER, ""
                         )
                     else:
                         lod = self.LOD_NOT_LOD
@@ -794,7 +790,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         # fill lods into combobox
         self._lods_box.populate(lods)
         # try select last LOD if was selected
-        if last_lod != '':
+        if last_lod != "":
             index = None
             for i in range(self._lods_box.count()):
                 if last_lod == self._lods_box.itemText(i):
@@ -805,15 +801,19 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self.fill_check = True
 
     def set_labels(self):
-        asset_label = subset_label = repre_label = lod_label = "*No changes"
+        default = "*No changes"
+        asset_label = default
+        subset_label = default
+        lod_label = default
+        repre_label = default
 
-        if self._assets_box.currentText() != '':
+        if self._assets_box.currentText() != "":
             asset_label = self._assets_box.currentText()
-        if self._subsets_box.currentText() != '':
+        if self._subsets_box.currentText() != "":
             subset_label = self._subsets_box.currentText()
-        if self._lods_box.currentText() != '':
+        if self._lods_box.currentText() != "":
             lod_label = self._lods_box.currentText()
-        if self._representations_box.currentText() != '':
+        if self._representations_box.currentText() != "":
             repre_label = self._representations_box.currentText()
 
         self._asset_label.setText(asset_label)
@@ -882,11 +882,11 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                     elif subset is None:
                         lod_part = lod_regex_result.group(1)
                         subset_part = subset_name.replace(
-                            lod_regex_result.group(0), ''
+                            lod_regex_result.group(0), ""
                         )
                         _sub_ok = False
                         for subset in subsets:
-                            if subset['name'].startswith(subset_part):
+                            if subset["name"].startswith(subset_part):
                                 _sub_ok = True
                                 break
                         if subset_ok:
@@ -924,7 +924,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                     if not lod_regex_result:
                         lod_ok = False
                         continue
-                    subset_name = subset_name.replace(self.LOD_MARK, '')
+                    subset_name = subset_name.replace(self.LOD_MARK, "")
                     subset_name += (
                         lod_regex_result.group(0)
                     )
@@ -937,8 +937,8 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                         lod_ok = False
                         continue
                 else:
-                    orig_subset_name = subset['name']
-                    subset_name = subset_name.replace(self.LOD_MARK, '')
+                    orig_subset_name = subset["name"]
+                    subset_name = subset_name.replace(self.LOD_MARK, "")
                     subset_name += self.LOD_SPLITTER + lod_name
                     subset = io.find_one({
                         "name": subset_name,
@@ -953,11 +953,11 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                         )
                         lod_part = lod_regex_result.group(1)
                         subset_part = subset_name.replace(
-                            lod_regex_result.group(0), ''
+                            lod_regex_result.group(0), ""
                         )
                         _sub_ok = False
                         for subset in subsets:
-                            if subset['name'].startswith(subset_part):
+                            if subset["name"].startswith(subset_part):
                                 _sub_ok = True
                                 break
                         if _sub_ok and self._lods_box.count() == 0:
@@ -972,15 +972,15 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                 if subset_name is None:
                     subset_name = subset["name"]
                     lod_regex_result = re.search(
-                        self.LOD_REGEX, subset['name']
+                        self.LOD_REGEX, subset["name"]
                     )
                     if lod_regex_result and _asset_name is not None:
                         subset_name = subset_name.replace(
-                            lod_regex_result.group(0), ''
+                            lod_regex_result.group(0), ""
                         )
                 else:
                     lod_regex_result = re.search(
-                        self.LOD_REGEX, subset['name']
+                        self.LOD_REGEX, subset["name"]
                     )
                     if lod_regex_result and _asset_name is None:
                         subset_name += lod_regex_result.group(0)
@@ -999,7 +999,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                     "type": "version",
                     "parent": subset["_id"]
                 },
-                sort=[('name', -1)]
+                sort=[("name", -1)]
             )
             if version is None:
                 repre_ok = False
@@ -1014,11 +1014,11 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                 repre_ok = False
                 continue
 
-        error_msg = '*Please select'
-        error_sheet = 'border: 1px solid red;'
-        success_sheet = 'border: 1px solid green;'
-        asset_sheet = subset_sheet = repre_sheet = lod_sheet = ''
-        accept_sheet = ''
+        error_msg = "*Please select"
+        error_sheet = "border: 1px solid red;"
+        success_sheet = "border: 1px solid green;"
+        asset_sheet = subset_sheet = repre_sheet = lod_sheet = ""
+        accept_sheet = ""
         all_ok = asset_ok and subset_ok and lod_ok and repre_ok
 
         if asset_ok is False:
@@ -1046,13 +1046,13 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
     def _get_assets(self):
         filtered_assets = []
-        for asset in io.find({'type': 'asset'}):
+        for asset in io.find({"type": "asset"}):
             subsets = io.find({
-                'type': 'subset',
-                'parent': asset['_id']
+                "type": "subset",
+                "parent": asset["_id"]
             })
             for subs in subsets:
-                filtered_assets.append(asset['name'])
+                filtered_assets.append(asset["name"])
                 break
 
         return filtered_assets
@@ -1060,10 +1060,10 @@ class SwitchAssetDialog(QtWidgets.QDialog):
     def _get_subsets(self):
         # Filter subsets by asset in dropdown
         if self._assets_box.currentText() != "":
-            parents = []
+            parents = list()
             parents.append(io.find_one({
-                'type': 'asset',
-                'name': self._assets_box.currentText()
+                "type": "asset",
+                "name": self._assets_box.currentText()
             }))
 
             return self._get_document_names("subset", parents)
@@ -1081,16 +1081,16 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         possible_subsets = set()
         for asset in assets:
             subsets = io.find({
-                'type': 'subset',
-                'parent': asset['_id']
+                "type": "subset",
+                "parent": asset["_id"]
             })
             asset_subsets = set()
             for subset in subsets:
-                subset_name = subset['name']
+                subset_name = subset["name"]
                 lod_regex_result = re.search(self.LOD_REGEX, subset_name)
                 if not self.is_lod and lod_regex_result:
                     subset_name = subset_name.replace(
-                        lod_regex_result.group(0), ''
+                        lod_regex_result.group(0), ""
                     )
                 asset_subsets.add(subset_name)
             if possible_subsets:
@@ -1106,12 +1106,12 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         dict key with the name of group.
 
         Example::
-            ``['A_LOD1', 'A_LOD2', 'B_LOD1', 'B_LOD2', 'C']``
+            ``["A_LOD1", "A_LOD2", "B_LOD1", "B_LOD2", "C"]``
             will became:
             ``
             {
-                "A(LODs)": ['LOD1', 'LOD2'],
-                "B(LODs)": ['LOD1', 'LOD2']
+                "A(LODs)": ["LOD1", "LOD2"],
+                "B(LODs)": ["LOD1", "LOD2"]
             }
 
         :param subsets: List of subset names
@@ -1125,15 +1125,15 @@ class SwitchAssetDialog(QtWidgets.QDialog):
             lod_regex_result = re.search(self.LOD_REGEX, subset)
             if lod_regex_result:
                 # strip _LOD string from subset name
-                grp_name = re.search('(.*){}'.format(
+                grp_name = re.search("(.*){}".format(
                     lod_regex_result.group(0)), subset
                 )
                 # This formatting can't be changed!!!
                 #  - replacing on accept won't work (LOD_MARK is replaced)
                 key_name = "{}{}".format(grp_name.group(1), self.LOD_MARK)
-                # store only 'LOD*number*'
+                # store only "LOD*number*"
                 groups[key_name].append(
-                    lod_regex_result.group(1).replace('_', '')
+                    lod_regex_result.group(1).replace("_", "")
                 )
                 if key_name not in subsets_out:
                     subsets_out.append(key_name)
@@ -1146,11 +1146,11 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         output_repres = set()
         # If nothing is selected
         if (
-            self._assets_box.currentText() == '' and
-            self._subsets_box.currentText() == '' and
+            self._assets_box.currentText() == "" and
+            self._subsets_box.currentText() == "" and
             (
                 self.is_lod is False or
-                self._lods_box.currentText() == ''
+                self._lods_box.currentText() == ""
             )
         ):
             for item in self._items:
@@ -1161,12 +1161,12 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                 })
                 # version, subset, asset, project = io.parenthood(representation)
                 repres = io.find({
-                    'type':'representation',
-                    'parent': representation['parent']
+                    "type":"representation",
+                    "parent": representation["parent"]
                 })
                 merge_repres = set()
                 for repre in repres:
-                    merge_repres.add(repre['name'])
+                    merge_repres.add(repre["name"])
                 if output_repres:
                     output_repres = (output_repres & merge_repres)
                 else:
@@ -1174,86 +1174,86 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         # If everything is selected
         elif(
-            self._assets_box.currentText() != '' and
-            self._subsets_box.currentText() != '' and
+            self._assets_box.currentText() != "" and
+            self._subsets_box.currentText() != "" and
             (
                 self.is_lod is False or
-                self._lods_box.currentText() != ''
+                self._lods_box.currentText() != ""
             )
         ):
             asset = io.find_one({
-                'type': 'asset',
-                'name': self._assets_box.currentText()
+                "type": "asset",
+                "name": self._assets_box.currentText()
             })
             # subset
             subset_name = self._subsets_box.currentText()
             if self.is_lod:
-                subset_name = subset_name.replace(self.LOD_MARK, '')
+                subset_name = subset_name.replace(self.LOD_MARK, "")
                 lod_name = self._lods_box.currentText()
                 if lod_name != self.LOD_NOT_LOD:
                     subset_name += (
                         self.LOD_SPLITTER + self._lods_box.currentText()
                     )
             subset = io.find_one({
-                'type': 'subset',
-                'parent': asset['_id'],
-                'name': subset_name
+                "type": "subset",
+                "parent": asset["_id"],
+                "name": subset_name
             })
             #versions
             versions = io.find({
-                'type': 'version',
-                'parent': subset['_id']
-            }, sort=[('name', 1)])
+                "type": "version",
+                "parent": subset["_id"]
+            }, sort=[("name", 1)])
             versions = [version for version in versions]
             if len(versions) == 0:
                 return list(output_repres)
             # representations
             repres = io.find({
-                'type': 'representation',
-                'parent': versions[-1]['_id']
+                "type": "representation",
+                "parent": versions[-1]["_id"]
             })
-            output_repres = [repre['name'] for repre in repres]
+            output_repres = [repre["name"] for repre in repres]
 
         # Rest of If asset is selected
         elif(
-            self._assets_box.currentText() != ''
+            self._assets_box.currentText() != ""
         ):
             # if is LOD and (subset or lod) are selected
             asset = io.find_one({
-                'type': 'asset',
-                'name': self._assets_box.currentText()
+                "type": "asset",
+                "name": self._assets_box.currentText()
             })
             subsets = io.find({
-                'type': 'subset',
-                'parent': asset['_id']
+                "type": "subset",
+                "parent": asset["_id"]
             })
 
             possible_subsets = []
             if (
                 self.is_lod and (
-                    self._subsets_box.currentText() != '' or
-                    self._lods_box.currentText() != ''
+                    self._subsets_box.currentText() != "" or
+                    self._lods_box.currentText() != ""
                 )
             ):
-                if self._subsets_box.currentText() != '':
+                if self._subsets_box.currentText() != "":
                     subset_name = self._subsets_box.currentText()
-                    subset_name = subset_name.replace(self.LOD_MARK, '')
+                    subset_name = subset_name.replace(self.LOD_MARK, "")
                     for subset in subsets:
-                        if subset['name'].startswith(subset_name):
+                        if subset["name"].startswith(subset_name):
                             possible_subsets.append(subset)
                 else:
                     lod_name = self._lods_box.currentText()
                     if lod_name == self.LOD_NOT_LOD:
                         for subset in subsets:
                             lod_regex_result = re.search(
-                                self.LOD_REGEX, subs['name']
+                                self.LOD_REGEX, subs["name"]
                             )
                             if lod_regex_result:
                                 continue
                             possible_subsets.append(subset)
                     else:
                         for subset in subsets:
-                            if subset['name'].endswith(lod_name):
+                            if subset["name"].endswith(lod_name):
                                 possible_subsets.append(subset)
             # if only asset is selected
             else:
@@ -1262,9 +1262,9 @@ class SwitchAssetDialog(QtWidgets.QDialog):
             versions = []
             for subset in possible_subsets:
                 _versions = io.find({
-                    'type': 'version',
-                    'parent': subset['_id']
-                }, sort=[('name', 1)])
+                    "type": "version",
+                    "parent": subset["_id"]
+                }, sort=[("name", 1)])
                 _versions = [version for version in _versions]
                 if len(_versions) == 0:
                     continue
@@ -1274,9 +1274,9 @@ class SwitchAssetDialog(QtWidgets.QDialog):
             # representations
             for version in versions:
                 repres = io.find({
-                    'type': 'representation',
-                    'parent': version['_id']
-                }).distinct('name')
+                    "type": "representation",
+                    "parent": version["_id"]
+                }).distinct("name")
                 repre_names = set(repres)
                 if output_repres:
                     output_repres = (output_repres & repre_names)
@@ -1284,7 +1284,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                     output_repres = repre_names
 
         # if asset is not selected and lod is selected
-        elif self.is_lod and self._lods_box.currentText() != '':
+        elif self.is_lod and self._lods_box.currentText() != "":
             lod_name = self._lods_box.currentText()
             for item in self._items:
                 _id = io.ObjectId(item["representation"])
@@ -1293,24 +1293,24 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                     "_id": _id
                 })
                 ver, subs, asset, proj = io.parenthood(representation)
-                subset_name = self._strip_lod(subs['name'])
+                subset_name = self._strip_lod(subs["name"])
                 if lod_name != self.LOD_NOT_LOD:
                     subset_name = self.LOD_SPLITTER.join(
                         [subset_name, lod_name]
                     )
 
                 subsets = io.find({
-                    'type': 'subset',
-                    'parent': asset['_id'],
-                    'name': subset_name
+                    "type": "subset",
+                    "parent": asset["_id"],
+                    "name": subset_name
                 })
 
                 versions = []
                 for subset in subsets:
                     _versions = io.find({
-                        'type': 'version',
-                        'parent': subset['_id']
-                    }, sort=[('name', 1)])
+                        "type": "version",
+                        "parent": subset["_id"]
+                    }, sort=[("name", 1)])
                     _versions = [version for version in _versions]
                     if len(_versions) == 0:
                         continue
@@ -1321,9 +1321,9 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
                 for version in versions:
                     repres = io.find({
-                        'type': 'representation',
-                        'parent': version['_id']
-                    }).distinct('name')
+                        "type": "representation",
+                        "parent": version["_id"]
+                    }).distinct("name")
                     repre_names = set(repres)
                     if output_repres:
                         output_repres = (output_repres & repre_names)
@@ -1334,7 +1334,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         else:
             subset_text = self._subsets_box.currentText()
             if self.is_lod:
-                subset_text = subset_text.replace(self.LOD_MARK, '')
+                subset_text = subset_text.replace(self.LOD_MARK, "")
 
             for item in self._items:
                 _id = io.ObjectId(item["representation"])
@@ -1345,21 +1345,21 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                 ver, subs, asset, proj = io.parenthood(representation)
 
                 subset_name = subset_text
-                lod_regex_result = re.search(self.LOD_REGEX, subs['name'])
+                lod_regex_result = re.search(self.LOD_REGEX, subs["name"])
                 if lod_regex_result:
                      subset_name += lod_regex_result.group(0)
                 # should find only one subset
                 subsets = io.find({
-                    'type': 'subset',
-                    'parent': asset['_id'],
-                    'name': subset_name
+                    "type": "subset",
+                    "parent": asset["_id"],
+                    "name": subset_name
                 })
                 versions = []
                 for subset in subsets:
                     _versions = io.find({
-                        'type': 'version',
-                        'parent': subset['_id']
-                    }, sort=[('name', 1)])
+                        "type": "version",
+                        "parent": subset["_id"]
+                    }, sort=[("name", 1)])
                     _versions = [version for version in _versions]
                     if len(_versions) == 0:
                         continue
@@ -1370,9 +1370,9 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
                 for version in versions:
                     repres = io.find({
-                        'type': 'representation',
-                        'parent': version['_id']
-                    }).distinct('name')
+                        "type": "representation",
+                        "parent": version["_id"]
+                    }).distinct("name")
                     repre_names = set(repres)
                     if output_repres:
                         output_repres = (output_repres & repre_names)
@@ -1425,11 +1425,11 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
                 if _subset_name is not None and _lod_name is not None:
                     _subset_name = self.LOD_SPLITTER.join([
-                        _subset_name.replace(self.LOD_MARK, ''),
+                        _subset_name.replace(self.LOD_MARK, ""),
                         _lod_name
                     ])
                 elif _subset_name is not None and self._lods_box.isVisible():
-                    subset_name = subset['name']
+                    subset_name = subset["name"]
                     lod_regex_result = re.search(self.LOD_REGEX, subset_name)
                     _lod_name = lod_regex_result.group(0)
                     _subset_name = self.LOD_SPLITTER.join([
@@ -1437,11 +1437,11 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                     ])
 
                 elif _lod_name is not None:
-                    subset_name = subset['name']
+                    subset_name = subset["name"]
                     lod_regex_result = re.search(self.LOD_REGEX, subset_name)
                     if lod_regex_result:
                         subset_name = subset_name.replace(
-                            lod_regex_result.group(0), ''
+                            lod_regex_result.group(0), ""
                         )
                     _subset_name = self.LOD_SPLITTER.join([
                         subset_name, _lod_name
@@ -1474,7 +1474,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                 version, subset, asset, project = io.parenthood(representation)
                 if _subset_name is not None and _asset_name is None:
                     lod_regex_result = re.search(
-                        self.LOD_REGEX, subset['name']
+                        self.LOD_REGEX, subset["name"]
                     )
                     if lod_regex_result:
                         lod = lod_regex_result.group(0)
@@ -1504,7 +1504,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         """
         m = re.search(self.LOD_REGEX, subset)
         if m:
-            grp_name = re.search('(.*){}'.format(m.group(0)), subset)
+            grp_name = re.search("(.*){}".format(m.group(0)), subset)
             return grp_name.group(1)
         else:
             return subset
@@ -1535,7 +1535,7 @@ class Window(QtWidgets.QDialog):
         outdated_only.setToolTip("Show outdated files only")
         outdated_only.setChecked(False)
 
-        icon = qta.icon("fa.refresh", color="white")
+        icon = qtawesome.icon("fa.refresh", color="white")
         refresh_button = QtWidgets.QPushButton()
         refresh_button.setIcon(icon)
 
@@ -1553,7 +1553,7 @@ class Window(QtWidgets.QDialog):
 
         # apply delegates
         version_delegate = VersionDelegate(self)
-        column = model.COLUMNS.index("version")
+        column = model.Columns.index("version")
         view.setItemDelegateForColumn(column, version_delegate)
 
         layout.addLayout(control_layout)
@@ -1592,14 +1592,14 @@ class Window(QtWidgets.QDialog):
         self.view.setColumnWidth(3, 150)  # family
         self.view.setColumnWidth(4, 100)  # namespace
 
-        refresh_family_config()
+        tools_lib.refresh_family_config_cache()
 
     def refresh(self):
-        with preserve_expanded_rows(tree_view=self.view,
-                                    role=self.model.UniqueRole):
-            with preserve_selection(tree_view=self.view,
-                                    role=self.model.UniqueRole,
-                                    current_index=False):
+        with tools_lib.preserve_expanded_rows(tree_view=self.view,
+                                              role=self.model.UniqueRole):
+            with tools_lib.preserve_selection(tree_view=self.view,
+                                              role=self.model.UniqueRole,
+                                              current_index=False):
                 if self.view._hierarchy_view:
                     self.model.refresh(selected=self.view._selected)
                 else:
@@ -1612,6 +1612,8 @@ def show(root=None, debug=False, parent=None):
     Arguments:
         debug (bool, optional): Run in debug-mode,
             defaults to False
+        parent (QtCore.QObject, optional): When provided parent the interface
+            to this QObject.
 
     """
 
