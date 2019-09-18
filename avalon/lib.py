@@ -243,7 +243,9 @@ def modules_from_path(path):
 
     path = os.path.normpath(path)
 
-    assert os.path.isdir(path), "%s is not a directory" % path
+    if not os.path.isdir(path):
+        log_.warning("%s is not a directory" % path)
+        return []
 
     modules = []
     for fname in os.listdir(path):

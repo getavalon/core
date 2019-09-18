@@ -3,16 +3,15 @@ import logging
 
 from collections import defaultdict
 
-from ... import api, io, style
-from ...vendor.Qt import QtCore, QtGui
-from ...vendor import qtawesome as qta
-from .lib import walk_hierarchy
+from ....vendor import qtawesome
+from ....vendor.Qt import QtCore, QtGui
 
-# todo(roy): refactor loading from other tools
-from ..cbloader import lib as cbloader_lib
-from ..projectmanager.model import (
-    TreeModel, Node
-)
+from .... import api, io, style
+
+from ..models import TreeModel, Node
+
+from .lib import walk_hierarchy
+from .. import lib as gui_lib
 
 
 class InventoryModel(TreeModel):
@@ -82,9 +81,9 @@ class InventoryModel(TreeModel):
                 # Override color
                 color = node.get("color", style.colors.default)
                 if node.get("isGroupNode"):  # group-item
-                    return qta.icon("fa.folder", color=color)
+                    return qtawesome.icon("fa.folder", color=color)
                 else:
-                    return qta.icon("fa.file-o", color=color)
+                    return qtawesome.icon("fa.file-o", color=color)
 
             if index.column() == 3:
                 # Family icon
@@ -234,8 +233,9 @@ class InventoryModel(TreeModel):
                     family = families[0]
 
             # Get the label and icon for the family if in configuration
-            family_config = cbloader_lib.get(cbloader_lib.FAMILY_CONFIG,
-                                             family)
+            family_config = gui_lib.get(
+                gui_lib.FAMILY_CONFIG, family
+            )
             family = family_config.get("label", family)
             family_icon = family_config.get("icon", None)
 

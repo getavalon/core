@@ -1,16 +1,12 @@
 import os
-import sys
-from collections import OrderedDict
-from bson.objectid import ObjectId
-import importlib
-from .. import api, io
-import contextlib
-from pyblish import api as pyblish
-from ..vendor import toml
 import logging
-import nuke
+import contextlib
+import importlib
+from collections import OrderedDict
+from pyblish import api as pyblish
+from .. import api, io
 from . import lib
-
+import nuke
 
 log = logging.getLogger(__name__)
 
@@ -21,7 +17,6 @@ def reload_pipeline():
     """Attempt to reload pipeline at run-time.
 
     CAUTION: This is primarily for development and debugging purposes.
-
     """
 
     import importlib
@@ -34,9 +29,10 @@ def reload_pipeline():
                    "avalon.pipeline",
                    "avalon.nuke.pipeline",
                    "avalon.nuke.lib",
-                   "avalon.tools.loader.app",
+                   "avalon.tools.cbloader.app",
                    "avalon.tools.creator.app",
                    "avalon.tools.manager.app",
+                   "avalon.tools.libraryloader",
 
                    "avalon.api",
                    "avalon.tools",
@@ -50,7 +46,6 @@ def reload_pipeline():
     import avalon.nuke
     api.install(avalon.nuke)
 
-    _install_menu()
     _register_events()
 
 
@@ -60,21 +55,21 @@ def containerise(node,
                  context,
                  loader=None,
                  data=None):
-    """Bundle `nodes` into an assembly and imprint it with metadata
+    """Bundle `node` into an assembly and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
     for loaded assets.
 
     Arguments:
-        node (object): The node in Nuke to imprint as container,
-        usually a Reader.
+        node (obj): Nuke's node object to imprint as container,
+                    usually a Reader.
         name (str): Name of resulting assembly
         namespace (str): Namespace under which to host container
         context (dict): Asset information
         loader (str, optional): Name of node used to produce this container.
 
     Returns:
-        None
+        node (obj): containerised nuke's node object
 
     """
 
@@ -90,22 +85,25 @@ def containerise(node,
     if data:
         {data_imprint.update({k: v}) for k, v in data.items()}
 
-    log.info("data: {}".format(data_imprint))
+    log.debug("Imprinting data: {}".format(data_imprint))
 
-    lib.add_avalon_tab_knob(node)
+    lib.set_avalon_knob_data(node, data_imprint)
 
-    node['avalon'].setValue(toml.dumps(data_imprint))
+    return node
 
 
 def parse_container(node):
     """Returns containerised data of a node
 
-    This reads the imprinted data from `containerise`.
+    Reads the imprinted data from `containerise`.
 
+    Arguments:
+        node (obj): Nuke's node object to read imprinted data
+
+    Returns:
+        container (dict): imprinted container data
     """
-
-    raw_text_data = node['avalon'].value()
-    data = toml.loads(raw_text_data, _dict=dict)
+    data = lib.get_avalon_knob_data(node)
 
     if not isinstance(data, dict):
         return
@@ -113,6 +111,7 @@ def parse_container(node):
     # If not all required data return the empty container
     required = ['schema', 'id', 'name',
                 'namespace', 'loader', 'representation']
+
     if not all(key in data for key in required):
         return
 
@@ -122,7 +121,7 @@ def parse_container(node):
     container["objectName"] = node["name"].value()
 
     # Store reference to the node object
-    container["_tool"] = node
+    container["_node"] = node
 
     return container
 
@@ -138,19 +137,23 @@ def update_container(node, keys=dict()):
         node (object): nuke node with updated container data
     """
 
-    raw_text_data = node['avalon'].value()
-    data = toml.loads(raw_text_data, _dict=dict)
+    data = lib.get_avalon_knob_data(node)
 
     if not isinstance(data, dict):
         return
 
     # If not all required data return the empty container
     required = ['schema', 'id', 'name',
-                'namespace', 'node_name', 'representation']
-    if not all(key in data for key in required):
-        return
+                'namespace', 'objectName', 'representation', 'version']
+    container = dict()
 
-    container = {key: data[key] for key in required}
+    # check if key in data
+    for k in required:
+        if not data.get(k, 0):
+            # if not then create the key in container and data
+            data[k] = 0
+
+    container = {key: data[key] for key in data}
 
     for key, value in container.items():
         try:
@@ -158,23 +161,24 @@ def update_container(node, keys=dict()):
         except KeyError:
             pass
 
-    node['avalon'].setValue('')
-    node['avalon'].setValue(toml.dumps(container))
+    node = lib.set_avalon_knob_data(node, container)
 
     return node
 
 
 class Creator(api.Creator):
+    """Creator cass wrapper
+    """
     def process(self):
-        nodes = nuke.allNodes()
-
         if (self.options or {}).get("useSelection"):
             nodes = nuke.selectedNodes()
 
-        instance = [n for n in nodes
-                    if n["name"].value() in self.name] or None
+        if len(nodes) > 0:
+            node = nodes[0]
+        elif len(nodes) > 1:
+            nuke.message("Please select only one node")
 
-        instance = lib.imprint(instance, self.data)
+        instance = lib.imprint(node, self.data)
 
         return instance
 
@@ -189,13 +193,13 @@ def ls():
     See the `container.json` schema for details on how it should look,
     and the Maya equivalent, which is in `avalon.maya.pipeline`
     """
-    all_nodes = nuke.allNodes(recurseGroups=True)
+    all_nodes = nuke.allNodes(recurseGroups=False)
 
-    # TODO: add readgeo, readcamera, readimage
-    reads = [n for n in all_nodes if n.Class() == 'Read']
+    nodes = [n for n in all_nodes]
 
-    for r in reads:
-        container = parse_container(r)
+    for n in nodes:
+        log.debug("Listing node: `{}`".format(n.name()))
+        container = parse_container(n)
         if container:
             yield container
 
@@ -222,7 +226,7 @@ def install(config):
     if hasattr(config, "install"):
         config.install()
 
-    log.info("config.nuke installed")
+    log.info("{}.nuke installed".format(config.__name__))
 
 
 def find_host_config(config):
@@ -237,7 +241,7 @@ def find_host_config(config):
 
 
 def uninstall(config):
-    """Uninstall all tha was installed
+    """Uninstall all that was previously installed
 
     This is where you undo everything that was done in `install()`.
     That means, removing menus, deregistering families and  data
@@ -257,17 +261,17 @@ def uninstall(config):
 
 
 def _install_menu():
+    """Installing Avalon menu to Nuke
+    """
     from ..tools import (
         creator,
-        # publish,
+        publish,
         workfiles,
         cbloader,
         cbsceneinventory,
-        contextmanager
+        contextmanager,
+        libraryloader
     )
-    # for now we are using `lite` version
-    # TODO: just for now untill qml in Nuke will be fixed (pyblish-qml#301)
-    import pyblish_lite as publish
 
     # Create menu
     menubar = nuke.menu("Nuke")
@@ -287,14 +291,16 @@ def _install_menu():
                     )
     menu.addSeparator()
     menu.addCommand("Create...", creator.show)
-    menu.addCommand("Load...", cbloader.show)
+    menu.addCommand(
+        "Load...", command=lambda *args:
+        cbloader.show(use_context=True)
+    )
     menu.addCommand("Publish...", publish.show)
     menu.addCommand("Manage...", cbsceneinventory.show)
+    menu.addCommand("Library...", libraryloader.show)
 
     menu.addSeparator()
-    frames_menu = menu.addMenu("Reset Frame Range")
-    frames_menu.addCommand("Cut length", reset_frame_range)
-    frames_menu.addCommand("Full length(handles)", reset_frame_range_handles)
+    menu.addCommand("Reset Frame Range", reset_frame_range_handles)
     menu.addCommand("Reset Resolution", reset_resolution)
 
     menu.addSeparator()
@@ -316,8 +322,8 @@ def reset_frame_range():
     asset = io.find_one({"name": asset, "type": "asset"})
 
     try:
-        edit_in = int(asset["data"]["fstart"])
-        edit_out = int(asset["data"]["fend"])
+        frame_start = int(asset["data"]["frameStart"])
+        frame_end = int(asset["data"]["frameEnd"])
     except KeyError:
         log.warning(
             "Frame range not set! No edit information found for "
@@ -325,8 +331,8 @@ def reset_frame_range():
         )
         return
 
-    nuke.root()["first_frame"].setValue(edit_in)
-    nuke.root()["last_frame"].setValue(edit_out)
+    nuke.root()["first_frame"].setValue(frame_start)
+    nuke.root()["last_frame"].setValue(frame_end)
 
 
 def reset_frame_range_handles():
@@ -346,7 +352,7 @@ def reset_frame_range_handles():
     data = asset["data"]
 
     missing_cols = []
-    check_cols = ["fstart", "fend"]
+    check_cols = ["frameStart", "frameEnd"]
 
     for col in check_cols:
         if col not in data:
@@ -360,11 +366,20 @@ def reset_frame_range_handles():
         return
 
     handles = get_handles(asset)
-    edit_in = int(asset["data"]["fstart"]) - handles
-    edit_out = int(asset["data"]["fend"]) + handles
+    frame_start = int(asset["data"]["frameStart"]) - handles
+    frame_end = int(asset["data"]["frameEnd"]) + handles
 
-    nuke.root()["first_frame"].setValue(edit_in)
-    nuke.root()["last_frame"].setValue(edit_out)
+    nuke.root()["first_frame"].setValue(frame_start)
+    nuke.root()["last_frame"].setValue(frame_end)
+
+    # setting active viewers
+    vv = nuke.activeViewer().node()
+    vv['frame_range_lock'].setValue(True)
+    vv['frame_range'].setValue('{0}-{1}'.format(
+        int(asset["data"]["frameStart"]),
+        int(asset["data"]["frameEnd"]))
+    )
+
 
 
 def get_handles(asset):
@@ -376,10 +391,10 @@ def get_handles(asset):
     if "visualParent" in data:
         vp = data["visualParent"]
         if vp is not None:
-            parent_asset = io.find_one({"_id": ObjectId(vp)})
+            parent_asset = io.find_one({"_id": io.ObjectId(vp)})
 
     if parent_asset is None:
-        parent_asset = io.find_one({"_id": ObjectId(asset['parent'])})
+        parent_asset = io.find_one({"_id": io.ObjectId(asset['parent'])})
 
     if parent_asset is not None:
         return get_handles(parent_asset)
@@ -392,8 +407,8 @@ def reset_resolution():
     project = io.find_one({"type": "project"})
 
     try:
-        width = project["data"].get("resolution_width", 1920)
-        height = project["data"].get("resolution_height", 1080)
+        width = project["data"].get("resolutionWidth", 1920)
+        height = project["data"].get("resolutionHeight", 1080)
     except KeyError:
         print(
             "No resolution information found for \"{0}\".".format(
@@ -440,16 +455,16 @@ def _on_task_changed(*args):
     _install_menu()
 
 
+
 @contextlib.contextmanager
 def viewer_update_and_undo_stop():
     """Lock viewer from updating and stop recording undo steps"""
     try:
-        # nuke = getattr(sys.modules["__main__"], "nuke", None)
-        # lock all connections between nodes
-        # nuke.Root().knob('lock_connections').setValue(1)
-
         # stop active viewer to update any change
-        nuke.activeViewer().stop()
+        try:
+            nuke.activeViewer().stop()
+        except Exception as e:
+            log.warning("No available active Viewer: `{}`".format(e))
         nuke.Undo.disable()
         yield
     finally:

@@ -18,8 +18,9 @@ def reset_frame_range():
     shot = io.find_one({"name": shot, "type": "asset"})
 
     try:
-        edit_in = shot["data"]["edit_in"]
-        edit_out = shot["data"]["edit_out"]
+        frame_start = shot["data"]["frameStart"]
+        frame_end = shot["data"]["frameEnd"]
+
     except KeyError:
         cmds.warning("No edit information found for %s" % shot["name"])
         return
@@ -38,21 +39,21 @@ def reset_frame_range():
 
     cmds.currentUnit(time=fps)
 
-    cmds.playbackOptions(minTime=edit_in)
-    cmds.playbackOptions(maxTime=edit_out)
-    cmds.playbackOptions(animationStartTime=edit_in)
-    cmds.playbackOptions(animationEndTime=edit_out)
-    cmds.playbackOptions(minTime=edit_in)
-    cmds.playbackOptions(maxTime=edit_out)
-    cmds.currentTime(edit_in)
+    cmds.playbackOptions(minTime=frame_start)
+    cmds.playbackOptions(maxTime=frame_end)
+    cmds.playbackOptions(animationStartTime=frame_start)
+    cmds.playbackOptions(animationEndTime=frame_end)
+    cmds.playbackOptions(minTime=frame_start)
+    cmds.playbackOptions(maxTime=frame_end)
+    cmds.currentTime(frame_start)
 
 
 def reset_resolution():
     project = io.find_one({"type": "project"})
 
     try:
-        resolution_width = project["data"].get("resolution_width", 1920)
-        resolution_height = project["data"].get("resolution_height", 1080)
+        resolution_width = project["data"].get("resolutionWidth", 1920)
+        resolution_height = project["data"].get("resolutionHeight", 1080)
     except KeyError:
         cmds.warning("No resolution information found for %s"
                      % project["name"])

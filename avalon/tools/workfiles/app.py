@@ -1,47 +1,23 @@
-
 import sys
 import os
-import tempfile
 import getpass
 import re
 import shutil
 
-
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import style
-from avalon import io
-
-
-def determine_application():
-    # Determine executable
-    application = None
-
-    basename = os.path.basename(sys.executable).lower()
-
-    if "maya" in basename:
-        application = "maya"
-
-    if "nuke" in basename:
-        application = "nuke"
-
-    if application is None:
-        raise ValueError(
-            "Could not determine application from executable:"
-            " \"{0}\"".format(sys.executable)
-        )
-
-    return application
+from ... import style, io, api
+from .. import lib as tools_lib
 
 
 class NameWindow(QtWidgets.QDialog):
     """Name Window"""
 
-    def __init__(self, root, temp_file):
+    def __init__(self, root):
         super(NameWindow, self).__init__()
         self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
 
+        self.result = None
         self.setup(root)
-        self.temp_file = temp_file
 
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
@@ -111,19 +87,18 @@ class NameWindow(QtWidgets.QDialog):
         self.refresh()
 
     def on_ok_pressed(self):
-        self.write_data()
+        self.result = self.work_file.replace("\\", "/")
         self.close()
 
     def on_cancel_pressed(self):
         self.close()
 
-    def write_data(self):
-        self.temp_file.write(self.work_file.replace("\\", "/"))
-        self.close()
+    def get_result(self):
+        return self.result
 
-    def get_work_file(self):
+    def get_work_file(self, template=None):
         data = self.data.copy()
-        template = self.template
+        template = template or self.template
 
         if not data["comment"]:
             data.pop("comment", None)
@@ -146,7 +121,16 @@ class NameWindow(QtWidgets.QDialog):
         work_file = work_file.replace("<", "")
         work_file = work_file.replace(">", "")
 
-        work_file = work_file + self.extensions[self.application]
+        # Define saving file extension
+        current_file = self.host.current_file()
+        if current_file:
+            # Match the extension of current file
+            _, extension = os.path.splitext(current_file)
+        else:
+            # Fall back to the first extension supported for this host.
+            extension = self.host.file_extensions()[0]
+
+        work_file = work_file + extension
 
         return work_file
 
@@ -154,12 +138,42 @@ class NameWindow(QtWidgets.QDialog):
         if self.version_checkbox.isChecked():
             self.version_spinbox.setEnabled(False)
 
-            for i in range(1, 9999):
-                self.data["version"] = i
-                self.work_file = self.get_work_file()
-                path = os.path.join(self.root, self.work_file)
-                if not os.path.exists(path):
-                    break
+            # Find matching files
+            files = os.listdir(self.root)
+
+            # Fast match on extension
+            extensions = self.host.file_extensions()
+            files = [f for f in files if os.path.splitext(f)[1] in extensions]
+
+            # Build template without optionals, version to digits only regex
+            # and comment to any definable value.
+            # Note: with auto-increment the `version` key may not be optional.
+            template = self.template
+            template = re.sub("<.*?>", ".*?", template)
+            template = re.sub("{version.*}", "([0-9]+)", template)
+            template = re.sub("{comment.*?}", ".+?", template)
+            template = self.get_work_file(template)
+            template = "^" + template + "$"           # match beginning to end
+
+            # Get highest version among existing matching files
+            version = 1
+            for file in sorted(files):
+                match = re.match(template, file)
+                if not match:
+                    continue
+
+                file_version = int(match.group(1))
+
+                if file_version >= version:
+                    version = file_version + 1
+
+            self.data["version"] = version
+
+            # safety check
+            path = os.path.join(self.root, self.get_work_file())
+            assert not os.path.exists(path), \
+                "This is a bug, file exists: %s" % path
+
         else:
             self.version_spinbox.setEnabled(True)
             self.data["version"] = self.version_spinbox.value()
@@ -180,33 +194,29 @@ class NameWindow(QtWidgets.QDialog):
 
     def setup(self, root):
         self.root = root
-        self.application = determine_application()
+        self.host = api.registered_host()
 
         # Get work file name
+        project = io.find_one({
+            "name": os.environ["AVALON_PROJECT"],
+            "type": "project"
+        })
         self.data = {
-            "project": io.find_one(
-                {"name": os.environ["AVALON_PROJECT"], "type": "project"}
-            ),
-            "asset": io.find_one(
-                {"name": os.environ["AVALON_ASSET"], "type": "asset"}
-            ),
-            "task": {
-                "name": os.environ["AVALON_TASK"].lower(),
-                "label": os.environ["AVALON_TASK"]
+            "project": {
+                "name": project["name"],
+                "code": project["data"].get("code", '')
             },
+            "asset": os.environ["AVALON_ASSET"],
+            "task": os.environ["AVALON_TASK"].lower(),
             "version": 1,
             "user": getpass.getuser(),
             "comment": ""
         }
 
-        self.template = "{task[name]}_v{version:0>4}<_{comment}>"
-
-        templates = self.data["project"]["config"]["template"]
-
+        self.template = "{task}_v{version:0>4}<_{comment}>"
+        templates = project["config"]["template"]
         if "workfile" in templates:
             self.template = templates["workfile"]
-
-        self.extensions = {"maya": ".ma", "nuke": ".nk"}
 
 
 class Window(QtWidgets.QDialog):
@@ -218,19 +228,28 @@ class Window(QtWidgets.QDialog):
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
 
         self.root = root
-
         if self.root is None:
             self.root = os.getcwd()
 
-        filters = {
-            "maya": [".ma", ".mb"],
-            "nuke": [".nk", ".nknc"]
-        }
-        self.application = determine_application()
-        self.filter = filters[self.application]
+        self.host = api.registered_host()
 
         self.layout = QtWidgets.QVBoxLayout()
         self.setLayout(self.layout)
+
+        # Display current context
+        # todo: context should update on update task
+        label = u"<b>Asset</b> {0} \u25B6 <b>Task</b> {1}".format(
+            api.Session["AVALON_ASSET"],
+            api.Session["AVALON_TASK"]
+        )
+        self.context_label = QtWidgets.QLabel(label)
+        self.context_label.setStyleSheet("QLabel{ font-size: 12pt; }")
+        self.layout.addWidget(self.context_label)
+
+        separator = QtWidgets.QFrame()
+        separator.setFrameShape(QtWidgets.QFrame.HLine)
+        separator.setFrameShadow(QtWidgets.QFrame.Plain)
+        self.layout.addWidget(separator)
 
         self.list = QtWidgets.QListWidget()
         self.layout.addWidget(self.list)
@@ -249,9 +268,12 @@ class Window(QtWidgets.QDialog):
         separator.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.layout.addWidget(separator)
 
-        current_file_label = QtWidgets.QLabel(
-            "Current File: " + self.current_file()
-        )
+        current_file = self.host.current_file()
+        if current_file:
+            current_label = os.path.basename(current_file)
+        else:
+            current_label = "<unsaved>"
+        current_file_label = QtWidgets.QLabel("Current File: " + current_label)
         self.layout.addWidget(current_file_label)
 
         buttons_layout = QtWidgets.QHBoxLayout()
@@ -261,93 +283,52 @@ class Window(QtWidgets.QDialog):
 
         self.duplicate_button.pressed.connect(self.on_duplicate_pressed)
         self.open_button.pressed.connect(self.on_open_pressed)
+        self.list.doubleClicked.connect(self.on_open_pressed)
         self.browse_button.pressed.connect(self.on_browse_pressed)
         self.save_as_button.pressed.connect(self.on_save_as_pressed)
 
         self.open_button.setFocus()
 
         self.refresh()
+        self.resize(400, 550)
 
     def get_name(self):
-        temp = tempfile.TemporaryFile(mode="w+t")
 
-        window = NameWindow(self.root, temp)
+        window = NameWindow(self.root)
         window.setStyleSheet(style.load_stylesheet())
         window.exec_()
 
-        temp.seek(0)
-        name = temp.read()
-        temp.close()
-        return name
-
-    def current_file(self):
-        func = {
-            "maya": self.current_file_maya,
-            "nuke": self.current_file_nuke
-        }
-        return func[self.application]()
-
-    def current_file_maya(self):
-        import os
-        from maya import cmds
-
-        current_file = cmds.file(sceneName=True, query=True)
-
-        # Maya returns forward-slashes by default
-        normalised = os.path.basename(os.path.normpath(current_file))
-
-        # Unsaved current file
-        if normalised == ".":
-            return "NOT SAVED"
-
-        return normalised
-
-    def current_file_nuke(self):
-        import os
-        import nuke
-
-        current_file = nuke.root().name()
-        normalised = os.path.normpath(current_file)
-
-        # Unsaved current file
-        if nuke.Root().name() == 'Root':
-            return "NOT SAVED"
-
-        return normalised
+        return window.get_result()
 
     def refresh(self):
         self.list.clear()
-        items = []
+
         modified = []
-        if not os.path.exists(self.root):
-            os.makedirs(self.root)
-        for f in os.listdir(self.root):
-            if os.path.isdir(os.path.join(self.root, f)):
+        extensions = set(self.host.file_extensions())
+        for f in reversed(os.listdir(self.root)):
+            path = os.path.join(self.root, f)
+            if os.path.isdir(path):
                 continue
 
-            if self.filter and os.path.splitext(f)[1] not in self.filter:
+            if extensions and os.path.splitext(f)[1] not in extensions:
                 continue
+
             self.list.addItem(f)
-            items.append(self.list.findItems(f, QtCore.Qt.MatchExactly)[0])
-            modified.append(os.path.getmtime(os.path.join(self.root, f)))
+            modified.append(os.path.getmtime(path))
 
         # Select last modified file
-        if items:
-            items[modified.index(max(modified))].setSelected(True)
+        if self.list.count():
+            item = self.list.item(modified.index(max(modified)))
+            item.setSelected(True)
+
+            # Scroll list so item is visible
+            QtCore.QTimer.singleShot(100, lambda: self.list.scrollToItem(item))
+
             self.duplicate_button.setEnabled(True)
         else:
             self.duplicate_button.setEnabled(False)
 
         self.list.setMinimumWidth(self.list.sizeHintForColumn(0) + 30)
-
-    def save_as_maya(self, file_path):
-        from maya import cmds
-        cmds.file(rename=file_path)
-        cmds.file(save=True, type="mayaAscii")
-
-    def save_as_nuke(self, file_path):
-        import nuke
-        nuke.scriptSaveAs(file_path)
 
     def save_changes_prompt(self):
         messagebox = QtWidgets.QMessageBox()
@@ -370,52 +351,25 @@ class Window(QtWidgets.QDialog):
         else:
             return None
 
-    def open_maya(self, file_path):
-        from maya import cmds
+    def open(self, filepath):
 
-        force = False
-        if cmds.file(q=True, modified=True):
+        host = self.host
+        if host.has_unsaved_changes():
             result = self.save_changes_prompt()
 
             if result is None:
+                # Cancel operation
                 return False
 
             if result:
-                cmds.file(save=True, type="mayaAscii")
+                # Save current scene, continue to open file
+                host.save(host.current_file())
+
             else:
-                force = True
+                # Don't save, continue to open file
+                pass
 
-        cmds.file(file_path, open=True, force=force)
-
-        return True
-
-    def open_nuke(self, file_path):
-        import nuke
-
-        if nuke.Root().modified():
-            result = self.save_changes_prompt()
-
-            if result is None:
-                return False
-            if result:
-                nuke.scriptSave()
-
-        nuke.scriptClear()
-        nuke.scriptOpen(file_path)
-
-        return True
-
-    def open(self, file_path):
-        func = {
-            "maya": self.open_maya,
-            "nuke": self.open_nuke
-        }
-
-        work_file = os.path.join(
-            self.root, self.list.selectedItems()[0].text()
-        )
-
-        return func[self.application](work_file)
+        return host.open(filepath)
 
     def on_duplicate_pressed(self):
         work_file = self.get_name()
@@ -434,18 +388,21 @@ class Window(QtWidgets.QDialog):
         self.refresh()
 
     def on_open_pressed(self):
-        work_file = os.path.join(
-            self.root, self.list.selectedItems()[0].text()
-        )
+
+        selection = self.list.selectedItems()
+        if not selection:
+            print("No file selected to open..")
+            return
+
+        work_file = os.path.join(self.root, selection[0].text())
 
         result = self.open(work_file)
-
         if result:
             self.close()
 
     def on_browse_pressed(self):
 
-        filter = " *".join(self.filter)
+        filter = " *".join(self.host.file_extensions())
         filter = "Work File (*{0})".format(filter)
         work_file = QtWidgets.QFileDialog.getOpenFileName(
             caption="Work Files",
@@ -467,25 +424,40 @@ class Window(QtWidgets.QDialog):
         if not work_file:
             return
 
-        save_as = {
-            "maya": self.save_as_maya,
-            "nuke": self.save_as_nuke
-        }
-        application = determine_application()
-        if application not in save_as:
-            raise ValueError(
-                "Could not find a save as method for this application."
-            )
-
         file_path = os.path.join(self.root, work_file)
-
-        save_as[application](file_path)
+        self.host.save(file_path)
 
         self.close()
 
 
-def show(root):
+def show(root=None):
     """Show Work Files GUI"""
-    window = Window(root)
-    window.setStyleSheet(style.load_stylesheet())
-    window.exec_()
+
+    host = api.registered_host()
+    if host is None:
+        raise RuntimeError("No registered host.")
+
+    # Verify the host has implemented the api for Work Files
+    required = ["open", "save", "current_file", "work_root"]
+    missing = []
+    for name in required:
+        if not hasattr(host, name):
+            missing.append(name)
+    if missing:
+        raise RuntimeError("Host is missing required Work Files interfaces: "
+                           "%s (host: %s)" % (", ".join(missing), host))
+
+    # Allow to use a Host's default root.
+    if root is None:
+        root = host.work_root()
+        if not root:
+            raise ValueError("Root not given and no root returned by "
+                             "default from current host %s" % host.__name__)
+
+    if not os.path.exists(root):
+        os.makedirs(root)
+
+    with tools_lib.application():
+        window = Window(root)
+        window.setStyleSheet(style.load_stylesheet())
+        window.exec_()

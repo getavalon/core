@@ -1,16 +1,14 @@
 import sys
 import logging
 
-import avalon.api as api
+from ... import api
 
-from avalon.vendor.Qt import QtWidgets, QtCore
-from avalon.tools.projectmanager.widget import AssetWidget
-from avalon.tools.projectmanager.app import TasksModel
-
+from ...vendor.Qt import QtWidgets, QtCore
+from ..gui.widgets import AssetsWidget
+from ..gui.models import TaskModel
 
 module = sys.modules[__name__]
 module.window = None
-
 
 log = logging.getLogger(__name__)
 
@@ -33,7 +31,7 @@ class App(QtWidgets.QDialog):
         accept_btn = QtWidgets.QPushButton("Accept")
 
         # Asset picker
-        assets = AssetWidget()
+        assets = AssetsWidget(silo_creatable=False)
 
         # Task picker
         tasks_widgets = QtWidgets.QWidget()
@@ -41,7 +39,7 @@ class App(QtWidgets.QDialog):
         tasks_layout = QtWidgets.QVBoxLayout(tasks_widgets)
         task_view = QtWidgets.QTreeView()
         task_view.setIndentation(0)
-        task_model = TasksModel()
+        task_model = TaskModel()
         task_view.setModel(task_model)
         tasks_layout.addWidget(task_view)
         tasks_layout.addWidget(accept_btn)
@@ -112,6 +110,9 @@ class App(QtWidgets.QDialog):
         asset_index = self._assets.get_active_index()
         asset_data = asset_index.data(self._assets.model.NodeRole)
         if not asset_data or not isinstance(asset_data, dict):
+            silo = self._assets.get_silo_object()
+            if silo and 'name' in silo:
+                return silo["name"]
             return
 
         return asset_data["name"]
@@ -185,7 +186,7 @@ class App(QtWidgets.QDialog):
         Returns:
             None
         """
-        self._assets.select_assets([assetname], expand=True)
+        self._assets.select_assets(assetname)
 
 
 def show(parent=None):

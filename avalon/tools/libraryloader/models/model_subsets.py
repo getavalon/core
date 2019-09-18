@@ -1,13 +1,9 @@
-from ... import io, style
-from ...vendor.Qt import QtCore
-from ...vendor import qtawesome as qta
-
-from ..projectmanager.model import (
-    TreeModel,
-    Node
-)
-
-from . import lib
+from . import TreeModel
+from .model_node import Node
+from .. import lib
+from .... import style
+from ....vendor import qtawesome as awesome
+from ....vendor.Qt import QtCore
 
 
 class SubsetsModel(TreeModel):
@@ -23,9 +19,12 @@ class SubsetsModel(TreeModel):
 
     def __init__(self, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
+
+        self.db = parent.db
         self._asset_id = None
-        self._icons = {"subset": qta.icon("fa.file-o",
-                                          color=style.colors.default)}
+        self._icons = {
+            "subset": awesome.icon("fa.file-o", color=style.colors.default)
+        }
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id
@@ -38,9 +37,11 @@ class SubsetsModel(TreeModel):
         if index.column() == 2:
             node = index.internalPointer()
             parent = node["_id"]
-            version = io.find_one({"name": value,
-                                   "type": "version",
-                                   "parent": parent})
+            version = self.db.find_one({
+                "name": value,
+                "type": "version",
+                "parent": parent
+            })
             self.set_version(index, version)
 
         return super(SubsetsModel, self).setData(index, value, role)
@@ -63,8 +64,8 @@ class SubsetsModel(TreeModel):
         version_data = version.get("data", dict())
 
         # Compute frame ranges (if data is present)
-        start = version_data.get("startFrame", None)
-        end = version_data.get("endFrame", None)
+        start = version_data.get("frameStart", None)
+        end = version_data.get("frameEnd", None)
         handles = version_data.get("handles", None)
         if start is not None and end is not None:
             # Remove superfluous zeros from numbers (3.0 -> 3) to improve
@@ -88,8 +89,8 @@ class SubsetsModel(TreeModel):
             "family": family,
             "familyLabel": family_config.get("label", family),
             "familyIcon": family_config.get('icon', None),
-            "startFrame": start,
-            "endFrame": end,
+            "frameStart": start,
+            "frameEnd": end,
             "duration": duration,
             "handles": handles,
             "frames": frames,
@@ -105,12 +106,17 @@ class SubsetsModel(TreeModel):
             return
 
         row = 0
-        for subset in io.find({"type": "subset",
-                               "parent": self._asset_id}):
+        for subset in self.db.find({
+            "type": "subset",
+            "parent": self._asset_id
+        }):
 
-            last_version = io.find_one({"type": "version",
-                                        "parent": subset['_id']},
-                                       sort=[("name", -1)])
+            last_version = self.db.find_one({
+                "type": "version",
+                "parent": subset['_id']
+            },
+                sort=[("name", -1)]
+            )
             if not last_version:
                 # No published version for the subset
                 continue
@@ -163,42 +169,3 @@ class SubsetsModel(TreeModel):
             flags |= QtCore.Qt.ItemIsEditable
 
         return flags
-
-
-class FamiliesFilterProxyModel(QtCore.QSortFilterProxyModel):
-    """Filters to specified families"""
-
-    def __init__(self, *args, **kwargs):
-        super(FamiliesFilterProxyModel, self).__init__(*args, **kwargs)
-        self._families = set()
-
-    def familyFilter(self):
-        return self._families
-
-    def setFamiliesFilter(self, values):
-        """Set the families to include"""
-        assert isinstance(values, (tuple, list, set))
-        self._families = set(values)
-        self.invalidateFilter()
-
-    def filterAcceptsRow(self, row=0, parent=QtCore.QModelIndex()):
-
-        if not self._families:
-            return False
-
-        model = self.sourceModel()
-        index = model.index(row, 0, parent=parent)
-
-        # Ensure index is valid
-        if not index.isValid() or index is None:
-            return True
-
-        # Get the node data and validate
-        node = model.data(index, TreeModel.NodeRole)
-        family = node.get("family", None)
-
-        if not family:
-            return True
-
-        # We want to keep the families which are not in the list
-        return family in self._families

@@ -3,8 +3,7 @@ from datetime import datetime
 import logging
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import io
-from .model import SubsetsModel
+from .models import SubsetsModel
 
 log = logging.getLogger(__name__)
 
@@ -111,6 +110,10 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
     first_run = False
     lock = False
 
+    def __init__(self, parent=None):
+        super(VersionDelegate, self).__init__()
+        self.db = parent.db
+
     def _format_version(self, value):
         """Formats integer to displayable version name"""
         return "v{0:03d}".format(value)
@@ -120,6 +123,10 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         return self._format_version(value)
 
     def createEditor(self, parent, option, index):
+        node = index.data(SubsetsModel.NodeRole)
+        if node.get("isGroup"):
+            return
+
         editor = QtWidgets.QComboBox(parent)
 
         def commit_data():
@@ -147,8 +154,10 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         # Add all available versions to the editor
         node = index.data(SubsetsModel.NodeRole)
         parent_id = node['version_document']['parent']
-        versions = io.find({"type": "version", "parent": parent_id},
-                           sort=[("name", 1)])
+        versions = self.db.find(
+            {"type": "version", "parent": parent_id},
+            sort=[("name", 1)]
+        )
         index = 0
         for i, version in enumerate(versions):
             label = self._format_version(version['name'])

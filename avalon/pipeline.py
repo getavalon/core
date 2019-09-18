@@ -371,14 +371,13 @@ class Application(Action):
         tools_env = acre.get_tools(tools_attr)
         dyn_env = acre.compute(tools_env)
         dyn_env = acre.merge(dyn_env, current_env=dict(os.environ))
+        env = acre.append(dict(os.environ), dyn_env)
 
         # Build environment
-        env = os.environ.copy()
+        # env = os.environ.copy()
         env.update(self.config.get("environment", {}))
-        env.update(dyn_env)
+        # env.update(dyn_env)
         env.update(session)
-        app_environment = self._format(app_environment, **env)
-        env.update(app_environment)
 
         return env
 
@@ -937,7 +936,10 @@ def get_representation_context(representation):
     )
 
     context = {
-        "project": project,
+        "project": {
+            "name": project["name"],
+            "code": project["data"].get("code", '')
+        },
         "asset": asset,
         "subset": subset,
         "version": version,
@@ -976,10 +978,15 @@ def update_current_task(task=None, asset=None, app=None):
         asset_document = io.find_one({"name": changed["AVALON_ASSET"],
                                       "type": "asset"})
         assert asset_document, "Asset must exist"
-        changed["AVALON_SILO"] = asset_document["silo"]
-        changed['AVALON_HIERARCHY'] = os.path.sep.join(
-            asset_document['data']['parents']
-        )
+        silo = asset_document["silo"]
+        if silo is None:
+            silo = asset_document["name"]
+        changed["AVALON_SILO"] = silo
+        parents = asset_document['data']['parents']
+        hierarchy = ""
+        if len(parents) > 0:
+            hierarchy = os.path.sep.join(parents)
+        changed['AVALON_HIERARCHY'] = hierarchy
 
     # Compute work directory (with the temporary changed session so far)
     project = io.find_one({"type": "project"},
@@ -987,7 +994,12 @@ def update_current_task(task=None, asset=None, app=None):
     template = project["config"]["template"]["work"]
     _session = Session.copy()
     _session.update(changed)
-    changed["AVALON_WORKDIR"] = _format_work_template(template, _session)
+    workdir = os.path.normpath(_format_work_template(template, _session))
+
+    changed["AVALON_WORKDIR"] = workdir
+
+    if not os.path.exists(workdir):
+        os.makedirs(workdir)
 
     # Update the full session in one go to avoid half updates
     Session.update(changed)
@@ -1020,9 +1032,14 @@ def _format_work_template(template, session=None):
     if session is None:
         session = Session
 
+    project = io.find_one({'type': 'project'})
+
     return template.format(**{
         "root": registered_root(),
-        "project": session["AVALON_PROJECT"],
+        "project": {
+            "name": project.get("name", session["AVALON_PROJECT"]),
+            "code": project["data"].get("code", ''),
+        },
         "silo": session["AVALON_SILO"],
         "hierarchy": session['AVALON_HIERARCHY'],
         "asset": session["AVALON_ASSET"],
@@ -1231,7 +1248,10 @@ def get_representation_path(representation):
         else:
             return template_publish.format(**{
                 "root": registered_root(),
-                "project": project["name"],
+                "project": {
+                    "name": project["name"],
+                    "code": project["data"].get("code", '')
+                },
                 "asset": asset["name"],
                 "silo": asset["silo"],
                 "subset": subset["name"],

@@ -1,12 +1,14 @@
-
+import os
 import sys
 import inspect
+import json
 
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ...vendor import qtawesome
 from ...vendor import six
 from ... import api, io, style
 from .. import lib
+from pypeapp import config
 
 module = sys.modules[__name__]
 module.window = None
@@ -306,7 +308,25 @@ class Window(QtWidgets.QDialog):
             item.setData(QtCore.Qt.ItemIsEnabled, False)
             listing.addItem(item)
 
-        listing.setCurrentItem(listing.item(0))
+        config_data = config.get_presets()["tools"]["creator"]
+        item = None
+        family_type = None
+        task_name = io.Session.get('AVALON_TASK', None)
+        if task_name:
+            for key, value in config_data.items():
+                for t_name in value:
+                    if t_name in task_name.lower():
+                        family_type = key
+                        break
+                if family_type:
+                    break
+            if family_type:
+                items = listing.findItems(family_type, QtCore.Qt.MatchExactly)
+                if len(items) > 0:
+                    item = items[0]
+                    listing.setCurrentItem(item)
+        if not item:
+            listing.setCurrentItem(listing.item(0))
 
     def on_create(self):
 
@@ -319,22 +339,19 @@ class Window(QtWidgets.QDialog):
         result = self.data["Result"]
 
         item = listing.currentItem()
-        useselection_chk = self.data["Use Selection Checkbox"]
-
-        if item is not None:
-            subset_name = result.text()
-            asset = asset.text()
-            family = item.data(FamilyRole)
-        else:
+        if item is None:
             return
+
+        subset_name = result.text()
+        asset = asset.text()
+        family = item.data(FamilyRole)
+        use_selection = self.data["Use Selection Checkbox"].isChecked()
 
         try:
             api.create(subset_name,
                        asset,
                        family,
-                       options={"useSelection":
-                                useselection_chk.checkState()}
-                       )
+                       options={"useSelection": use_selection})
 
         except NameError as e:
             self.echo(e)
@@ -343,6 +360,8 @@ class Window(QtWidgets.QDialog):
         except (TypeError, RuntimeError, KeyError, AssertionError) as e:
             self.echo("Program error: %s" % str(e))
             raise
+
+        self.echo("Created %s .." % subset_name)
 
     def echo(self, message):
         widget = self.data["Error Message"]
