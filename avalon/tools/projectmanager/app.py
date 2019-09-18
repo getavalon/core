@@ -2,11 +2,12 @@ import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import io, schema, api, style
+
 from .. import lib as tools_lib
+from ..widgets import AssetWidget
+from ..models import TasksModel
 
 from .dialogs import TasksCreateDialog, AssetCreateDialog
-from ..gui.widgets import AssetsWidget
-from ..gui.models import TaskModel
 
 module = sys.modules[__name__]
 module.window = None
@@ -28,7 +29,7 @@ class Window(QtWidgets.QDialog):
         assets_widgets = QtWidgets.QWidget()
         assets_widgets.setContentsMargins(0, 0, 0, 0)
         assets_layout = QtWidgets.QVBoxLayout(assets_widgets)
-        assets = AssetsWidget()
+        assets = AssetWidget()
         assets.view.setSelectionMode(assets.view.ExtendedSelection)
         add_asset = QtWidgets.QPushButton("Add asset")
         assets_layout.addWidget(assets)
@@ -42,7 +43,7 @@ class Window(QtWidgets.QDialog):
         label.setFixedHeight(28)
         task_view = QtWidgets.QTreeView()
         task_view.setIndentation(0)
-        task_model = TaskModel()
+        task_model = TasksModel()
         task_view.setModel(task_model)
         add_task = QtWidgets.QPushButton("Add task")
         tasks_layout.addWidget(label)
@@ -98,10 +99,6 @@ class Window(QtWidgets.QDialog):
 
     def refresh(self):
         self.data["model"]["assets"].refresh()
-        # set silo on start so tasks for silo are shown
-        current_silo = self.data["model"]["assets"].get_current_silo()
-        if current_silo != "":
-            self.on_asset_changed()
 
     def echo(self, message):
         widget = self.data["label"]["message"]
@@ -137,7 +134,7 @@ class Window(QtWidgets.QDialog):
             # This is to allow quick continuing of typing a new asset name
             # whenever the user created one; this way we can press the "ENTER"
             # key to add an asset and continue typing for the next.
-            dialog.data['label']['label'].setFocus()
+            dialog.data["label"]["label"].setFocus()
 
         def _on_current_asset_changed():
             """Callback on current asset changed in item widget.
@@ -179,17 +176,18 @@ class Window(QtWidgets.QDialog):
         model = self.data["model"]["assets"]
         selected = model.get_selected_assets()
         for asset_id in selected:
-            asset = io.find_one({"_id": asset_id})
+            _filter = {"_id": asset_id}
+            asset = io.find_one(_filter)
             asset_tasks = asset.get("data", {}).get("tasks", [])
             for task in tasks:
                 if task not in asset_tasks:
                     asset_tasks.append(task)
 
             # Update the field
-            asset['data']['tasks'] = asset_tasks
+            asset["data"]["tasks"] = asset_tasks
 
             schema.validate(asset)
-            io.save(asset)
+            io.replace_one(_filter, asset)
 
         # Refresh the tasks model
         self.on_asset_changed()
@@ -205,12 +203,7 @@ class Window(QtWidgets.QDialog):
 
         model = self.data["model"]["assets"]
         selected = model.get_selected_assets()
-        # Show task of silo if nothing selected
-        if len(selected) < 1:
-            silo = model.get_silo_object()
-            if silo:
-                selected = [silo['_id']]
-        self.data['model']['tasks'].set_assets(selected)
+        self.data["model"]["tasks"].set_assets(selected)
 
     def on_silo_changed(self, silo):
         """Callback on asset silo changed"""
@@ -224,6 +217,8 @@ def show(root=None, debug=False, parent=None):
     Arguments:
         debug (bool, optional): Run loader in debug-mode,
             defaults to False
+        parent (QtCore.QObject, optional): When provided parent the interface
+            to this QObject.
 
     """
 
