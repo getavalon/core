@@ -54,7 +54,7 @@ def switch_item(container,
 
     version = io.find_one({"type": "version",
                            "parent": subset["_id"]},
-                          sort=[('name', -1)])
+                          sort=[("name", -1)])
 
     assert version, "Could not find a version for {}.{}".format(
         asset_name, subset_name
@@ -71,3 +71,13 @@ def switch_item(container,
     api.switch(container, representation)
 
     return representation
+
+
+def walk_hierarchy(node):
+    """Recursively yield group node"""
+    for child in node.children():
+        if child.get("isGroupNode"):
+            yield child
+
+        for _child in walk_hierarchy(child):
+            yield _child
