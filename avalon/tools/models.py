@@ -195,7 +195,9 @@ class TasksModel(TreeModel):
         self._num_assets = 0
         self._icons = {
             "__default__": qtawesome.icon("fa.male",
-                                          color=style.colors.default)
+                                          color=style.colors.default),
+            "__no_task__": qtawesome.icon("fa.exclamation-circle",
+                                          color=style.colors.mid)
         }
 
         self._get_task_icons()
@@ -241,7 +243,7 @@ class TasksModel(TreeModel):
             item = Item({
                 "name": "No task",
                 "count": 0,
-                "icon": default_icon,
+                "icon": self._icons["__no_task__"],
                 "enabled": False,
             })
 
