@@ -103,7 +103,16 @@ class App(QtWidgets.QDialog):
         self._context_task.setText("Task: {}".format(task))
 
     def _get_selected_task_name(self):
-        task_index = self._task_view.currentIndex()
+
+        # Make sure we actually get the selected entry as opposed to the
+        # active index. This way we know the task is actually selected and the
+        # view isn't just active on something that is unselectable like
+        # "No Task"
+        selected = self._task_view.selectionModel().selectedRows()
+        if not selected:
+            return
+
+        task_index = selected[0]
         return task_index.data(QtCore.Qt.DisplayRole)
 
     def _get_selected_asset_name(self):
