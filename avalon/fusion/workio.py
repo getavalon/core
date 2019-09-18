@@ -14,14 +14,14 @@ def has_unsaved_changes():
     return comp.GetAttrs()["COMPB_Modified"]
 
 
-def save(filepath):
+def save_file(filepath):
     from avalon.fusion.pipeline import get_current_comp
 
     comp = get_current_comp()
     comp.Save(filepath)
 
 
-def open(filepath):
+def open_file(filepath):
     # Hack to get fusion, see avalon.fusion.pipeline.get_current_comp()
     fusion = getattr(sys.modules["__main__"], "fusion", None)
 

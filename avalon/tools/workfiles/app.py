@@ -6,6 +6,7 @@ import shutil
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import style, io, api
+
 from .. import lib as tools_lib
 
 
@@ -72,6 +73,13 @@ class NameWindow(QtWidgets.QDialog):
         self.comment_lineedit.textChanged.connect(self.on_comment_changed)
         self.ok_button.pressed.connect(self.on_ok_pressed)
         self.cancel_button.pressed.connect(self.on_cancel_pressed)
+
+        # Allow "Enter" key to accept the save.
+        self.ok_button.setDefault(True)
+
+        # Force default focus to comment, some hosts didn't automatically
+        # apply focus to this line edit (e.g. Houdini)
+        self.comment_lineedit.setFocus()
 
         self.refresh()
 
@@ -363,13 +371,13 @@ class Window(QtWidgets.QDialog):
 
             if result:
                 # Save current scene, continue to open file
-                host.save(host.current_file())
+                host.save_file(host.current_file())
 
             else:
                 # Don't save, continue to open file
                 pass
 
-        return host.open(filepath)
+        return host.open_file(filepath)
 
     def on_duplicate_pressed(self):
         work_file = self.get_name()
@@ -425,12 +433,12 @@ class Window(QtWidgets.QDialog):
             return
 
         file_path = os.path.join(self.root, work_file)
-        self.host.save(file_path)
+        self.host.save_file(file_path)
 
         self.close()
 
 
-def show(root=None):
+def show(root=None, debug=False):
     """Show Work Files GUI"""
 
     host = api.registered_host()
@@ -438,7 +446,13 @@ def show(root=None):
         raise RuntimeError("No registered host.")
 
     # Verify the host has implemented the api for Work Files
-    required = ["open", "save", "current_file", "work_root"]
+    required = ["open_file",
+                "save_file",
+                "current_file",
+                "has_unsaved_changes",
+                "work_root",
+                "file_extensions",
+                ]
     missing = []
     for name in required:
         if not hasattr(host, name):
@@ -457,7 +471,18 @@ def show(root=None):
     if not os.path.exists(root):
         os.makedirs(root)
 
+    if debug:
+        api.Session["AVALON_ASSET"] = "Mock"
+        api.Session["AVALON_TASK"] = "Testing"
+
     with tools_lib.application():
         window = Window(root)
         window.setStyleSheet(style.load_stylesheet())
-        window.exec_()
+
+        if debug:
+            # Enable closing in standalone
+            window.show()
+
+        else:
+            # Cause modal dialog
+            window.exec_()
