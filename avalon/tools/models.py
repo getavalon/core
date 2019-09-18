@@ -240,10 +240,11 @@ class TasksModel(TreeModel):
         default_icon = self._icons["__default__"]
 
         if not tasks:
+            no_task_icon = self._icons["__no_task__"]
             item = Item({
                 "name": "No task",
                 "count": 0,
-                "icon": self._icons["__no_task__"],
+                "icon": no_task_icon,
                 "enabled": False,
             })
 
