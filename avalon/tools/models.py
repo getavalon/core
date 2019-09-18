@@ -302,19 +302,9 @@ class AssetModel(TreeModel):
     DocumentRole = QtCore.Qt.UserRole + 2
     ObjectIdRole = QtCore.Qt.UserRole + 3
 
-    def __init__(self, silo=None, parent=None):
+    def __init__(self, parent=None):
         super(AssetModel, self).__init__(parent=parent)
-
-        self._silo = None
-
-        if silo is not None:
-            self.set_silo(silo, refresh=True)
-
-    def set_silo(self, silo, refresh=True):
-        """Set the root path to the ItemType root."""
-        self._silo = silo
-        if refresh:
-            self.refresh()
+        self.refresh()
 
     def _add_hierarchy(self, assets, parent=None):
         """Add the assets that are related to the parent as children items.
@@ -364,23 +354,23 @@ class AssetModel(TreeModel):
 
         self.clear()
         self.beginResetModel()
-        if self._silo:
 
-            # Get all assets in current silo sorted by name
-            db_assets = io.find({
-                "type": "asset",
-                "silo": self._silo
-            }).sort("name", 1)
+        # Get all assets in current silo sorted by name
+        db_assets = io.find({
+            "type": "asset"
+        }).sort("name", 1)
 
-            # Group the assets by their visual parent's id
-            assets_by_parent = collections.defaultdict(list)
-            for asset in db_assets:
-                parent_id = asset.get("data", {}).get("visualParent") or None
-                assets_by_parent[parent_id].append(asset)
+        # Group the assets by their visual parent's id
+        assets_by_parent = collections.defaultdict(list)
+        for asset in db_assets:
+            parent_id = asset.get("data", {}).get("visualParent") or None
+            assets_by_parent[parent_id].append(asset)
 
-            # Build the hierarchical tree items recursively
-            self._add_hierarchy(assets_by_parent,
-                                parent=None)
+        # Build the hierarchical tree items recursively
+        self._add_hierarchy(
+            assets_by_parent,
+            parent=None
+        )
 
         self.endResetModel()
 
