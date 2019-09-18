@@ -146,7 +146,6 @@ class Window(QtWidgets.QDialog):
 
         subset_button = QtWidgets.QPushButton()
         subset_button.setFixedWidth(18)
-        subset_button.setFixedHeight(24)
         subset_menu = QtWidgets.QMenu(subset_button)
         subset_button.setMenu(subset_menu)
 
