@@ -36,16 +36,6 @@ class AssetWidget(QtWidgets.QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
-        # Header
-        header = QtWidgets.QHBoxLayout()
-
-        icon = qtawesome.icon("fa.refresh", color=style.colors.light)
-        refresh = QtWidgets.QPushButton(icon, "")
-        refresh.setToolTip("Refresh items")
-
-        header.addWidget(filter)
-        header.addWidget(refresh)
-
         # Tree View
         model = AssetModel(self)
         proxy = RecursiveSortFilterProxyModel()
@@ -58,9 +48,19 @@ class AssetWidget(QtWidgets.QWidget):
         view.setHeaderHidden(True)
         view.setModel(proxy)
 
+        # Header
+        header = QtWidgets.QHBoxLayout()
+
+        icon = qtawesome.icon("fa.refresh", color=style.colors.light)
+        refresh = QtWidgets.QPushButton(icon, "")
+        refresh.setToolTip("Refresh items")
+
         filter = QtWidgets.QLineEdit()
         filter.textChanged.connect(proxy.setFilterFixedString)
         filter.setPlaceholderText("Filter assets..")
+
+        header.addWidget(filter)
+        header.addWidget(refresh)
 
         # Layout
         layout.addLayout(header)
@@ -105,7 +105,7 @@ class AssetWidget(QtWidgets.QWidget):
 
     def _store_states(self):
         # Store expands
-        for index in lib._iter_model_rows(
+        for index in lib.iter_model_rows(
             self.proxy, column=0, include_root=False
         ):
             expanded = self.view.isExpanded(index)
@@ -120,7 +120,7 @@ class AssetWidget(QtWidgets.QWidget):
 
     def _restore_states(self):
         if self.expand_history:
-            for index in lib._iter_model_rows(
+            for index in lib.iter_model_rows(
                 self.proxy, column=0, include_root=False
             ):
                 item = index.data(AssetModel.ItemRole)
@@ -187,7 +187,7 @@ class AssetWidget(QtWidgets.QWidget):
 
         # Select
         mode = selection_model.Select | selection_model.Rows
-        for index in lib._iter_model_rows(
+        for index in lib.iter_model_rows(
             self.proxy, column=0, include_root=False
         ):
             # stop iteration if there are no assets to process
