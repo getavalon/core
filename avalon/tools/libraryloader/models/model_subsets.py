@@ -1,5 +1,5 @@
 from . import TreeModel
-from .model_node import Node
+from .model_item import Item
 from .. import lib
 from .... import style
 from ....vendor import qtawesome as awesome
@@ -35,8 +35,8 @@ class SubsetsModel(TreeModel):
         # Trigger additional edit when `version` column changed
         # because it also updates the information in other columns
         if index.column() == 2:
-            node = index.internalPointer()
-            parent = node["_id"]
+            item = index.internalPointer()
+            parent = item["_id"]
             version = self.db.find_one({
                 "name": value,
                 "type": "version",
@@ -56,8 +56,8 @@ class SubsetsModel(TreeModel):
         if not index.isValid():
             return
 
-        node = index.internalPointer()
-        assert version['parent'] == node['_id'], ("Version does not "
+        item = index.internalPointer()
+        assert version['parent'] == item['_id'], ("Version does not "
                                                   "belong to subset")
 
         # Get the data from the version
@@ -81,7 +81,7 @@ class SubsetsModel(TreeModel):
         family = version_data.get("families", [None])[0]
         family_config = lib.get(lib.FAMILY_CONFIG, family)
 
-        node.update({
+        item.update({
             "version": version['name'],
             "version_document": version,
             "author": version_data.get("author", None),
@@ -124,10 +124,10 @@ class SubsetsModel(TreeModel):
             data = subset.copy()
             data['subset'] = data['name']
 
-            node = Node()
-            node.update(data)
+            item = Item()
+            item.update(data)
 
-            self.add_child(node)
+            self.add_child(item)
 
             # Set the version information
             index = self.index(row, 0, parent=QtCore.QModelIndex())
@@ -145,8 +145,8 @@ class SubsetsModel(TreeModel):
         if role == QtCore.Qt.DisplayRole:
             if index.column() == 1:
                 # Show familyLabel instead of family
-                node = index.internalPointer()
-                return node.get("familyLabel", None)
+                item = index.internalPointer()
+                return item.get("familyLabel", None)
 
         if role == QtCore.Qt.DecorationRole:
 
@@ -156,8 +156,8 @@ class SubsetsModel(TreeModel):
 
             # Add icon to family column
             if index.column() == 1:
-                node = index.internalPointer()
-                return node.get("familyIcon", None)
+                item = index.internalPointer()
+                return item.get("familyIcon", None)
 
         return super(SubsetsModel, self).data(index, role)
 

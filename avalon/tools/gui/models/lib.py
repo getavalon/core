@@ -115,11 +115,11 @@ def get_active_group_config(asset_id, include_predefined=False):
     return ordered
 
 
-def walk_hierarchy(node):
-    """Recursively yield group node
+def walk_hierarchy(item):
+    """Recursively yield group item
     """
-    for child in node.children():
-        if child.get("isGroupNode"):
+    for child in item.children():
+        if child.get("isGroupItem"):
             yield child
 
         for _child in walk_hierarchy(child):

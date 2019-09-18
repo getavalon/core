@@ -111,8 +111,8 @@ class SubsetWidget(QtWidgets.QWidget):
                         available_loaders.remove(loader)
 
         loaders = list()
-        node = point_index.data(self.model.NodeRole)
-        version_id = node['version_document']['_id']
+        item = point_index.data(self.model.ItemRole)
+        version_id = item['version_document']['_id']
 
         representations = self.db.find({
             "type": "representation",
@@ -199,8 +199,8 @@ class SubsetWidget(QtWidgets.QWidget):
 
         # Trigger
         for row in rows:
-            node = row.data(self.model.NodeRole)
-            version_id = node["version_document"]["_id"]
+            item = row.data(self.model.ItemRole)
+            version_id = item["version_document"]["_id"]
             representation = self.db.find_one({
                 "type": "representation",
                 "name": representation_name,
@@ -208,7 +208,7 @@ class SubsetWidget(QtWidgets.QWidget):
             })
             if not representation:
                 self.echo("Subset '{}' has no representation '{}'".format(
-                          node["subset"],
+                          item["subset"],
                           representation_name
                           ))
                 continue

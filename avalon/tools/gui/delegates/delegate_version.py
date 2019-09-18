@@ -19,8 +19,8 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         return self._format_version(value)
 
     def createEditor(self, parent, option, index):
-        node = index.data(SubsetModel.NodeRole)
-        if node.get("isGroup"):
+        item = index.data(SubsetModel.ItemRole)
+        if item.get("isGroup"):
             return
 
         editor = QtWidgets.QComboBox(parent)
@@ -48,8 +48,8 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         assert isinstance(value, int), "Version is not `int`"
 
         # Add all available versions to the editor
-        node = index.data(SubsetModel.NodeRole)
-        parent_id = node['version_document']['parent']
+        item = index.data(SubsetModel.ItemRole)
+        parent_id = item['version_document']['parent']
         versions = io.find({"type": "version", "parent": parent_id},
                            sort=[("name", 1)])
         index = 0

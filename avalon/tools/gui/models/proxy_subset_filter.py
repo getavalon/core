@@ -9,8 +9,8 @@ class SubsetFilterProxyModel(GroupMemberFilterProxyModel):
         index = model.index(row,
                             self.filterKeyColumn(),
                             parent)
-        node = index.internalPointer()
-        if node.get("isGroup"):
+        item = index.internalPointer()
+        if item.get("isGroup"):
             return self.filter_accepts_group(index, model)
         else:
             return super(SubsetFilterProxyModel,

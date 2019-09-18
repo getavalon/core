@@ -1,6 +1,6 @@
 import collections
 from . import TreeModel
-from .model_node import Node
+from .model_item import Item
 from .... import style
 from ....vendor import qtawesome as awesome
 from ....vendor.Qt import QtCore
@@ -79,13 +79,13 @@ class TasksModel(TreeModel):
         for task, count in sorted(tasks.items()):
             icon = self._icons.get(task, default_icon)
 
-            node = Node({
+            item = Item({
                 "name": task,
                 "count": count,
                 "icon": icon
             })
 
-            self.add_child(node)
+            self.add_child(item)
 
         self.endResetModel()
 

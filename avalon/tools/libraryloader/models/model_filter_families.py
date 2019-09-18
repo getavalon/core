@@ -30,9 +30,9 @@ class FamiliesFilterProxyModel(QtCore.QSortFilterProxyModel):
         if not index.isValid() or index is None:
             return True
 
-        # Get the node data and validate
-        node = model.data(index, TreeModel.NodeRole)
-        family = node.get("family", None)
+        # Get the item data and validate
+        item = model.data(index, TreeModel.ItemRole)
+        family = item.get("family", None)
 
         if not family:
             return True

@@ -3,19 +3,19 @@ import logging
 log = logging.getLogger(__name__)
 
 
-class Node(dict):
-    """A node that can be represented in a tree view.
+class Item(dict):
+    """A item that can be represented in a tree view.
 
-    The node can store data just like a dictionary.
+    The item can store data just like a dictionary.
 
     >>> data = {"name": "John", "score": 10}
-    >>> node = Node(data)
-    >>> assert node["name"] == "John"
+    >>> item = Item(data)
+    >>> assert item["name"] == "John"
 
     """
 
     def __init__(self, data=None):
-        super(Node, self).__init__()
+        super(Item, self).__init__()
 
         self._children = list()
         self._parent = None
@@ -44,12 +44,12 @@ class Node(dict):
     def row(self):
         """
         Returns:
-             int: Index of this node under parent"""
+             int: Index of this item under parent"""
         if self._parent is not None:
             siblings = self.parent().children()
             return siblings.index(self)
 
     def add_child(self, child):
-        """Add a child to this node"""
+        """Add a child to this item"""
         child._parent = self
         self._children.append(child)

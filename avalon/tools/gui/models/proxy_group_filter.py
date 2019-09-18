@@ -5,13 +5,13 @@ from . import lib
 class GroupMemberFilterProxyModel(QtCore.QSortFilterProxyModel):
     """Provide the feature of filtering group by the acceptance of members
 
-    The subset group nodes will not be filtered directly, the group node's
+    The subset group items will not be filtered directly, the group item's
     acceptance depends on it's child subsets' acceptance.
 
     """
 
     if lib.is_filtering_recursible():
-        def _is_group_acceptable(self, index, node):
+        def _is_group_acceptable(self, index, item):
             # (NOTE) With the help of `RecursiveFiltering` feature from
             #        Qt 5.10, group always not be accepted by default.
             return False

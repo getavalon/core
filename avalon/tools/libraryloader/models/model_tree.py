@@ -1,23 +1,23 @@
-from .model_node import Node
+from .model_item import Item
 from ....vendor.Qt import QtCore
 
 
 class TreeModel(QtCore.QAbstractItemModel):
 
     COLUMNS = list()
-    NodeRole = QtCore.Qt.UserRole + 1
+    ItemRole = QtCore.Qt.UserRole + 1
 
     def __init__(self, parent=None):
         super(TreeModel, self).__init__(parent)
-        self._root_node = Node()
+        self._root_item = Item()
 
     def rowCount(self, parent):
         if parent.isValid():
-            node = parent.internalPointer()
+            item = parent.internalPointer()
         else:
-            node = self._root_node
+            item = self._root_item
 
-        return node.childCount()
+        return item.childCount()
 
     def columnCount(self, parent):
         return len(self.COLUMNS)
@@ -29,17 +29,17 @@ class TreeModel(QtCore.QAbstractItemModel):
 
         if role == QtCore.Qt.DisplayRole or role == QtCore.Qt.EditRole:
 
-            node = index.internalPointer()
+            item = index.internalPointer()
             column = index.column()
 
             key = self.COLUMNS[column]
-            return node.get(key, None)
+            return item.get(key, None)
 
-        if role == self.NodeRole:
+        if role == self.ItemRole:
             return index.internalPointer()
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
-        """Change the data on the nodes.
+        """Change the data on the items.
 
         Returns:
             bool: Whether the edit was successful
@@ -48,10 +48,10 @@ class TreeModel(QtCore.QAbstractItemModel):
         if index.isValid():
             if role == QtCore.Qt.EditRole:
 
-                node = index.internalPointer()
+                item = index.internalPointer()
                 column = index.column()
                 key = self.COLUMNS[column]
-                node[key] = value
+                item[key] = value
 
                 # passing `list()` for PyQt5 (see PYSIDE-462)
                 self.dataChanged.emit(index, index, list())
@@ -81,34 +81,34 @@ class TreeModel(QtCore.QAbstractItemModel):
 
     def parent(self, index):
 
-        node = index.internalPointer()
-        parent_node = node.parent()
+        item = index.internalPointer()
+        parent_item = item.parent()
 
         # If it has no parents we return invalid
-        if parent_node == self._root_node or not parent_node:
+        if parent_item == self._root_item or not parent_item:
             return QtCore.QModelIndex()
 
-        return self.createIndex(parent_node.row(), 0, parent_node)
+        return self.createIndex(parent_item.row(), 0, parent_item)
 
     def index(self, row, column, parent):
         """Return index for row/column under parent"""
 
         if not parent.isValid():
-            parentNode = self._root_node
+            parentItem = self._root_item
         else:
-            parentNode = parent.internalPointer()
+            parentItem = parent.internalPointer()
 
-        childItem = parentNode.child(row)
+        childItem = parentItem.child(row)
         if childItem:
             return self.createIndex(row, column, childItem)
         else:
             return QtCore.QModelIndex()
 
-    def add_child(self, node, parent=None):
+    def add_child(self, item, parent=None):
         if parent is None:
-            parent = self._root_node
+            parent = self._root_item
 
-        parent.add_child(node)
+        parent.add_child(item)
 
     def column_name(self, column):
         """Return column key by index"""
@@ -118,5 +118,5 @@ class TreeModel(QtCore.QAbstractItemModel):
 
     def clear(self):
         self.beginResetModel()
-        self._root_node = Node()
+        self._root_item = Item()
         self.endResetModel()

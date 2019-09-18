@@ -62,9 +62,9 @@ class FilterProxyModel(QtCore.QSortFilterProxyModel):
         equal value.
 
         """
-        def outdated(node):
-            version = node.get("version", None)
-            highest = node.get("highest_version", None)
+        def outdated(item):
+            version = item.get("version", None)
+            highest = item.get("highest_version", None)
 
             # Always allow indices that have no version data at all
             if version is None and highest is None:
@@ -74,7 +74,7 @@ class FilterProxyModel(QtCore.QSortFilterProxyModel):
             # consider the item invalid.
             if not self._hierarchy_view:
                 # Skip this check if in hierarchy view, or the child item
-                # node will be hidden even it's actually outdated.
+                # item will be hidden even it's actually outdated.
                 if version is None or highest is None:
                     return False
 
@@ -91,15 +91,15 @@ class FilterProxyModel(QtCore.QSortFilterProxyModel):
             return True
 
         # Filter to those that have the different version numbers
-        node = index.internalPointer()
-        is_outdated = outdated(node)
+        item = index.internalPointer()
+        is_outdated = outdated(item)
 
         if is_outdated:
             return True
 
         elif self._hierarchy_view:
-            for _node in lib.walk_hierarchy(node):
-                if outdated(_node):
+            for _item in lib.walk_hierarchy(item):
+                if outdated(_item):
                     return True
             return False
         else:

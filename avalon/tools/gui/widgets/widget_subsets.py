@@ -127,8 +127,8 @@ class SubsetsWidget(QtWidgets.QWidget):
         if not point_index.isValid():
             return
 
-        node = point_index.data(self.model.NodeRole)
-        if node.get("isGroup"):
+        item = point_index.data(self.model.ItemRole)
+        if item.get("isGroup"):
             return
 
         # Get all representation->loader combinations available for the
@@ -136,7 +136,7 @@ class SubsetsWidget(QtWidgets.QWidget):
         available_loaders = api.discover(api.Loader)
         loaders = list()
 
-        version_id = node['version_document']['_id']
+        version_id = item['version_document']['_id']
         representations = io.find({"type": "representation",
                                    "parent": version_id})
         for representation in representations:
@@ -219,17 +219,17 @@ class SubsetsWidget(QtWidgets.QWidget):
 
         # Trigger
         for row in rows:
-            node = row.data(self.model.NodeRole)
-            if node.get("isGroup"):
+            item = row.data(self.model.ItemRole)
+            if item.get("isGroup"):
                 continue
 
-            version_id = node["version_document"]["_id"]
+            version_id = item["version_document"]["_id"]
             representation = io.find_one({"type": "representation",
                                           "name": representation_name,
                                           "parent": version_id})
             if not representation:
                 self.echo("Subset '{}' has no representation '{}'".format(
-                          node["subset"],
+                          item["subset"],
                           representation_name
                           ))
                 continue
@@ -246,13 +246,13 @@ class SubsetsWidget(QtWidgets.QWidget):
 
         subsets = list()
         for row in rows:
-            node = row.data(self.model.NodeRole)
-            if not node.get("isGroup"):
-                subsets.append(node)
+            item = row.data(self.model.ItemRole)
+            if not item.get("isGroup"):
+                subsets.append(item)
 
         return subsets
 
-    def group_subsets(self, name, asset_id, nodes):
+    def group_subsets(self, name, asset_id, items):
         field = "data.subsetGroup"
 
         if name:
@@ -263,8 +263,8 @@ class SubsetsWidget(QtWidgets.QWidget):
             self.echo("Ungroup subsets..")
 
         subsets = list()
-        for node in nodes:
-            subsets.append(node["subset"])
+        for item in items:
+            subsets.append(item["subset"])
 
         filter = {
             "type": "subset",

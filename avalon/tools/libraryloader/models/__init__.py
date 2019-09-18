@@ -1,4 +1,4 @@
-from .model_node import Node
+from .model_item import Item
 from .model_tree import TreeModel
 from .model_tasks import TasksModel
 from .model_asset import AssetModel
@@ -10,7 +10,7 @@ from .view_asset import AssetView
 from .view_deselect_tree import DeselectableTreeView
 
 __all__ = [
-    "Node",
+    "Item",
     "TreeModel",
     "TasksModel",
     "AssetModel",

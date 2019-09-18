@@ -4,7 +4,7 @@ from ....vendor import qtawesome
 from ....vendor.Qt import QtCore, QtGui
 
 from .... import io, style
-from . import TreeModel, Node
+from . import TreeModel, Item
 
 log = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ class AssetModel(TreeModel):
             # store for the asset for optimization
             deprecated = "deprecated" in tags
 
-            node = Node({
+            item = Item({
                 "_id": asset['_id'],
                 "name": asset["name"],
                 "label": label,
@@ -70,11 +70,11 @@ class AssetModel(TreeModel):
                 "deprecated": deprecated,
                 "_document": asset
             })
-            self.add_child(node, parent=parent)
+            self.add_child(item, parent=parent)
 
             # Add asset's children recursively
             if asset['_id'] in assets:
-                assets = self._add_hierarchy(node, assets)
+                assets = self._add_hierarchy(item, assets)
 
         return assets
 
@@ -93,14 +93,14 @@ class AssetModel(TreeModel):
         if not index.isValid():
             return
 
-        node = index.internalPointer()
+        item = index.internalPointer()
         if role == QtCore.Qt.DecorationRole:        # icon
 
             column = index.column()
             if column == self.Name:
 
                 # Allow a custom icon and custom icon color to be defined
-                data = node["_document"]["data"]
+                data = item["_document"]["data"]
                 icon = data.get("icon", None)
                 color = data.get("color", style.colors.default)
 
@@ -112,7 +112,7 @@ class AssetModel(TreeModel):
                     icon = "folder" if has_children else "folder-o"
 
                 # Make the color darker when the asset is deprecated
-                if node.get("deprecated", False):
+                if item.get("deprecated", False):
                     color = QtGui.QColor(color).darker(250)
 
                 try:
@@ -127,13 +127,13 @@ class AssetModel(TreeModel):
                 return
 
         if role == QtCore.Qt.ForegroundRole:        # font color
-            if "deprecated" in node.get("tags", []):
+            if "deprecated" in item.get("tags", []):
                 return QtGui.QColor(style.colors.light).darker(250)
 
         if role == self.ObjectIdRole:
-            return node.get("_id", None)
+            return item.get("_id", None)
 
         if role == self.DocumentRole:
-            return node.get("_document", None)
+            return item.get("_document", None)
 
         return super(AssetModel, self).data(index, role)

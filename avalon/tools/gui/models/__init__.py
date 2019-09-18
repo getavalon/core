@@ -2,7 +2,7 @@ from . import lib
 
 from .family_config import FamilyConfig
 
-from .node import Node
+from .item import Item
 from .model_tree import TreeModel
 from .model_task import TaskModel
 from .model_asset import AssetModel
@@ -21,7 +21,7 @@ __all__ = [
 
     "FamilyConfig",
 
-    "Node",
+    "Item",
     "TreeModel",
     "TaskModel",
     "AssetModel",

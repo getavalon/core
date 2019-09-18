@@ -31,13 +31,13 @@ class FamilyFilterProxyModel(GroupMemberFilterProxyModel):
         if not index.isValid() or index is None:
             return True
 
-        # Get the node data and validate
-        node = model.data(index, TreeModel.NodeRole)
+        # Get the item data and validate
+        item = model.data(index, TreeModel.ItemRole)
 
-        if node.get("isGroup"):
+        if item.get("isGroup"):
             return self.filter_accepts_group(index, model)
 
-        families = node.get("families", [])
+        families = item.get("families", [])
 
         filterable_families = set()
         for name in families:

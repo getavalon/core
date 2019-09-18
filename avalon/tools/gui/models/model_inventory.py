@@ -8,7 +8,7 @@ from ....vendor.Qt import QtCore, QtGui
 
 from .... import api, io, style
 
-from ..models import TreeModel, Node
+from ..models import TreeModel, Item
 
 from .lib import walk_hierarchy
 from .. import lib as gui_lib
@@ -36,11 +36,11 @@ class InventoryModel(TreeModel):
         if not index.isValid():
             return
 
-        node = index.internalPointer()
+        item = index.internalPointer()
 
         if role == QtCore.Qt.FontRole:
             # Make top-level entries bold
-            if node.get("isGroupNode"):  # group-item
+            if item.get("isGroupItem"):  # group-item
                 font = QtGui.QFont()
                 font.setBold(True)
                 return font
@@ -51,46 +51,46 @@ class InventoryModel(TreeModel):
             key = self.COLUMNS[index.column()]
             outdated = (lambda n: n.get("version") != n.get("highest_version"))
             if key == "version":  # version
-                if node.get("isGroupNode"):  # group-item
-                    if outdated(node):
+                if item.get("isGroupItem"):  # group-item
+                    if outdated(item):
                         return self.OUTDATED_COLOR
 
                     if self._hierarchy_view:
                         # If current group is not outdated, check if any
                         # outdated children.
-                        for _node in walk_hierarchy(node):
-                            if outdated(_node):
+                        for _item in walk_hierarchy(item):
+                            if outdated(_item):
                                 return self.CHILD_OUTDATED_COLOR
                 else:
 
                     if self._hierarchy_view:
                         # Although this is not a group item, we still need
                         # to distinguish which one contain outdated child.
-                        for _node in walk_hierarchy(node):
-                            if outdated(_node):
+                        for _item in walk_hierarchy(item):
+                            if outdated(_item):
                                 return self.CHILD_OUTDATED_COLOR.darker(150)
 
                     return self.GRAYOUT_COLOR
 
-            if key == "Name" and not node.get("isGroupNode"):
+            if key == "Name" and not item.get("isGroupItem"):
                 return self.GRAYOUT_COLOR
 
         # Add icons
         if role == QtCore.Qt.DecorationRole:
             if index.column() == 0:
                 # Override color
-                color = node.get("color", style.colors.default)
-                if node.get("isGroupNode"):  # group-item
+                color = item.get("color", style.colors.default)
+                if item.get("isGroupItem"):  # group-item
                     return qtawesome.icon("fa.folder", color=color)
                 else:
                     return qtawesome.icon("fa.file-o", color=color)
 
             if index.column() == 3:
                 # Family icon
-                return node.get("familyIcon", None)
+                return item.get("familyIcon", None)
 
         if role == self.UniqueRole:
-            return node["representation"] + node.get("objectName", "<none>")
+            return item["representation"] + item.get("objectName", "<none>")
 
         return super(InventoryModel, self).data(index, role)
 
@@ -141,7 +141,7 @@ class InventoryModel(TreeModel):
                     # Parent not in selection, this is root item.
                     item["parent"] = None
 
-            parents = [self._root_node]
+            parents = [self._root_item]
 
             # The length of `items` array is the maximum depth that a
             # hierarchy could be.
@@ -151,7 +151,7 @@ class InventoryModel(TreeModel):
             while items:
                 if count > maximum_loop:
                     self.log.warning("Maximum loop count reached, possible "
-                                     "missing parent node.")
+                                     "missing parent item.")
                     break
 
                 _parents = list()
@@ -163,7 +163,7 @@ class InventoryModel(TreeModel):
                         for item in items:
                             if item.get("parent") == parent.get("objectName"):
                                 # (NOTE)
-                                # Since `self._root_node` has no "objectName"
+                                # Since `self._root_item` has no "objectName"
                                 # entry, it will be paired with root item if
                                 # the value of key "parent" is None, or not
                                 # having the key.
@@ -177,8 +177,8 @@ class InventoryModel(TreeModel):
                     items[:] = _unparented
 
                     # Parents of next level
-                    for group_node in parent.children():
-                        _parents += group_node.children()
+                    for group_item in parent.children():
+                        _parents += group_item.children()
 
                 parents[:] = _parents
                 count += 1
@@ -193,8 +193,8 @@ class InventoryModel(TreeModel):
         is then represented as:
             {"filename_v001.ma": [full/filename/of/loaded/filename_v001.ma,
                                   full/filename/of/loaded/filename_v001.ma],
-             "nodetype" : "reference",
-             "node": "referenceNode1"}
+             "itemtype" : "reference",
+             "item": "referenceItem1"}
 
         Note: When performing an additional call to `add_items` it will *not*
             group the new items with previously existing item groups of the
@@ -204,7 +204,7 @@ class InventoryModel(TreeModel):
             items (generator): the items to be processed as returned by `ls()`
 
         Returns:
-            node.Node: root node which has children added based on the data
+            item.Item: root item which has children added based on the data
         """
 
         self.beginResetModel()
@@ -247,34 +247,34 @@ class InventoryModel(TreeModel):
             }, sort=[("name", -1)])
 
             # create the group header
-            group_node = Node()
-            group_node["Name"] = "%s_%s: (%s)" % (asset["name"],
+            group_item = Item()
+            group_item["Name"] = "%s_%s: (%s)" % (asset["name"],
                                                   subset["name"],
                                                   representation["name"])
-            group_node["representation"] = representation_id
-            group_node["version"] = version["name"]
-            group_node["highest_version"] = highest_version["name"]
-            group_node["family"] = family
-            group_node["familyIcon"] = family_icon
-            group_node["count"] = len(group_items)
-            group_node["isGroupNode"] = True
+            group_item["representation"] = representation_id
+            group_item["version"] = version["name"]
+            group_item["highest_version"] = highest_version["name"]
+            group_item["family"] = family
+            group_item["familyIcon"] = family_icon
+            group_item["count"] = len(group_items)
+            group_item["isGroupItem"] = True
 
-            self.add_child(group_node, parent=parent)
+            self.add_child(group_item, parent=parent)
 
             for item in group_items:
-                item_node = Node()
-                item_node.update(item)
+                item_item = Item()
+                item_item.update(item)
 
                 # store the current version on the item
-                item_node["version"] = version["name"]
+                item_item["version"] = version["name"]
 
                 # Remapping namespace to item name.
                 # Noted that the name key is capital "N", by doing this, we
                 # can view namespace in GUI without changing container data.
-                item_node["Name"] = item["namespace"]
+                item_item["Name"] = item["namespace"]
 
-                self.add_child(item_node, parent=group_node)
+                self.add_child(item_item, parent=group_item)
 
         self.endResetModel()
 
-        return self._root_node
+        return self._root_item

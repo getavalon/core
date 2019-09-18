@@ -250,11 +250,11 @@ class View(QtWidgets.QTreeView):
         }[options.get("mode", "select")]
 
         for item in _iter_model_rows(model, 0):
-            node = item.data(InventoryModel.NodeRole)
-            if node.get("isGroupNode"):
+            item = item.data(InventoryModel.ItemRole)
+            if item.get("isGroupItem"):
                 continue
 
-            name = node.get("objectName")
+            name = item.get("objectName")
             if name in object_names:
                 self.scrollTo(item)  # Ensure item is visible
                 selection_model.select(item, select_mode)
@@ -287,14 +287,14 @@ class View(QtWidgets.QTreeView):
 
         # Extend to the sub-items
         all_indices = self.extend_to_children(indices)
-        nodes = [dict(i.data(InventoryModel.NodeRole)) for i in all_indices
+        items = [dict(i.data(InventoryModel.ItemRole)) for i in all_indices
                  if i.parent().isValid()]
 
         if self._hierarchy_view:
-            # Ensure no group node
-            nodes = [n for n in nodes if not n.get("isGroupNode")]
+            # Ensure no group item
+            items = [n for n in items if not n.get("isGroupItem")]
 
-        menu = self.build_item_menu(nodes)
+        menu = self.build_item_menu(items)
         menu.exec_(globalpos)
 
     def get_indices(self):
@@ -329,11 +329,11 @@ class View(QtWidgets.QTreeView):
                 subitems.add(i)
 
                 if self._hierarchy_view:
-                    # Assume this is a group node
+                    # Assume this is a group item
                     for child in get_children(i):
                         subitems.add(child)
             else:
-                # is top level node
+                # is top level item
                 for child in get_children(i):
                     subitems.add(child)
 

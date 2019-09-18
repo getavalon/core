@@ -100,21 +100,21 @@ class AssetsWidget(QtWidgets.QWidget):
             self.proxy, column=0, include_root=False
         ):
             expanded = self.view.isExpanded(index)
-            item = index.data(AssetModel.NodeRole)
+            item = index.data(AssetModel.ItemRole)
             self.expand_history[str(item["_id"])] = expanded
 
         # store selection
         indexes = self.view.selectionModel().selectedIndexes()
         # only single selection is allowed
         for index in indexes:
-            self.last_selection.append(index.data(AssetModel.NodeRole)["_id"])
+            self.last_selection.append(index.data(AssetModel.ItemRole)["_id"])
 
     def _restore_states(self):
         if self.expand_history:
             for index in lib._iter_model_rows(
                 self.proxy, column=0, include_root=False
             ):
-                item = index.data(AssetModel.NodeRole)
+                item = index.data(AssetModel.ItemRole)
                 expanded = self.expand_history.get(str(item.get("_id", "")))
                 if expanded is None:
                     continue
@@ -185,7 +185,7 @@ class AssetsWidget(QtWidgets.QWidget):
             if not assets:
                 break
 
-            value = index.data(self.model.NodeRole).get(key)
+            value = index.data(self.model.ItemRole).get(key)
             if value not in assets:
                 continue
 

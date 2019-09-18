@@ -108,7 +108,7 @@ class App(QtWidgets.QDialog):
 
     def _get_selected_asset_name(self):
         asset_index = self._assets.get_active_index()
-        asset_data = asset_index.data(self._assets.model.NodeRole)
+        asset_data = asset_index.data(self._assets.model.ItemRole)
         if not asset_data or not isinstance(asset_data, dict):
             silo = self._assets.get_silo_object()
             if silo and 'name' in silo:
