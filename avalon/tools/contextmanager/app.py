@@ -4,11 +4,12 @@ import logging
 from ... import api
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ..gui.widgets import AssetsWidget
-from ..gui.models import TaskModel
+from ..widgets import AssetWidget
+from ..models import TasksModel
 
 module = sys.modules[__name__]
 module.window = None
+
 
 log = logging.getLogger(__name__)
 
@@ -31,7 +32,7 @@ class App(QtWidgets.QDialog):
         accept_btn = QtWidgets.QPushButton("Accept")
 
         # Asset picker
-        assets = AssetsWidget(silo_creatable=False)
+        assets = AssetWidget(silo_creatable=False)
 
         # Task picker
         tasks_widgets = QtWidgets.QWidget()
@@ -39,7 +40,7 @@ class App(QtWidgets.QDialog):
         tasks_layout = QtWidgets.QVBoxLayout(tasks_widgets)
         task_view = QtWidgets.QTreeView()
         task_view.setIndentation(0)
-        task_model = TaskModel()
+        task_model = TasksModel()
         task_view.setModel(task_model)
         tasks_layout.addWidget(task_view)
         tasks_layout.addWidget(accept_btn)
@@ -110,9 +111,6 @@ class App(QtWidgets.QDialog):
         asset_index = self._assets.get_active_index()
         asset_data = asset_index.data(self._assets.model.ItemRole)
         if not asset_data or not isinstance(asset_data, dict):
-            silo = self._assets.get_silo_object()
-            if silo and 'name' in silo:
-                return silo["name"]
             return
 
         return asset_data["name"]
@@ -128,11 +126,6 @@ class App(QtWidgets.QDialog):
             self._last_selected_task = current_task_data
 
         selected = self._assets.get_selected_assets()
-        if len(selected) == 0:
-            silo = self._assets.get_silo_object()
-            if silo:
-                selected = [silo["_id"]]
-
         self._task_model.set_assets(selected)
 
         # Find task with same name
