@@ -39,18 +39,15 @@ class AssetWidget(QtWidgets.QWidget):
         # Header
         header = QtWidgets.QHBoxLayout()
 
-        silo = SiloTabWidget(silo_creatable=silo_creatable)
-
         icon = qtawesome.icon("fa.refresh", color=style.colors.light)
         refresh = QtWidgets.QPushButton(icon, "")
         refresh.setToolTip("Refresh items")
 
-        header.addWidget(silo)
-        header.addStretch(1)
+        header.addWidget(filter)
         header.addWidget(refresh)
 
         # Tree View
-        model = AssetModel()
+        model = AssetModel(self)
         proxy = RecursiveSortFilterProxyModel()
         proxy.setSourceModel(model)
         proxy.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
@@ -67,53 +64,86 @@ class AssetWidget(QtWidgets.QWidget):
 
         # Layout
         layout.addLayout(header)
-        layout.addWidget(filter)
         layout.addWidget(view)
 
         # Signals/Slots
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.selection_changed)
         selection.currentChanged.connect(self.current_changed)
-        silo.silo_changed.connect(self._on_silo_changed)
         refresh.clicked.connect(self.refresh)
 
         self.refreshButton = refresh
-        self.silo = silo
         self.model = model
         self.proxy = proxy
         self.view = view
 
-    def _on_silo_changed(self):
-        """Callback for silo change"""
+    def collect_data(self):
+        project = io.find_one({'type': 'project'})
+        asset = io.find_one({'_id': self.get_active_asset()})
 
-        self._refresh_model()
-        silo = self.get_current_silo()
-        self.silo_changed.emit(silo)
-        self.selection_changed.emit()
+        try:
+            index = self.task_view.selectedIndexes()[0]
+            task = self.task_model.itemData(index)[0]
+        except Exception:
+            task = None
+        data = {
+            'project': project['name'],
+            'asset': asset['name'],
+            'parents': self.get_parents(asset),
+            'task': task
+        }
+        return data
+
+    def get_parents(self, entity):
+        output = []
+        if entity.get('data', {}).get('visualParent', None) is None:
+            return output
+        parent = io.find_one({'_id': entity['data']['visualParent']})
+        output.append(parent['name'])
+        output.extend(self.get_parents(parent))
+        return output
+
+    def _store_states(self):
+        # Store expands
+        for index in lib._iter_model_rows(
+            self.proxy, column=0, include_root=False
+        ):
+            expanded = self.view.isExpanded(index)
+            item = index.data(AssetModel.ItemRole)
+            self.expand_history[str(item["_id"])] = expanded
+
+        # store selection
+        indexes = self.view.selectionModel().selectedIndexes()
+        # only single selection is allowed
+        for index in indexes:
+            self.last_selection.append(index.data(AssetModel.ItemRole)["_id"])
+
+    def _restore_states(self):
+        if self.expand_history:
+            for index in lib._iter_model_rows(
+                self.proxy, column=0, include_root=False
+            ):
+                item = index.data(AssetModel.ItemRole)
+                expanded = self.expand_history.get(str(item.get("_id", "")))
+                if expanded is None:
+                    continue
+                self.view.setExpanded(index, expanded)
+
+        if self.last_selection:
+            self.select_assets(self.last_selection, key="_id")
 
     def _refresh_model(self):
+        self.expand_history = {}
+        self.last_selection = []
 
-        silo = self.get_current_silo()
-        with lib.preserve_expanded_rows(self.view,
-                                        column=0,
-                                        role=self.model.ObjectIdRole):
-            with lib.preserve_selection(self.view,
-                                        column=0,
-                                        role=self.model.ObjectIdRole):
-                self.model.set_silo(silo)
+        self._store_states()
+        self.model.refresh()
+        self._restore_states()
 
         self.assets_refreshed.emit()
 
     def refresh(self):
-
-        silos = _list_project_silos()
-        self.silo.set_silos(silos)
-
         self._refresh_model()
-
-    def get_current_silo(self):
-        """Returns the currently active silo."""
-        return self.silo.get_current_silo()
 
     def get_active_asset(self):
         """Return the asset id the current asset."""
@@ -129,11 +159,7 @@ class AssetWidget(QtWidgets.QWidget):
         rows = selection.selectedRows()
         return [row.data(self.model.ObjectIdRole) for row in rows]
 
-    def set_silo(self, silo):
-        """Set the active silo tab"""
-        self.silo.set_current_silo(silo)
-
-    def select_assets(self, assets, expand=True):
+    def select_assets(self, assets, expand=True, key="name"):
         """Select assets by name.
 
         Args:
@@ -146,8 +172,14 @@ class AssetWidget(QtWidgets.QWidget):
         """
         # TODO: Instead of individual selection optimize for many assets
 
-        assert isinstance(assets,
-                          (tuple, list)), "Assets must be list or tuple"
+        if not isinstance(assets, (tuple, list)):
+            assets = [assets]
+        assert isinstance(
+            assets, (tuple, list)
+        ), "Assets must be list or tuple"
+
+        # convert to list - tuple cant be modified
+        assets = list(assets)
 
         # Clear selection
         selection_model = self.view.selectionModel()
@@ -155,19 +187,28 @@ class AssetWidget(QtWidgets.QWidget):
 
         # Select
         mode = selection_model.Select | selection_model.Rows
-        for index in lib.iter_model_rows(self.proxy,
-                                         column=0,
-                                         include_root=False):
-            data = index.data(self.model.ItemRole)
-            name = data["name"]
-            if name in assets:
-                selection_model.select(index, mode)
+        for index in lib._iter_model_rows(
+            self.proxy, column=0, include_root=False
+        ):
+            # stop iteration if there are no assets to process
+            if not assets:
+                break
 
-                if expand:
-                    self.view.expand(index)
+            value = index.data(self.model.ItemRole).get(key)
+            if value not in assets:
+                continue
 
-                # Set the currently active index
-                self.view.setCurrentIndex(index)
+            # Remove processed asset
+            assets.pop(assets.index(value))
+
+            selection_model.select(index, mode)
+
+            if expand:
+                # Expand parent index
+                self.view.expand(self.proxy.parent(index))
+
+            # Set the currently active index
+            self.view.setCurrentIndex(index)
 
 
 class SiloTabWidget(QtWidgets.QTabBar):
