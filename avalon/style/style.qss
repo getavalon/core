@@ -1064,6 +1064,13 @@ QToolButton::menu-arrow:open {
 QPushButton::menu-indicator  {
     subcontrol-origin: padding;
     subcontrol-position: right;
+    width: 7px;
+    height: 7px;
+    padding-right: 5px;
+}
+
+QPushButton::menu-indicator:disabled {
+    image: url(:/qss_icons/rc/down_arrow_disabled.png);
 }
 
 QTableView
