@@ -2,6 +2,8 @@ import time
 from datetime import datetime
 import logging
 
+from ...vendor.Qt import QtWidgets
+
 log = logging.getLogger(__name__)
 
 
@@ -32,7 +34,7 @@ def pretty_date(t, now=None, strftime="%b %d %Y %H:%M"):
 
     # future (consider as just now)
     if day_diff < 0:
-        return 'just now'
+        return "just now"
 
     # history
     if day_diff == 0:
@@ -87,3 +89,14 @@ def pretty_timestamp(t, now=None):
 
     # prettify
     return pretty_date(dt, now=now)
+
+
+class PrettyTimeDelegate(QtWidgets.QStyledItemDelegate):
+    """A delegate that displays a timestamp as a pretty date.
+
+    This displays dates like `pretty_date`.
+
+    """
+
+    def displayText(self, value, locale):
+        return pretty_timestamp(value)
