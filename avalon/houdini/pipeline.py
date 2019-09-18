@@ -92,19 +92,17 @@ def reload_pipeline(*args):
 
                    "avalon.houdini.pipeline",
                    "avalon.houdini.lib",
-                   "avalon.tools.loader.app",
                    "avalon.tools.creator.app",
-                   "avalon.tools.manager.app",
 
                    # NOTE(marcus): These have circular depenendencies
                    #               that is preventing reloadability
-                   # "avalon.tools.cbloader.delegates",
-                   # "avalon.tools.cbloader.model",
-                   # "avalon.tools.cbloader.widgets",
-                   # "avalon.tools.cbloader.app",
-                   # "avalon.tools.cbsceneinventory.model",
-                   # "avalon.tools.cbsceneinventory.proxy",
-                   # "avalon.tools.cbsceneinventory.app",
+                   # "avalon.tools.loader.delegates",
+                   # "avalon.tools.loader.model",
+                   # "avalon.tools.loader.widgets",
+                   # "avalon.tools.loader.app",
+                   # "avalon.tools.sceneinventory.model",
+                   # "avalon.tools.sceneinventory.proxy",
+                   # "avalon.tools.sceneinventory.app",
                    # "avalon.tools.projectmanager.dialogs",
                    # "avalon.tools.projectmanager.lib",
                    # "avalon.tools.projectmanager.model",
