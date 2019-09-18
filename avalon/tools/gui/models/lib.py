@@ -6,17 +6,6 @@ from .... import io, api, style
 GROUP_CONFIG = {}
 
 
-def is_filtering_recursible():
-    """Does Qt binding support recursive filtering for QSortFilterProxyModel ?
-
-    (NOTE) Recursive filtering was introduced in Qt 5.10.
-
-    """
-    return hasattr(
-        QtCore.QSortFilterProxyModel, "setRecursiveFilteringEnabled"
-    )
-
-
 def refresh_group_config():
     """Get subset group configurations from the database
 
