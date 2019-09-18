@@ -2,11 +2,12 @@ from ....vendor import qtawesome
 from ....vendor.Qt import QtWidgets, QtCore
 
 from .... import style
+from .... import io
 
 from . import lib
 
 from ..models import AssetModel, RecursiveSortFilterProxyModel
-from ..views import AssetsView
+from .views import DeselectableTreeView
 
 
 class AssetsWidget(QtWidgets.QWidget):
@@ -36,7 +37,11 @@ class AssetsWidget(QtWidgets.QWidget):
         proxy = RecursiveSortFilterProxyModel()
         proxy.setSourceModel(model)
         proxy.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
-        view = AssetsView()
+
+        view = DeselectableTreeView()
+        view.setIndentation(15)
+        view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        view.setHeaderHidden(True)
         view.setModel(proxy)
 
         # Header
