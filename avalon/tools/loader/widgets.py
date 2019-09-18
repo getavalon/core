@@ -2,6 +2,7 @@ import datetime
 import pprint
 import inspect
 
+from ...vendor import Qt
 from ...vendor.Qt import QtWidgets, QtCore, QtCompat
 from ...vendor import qtawesome
 from ... import io
@@ -99,8 +100,10 @@ class SubsetWidget(QtWidgets.QWidget):
 
         header = self.view.header()
         # Enforce the columns to fit the data (purely cosmetic)
-        QtCompat.setSectionResizeMode(
-            header, QtWidgets.QHeaderView.ResizeToContents)
+        if Qt.__binding__ in ("PySide2", "PyQt5"):
+            header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        else:
+            header.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
 
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.active_changed)
@@ -131,8 +134,8 @@ class SubsetWidget(QtWidgets.QWidget):
         if not point_index.isValid():
             return
 
-        node = point_index.data(self.model.ItemRole)
-        if node.get("isGroup"):
+        item = point_index.data(self.model.ItemRole)
+        if item.get("isGroup"):
             return
 
         # Get all representation->loader combinations available for the
@@ -140,7 +143,7 @@ class SubsetWidget(QtWidgets.QWidget):
         available_loaders = api.discover(api.Loader)
         loaders = list()
 
-        version_id = node["version_document"]["_id"]
+        version_id = item["version_document"]["_id"]
         representations = io.find({"type": "representation",
                                    "parent": version_id})
         for representation in representations:
@@ -223,17 +226,17 @@ class SubsetWidget(QtWidgets.QWidget):
 
         # Trigger
         for row in rows:
-            node = row.data(self.model.ItemRole)
-            if node.get("isGroup"):
+            item = row.data(self.model.ItemRole)
+            if item.get("isGroup"):
                 continue
 
-            version_id = node["version_document"]["_id"]
+            version_id = item["version_document"]["_id"]
             representation = io.find_one({"type": "representation",
                                           "name": representation_name,
                                           "parent": version_id})
             if not representation:
                 self.echo("Subset '{}' has no representation '{}'".format(
-                          node["subset"],
+                          item["subset"],
                           representation_name
                           ))
                 continue
@@ -250,13 +253,13 @@ class SubsetWidget(QtWidgets.QWidget):
 
         subsets = list()
         for row in rows:
-            node = row.data(self.model.ItemRole)
-            if not node.get("isGroup"):
-                subsets.append(node)
+            item = row.data(self.model.ItemRole)
+            if not item.get("isGroup"):
+                subsets.append(item)
 
         return subsets
 
-    def group_subsets(self, name, asset_id, nodes):
+    def group_subsets(self, name, asset_id, items):
         field = "data.subsetGroup"
 
         if name:
@@ -267,8 +270,8 @@ class SubsetWidget(QtWidgets.QWidget):
             self.echo("Ungroup subsets..")
 
         subsets = list()
-        for node in nodes:
-            subsets.append(node["subset"])
+        for item in items:
+            subsets.append(item["subset"])
 
         filter = {
             "type": "subset",
