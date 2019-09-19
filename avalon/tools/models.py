@@ -309,7 +309,7 @@ class AssetModel(TreeModel):
         super(AssetModel, self).__init__(parent=parent)
         self.refresh()
 
-    def _add_hierarchy(self, assets, parent=None):
+    def _add_hierarchy(self, assets, parent=None, silos=None):
         """Add the assets that are related to the parent as children items.
 
         This method does *not* query the database. These instead are queried
@@ -324,6 +324,19 @@ class AssetModel(TreeModel):
             None
 
         """
+        if silos:
+            # WARNING: Silo item "_id" is set to silo value
+            # mainly because GUI issue with perserve selection and expanded row
+            # and because of easier hierarchy parenting (in "assets")
+            for silo in silos:
+                item = Item({
+                    "_id": silo,
+                    "name": silo,
+                    "label": silo,
+                    "type": "silo"
+                })
+                self.add_child(item, parent=parent)
+                self._add_hierarchy(assets, parent=item)
 
         parent_id = parent["_id"] if parent else None
         current_assets = assets.get(parent_id, list())
@@ -359,20 +372,23 @@ class AssetModel(TreeModel):
         self.beginResetModel()
 
         # Get all assets in current silo sorted by name
-        db_assets = io.find({
-            "type": "asset"
-        }).sort("name", 1)
+        db_assets = io.find({"type": "asset"}).sort("name", 1)
+        silos = db_assets.distinct("silo") or None
 
         # Group the assets by their visual parent's id
         assets_by_parent = collections.defaultdict(list)
         for asset in db_assets:
-            parent_id = asset.get("data", {}).get("visualParent") or None
+            parent_id = (
+                asset.get("data", {}).get("visualParent") or
+                asset.get("silo")
+            )
             assets_by_parent[parent_id].append(asset)
 
         # Build the hierarchical tree items recursively
         self._add_hierarchy(
             assets_by_parent,
-            parent=None
+            parent=None,
+            silos=silos
         )
 
         self.endResetModel()
@@ -392,8 +408,10 @@ class AssetModel(TreeModel):
             if column == self.Name:
 
                 # Allow a custom icon and custom icon color to be defined
-                data = item["_document"]["data"]
+                data = item.get("_document", {}).get("data", {})
                 icon = data.get("icon", None)
+                if icon is None and item.get("type") == "silo":
+                    icon = "database"
                 color = data.get("color", style.colors.default)
 
                 if icon is None:
