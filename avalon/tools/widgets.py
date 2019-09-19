@@ -77,15 +77,6 @@ class AssetWidget(QtWidgets.QWidget):
         self.proxy = proxy
         self.view = view
 
-    def get_parents(self, entity):
-        output = []
-        if entity.get('data', {}).get('visualParent', None) is None:
-            return output
-        parent = io.find_one({'_id': entity['data']['visualParent']})
-        output.append(parent['name'])
-        output.extend(self.get_parents(parent))
-        return output
-
     def _store_states(self):
         # Store expands
         for index in lib.iter_model_rows(
