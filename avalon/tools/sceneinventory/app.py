@@ -1519,7 +1519,7 @@ class Window(QtWidgets.QDialog):
         self.resize(1100, 480)
         self.setWindowTitle(
             "Scene Inventory 1.0 - %s/%s" % (
-                api.registered_root(),
+                api.registered_root().replace("\\", "/"),
                 os.getenv("AVALON_PROJECT")))
         self.setObjectName("SceneInventory")
         self.setProperty("saveWindowPref", True)  # Maya only property!
