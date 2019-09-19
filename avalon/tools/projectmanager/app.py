@@ -91,7 +91,6 @@ class Window(QtWidgets.QDialog):
         add_asset.clicked.connect(self.on_add_asset)
         add_task.clicked.connect(self.on_add_task)
         assets.selection_changed.connect(self.on_asset_changed)
-        assets.silo_changed.connect(self.on_silo_changed)
 
         self.resize(800, 500)
 

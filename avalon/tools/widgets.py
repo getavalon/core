@@ -23,12 +23,11 @@ class AssetWidget(QtWidgets.QWidget):
 
     """
 
-    silo_changed = QtCore.Signal(str)    # on silo combobox change
     assets_refreshed = QtCore.Signal()   # on model refresh
     selection_changed = QtCore.Signal()  # on view selection change
     current_changed = QtCore.Signal()    # on view current index change
 
-    def __init__(self, silo_creatable=True, parent=None):
+    def __init__(self, parent=None):
         super(AssetWidget, self).__init__(parent=parent)
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -158,13 +157,3 @@ class AssetWidget(QtWidgets.QWidget):
 
             # Set the currently active index
             self.view.setCurrentIndex(index)
-
-def _list_project_silos():
-    """List the silos from the project's configuration"""
-    silos = io.distinct("silo")
-
-    if not silos:
-        project = io.find_one({"type": "project"})
-        log.warning("Project '%s' has no active silos", project["name"])
-
-    return list(sorted(silos))
