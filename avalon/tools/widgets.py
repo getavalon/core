@@ -77,23 +77,6 @@ class AssetWidget(QtWidgets.QWidget):
         self.proxy = proxy
         self.view = view
 
-    def collect_data(self):
-        project = io.find_one({'type': 'project'})
-        asset = io.find_one({'_id': self.get_active_asset()})
-
-        try:
-            index = self.task_view.selectedIndexes()[0]
-            task = self.task_model.itemData(index)[0]
-        except Exception:
-            task = None
-        data = {
-            'project': project['name'],
-            'asset': asset['name'],
-            'parents': self.get_parents(asset),
-            'task': task
-        }
-        return data
-
     def get_parents(self, entity):
         output = []
         if entity.get('data', {}).get('visualParent', None) is None:

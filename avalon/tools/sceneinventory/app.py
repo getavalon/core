@@ -246,7 +246,7 @@ class View(QtWidgets.QTreeView):
 
         for item in tools_lib.iter_model_rows(model, 0):
             item = item.data(InventoryModel.ItemRole)
-            if item.get("isGroupItem"):
+            if item.get("isGroupNode"):
                 continue
 
             name = item.get("objectName")
@@ -287,7 +287,7 @@ class View(QtWidgets.QTreeView):
 
         if self._hierarchy_view:
             # Ensure no group item
-            items = [n for n in items if not n.get("isGroupItem")]
+            items = [n for n in items if not n.get("isGroupNode")]
 
         menu = self.build_item_menu(items)
         menu.exec_(globalpos)

@@ -192,12 +192,12 @@ class Window(QtWidgets.QDialog):
 
         subsets_model.set_asset(document["_id"])
 
-
         # Clear the version information on asset change
         self.data["model"]["version"].set_version(None)
 
         self.data["state"]["context"]["asset"] = document["name"]
         self.data["state"]["context"]["assetId"] = document["_id"]
+        self.data["state"]["context"]["silo"] = document.get("silo")
         self.echo("Duration: %.3fs" % (time.time() - t1))
 
     def _versionschanged(self):
