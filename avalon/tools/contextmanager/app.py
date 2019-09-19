@@ -7,6 +7,8 @@ from ...vendor.Qt import QtWidgets, QtCore
 from ..widgets import AssetWidget
 from ..models import TasksModel
 
+from bson.objectid import ObjectId
+
 module = sys.modules[__name__]
 module.window = None
 
@@ -138,7 +140,12 @@ class App(QtWidgets.QDialog):
         if current_task_data:
             self._last_selected_task = current_task_data
 
-        selected = self._assets.get_selected_assets()
+        # WARNING: skipping not ObjectId assumed they are silo (backwards comp.)
+        selected = [
+            asset_id for asset_id in self._assets.get_selected_assets()
+            if isinstance(asset_id, ObjectId)
+        ]
+
         self._task_model.set_assets(selected)
 
         # Find task with same name
