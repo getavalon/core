@@ -77,42 +77,17 @@ class AssetWidget(QtWidgets.QWidget):
         self.proxy = proxy
         self.view = view
 
-    def _store_states(self):
-        # Store expands
-        for index in lib.iter_model_rows(
-            self.proxy, column=0, include_root=False
-        ):
-            expanded = self.view.isExpanded(index)
-            item = index.data(AssetModel.ItemRole)
-            self.expand_history[str(item["_id"])] = expanded
-
-        # store selection
-        indexes = self.view.selectionModel().selectedIndexes()
-        # only single selection is allowed
-        for index in indexes:
-            self.last_selection.append(index.data(AssetModel.ItemRole)["_id"])
-
-    def _restore_states(self):
-        if self.expand_history:
-            for index in lib.iter_model_rows(
-                self.proxy, column=0, include_root=False
-            ):
-                item = index.data(AssetModel.ItemRole)
-                expanded = self.expand_history.get(str(item.get("_id", "")))
-                if expanded is None:
-                    continue
-                self.view.setExpanded(index, expanded)
-
-        if self.last_selection:
-            self.select_assets(self.last_selection, key="_id")
-
     def _refresh_model(self):
         self.expand_history = {}
         self.last_selection = []
 
-        self._store_states()
-        self.model.refresh()
-        self._restore_states()
+        with lib.preserve_expanded_rows(
+            self.view, column=0, role=self.model.ObjectIdRole
+        ):
+            with lib.preserve_selection(
+                self.view, column=0, role=self.model.ObjectIdRole
+            ):
+                self.model.refresh()
 
         self.assets_refreshed.emit()
 
