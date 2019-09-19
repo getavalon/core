@@ -77,12 +77,16 @@ class App(QtWidgets.QDialog):
         self._task_view = task_view
         self._task_model = task_model
         self._assets = assets
+        self._accept_button = accept_btn
 
         self._context_asset = asset_label
         self._context_task = task_label
 
         assets.selection_changed.connect(self.on_asset_changed)
         accept_btn.clicked.connect(self.on_accept_clicked)
+        task_view.selectionModel().selectionChanged.connect(
+            self.on_task_changed)
+        assets.assets_refreshed.connect(self.on_task_changed)
         assets.refresh()
 
         self.select_asset(api.Session["AVALON_ASSET"])
@@ -103,7 +107,16 @@ class App(QtWidgets.QDialog):
         self._context_task.setText("Task: {}".format(task))
 
     def _get_selected_task_name(self):
-        task_index = self._task_view.currentIndex()
+
+        # Make sure we actually get the selected entry as opposed to the
+        # active index. This way we know the task is actually selected and the
+        # view isn't just active on something that is unselectable like
+        # "No Task"
+        selected = self._task_view.selectionModel().selectedRows()
+        if not selected:
+            return
+
+        task_index = selected[0]
         return task_index.data(QtCore.Qt.DisplayRole)
 
     def _get_selected_asset_name(self):
@@ -130,6 +143,23 @@ class App(QtWidgets.QDialog):
         # Find task with same name
         if self._last_selected_task:
             self.select_task(self._last_selected_task)
+
+        if not self._get_selected_task_name():
+            # If no task got selected after the task model reset
+            # then a "selection change" signal is not emitted.
+            # As such we need to explicitly force the callback.
+            self.on_task_changed()
+
+    def on_task_changed(self):
+        """Callback on task change."""
+
+        # Toggle the "Accept" button enabled state
+        asset = self._get_selected_asset_name()
+        task = self._get_selected_task_name()
+        if not asset or not task:
+            self._accept_button.setEnabled(False)
+        else:
+            self._accept_button.setEnabled(True)
 
     def on_accept_clicked(self):
         """Apply the currently selected task to update current task"""
