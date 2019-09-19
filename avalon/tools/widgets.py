@@ -96,7 +96,7 @@ class AssetWidget(QtWidgets.QWidget):
     def get_active_asset(self):
         """Return the asset id the current asset."""
         current = self.view.currentIndex()
-        return current.data(self.model.ObjectIdRole)
+        return current.data(self.model.ItemRole)
 
     def get_active_index(self):
         return self.view.currentIndex()
