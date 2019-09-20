@@ -44,5 +44,4 @@ def current_file():
 
 def work_root():
     from avalon import Session
-
     return os.path.normpath(Session["AVALON_WORKDIR"]).replace("\\", "/")

@@ -233,6 +233,7 @@ class Window(QtWidgets.QDialog):
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
 
         self.root = root
+
         if self.root is None:
             self.root = os.getcwd()
 
@@ -298,7 +299,6 @@ class Window(QtWidgets.QDialog):
         self.resize(400, 550)
 
     def get_name(self):
-
         window = NameWindow(self.root)
         window.setStyleSheet(style.load_stylesheet())
         window.exec_()
@@ -357,7 +357,6 @@ class Window(QtWidgets.QDialog):
             return None
 
     def open(self, filepath):
-
         host = self.host
         if host.has_unsaved_changes():
             result = self.save_changes_prompt()

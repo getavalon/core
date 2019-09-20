@@ -17,6 +17,7 @@ def reload_pipeline():
     """Attempt to reload pipeline at run-time.
 
     CAUTION: This is primarily for development and debugging purposes.
+
     """
 
     import importlib
@@ -453,7 +454,6 @@ def _on_task_changed(*args):
     # Update menu
     _uninstall_menu()
     _install_menu()
-
 
 
 @contextlib.contextmanager

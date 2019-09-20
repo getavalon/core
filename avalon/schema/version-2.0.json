@@ -82,10 +82,10 @@
             "example": {
                 "source" : "{root}/f02_prod/assets/BubbleWitch/work/modeling/marcus/maya/scenes/model_v001.ma",
                 "author" : "marcus",
-                "families" : [
+                "families" : [ 
                     "avalon.model"
                 ],
-                "time" : "20170510T090203Z"
+                "time" : "20170510T090203Z" 
             }
         }
     }

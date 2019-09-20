@@ -257,6 +257,7 @@ def _save_inventory_1_0(project_name, data):
         if not isinstance(value, list):
             print("Separating project metadata: %s" % key)
             metadata[key] = data.pop(key)
+
     _filter = {"type": "project"}
 
     document = io.find_one(_filter)

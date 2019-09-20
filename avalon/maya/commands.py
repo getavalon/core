@@ -18,6 +18,7 @@ def reset_frame_range():
     shot = io.find_one({"name": shot, "type": "asset"})
 
     try:
+
         frame_start = shot["data"].get(
             "frameStart",
             # backwards compatibility
@@ -28,7 +29,6 @@ def reset_frame_range():
             # backwards compatibility
             shot["data"].get("edit_out")
         )
-
     except KeyError:
         cmds.warning("No edit information found for %s" % shot["name"])
         return

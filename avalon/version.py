@@ -39,7 +39,7 @@ except ImportError:
         VERSION_PATCH -= 1489
         VERSION_PATCH -= 83
         VERSION_PATCH -= 86
-        
+
     except Exception:
         # Otherwise, no big deal
         pass

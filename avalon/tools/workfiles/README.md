@@ -90,8 +90,8 @@ def has_unsaved_changes():
 
 def save_file(filepath):
     """Save to filepath.
-
-    This should return None if it failed to save, and return the path if it
+    
+    This should return None if it failed to save, and return the path if it 
     succeeded.
     """
     pass
@@ -128,9 +128,9 @@ Whenever the host application has no built-in implementation that defines
 where scene files should be saved to then the Work Files API for that host
 should fall back to the `AVALON_SCENEDIR` variable in `api.Session`.
 
-When `AVALON_SCENEDIR` is set the  directory is the relative folder inside the
+When `AVALON_SCENEDIR` is set the  directory is the relative folder inside the 
 `AVALON_WORKDIR`. Otherwise, when it is not set or empty it should fall back
-to the Work Directory's root, `AVALON_WORKDIR`
+to the Work Directory's root, `AVALON_WORKDIR` 
 
 ```python
 AVALON_WORKDIR="/path/to/work"

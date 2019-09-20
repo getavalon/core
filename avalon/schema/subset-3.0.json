@@ -51,7 +51,7 @@
                 }
             },
             "example": {
-                "families" : [
+                "families" : [ 
                     "avalon.camera"
                 ],
                 "frameStart": 1000,
