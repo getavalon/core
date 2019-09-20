@@ -205,17 +205,14 @@ class NameWindow(QtWidgets.QDialog):
         self.host = api.registered_host()
 
         # Get work file name
-        project = io.find_one({
-            "name": os.environ["AVALON_PROJECT"],
-            "type": "project"
-        })
+        project = io.find_one({"type": "project"})
         self.data = {
             "project": {
                 "name": project["name"],
                 "code": project["data"].get("code", "")
             },
-            "asset": os.environ["AVALON_ASSET"],
-            "task": os.environ["AVALON_TASK"].lower(),
+            "asset": api.Session["AVALON_ASSET"],
+            "task": api.Session["AVALON_TASK"].lower(),
             "version": 1,
             "user": getpass.getuser(),
             "comment": ""

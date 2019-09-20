@@ -191,7 +191,7 @@ def _from_environment():
         ) if os.getenv(item[0], item[1]) is not None
     }
 
-    session["schema"] = "avalon-core:session-1.0"
+    session["schema"] = "avalon-core:session-2.0"
     try:
         schema.validate(session)
     except schema.ValidationError as e:

@@ -978,10 +978,7 @@ def update_current_task(task=None, asset=None, app=None):
         asset_document = io.find_one({"name": changed["AVALON_ASSET"],
                                       "type": "asset"})
         assert asset_document, "Asset must exist"
-        silo = asset_document["silo"]
-        if silo is None:
-            silo = asset_document["name"]
-        changed["AVALON_SILO"] = silo
+        changed["AVALON_SILO"] = asset_document.get("silo") or ""
         parents = asset_document['data']['parents']
         hierarchy = ""
         if len(parents) > 0:
