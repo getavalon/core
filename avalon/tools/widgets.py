@@ -77,9 +77,6 @@ class AssetWidget(QtWidgets.QWidget):
         self.view = view
 
     def _refresh_model(self):
-        self.expand_history = {}
-        self.last_selection = []
-
         with lib.preserve_expanded_rows(
             self.view, column=0, role=self.model.ObjectIdRole
         ):

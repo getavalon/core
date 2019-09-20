@@ -1,7 +1,7 @@
 {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "http://json-schema.org/draft-04/schema#",
 
-    "title": "avalon-core:asset-2.0",
+    "title": "avalon-core:asset-3.0",
     "description": "A unit of data",
 
     "type": "object",
@@ -19,13 +19,13 @@
         "schema": {
             "description": "Schema identifier for payload",
             "type": "string",
-            "const": "avalon-core:asset-2.0",
-            "example": "avalon-core:asset-2.0"
+            "enum": ["avalon-core:asset-3.0"],
+            "example": "avalon-core:asset-3.0"
         },
         "type": {
             "description": "The type of document",
             "type": "string",
-            "const": "asset",
+            "enum": ["asset"],
             "example": "asset"
         },
         "parent": {
@@ -41,6 +41,7 @@
         "silo": {
             "description": "Group or container of asset",
             "type": "string",
+            "pattern": "^[a-zA-Z0-9_.]*$",
             "example": "assets"
         },
         "data": {
