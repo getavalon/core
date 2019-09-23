@@ -1,7 +1,8 @@
 import collections
 import logging
 
-from .. import TreeModel, Item
+from ..models import TreeModel, Item
+from ..loader.model import GroupMemberFilterProxyModel
 from . import lib
 from ... import style
 
@@ -201,10 +202,14 @@ class AssetModel(TreeModel):
         self.clear()
         self.beginResetModel()
 
-        # Get all assets in current silo sorted by name
-        db_assets = self.dbcon.find({"type": "asset"}).sort("name", 1)
-        silos = db_assets.distinct("silo") or None
-
+        db_assets = []
+        silos = None
+        if self.dbcon.Session.get("AVALON_PROJECT"):
+            # Get all assets in current silo sorted by name
+            db_assets = self.dbcon.find({"type": "asset"}).sort("name", 1)
+            silos = db_assets.distinct("silo") or None
+            if silos and None in silos:
+                silos = None
         # Group the assets by their visual parent's id
         assets_by_parent = collections.defaultdict(list)
         for asset in db_assets:
@@ -410,7 +415,7 @@ class SubsetsModel(TreeModel):
 
         asset_id = self._asset_id
 
-        active_groups = lib.get_active_group_config(asset_id)
+        active_groups = lib.get_active_group_config(self.dbcon, asset_id)
 
         # Generate subset group nodes
         group_items = dict()
@@ -525,3 +530,63 @@ class SubsetsModel(TreeModel):
             flags |= QtCore.Qt.ItemIsEditable
 
         return flags
+
+
+class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
+    """Filters to specified families"""
+
+    def __init__(self, *args, **kwargs):
+        super(FamiliesFilterProxyModel, self).__init__(*args, **kwargs)
+        self._families = set()
+
+    def familyFilter(self):
+        return self._families
+
+    def setFamiliesFilter(self, values):
+        """Set the families to include"""
+        assert isinstance(values, (tuple, list, set))
+        self._families = set(values)
+        self.invalidateFilter()
+
+    def filterAcceptsRow(self, row=0, parent=QtCore.QModelIndex()):
+
+        if not self._families:
+            return False
+
+        model = self.sourceModel()
+        index = model.index(row, 0, parent=parent)
+
+        # Ensure index is valid
+        if not index.isValid() or index is None:
+            return True
+
+        # Get the node data and validate
+        item = model.data(index, TreeModel.ItemRole)
+
+        if item.get("isGroup"):
+            return self.filter_accepts_group(index, model)
+
+        families = item.get("families", [])
+
+        filterable_families = set()
+        for name in families:
+            family_config = lib.get_family_cached_config(name)
+            if not family_config.get("hideFilter"):
+                filterable_families.add(name)
+
+        if not filterable_families:
+            return True
+
+        # We want to keep the families which are not in the list
+        return filterable_families.issubset(self._families)
+
+    def sort(self, column, order):
+        proxy = self.sourceModel()
+        model = proxy.sourceModel()
+        # We need to know the sorting direction for pinning groups on top
+        if order == QtCore.Qt.AscendingOrder:
+            self.setSortRole(model.SortAscendingRole)
+        else:
+            self.setSortRole(model.SortDescendingRole)
+
+        super(FamiliesFilterProxyModel, self).sort(column, order)
