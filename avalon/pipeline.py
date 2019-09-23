@@ -160,15 +160,13 @@ class Loader(list):
     order = 0
 
     def __init__(self, context):
-
-
         try:
             fname = context['representation']['data']['path']
         except KeyError:
             template = context["project"]["config"]["template"]["publish"]
             data = context['representation']['context']
             data["root"] = registered_root()
-            data["silo"] = context["asset"]["silo"]
+            data["silo"] = context["asset"].get("silo")
             fname = template.format(**data)
 
         self.fname = fname
@@ -334,7 +332,6 @@ class Application(Action):
     def is_compatible(self, session):
         required = ["AVALON_PROJECTS",
                     "AVALON_PROJECT",
-                    "AVALON_SILO",
                     "AVALON_ASSET",
                     "AVALON_TASK"]
         missing = [x for x in required if x not in session]
@@ -980,9 +977,7 @@ def update_current_task(task=None, asset=None, app=None):
         assert asset_document, "Asset must exist"
         changed["AVALON_SILO"] = asset_document.get("silo") or ""
         parents = asset_document['data']['parents']
-        hierarchy = ""
-        if len(parents) > 0:
-            hierarchy = os.path.sep.join(parents)
+        hierarchy = os.path.sep.join(parents) or ""
         changed['AVALON_HIERARCHY'] = hierarchy
 
     # Compute work directory (with the temporary changed session so far)
@@ -1037,7 +1032,7 @@ def _format_work_template(template, session=None):
             "name": project.get("name", session["AVALON_PROJECT"]),
             "code": project["data"].get("code", ''),
         },
-        "silo": session["AVALON_SILO"],
+        "silo": session.get("AVALON_SILO"),
         "hierarchy": session['AVALON_HIERARCHY'],
         "asset": session["AVALON_ASSET"],
         "task": session["AVALON_TASK"],
@@ -1250,7 +1245,7 @@ def get_representation_path(representation):
                     "code": project["data"].get("code", '')
                 },
                 "asset": asset["name"],
-                "silo": asset["silo"],
+                "silo": asset.get("silo"),
                 "subset": subset["name"],
                 "version": version_["name"],
                 "representation": representation["name"],
@@ -1270,7 +1265,11 @@ def is_compatible_loader(Loader, context):
         bool
 
     """
-    families = context["version"]["data"]["families"]
+    if context["subset"]["schema"] == "avalon-core:subset-3.0":
+        families = context["subset"]["data"]["families"]
+    else:
+        families = context["version"]["data"].get("families", [])
+
     representation = context["representation"]
     has_family = ("*" in Loader.families or
                   any(family in Loader.families for family in families))
