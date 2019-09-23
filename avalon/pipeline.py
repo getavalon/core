@@ -811,7 +811,13 @@ def default_host():
         return list()
 
     host.__dict__.update({
-        "ls": ls
+        "ls": ls,
+        "open_file": lambda fname: None,
+        "save_file": lambda fname: None,
+        "current_file": lambda: os.path.expanduser("~/temp.txt"),
+        "has_unsaved_changes": lambda: False,
+        "work_root": lambda: os.path.expanduser("~/temp"),
+        "file_extensions": lambda: ["txt"],
     })
 
     return host
@@ -976,7 +982,7 @@ def update_current_task(task=None, asset=None, app=None):
                                       "type": "asset"})
         assert asset_document, "Asset must exist"
         changed["AVALON_SILO"] = asset_document.get("silo") or ""
-        parents = asset_document['data']['parents']
+        parents = asset_document["data"]["parents"]
         hierarchy = os.path.sep.join(parents) or ""
         changed['AVALON_HIERARCHY'] = hierarchy
 
