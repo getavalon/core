@@ -17,15 +17,18 @@ def is_filtering_recursible():
 
 
 class SubsetsModel(TreeModel):
-    Columns = ["subset",
-               "family",
-               "version",
-               "time",
-               "author",
-               "frames",
-               "duration",
-               "handles",
-               "step"]
+    Columns = [
+        "subset",
+        "asset",
+        "family",
+        "version",
+        "time",
+        "author",
+        "frames",
+        "duration",
+        "handles",
+        "step"
+    ]
 
     SortAscendingRole = QtCore.Qt.UserRole + 2
     SortDescendingRole = QtCore.Qt.UserRole + 3
