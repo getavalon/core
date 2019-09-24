@@ -50,7 +50,7 @@ class SubsetsModel(TreeModel):
 
         # Trigger additional edit when `version` column changed
         # because it also updates the information in other columns
-        if index.column() == 2:
+        if index.column() == self.Columns.index("version"):
             item = index.internalPointer()
             parent = item["_id"]
             version = io.find_one({"name": value,
@@ -206,7 +206,7 @@ class SubsetsModel(TreeModel):
             return
 
         if role == QtCore.Qt.DisplayRole:
-            if index.column() == 1:
+            if index.column() == self.Columns.index("family"):
                 # Show familyLabel instead of family
                 item = index.internalPointer()
                 return item.get("familyLabel", None)
@@ -214,7 +214,7 @@ class SubsetsModel(TreeModel):
         if role == QtCore.Qt.DecorationRole:
 
             # Add icon to subset column
-            if index.column() == 0:
+            if index.column() == self.Columns.index("subset"):
                 item = index.internalPointer()
                 if item.get("isGroup"):
                     return item["icon"]
@@ -222,7 +222,7 @@ class SubsetsModel(TreeModel):
                     return self._icons["subset"]
 
             # Add icon to family column
-            if index.column() == 1:
+            if index.column() == self.Columns.index("family"):
                 item = index.internalPointer()
                 return item.get("familyIcon", None)
 
@@ -256,7 +256,7 @@ class SubsetsModel(TreeModel):
         flags = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
         # Make the version column editable
-        if index.column() == 2:  # version column
+        if index.column() == self.Columns.index("version"):  # version column
             flags |= QtCore.Qt.ItemIsEditable
 
         return flags
