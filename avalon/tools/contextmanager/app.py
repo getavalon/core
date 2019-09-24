@@ -146,7 +146,7 @@ class App(QtWidgets.QDialog):
             if isinstance(asset_id, ObjectId)
         ]
 
-        self._task_model.set_assets(selected)
+        self._task_model.set_assets(asset_entities=selected)
 
         # Find task with same name
         if self._last_selected_task:
