@@ -192,9 +192,9 @@ class Window(QtWidgets.QDialog):
         # Add tasks in database for selected assets
         model = self.data["model"]["assets"]
         selected = model.get_selected_assets()
-        for asset_id in selected:
-            _filter = {"_id": asset_id}
-            asset = io.find_one(_filter)
+        for asset in selected:
+            _filter = {"_id": asset["_id"]}
+
             asset_tasks = asset.get("data", {}).get("tasks", [])
             for task in tasks:
                 if task not in asset_tasks:
@@ -219,11 +219,9 @@ class Window(QtWidgets.QDialog):
         """
 
         model = self.data["model"]["assets"]
-        selected = [
-            asset_id for asset_id in model.get_selected_assets()
-            if isinstance(asset_id, io.ObjectId)
-        ]
-        self.data["model"]["tasks"].set_assets(selected)
+        selected = model.get_selected_assets()
+
+        self.data["model"]["tasks"].set_assets(asset_entities=selected)
 
 
 def show(root=None, debug=False, parent=None):

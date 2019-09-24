@@ -140,12 +140,7 @@ class App(QtWidgets.QDialog):
         if current_task_data:
             self._last_selected_task = current_task_data
 
-        # WARNING: skipping not ObjectId assumed they are silo (backwards comp.)
-        selected = [
-            asset_id for asset_id in self._assets.get_selected_assets()
-            if isinstance(asset_id, ObjectId)
-        ]
-
+        selected = self._assets.get_selected_assets()
         self._task_model.set_assets(asset_entities=selected)
 
         # Find task with same name

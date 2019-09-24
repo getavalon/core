@@ -101,10 +101,13 @@ class AssetWidget(QtWidgets.QWidget):
         return self.view.currentIndex()
 
     def get_selected_assets(self):
-        """Return the assets' ids that are selected."""
+        """Return the documents of selected assets."""
         selection = self.view.selectionModel()
         rows = selection.selectedRows()
-        return [row.data(self.model.ObjectIdRole) for row in rows]
+        assets = [row.data(self.model.DocumentRole) for row in rows]
+
+        # NOTE: skip None object assumed they are silo (backwards comp.)
+        return [asset for asset in assets if asset]
 
     def select_assets(self, assets, expand=True, key="name"):
         """Select assets by item key.
