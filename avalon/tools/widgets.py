@@ -105,23 +105,29 @@ class AssetWidget(QtWidgets.QWidget):
         return [row.data(self.model.ObjectIdRole) for row in rows]
 
     def select_assets(self, assets, expand=True, key="name"):
-        """Select assets by name.
+        """Select assets by item key.
 
         Args:
-            assets (list): List of asset names
+            assets (list): List of asset values that can be found under
+                specified `key`
             expand (bool): Whether to also expand to the asset in the view
+            key (string): Key that specifies where to look for `assets` values
 
         Returns:
             None
+
+        Default `key` is "name" in that case `assets` should contain single
+        asset name or list of asset names. (It is good idea to use "_id" key
+        instead of name in that case `assets` must contain `ObjectId` object/s)
+        It is expected that each value in `assets` will be found only once.
+        If the filters according to the `key` and `assets` correspond to
+        the more asset, only the first found will be selected.
 
         """
         # TODO: Instead of individual selection optimize for many assets
 
         if not isinstance(assets, (tuple, list)):
             assets = [assets]
-        assert isinstance(
-            assets, (tuple, list)
-        ), "Assets must be list or tuple"
 
         # convert to list - tuple cant be modified
         assets = list(assets)
