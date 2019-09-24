@@ -30,6 +30,19 @@ class SubsetsModel(TreeModel):
         "step"
     ]
 
+    column_labels_mapping = {
+        "subset": "Subset",
+        "asset": "Asset",
+        "family": "Family",
+        "version": "Version",
+        "time": "Time",
+        "author": "Author",
+        "frames": "Frames",
+        "duration": "Duration",
+        "handles": "Handles",
+        "step": "Step"
+    }
+
     SortAscendingRole = QtCore.Qt.UserRole + 2
     SortDescendingRole = QtCore.Qt.UserRole + 3
 
@@ -263,6 +276,15 @@ class SubsetsModel(TreeModel):
             flags |= QtCore.Qt.ItemIsEditable
 
         return flags
+
+    def headerData(self, section, orientation, role):
+        """Remap column names to labels"""
+        if role == QtCore.Qt.DisplayRole:
+            if section < len(self.Columns):
+                key = self.Columns[section]
+                return self.column_labels_mapping.get(key) or key
+
+        super(TreeModel, self).headerData(section, orientation, role)
 
 
 class GroupMemberFilterProxyModel(QtCore.QSortFilterProxyModel):
