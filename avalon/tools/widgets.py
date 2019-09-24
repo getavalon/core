@@ -79,13 +79,10 @@ class AssetWidget(QtWidgets.QWidget):
         self.view = view
 
     def _refresh_model(self):
-        with lib.preserve_expanded_rows(
+        with lib.preserve_states(
             self.view, column=0, role=self.model.ObjectIdRole
         ):
-            with lib.preserve_selection(
-                self.view, column=0, role=self.model.ObjectIdRole
-            ):
-                self.model.refresh()
+            self.model.refresh()
 
         self.assets_refreshed.emit()
 
