@@ -3,7 +3,8 @@ import logging
 from . import lib
 
 from .models import AssetModel, RecursiveSortFilterProxyModel
-from .views import DeselectableTreeView
+from .views import AssetsView
+from .loader.delegates import AssetDelegate
 from ..vendor import qtawesome
 from ..vendor.Qt import QtWidgets, QtCore, QtGui
 
@@ -27,7 +28,7 @@ class AssetWidget(QtWidgets.QWidget):
     selection_changed = QtCore.Signal()  # on view selection change
     current_changed = QtCore.Signal()    # on view current index change
 
-    def __init__(self, parent=None):
+    def __init__(self, multiselection=False, parent=None):
         super(AssetWidget, self).__init__(parent=parent)
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -41,11 +42,12 @@ class AssetWidget(QtWidgets.QWidget):
         proxy.setSourceModel(model)
         proxy.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
 
-        view = DeselectableTreeView()
-        view.setIndentation(15)
-        view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        view.setHeaderHidden(True)
+        view = AssetsView()
         view.setModel(proxy)
+        if multiselection:
+            asset_delegate = AssetDelegate()
+            view.setSelectionMode(view.ExtendedSelection)
+            view.setItemDelegate(asset_delegate)
 
         # Header
         header = QtWidgets.QHBoxLayout()
