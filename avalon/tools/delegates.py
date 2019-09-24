@@ -21,7 +21,7 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
 
     def createEditor(self, parent, option, index):
         item = index.data(TreeModel.ItemRole)
-        if item.get("isGroup"):
+        if item.get("isGroup") or item.get("isMerged"):
             return
 
         editor = QtWidgets.QComboBox(parent)
