@@ -45,6 +45,7 @@ class SubsetWidget(QtWidgets.QWidget):
         top_bar_layout.addWidget(groupable)
 
         view = QtWidgets.QTreeView()
+        view.setObjectName("SubsetView")
         view.setIndentation(20)
         view.setStyleSheet("""
             QTreeView::item{
