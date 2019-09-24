@@ -206,7 +206,8 @@ class Window(QtWidgets.QDialog):
             schema.validate(asset)
             io.replace_one(_filter, asset)
 
-        # Refresh the tasks model
+        # Refresh assets from db and the tasks model with new task
+        self.refresh()
         self.on_asset_changed()
 
         self.echo("Added tasks: {0}".format(", ".join(tasks)))
