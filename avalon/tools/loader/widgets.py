@@ -155,12 +155,16 @@ class SubsetWidget(QtWidgets.QWidget):
                 continue
 
             elif item.get("isMerged"):
-                for i in range(
-                    row_index.data(self.model.ItemRole).childCount()
-                ):
-                    item = row_index.child(i, 0).data(self.model.ItemRole)
+                # TODO use `for` loop of index's rowCount instead of `while` loop
+                idx = 0
+                while idx < 2000:
+                    child_index = row_index.child(idx, 0)
+                    if not child_index.isValid():
+                        break
+                    item = child_index.data(self.model.ItemRole)
                     if item not in items:
                         items.append(item)
+                    idx += 1
 
             else:
                 if item not in items:
