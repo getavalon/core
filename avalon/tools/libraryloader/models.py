@@ -1,6 +1,8 @@
 import collections
 import logging
 
+from .. import models as tools_models
+from ..loader import model as loader_models
 from ..models import TreeModel, Item
 from ..loader.model import GroupMemberFilterProxyModel
 from . import lib
@@ -12,23 +14,14 @@ from ...vendor.Qt import QtCore, QtGui
 log = logging.getLogger(__name__)
 
 
-class TasksModel(TreeModel):
+class TasksModel(tools_models.TasksModel):
     """A model listing the tasks combined for a list of assets"""
 
     Columns = ["name", "count"]
 
     def __init__(self, dbcon, parent=None):
-        super(TasksModel, self).__init__(parent=parent)
         self.dbcon = dbcon
-        self._num_assets = 0
-        self._icons = {
-            "__default__": qtawesome.icon("fa.male",
-                                          color=style.colors.default),
-            "__no_task__": qtawesome.icon("fa.exclamation-circle",
-                                          color=style.colors.mid)
-        }
-
-        self._get_task_icons()
+        super(TasksModel, self).__init__(parent=parent)
 
     def _get_task_icons(self):
         # Get the project configured icons from database
@@ -43,19 +36,35 @@ class TasksModel(TreeModel):
                 )
                 self._icons[task["name"]] = icon
 
-    def set_assets(self, asset_ids):
+    def set_assets(self, asset_ids=[], asset_entities=None):
         """Set assets to track by their database id
 
         Arguments:
             asset_ids (list): List of asset ids.
+            asset_entities (list): List of asset entities from MongoDB.
 
         """
 
         assets = list()
-        for asset_id in asset_ids:
-            asset = self.dbcon.find_one({"_id": asset_id, "type": "asset"})
-            assert asset, "Asset not found by id: {0}".format(asset_id)
-            assets.append(asset)
+        if asset_entities is not None:
+            assets = asset_entities
+        else:
+            # prepare filter query
+            or_query = [{"_id": asset_id} for asset_id in asset_ids]
+            _filter = {"type": "asset", "$or": or_query}
+
+            # find assets in db by query
+            assets = [asset for asset in self.dbcon.find_one(_filter)]
+            db_assets_ids = [asset["_id"] for asset in assets]
+
+            # check if all assets were found
+            not_found = [
+                str(a_id) for a_id in assets_ids if a_id not in db_assets_ids
+            ]
+
+            assert not not_found, "Assets not found by id: {0}".format(
+                ", ".join(not_found)
+            )
 
         self._num_assets = len(assets)
 
@@ -94,31 +103,8 @@ class TasksModel(TreeModel):
 
         self.endResetModel()
 
-    def headerData(self, section, orientation, role):
 
-        # Override header for count column to show amount of assets
-        # it is listing the tasks for
-        if role == QtCore.Qt.DisplayRole:
-            if orientation == QtCore.Qt.Horizontal:
-                if section == 1:  # count column
-                    return "count ({0})".format(self._num_assets)
-
-        return super(TasksModel, self).headerData(section, orientation, role)
-
-    def data(self, index, role):
-
-        if not index.isValid():
-            return
-
-        # Add icon to the first column
-        if role == QtCore.Qt.DecorationRole:
-            if index.column() == 0:
-                return index.internalPointer()["icon"]
-
-        return super(TasksModel, self).data(index, role)
-
-
-class AssetModel(TreeModel):
+class AssetModel(tools_models.AssetModel):
     """A model listing assets in the silo in the active project.
 
     The assets are displayed in a treeview, they are visually parented by
@@ -127,89 +113,31 @@ class AssetModel(TreeModel):
 
     """
 
-    Columns = ["label"]
-    Name = 0
-    Deprecated = 2
-    ObjectId = 3
-
-    DocumentRole = QtCore.Qt.UserRole + 2
-    ObjectIdRole = QtCore.Qt.UserRole + 3
-
     def __init__(self, dbcon, parent=None):
-        super(AssetModel, self).__init__(parent=parent)
         self.dbcon = dbcon
-        self.refresh()
-
-    def _add_hierarchy(self, assets, parent=None, silos=None):
-        """Add the assets that are related to the parent as children items.
-
-        This method does *not* query the database. These instead are queried
-        in a single batch upfront as an optimization to reduce database
-        queries. Resulting in up to 10x speed increase.
-
-        Args:
-            assets (dict): All assets in the currently active silo stored
-                by key/value
-
-        Returns:
-            None
-
-        """
-        if silos:
-            # WARNING: Silo item "_id" is set to silo value
-            # mainly because GUI issue with perserve selection and expanded row
-            # and because of easier hierarchy parenting (in "assets")
-            for silo in silos:
-                item = Item({
-                    "_id": silo,
-                    "name": silo,
-                    "label": silo,
-                    "type": "silo"
-                })
-                self.add_child(item, parent=parent)
-                self._add_hierarchy(assets, parent=item)
-
-        parent_id = parent["_id"] if parent else None
-        current_assets = assets.get(parent_id, list())
-
-        for asset in current_assets:
-            # get label from data, otherwise use name
-            data = asset.get("data", {})
-            label = data.get("label", asset["name"])
-            tags = data.get("tags", [])
-
-            # store for the asset for optimization
-            deprecated = "deprecated" in tags
-
-            item = Item({
-                "_id": asset["_id"],
-                "name": asset["name"],
-                "label": label,
-                "type": asset["type"],
-                "tags": ", ".join(tags),
-                "deprecated": deprecated,
-                "_document": asset
-            })
-            self.add_child(item, parent=parent)
-
-            # Add asset's children recursively if it has children
-            if asset["_id"] in assets:
-                self._add_hierarchy(assets, parent=item)
+        super(AssetModel, self).__init__(parent=parent)
 
     def refresh(self):
         """Refresh the data for the model."""
 
         self.clear()
+        if (
+            self.dbcon.active_project() is None or
+            self.dbcon.active_project() == ""
+        ):
+            return
+
         self.beginResetModel()
 
         db_assets = []
         silos = None
-        if self.dbcon.Session.get("AVALON_PROJECT"):
-            # Get all assets in current silo sorted by name
-            db_assets = self.dbcon.find({"type": "asset"}).sort("name", 1)
-            silos = db_assets.distinct("silo") or None
-            if silos and None in silos:
-                silos = None
+
+        # Get all assets sorted by name
+        db_assets = self.dbcon.find({"type": "asset"}).sort("name", 1)
+        silos = db_assets.distinct("silo") or None
+        if silos and None in silos:
+            silos = None
+
         # Group the assets by their visual parent's id
         assets_by_parent = collections.defaultdict(list)
         for asset in db_assets:
@@ -228,107 +156,32 @@ class AssetModel(TreeModel):
 
         self.endResetModel()
 
-    def flags(self, index):
-        return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
-    def data(self, index, role):
-
-        if not index.isValid():
-            return
-
-        item = index.internalPointer()
-        if role == QtCore.Qt.DecorationRole:        # icon
-
-            column = index.column()
-            if column == self.Name:
-
-                # Allow a custom icon and custom icon color to be defined
-                data = item.get("_document", {}).get("data", {})
-                icon = data.get("icon", None)
-                if icon is None and item.get("type") == "silo":
-                    icon = "database"
-                color = data.get("color", style.colors.default)
-
-                if icon is None:
-                    # Use default icons if no custom one is specified.
-                    # If it has children show a full folder, otherwise
-                    # show an open folder
-                    has_children = self.rowCount(index) > 0
-                    icon = "folder" if has_children else "folder-o"
-
-                # Make the color darker when the asset is deprecated
-                if item.get("deprecated", False):
-                    color = QtGui.QColor(color).darker(250)
-
-                try:
-                    key = "fa.{0}".format(icon)  # font-awesome key
-                    icon = qtawesome.icon(key, color=color)
-                    return icon
-                except Exception as exception:
-                    # Log an error message instead of erroring out completely
-                    # when the icon couldn't be created (e.g. invalid name)
-                    log.error(exception)
-
-                return
-
-        if role == QtCore.Qt.ForegroundRole:        # font color
-            if "deprecated" in item.get("tags", []):
-                return QtGui.QColor(style.colors.light).darker(250)
-
-        if role == self.ObjectIdRole:
-            return item.get("_id", None)
-
-        if role == self.DocumentRole:
-            return item.get("_document", None)
-
-        return super(AssetModel, self).data(index, role)
-
-
-
-class SubsetsModel(TreeModel):
-    Columns = ["subset",
-               "family",
-               "version",
-               "time",
-               "author",
-               "frames",
-               "duration",
-               "handles",
-               "step"]
-
-    SortAscendingRole = QtCore.Qt.UserRole + 2
-    SortDescendingRole = QtCore.Qt.UserRole + 3
+class SubsetsModel(loader_models.SubsetsModel):
 
     def __init__(self, dbcon, grouping=True, parent=None):
-        super(SubsetsModel, self).__init__(parent=parent)
         self.dbcon = dbcon
-        self._asset_id = None
-        self._sorter = None
-        self._grouping = grouping
-        self._icons = {"subset": qtawesome.icon("fa.file-o",
-                                                color=style.colors.default)}
-
-    def set_asset(self, asset_id):
-        self._asset_id = asset_id
-        self.refresh()
-
-    def set_grouping(self, state):
-        self._grouping = state
-        self.refresh()
+        super(SubsetsModel, self).__init__(grouping=grouping, parent=parent)
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
 
         # Trigger additional edit when `version` column changed
         # because it also updates the information in other columns
-        if index.column() == 2:
+        if index.column() == self.Columns.index("version"):
             item = index.internalPointer()
             parent = item["_id"]
-            version = self.dbcon.find_one({"name": value,
-                                   "type": "version",
-                                   "parent": parent})
+            version = self.dbcon.find_one({
+                "name": value,
+                "type": "version",
+                "parent": parent
+            })
             self.set_version(index, version)
 
-        return super(SubsetsModel, self).setData(index, value, role)
+        # Use super of TreeModel not SubsetsModel from loader!!
+        # - he would do the same but with current io context
+        return super(loader_models.SubsetsModel, self).setData(
+            index, value, role
+        )
 
     def set_version(self, index, version):
         """Update the version data of the given index.
@@ -338,7 +191,6 @@ class SubsetsModel(TreeModel):
             version (dict) Version document in the database.
 
         """
-
         assert isinstance(index, QtCore.QModelIndex)
         if not index.isValid():
             return
@@ -409,50 +261,192 @@ class SubsetsModel(TreeModel):
 
         self.clear()
         self.beginResetModel()
-        if not self._asset_id:
+        if not self._asset_ids:
             self.endResetModel()
             return
 
-        asset_id = self._asset_id
+        active_groups = []
+        for asset_id in self._asset_ids:
+            result = lib.get_active_group_config(self.dbcon, asset_id)
+            if result:
+                active_groups.extend(result)
 
-        active_groups = lib.get_active_group_config(self.dbcon, asset_id)
+        parent_filter = [{"parent": asset_id} for asset_id in self._asset_ids]
+        filtered_subsets = [
+            s for s in self.dbcon.find({"type": "subset", "$or": parent_filter})
+        ]
 
-        # Generate subset group nodes
-        group_items = dict()
+        asset_entities = {}
+        for asset_id in self._asset_ids:
+            asset_ent = self.dbcon.find_one({"_id": asset_id})
+            asset_entities[asset_id] = asset_ent
 
-        if self._grouping:
-            for data in active_groups:
-                name = data.pop("name")
-                group = Item()
-                group.update({"subset": name, "isGroup": True, "childRow": 0})
-                group.update(data)
+        # Collect last versions
+        last_versions = {}
+        for subset in filtered_subsets:
+            last_version = self.dbcon.find_one({
+                "type": "version",
+                "parent": subset["_id"]
+            }, sort=[("name", -1)])
+            # No published version for the subset
+            last_versions[subset["_id"]] = last_version
 
-                group_items[name] = group
-                self.add_child(group)
+        # Prepare data if is selected more than one asset
+        process_only_single_asset = True
+        merge_subsets = False
+        if len(parent_filter) >= 2:
+            process_only_single_asset = False
+            all_subset_names = []
+            multiple_asset_names = []
 
-        filter = {"type": "subset", "parent": asset_id}
+            for subset in filtered_subsets:
+                # No published version for the subset
+                if not last_versions[subset["_id"]]:
+                    continue
+
+                name = subset["name"]
+                if name in all_subset_names:
+                    # process_only_single_asset = False
+                    merge_subsets = True
+                    if name not in multiple_asset_names:
+                        multiple_asset_names.append(name)
+                else:
+                    all_subset_names.append(name)
 
         # Process subsets
-        row = len(group_items)
-        for subset in self.dbcon.find(filter):
+        row = 0
+        group_items = dict()
 
-            last_version = self.dbcon.find_one({"type": "version",
-                                        "parent": subset["_id"]},
-                                       sort=[("name", -1)])
+         # When only one asset is selected
+        if process_only_single_asset:
+            if self._grouping:
+                # Generate subset group items
+                group_names = []
+                for data in active_groups:
+                    name = data.pop("name")
+                    if name in group_names:
+                        continue
+                    group_names.append(name)
+
+                    group = Item()
+                    group.update({
+                        "subset": name,
+                        "isGroup": True,
+                        "childRow": 0
+                    })
+                    group.update(data)
+
+                    group_items[name] = group
+                    self.add_child(group)
+
+            row = len(group_items)
+            single_asset_subsets = filtered_subsets
+
+        # When multiple assets are selected
+        else:
+            single_asset_subsets = []
+            multi_asset_subsets = {}
+
+            for subset in filtered_subsets:
+                last_version = last_versions[subset["_id"]]
+                if not last_version:
+                    continue
+
+                data = subset.copy()
+                name = data["name"]
+                asset_name = asset_entities[data["parent"]]["name"]
+
+                data["subset"] = name
+                data["asset"] = asset_name
+
+                asset_subset_data = {
+                    "data": data,
+                    "last_version": last_version
+                }
+
+                if name in multiple_asset_names:
+                    if name not in multi_asset_subsets:
+                        multi_asset_subsets[name] = {}
+                    multi_asset_subsets[name][data["parent"]] = (
+                        asset_subset_data
+                    )
+                else:
+                    single_asset_subsets.append(data)
+
+            color_count = len(self.merged_subset_colors)
+            merged_names = {}
+            subset_counter = 0
+            total = len(multi_asset_subsets)
+            str_order_temp = "%0{}d".format(len(str(total)))
+
+            for subset_name, per_asset_data in multi_asset_subsets.items():
+                subset_color = self.merged_subset_colors[
+                    subset_counter%color_count
+                ]
+                inverse_order = total - subset_counter
+
+                merge_group = Item()
+                merge_group.update({
+                    "subset": "{} ({})".format(
+                        subset_name, str(len(per_asset_data))
+                    ),
+                    "isMerged": True,
+                    "childRow": 0,
+                    "subsetColor": subset_color,
+                    "assetIds": [id for id in per_asset_data],
+
+                    "icon": qtawesome.icon(
+                        "fa.circle",
+                        color="#{0:02x}{1:02x}{2:02x}".format(*subset_color)
+                    ),
+                    "order": "0{}".format(subset_name),
+                    "inverseOrder": str_order_temp % inverse_order
+                })
+
+                subset_counter += 1
+                row += 1
+                group_items[subset_name] = merge_group
+                self.add_child(merge_group)
+
+                merge_group_index = self.createIndex(0, 0, merge_group)
+
+                for asset_id, asset_subset_data in per_asset_data.items():
+                    last_version = asset_subset_data["last_version"]
+                    data = asset_subset_data["data"]
+
+                    row_ = merge_group["childRow"]
+                    merge_group["childRow"] += 1
+
+                    item = Item()
+                    item.update(data)
+
+                    self.add_child(item, parent=merge_group)
+
+                    # Set the version information
+                    index = self.index(row_, 0, parent=merge_group_index)
+                    self.set_version(index, last_version)
+
+        for subset in single_asset_subsets:
+            last_version = last_versions[subset["_id"]]
             if not last_version:
-                # No published version for the subset
                 continue
 
             data = subset.copy()
             data["subset"] = data["name"]
 
             group_name = subset["data"].get("subsetGroup")
-            if self._grouping and group_name:
-                group = group_items[group_name]
-                parent = group
-                parent_index = self.createIndex(0, 0, group)
-                row_ = group["childRow"]
-                group["childRow"] += 1
+            if process_only_single_asset:
+                if self._grouping and group_name:
+                    group = group_items[group_name]
+                    parent = group
+                    parent_index = self.createIndex(0, 0, group)
+                    row_ = group["childRow"]
+                    group["childRow"] += 1
+                else:
+                    parent = None
+                    parent_index = QtCore.QModelIndex()
+                    row_ = row
+                    row += 1
             else:
                 parent = None
                 parent_index = QtCore.QModelIndex()
@@ -470,83 +464,11 @@ class SubsetsModel(TreeModel):
 
         self.endResetModel()
 
-    def data(self, index, role):
-
-        if not index.isValid():
-            return
-
-        if role == QtCore.Qt.DisplayRole:
-            if index.column() == 1:
-                # Show familyLabel instead of family
-                item = index.internalPointer()
-                return item.get("familyLabel", None)
-
-        if role == QtCore.Qt.DecorationRole:
-
-            # Add icon to subset column
-            if index.column() == 0:
-                item = index.internalPointer()
-                if item.get("isGroup"):
-                    return item["icon"]
-                else:
-                    return self._icons["subset"]
-
-            # Add icon to family column
-            if index.column() == 1:
-                item = index.internalPointer()
-                return item.get("familyIcon", None)
-
-        if role == self.SortDescendingRole:
-            item = index.internalPointer()
-            if item.get("isGroup"):
-                # Ensure groups be on top when sorting by descending order
-                prefix = "1"
-                order = item["inverseOrder"]
-            else:
-                prefix = "0"
-                order = str(super(SubsetsModel,
-                                  self).data(index, QtCore.Qt.DisplayRole))
-            return prefix + order
-
-        if role == self.SortAscendingRole:
-            item = index.internalPointer()
-            if item.get("isGroup"):
-                # Ensure groups be on top when sorting by ascending order
-                prefix = "0"
-                order = item["order"]
-            else:
-                prefix = "1"
-                order = str(super(SubsetsModel,
-                                  self).data(index, QtCore.Qt.DisplayRole))
-            return prefix + order
-
-        return super(SubsetsModel, self).data(index, role)
-
-    def flags(self, index):
-        flags = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
-
-        # Make the version column editable
-        if index.column() == 2:  # version column
-            flags |= QtCore.Qt.ItemIsEditable
-
-        return flags
-
-
-class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
+class FamiliesFilterProxyModel(loader_models.FamiliesFilterProxyModel):
     """Filters to specified families"""
 
     def __init__(self, *args, **kwargs):
         super(FamiliesFilterProxyModel, self).__init__(*args, **kwargs)
-        self._families = set()
-
-    def familyFilter(self):
-        return self._families
-
-    def setFamiliesFilter(self, values):
-        """Set the families to include"""
-        assert isinstance(values, (tuple, list, set))
-        self._families = set(values)
-        self.invalidateFilter()
 
     def filterAcceptsRow(self, row=0, parent=QtCore.QModelIndex()):
 

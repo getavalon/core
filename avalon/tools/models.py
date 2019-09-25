@@ -190,8 +190,8 @@ class TasksModel(TreeModel):
 
     Columns = ["name", "count"]
 
-    def __init__(self):
-        super(TasksModel, self).__init__()
+    def __init__(self, parent=None):
+        super(TasksModel, self).__init__(parent=parent)
         self._num_assets = 0
         self._icons = {
             "__default__": qtawesome.icon("fa.male",
