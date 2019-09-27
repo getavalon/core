@@ -5,6 +5,7 @@ import importlib
 import contextlib
 
 from maya import cmds, OpenMaya
+import maya.api.OpenMaya as om
 from pyblish import api as pyblish
 
 from . import lib, compat
@@ -447,12 +448,44 @@ def parse_container(container, validate=True):
 
 
 def _ls():
-    containers = list()
-    for identifier in (AVALON_CONTAINER_ID,
-                       "pyblish.mindbender.container"):
-        containers += lib.lsattr("id", identifier)
+    """Yields Avalon container node names.
 
-    return containers
+    Used by `ls()` to retrieve the nodes and then query the full container's
+    data.
+
+    Yields:
+        str: Avalon container node name (objectSet)
+
+    """
+
+    def _maya_iterate(iterator):
+        """Helper to iterate a maya iterator"""
+        while not iterator.isDone():
+            yield iterator.thisNode()
+            iterator.next()
+
+    ids = {AVALON_CONTAINER_ID,
+           # Backwards compatibility
+           "pyblish.mindbender.container"}
+
+    # Iterate over all 'set' nodes in the scene to detect whether
+    # they have the avalon container ".id" attribute.
+    fn_dep = om.MFnDependencyNode()
+    iterator = om.MItDependencyNodes(om.MFn.kSet)
+    for mobject in _maya_iterate(iterator):
+        if mobject.apiTypeStr != "kSet":
+            # Only match by exact type
+            continue
+
+        fn_dep.setObject(mobject)
+        try:
+            plug = fn_dep.findPlug("id", True)
+        except RuntimeError:
+            continue
+
+        value = plug.asString()
+        if value in ids:
+            yield fn_dep.name()
 
 
 def ls():
