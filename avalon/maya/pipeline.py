@@ -478,11 +478,10 @@ def _ls():
             continue
 
         fn_dep.setObject(mobject)
-        try:
-            plug = fn_dep.findPlug("id", True)
-        except RuntimeError:
+        if not fn_dep.hasAttribute("id"):
             continue
 
+        plug = fn_dep.findPlug("id", True)
         value = plug.asString()
         if value in ids:
             yield fn_dep.name()
