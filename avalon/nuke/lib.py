@@ -25,19 +25,20 @@ def maintained_selection():
         yield
     finally:
         # unselect all selection in case there is some
-        [n['selected'].setValue(False) for n in nodes]
+        reset_selection()
         # and select all previously selected nodes
         if previous_selection:
-            [n['selected'].setValue(True)
-             for n in nodes
-             if n.name() in previous_selection]
+            for n in nodes:
+                if n.name() not in previous_selection:
+                    continue
+                n['selected'].setValue(True)
 
 
 def reset_selection():
     """Deselect all selected nodes
     """
-    nodes = nuke.allNodes()
-    [n['selected'].setValue(False) for n in nodes]
+    for node in nuke.selectedNodes():
+        node['selected'] = False
 
 
 def select_nodes(nodes):
@@ -48,8 +49,8 @@ def select_nodes(nodes):
     """
     assert isinstance(nodes, (list, tuple)), "nodes has to be list or tuple"
 
-    [n['selected'].setValue(True) for n in nodes]
-
+    for node in nodes:
+        node['selected'].setValue(True)
 
 def add_publish_knob(node):
     '''Adds Publish node to node
