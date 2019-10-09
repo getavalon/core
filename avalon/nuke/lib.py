@@ -52,6 +52,7 @@ def select_nodes(nodes):
     for node in nodes:
         node['selected'].setValue(True)
 
+
 def add_publish_knob(node):
     '''Adds Publish node to node
 
@@ -131,24 +132,23 @@ def set_avalon_knob_data(node, data={}, prefix="avalon:"):
 
             try:
                 knob = node.knob(name)
+                log.info("Updating: `{0}` to `{1}`".format(name, value))
+                node[name].setValue(value)
             except NameError:
                 log.info("Setting: `{0}` to `{1}`".format(name, value))
                 n_knob = nuke.String_Knob if key in visible else nuke.Text_Knob
                 knob = n_knob(name, key, value)
                 node.addKnob(knob)
-            else:
-                log.info("Updating: `{0}` to `{1}`".format(name, value))
-                node[name].setValue(value)
 
         # adding closing group knob
         k = knobs[-1]
         n_knob = getattr(nuke, k["type"])
         knob = n_knob(k["name"], k["value"], k.get("group"))
         node.addKnob(knob)
-        
+
         return node
 
-    except Exception as e:
+    except NameError as e:
         log.warning("Failed to add Avalon data to node: `{}`".format(e))
         return False
 
@@ -167,7 +167,7 @@ def get_avalon_knob_data(node, prefix="avalon:"):
         # check if data available on the node
         test = node['avalon_data'].value()
         log.debug("Only testing if data avalable: `{}`".format(test))
-    except Exception as e:
+    except NameError as e:
         # if it doesn't then create it
         log.debug("Creating avalon knob: `{}`".format(e))
         node = set_avalon_knob_data(node)
