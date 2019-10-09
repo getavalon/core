@@ -111,7 +111,8 @@ def set_avalon_knob_data(node, data={}, prefix="avalon:"):
                     knob = nuke.Text_Knob("")
                     node.addKnob(knob)
                 elif k["name"] not in node.knobs().keys():
-                    knob = eval("nuke.{type}('{name}')".format(**k))
+                    n_knob = getattr(nuke, k["type"])
+                    knob = n_knob(k["name"])
                     node.addKnob(knob)
                     try:
                         knob.setValue(k['value'])
@@ -119,53 +120,32 @@ def set_avalon_knob_data(node, data={}, prefix="avalon:"):
                         print(E)
             else:
                 if k["name"] not in node.knobs().keys():
-                    knob = eval((
-                        "nuke.{type}('{name}',"
-                        "'{value}', {group})"
-                    ).format(**k))
+                    n_knob = getattr(nuke, k["type"])
+                    knob = n_knob(k["name"], k["value"], k.get("group"))
                     node.addKnob(knob)
 
         # add avalon knobs for imprinting data
-        for k, v in data.items():
-            label = k
-            name = prefix + label
-            value = str(v)
-            if label in non_hiden:
-                if name not in node.knobs().keys():
-                    log.info("Setting: `{0}` to `{1}`".format(name, value))
-                    knob = eval((
-                        "nuke.String_Knob('{name}','{label}',"
-                        "'{value}')"
-                    ).format(
-                        name=name,
-                        label=label,
-                        value=value
-                    ))
-                    node.addKnob(knob)
-                else:
-                    log.info("Updating: `{0}` to `{1}`".format(name, value))
-                    node[name].setValue(value)
+        for key, value in data.items():
+            name = prefix + key
+            value = str(value)
+
+            try:
+                knob = node.knob(name)
+            except NameError:
+                log.info("Setting: `{0}` to `{1}`".format(name, value))
+                n_knob = nuke.String_Knob if key in visible else nuke.Text_Knob
+                knob = n_knob(name, key, value)
+                node.addKnob(knob)
             else:
-                if name not in node.knobs().keys():
-                    log.info("Setting: `{0}` to `{1}`".format(name, value))
-                    knob = eval((
-                        "nuke.Text_Knob('{name}','{label}',"
-                        "'{value}')"
-                    ).format(
-                        name=name,
-                        label=label,
-                        value=value
-                    ))
-                    node.addKnob(knob)
-                else:
-                    log.info("Updating: `{0}` to `{1}`".format(name, value))
-                    node[name].setValue(str(value))
+                log.info("Updating: `{0}` to `{1}`".format(name, value))
+                node[name].setValue(value)
 
         # adding closing group knob
-        knob = eval(
-            "nuke.{type}('{name}', '{value}', {group})".format(**knobs[-1]))
+        k = knobs[-1]
+        n_knob = getattr(nuke, k["type"])
+        knob = n_knob(k["name"], k["value"], k.get("group"))
         node.addKnob(knob)
-
+        
         return node
 
     except Exception as e:
