@@ -1,21 +1,13 @@
 import sys
 import time
 
-from ..projectmanager.widget import (
-    AssetWidget,
-    AssetModel,
-    preserve_selection,
-)
-
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io, style
+
+from ..models import AssetModel
+from ..widgets import AssetWidget
 from .. import lib
 
-from .lib import (
-    refresh_family_config,
-    refresh_group_config,
-    get_active_group_config,
-)
 from .widgets import SubsetWidget, VersionWidget, FamilyListWidget
 
 module = sys.modules[__name__]
@@ -182,10 +174,10 @@ class Window(QtWidgets.QDialog):
             return
 
         document = asset_item.data(DocumentRole)
-        subsets_model.set_asset(document['_id'])
+        subsets_model.set_asset(document["_id"])
 
         # Clear the version information on asset change
-        self.data['model']['version'].set_version(None)
+        self.data["model"]["version"].set_version(None)
 
         self.data["state"]["context"]["asset"] = document["name"]
         self.data["state"]["context"]["assetId"] = document["_id"]
@@ -204,11 +196,11 @@ class Window(QtWidgets.QDialog):
         if active:
             rows = selection.selectedRows(column=active.column())
             if active in rows:
-                node = active.data(subsets.model.NodeRole)
+                node = active.data(subsets.model.ItemRole)
                 if node is not None and not node.get("isGroup"):
-                    version = node['version_document']['_id']
+                    version = node["version_document"]["_id"]
 
-        self.data['model']['version'].set_version(version)
+        self.data["model"]["version"].set_version(version)
 
     def _set_context(self, context, refresh=True):
         """Set the selection in the interface using a context.
@@ -245,7 +237,7 @@ class Window(QtWidgets.QDialog):
             # scheduled refresh and the silo tabs are not shown.
             self._refresh()
 
-        asset_widget = self.data['model']['assets']
+        asset_widget = self.data["model"]["assets"]
         asset_widget.set_silo(silo)
         asset_widget.select_assets([asset], expand=True)
 
@@ -358,8 +350,8 @@ class SubsetGroupingDialog(QtWidgets.QDialog):
         if group:
             group.deleteLater()
 
-        active_groups = get_active_group_config(self.asset_id,
-                                                include_predefined=True)
+        active_groups = lib.get_active_group_config(self.asset_id,
+                                                    include_predefined=True)
         # Build new action group
         group = QtWidgets.QActionGroup(button)
         for data in sorted(active_groups, key=lambda x: x["order"]):
@@ -380,8 +372,8 @@ class SubsetGroupingDialog(QtWidgets.QDialog):
         name = self.name.text().strip()
         self.subsets.group_subsets(name, self.asset_id, self.items)
 
-        with preserve_selection(tree_view=self.subsets.view,
-                                current_index=False):
+        with lib.preserve_selection(tree_view=self.subsets.view,
+                                    current_index=False):
             self.grouped.emit()
             self.close()
 
@@ -435,16 +427,16 @@ def show(debug=False, parent=None, use_context=False):
     with lib.application():
 
         # TODO: Global state, remove these
-        refresh_family_config()
-        refresh_group_config()
+        lib.refresh_family_config_cache()
+        lib.refresh_group_config_cache()
 
         window = Window(parent)
         window.setStyleSheet(style.load_stylesheet())
         window.show()
 
         if use_context:
-            context = {"asset": api.Session['AVALON_ASSET'],
-                       "silo": api.Session['AVALON_SILO']}
+            context = {"asset": api.Session["AVALON_ASSET"],
+                       "silo": api.Session["AVALON_SILO"]}
             window.set_context(context, refresh=True)
         else:
             window.refresh()

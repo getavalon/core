@@ -12,12 +12,12 @@ def has_unsaved_changes():
     return cmds.file(query=True, modified=True)
 
 
-def save(filepath):
+def save_file(filepath):
     cmds.file(rename=filepath)
     cmds.file(save=True, type="mayaAscii")
 
 
-def open(filepath):
+def open_file(filepath):
     return cmds.file(filepath, open=True, force=True)
 
 

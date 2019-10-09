@@ -61,8 +61,8 @@ For the Work Files tool to work with a new host integration the host must
 implement the following functions:
 
 - `file_extensions()`: The files the host should allow to open and show in the Work Files view.
-- `open(filepath)`: Open a file.
-- `save(filepath)`: Save the current file. This should return None if it failed to save, and return the path if it succeeded
+- `open_file(filepath)`: Open a file.
+- `save_file(filepath)`: Save the current file. This should return None if it failed to save, and return the path if it succeeded
 - `has_unsaved_changes()`: Return whether the current scene has unsaved changes.
 - `current_file()`: The path to the current file. None if not saved.
 - `work_root()`: The path to where the work files for this app should be saved.
@@ -88,7 +88,7 @@ def has_unsaved_changes():
     """Return whether current file has unsaved modifications."""
 
 
-def save(filepath):
+def save_file(filepath):
     """Save to filepath.
     
     This should return None if it failed to save, and return the path if it 
@@ -97,7 +97,7 @@ def save(filepath):
     pass
 
 
-def open(filepath):
+def open_file(filepath):
     """Open file"""
     pass
 

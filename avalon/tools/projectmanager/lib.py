@@ -14,8 +14,7 @@ provides a bridge between the file-based project inventory and configuration.
 
 """
 
-
-from avalon import schema, io
+from ... import schema, io
 
 
 def create_asset(data):
@@ -37,7 +36,7 @@ def create_asset(data):
 
     asset = {
         "schema": "avalon-core:asset-2.0",
-        "parent": project['_id'],
+        "parent": project["_id"],
         "name": data.pop("name"),
         "silo": data.pop("silo"),
         "type": "asset",
@@ -45,16 +44,16 @@ def create_asset(data):
     }
 
     # Asset *must* have a name and silo
-    assert asset['name'], "Asset has no name"
-    assert asset['silo'], "Asset has no silo"
+    assert asset["name"], "Asset has no name"
+    assert asset["silo"], "Asset has no silo"
 
     # Ensure it has a unique name
     asset_doc = io.find_one({
-        "name": asset['name'],
+        "name": asset["name"],
         "type": "asset",
     })
     if asset_doc is not None:
-        raise RuntimeError("Asset '{}' already exists.".format(asset['name']))
+        raise RuntimeError("Asset '{}' already exists.".format(asset["name"]))
 
     schema.validate(asset)
     io.insert_one(asset)
@@ -63,4 +62,4 @@ def create_asset(data):
 def list_project_tasks():
     """List the project task types available in the current project"""
     project = io.find_one({"type": "project"})
-    return [task['name'] for task in project['config']['tasks']]
+    return [task["name"] for task in project["config"]["tasks"]]
