@@ -101,7 +101,7 @@ def set_avalon_knob_data(node, data={}, prefix="avalon:"):
          "value": 'Avalon data group',
          "type": "Tab_Knob", "group": -1}
     ]
-    non_hiden = ["asset", "subset", "name", "namespace"]
+    visible = ["asset", "subset", "name", "namespace"]
 
     try:
         # create Avalon Tab and basic knobs
