@@ -258,7 +258,9 @@ def _save_inventory_1_0(project_name, data):
             print("Separating project metadata: %s" % key)
             metadata[key] = data.pop(key)
 
-    document = io.find_one({"type": "project"})
+    _filter = {"type": "project"}
+
+    document = io.find_one(_filter)
     if document is None:
         print("'%s' not found, creating.." % project_name)
         _id = create_project(project_name)
@@ -269,7 +271,7 @@ def _save_inventory_1_0(project_name, data):
     for key, value in metadata.items():
         document["data"][key] = value
 
-    io.save(document)
+    io.replace_one(_filter, document)
 
     print("Updating assets..")
     added = list()
@@ -277,10 +279,13 @@ def _save_inventory_1_0(project_name, data):
     missing = list()
     for silo, assets in data.items():
         for asset in assets:
-            asset_doc = io.find_one({
+
+            _filter = {
                 "name": asset["name"],
                 "type": "asset",
-            })
+            }
+
+            asset_doc = io.find_one(_filter)
 
             if asset_doc is None:
                 asset["silo"] = silo
@@ -299,7 +304,7 @@ def _save_inventory_1_0(project_name, data):
                                                         asset_doc["data"][key],
                                                         value))
 
-            io.save(asset_doc)
+            io.replace_one(_filter, asset_doc)
 
     for data in missing:
         print("+ added %s" % data["name"])
@@ -318,7 +323,9 @@ def _save_inventory_1_0(project_name, data):
 
 
 def _save_config_1_0(project_name, data):
-    document = io.find_one({"type": "project"})
+    _filter = {"type": "project"}
+
+    document = io.find_one(_filter)
 
     config = document["config"]
 
@@ -330,7 +337,7 @@ def _save_config_1_0(project_name, data):
 
     schema.validate(document)
 
-    io.save(document)
+    io.replace_one(_filter, document)
 
 
 def _report(added, updated):

@@ -8,15 +8,15 @@ from ... import io
 from ... import api
 from ... import pipeline
 
-from ..projectmanager.widget import preserve_selection
+from .. import lib as tools_lib
+from ..delegates import VersionDelegate
 
 from .model import (
     SubsetsModel,
     SubsetFilterProxyModel,
     FamiliesFilterProxyModel,
 )
-from .delegates import PrettyTimeDelegate, VersionDelegate
-from . import lib
+from .delegates import PrettyTimeDelegate
 
 
 class SubsetWidget(QtWidgets.QWidget):
@@ -55,11 +55,11 @@ class SubsetWidget(QtWidgets.QWidget):
 
         # Set view delegates
         version_delegate = VersionDelegate()
-        column = model.COLUMNS.index("version")
+        column = model.Columns.index("version")
         view.setItemDelegateForColumn(column, version_delegate)
 
         time_delegate = PrettyTimeDelegate()
-        column = model.COLUMNS.index("time")
+        column = model.Columns.index("time")
         view.setItemDelegateForColumn(column, time_delegate)
 
         layout = QtWidgets.QVBoxLayout(self)
@@ -121,8 +121,8 @@ class SubsetWidget(QtWidgets.QWidget):
         return self.data["state"]["groupable"].checkState()
 
     def set_grouping(self, state):
-        with preserve_selection(tree_view=self.view,
-                                current_index=False):
+        with tools_lib.preserve_selection(tree_view=self.view,
+                                          current_index=False):
             self.model.set_grouping(state)
 
     def on_context_menu(self, point):
@@ -131,7 +131,7 @@ class SubsetWidget(QtWidgets.QWidget):
         if not point_index.isValid():
             return
 
-        node = point_index.data(self.model.NodeRole)
+        node = point_index.data(self.model.ItemRole)
         if node.get("isGroup"):
             return
 
@@ -140,13 +140,13 @@ class SubsetWidget(QtWidgets.QWidget):
         available_loaders = api.discover(api.Loader)
         loaders = list()
 
-        version_id = node['version_document']['_id']
+        version_id = node["version_document"]["_id"]
         representations = io.find({"type": "representation",
                                    "parent": version_id})
         for representation in representations:
             for loader in api.loaders_from_representation(
                     available_loaders,
-                    representation['_id']
+                    representation["_id"]
             ):
                 loaders.append((representation, loader))
 
@@ -170,7 +170,7 @@ class SubsetWidget(QtWidgets.QWidget):
                 label = loader.__name__
 
             # Add the representation as suffix
-            label = "{0} ({1})".format(label, representation['name'])
+            label = "{0} ({1})".format(label, representation["name"])
 
             action = QtWidgets.QAction(label, menu)
             action.setData((representation, loader))
@@ -203,7 +203,7 @@ class SubsetWidget(QtWidgets.QWidget):
 
         # Find the representation name and loader to trigger
         action_representation, loader = action.data()
-        representation_name = action_representation['name']  # extension
+        representation_name = action_representation["name"]  # extension
 
         # Run the loader for all selected indices, for those that have the
         # same representation available
@@ -223,7 +223,7 @@ class SubsetWidget(QtWidgets.QWidget):
 
         # Trigger
         for row in rows:
-            node = row.data(self.model.NodeRole)
+            node = row.data(self.model.ItemRole)
             if node.get("isGroup"):
                 continue
 
@@ -250,7 +250,7 @@ class SubsetWidget(QtWidgets.QWidget):
 
         subsets = list()
         for row in rows:
-            node = row.data(self.model.NodeRole)
+            node = row.data(self.model.ItemRole)
             if not node.get("isGroup"):
                 subsets.append(node)
 
@@ -319,7 +319,7 @@ class VersionTextEdit(QtWidgets.QTextEdit):
         version = io.find_one({"_id": version_id, "type": "version"})
         assert version, "Not a valid version id"
 
-        subset = io.find_one({"_id": version['parent'], "type": "subset"})
+        subset = io.find_one({"_id": version["parent"], "type": "subset"})
         assert subset, "No valid subset parent for version"
 
         # Define readable creation timestamp
@@ -327,18 +327,18 @@ class VersionTextEdit(QtWidgets.QTextEdit):
         created = datetime.datetime.strptime(created, "%Y%m%dT%H%M%SZ")
         created = datetime.datetime.strftime(created, "%b %d %Y %H:%M")
 
-        comment = version['data'].get("comment", None) or "No comment"
+        comment = version["data"].get("comment", None) or "No comment"
 
-        source = version['data'].get("source", None)
+        source = version["data"].get("source", None)
         source_label = source if source else "No source"
 
         # Store source and raw data
-        self.data['source'] = source
-        self.data['raw'] = version
+        self.data["source"] = source
+        self.data["raw"] = version
 
         data = {
-            "subset": subset['name'],
-            "version": version['name'],
+            "subset": subset["name"],
+            "version": version["name"],
             "comment": comment,
             "created": created,
             "source": source_label
@@ -456,7 +456,7 @@ class FamilyListWidget(QtWidgets.QListWidget):
         self.clear()
         for name in sorted(unique_families):
 
-            family = lib.get(lib.FAMILY_CONFIG, name)
+            family = tools_lib.get_family_cached_config(name)
             if family.get("hideFilter"):
                 continue
 

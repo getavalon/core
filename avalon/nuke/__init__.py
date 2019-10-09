@@ -17,8 +17,8 @@ from .lib import (
 from .workio import (
     file_extensions,
     has_unsaved_changes,
-    save,
-    open,
+    save_file,
+    open_file,
     current_file,
     work_root,
 )
@@ -76,3 +76,7 @@ __all__ = [
     "file_extensions",
     "work_root"
 ]
+
+# Backwards API compatibility
+open = open_file
+save = save_file
