@@ -218,7 +218,8 @@ def launch(executable, args=None, environment=None, cwd=None):
     )
 
     if env.get("CREATE_NEW_CONSOLE"):
-        kwargs["creationflags"] = CREATE_NEW_CONSOLE
+        if IS_WIN32:
+            kwargs["creationflags"] = CREATE_NEW_CONSOLE
         kwargs.pop("stdout")
         kwargs.pop("stderr")
     else:
