@@ -96,29 +96,30 @@ def set_avalon_knob_data(node, data={}, prefix="avalon:"):
         {"name": '__divider__'},
         {"name": 'avalon_data',
          "value": 'Warning! Do not change following data!',
-         "type": "Text_Knob"},
-        {"name": '__divider__'},
-        {"name": 'begin',
-         "value": 'Avalon data group',
-         "type": "Tab_Knob", "group": -1}
+         "type": "Text_Knob"}
     ]
     visible = ["asset", "subset", "name", "namespace"]
 
     try:
         # create Avalon Tab and basic knobs
-        for k in knobs[:-1]:
+        for k in knobs:
+            if k["name"] in node.knobs().keys():
+                continue
+
+            if "__divider__" in k["name"]:
+                knob = nuke.Text_Knob("__divider__", "")
+                node.addKnob(knob)
+                continue
+
             if not k.get("group"):
-                if "__divider__" in k["name"]:
-                    knob = nuke.Text_Knob("")
-                    node.addKnob(knob)
-                elif k["name"] not in node.knobs().keys():
-                    n_knob = getattr(nuke, k["type"])
-                    knob = n_knob(k["name"])
-                    node.addKnob(knob)
-                    try:
-                        knob.setValue(k['value'])
-                    except TypeError as E:
-                        print(E)
+                n_knob = getattr(nuke, k["type"])
+                knob = n_knob(k["name"])
+                node.addKnob(knob)
+
+                try:
+                    knob.setValue(k['value'])
+                except TypeError as E:
+                    print(E)
             else:
                 if k["name"] not in node.knobs().keys():
                     n_knob = getattr(nuke, k["type"])
@@ -139,12 +140,6 @@ def set_avalon_knob_data(node, data={}, prefix="avalon:"):
                 n_knob = nuke.String_Knob if key in visible else nuke.Text_Knob
                 knob = n_knob(name, key, value)
                 node.addKnob(knob)
-
-        # adding closing group knob
-        k = knobs[-1]
-        n_knob = getattr(nuke, k["type"])
-        knob = n_knob(k["name"], k["value"], k.get("group"))
-        node.addKnob(knob)
 
         return node
 
