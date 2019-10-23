@@ -217,12 +217,13 @@ def launch(executable, args=None, environment=None, cwd=None):
         universal_newlines=True,
     )
 
-    if env.get("CREATE_NEW_CONSOLE"):
+    # this won't do anything on linux/macos as `creationFlags` are
+    # only windows specific.
+    if IS_WIN32 and env.get("CREATE_NEW_CONSOLE"):
         kwargs["creationflags"] = CREATE_NEW_CONSOLE
         kwargs.pop("stdout")
         kwargs.pop("stderr")
     else:
-
         if IS_WIN32:
             kwargs["creationflags"] = CREATE_NO_WINDOW
 
