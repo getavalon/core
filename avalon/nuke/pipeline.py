@@ -198,7 +198,6 @@ def ls():
     """
     all_nodes = nuke.allNodes(recurseGroups=False)
 
-    # TODO: add readgeo, readcamera, readimage
     nodes = [n for n in all_nodes]
 
     for n in nodes:
