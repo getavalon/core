@@ -295,10 +295,10 @@ def _install_menu():
     menu.addCommand("Create...", creator.show)
     menu.addCommand(
         "Load...", command=lambda *args:
-        cbloader.show(use_context=True)
+        loader.show(use_context=True)
     )
     menu.addCommand("Publish...", publish.show)
-    menu.addCommand("Manage...", cbsceneinventory.show)
+    menu.addCommand("Manage...", sceneinventory.show)
 
     menu.addSeparator()
     menu.addCommand("Reset Frame Range", reset_frame_range_handles)
