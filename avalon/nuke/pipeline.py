@@ -460,13 +460,12 @@ def viewer_update_and_undo_stop():
     """Lock viewer from updating and stop recording undo steps"""
     try:
         # stop active viewer to update any change
-        try:
-            nuke.activeViewer().stop()
-        except Exception as e:
-            log.warning("No available active Viewer: `{}`".format(e))
+        viewer = nuke.activeViewer()
+        if viewer:
+            viewer.stop()
+        else:
+            log.warning("No available active Viewer")
         nuke.Undo.disable()
         yield
     finally:
-        # nuke.Root().knob('lock_connections').setValue(0)
-        # nuke.activeViewer().start()
         nuke.Undo.enable()
