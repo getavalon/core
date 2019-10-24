@@ -142,20 +142,7 @@ def update_container(node, keys=dict()):
 
     data = lib.get_avalon_knob_data(node)
 
-    if not isinstance(data, dict):
-        return
-
-    # If not all required data return the empty container
-    required = ['schema', 'id', 'name',
-                'namespace', 'objectName', 'representation', 'version']
     container = dict()
-
-    # check if key in data
-    for k in required:
-        if not data.get(k, 0):
-            # if not then create the key in container and data
-            data[k] = 0
-
     container = {key: data[key] for key in data}
 
     for key, value in container.items():
