@@ -3,8 +3,7 @@ import contextlib
 import nuke
 import re
 import logging
-import six
-from ..vendor import clique
+from ..vendor import (six, clique)
 
 log = logging.getLogger(__name__)
 
