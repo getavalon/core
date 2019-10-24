@@ -366,6 +366,7 @@ def find_one(filter, projection=None, sort=None):
 
 @auto_reconnect
 def save(*args, **kwargs):
+    """Deprecated, please use `replace_one`"""
     return self._database[Session["AVALON_PROJECT"]].save(
         *args, **kwargs)
 

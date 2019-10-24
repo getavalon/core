@@ -4,10 +4,10 @@ import getpass
 import re
 import shutil
 
-
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import style, io, api
-from .. import lib as parentlib
+
+from .. import lib as tools_lib
 
 
 class NameWindow(QtWidgets.QDialog):
@@ -383,13 +383,13 @@ class Window(QtWidgets.QDialog):
 
             if result:
                 # Save current scene, continue to open file
-                host.save(host.current_file())
+                host.save_file(host.current_file())
 
             else:
                 # Don't save, continue to open file
                 pass
 
-        return host.open(filepath)
+        return host.open_file(filepath)
 
     def on_duplicate_pressed(self):
         work_file = self.get_name()
@@ -445,7 +445,7 @@ class Window(QtWidgets.QDialog):
             return
 
         file_path = os.path.join(self.root, work_file)
-        self.host.save(file_path)
+        self.host.save_file(file_path)
 
         self.close()
 
@@ -458,8 +458,8 @@ def show(root=None, debug=False):
         raise RuntimeError("No registered host.")
 
     # Verify the host has implemented the api for Work Files
-    required = ["open",
-                "save",
+    required = ["open_file",
+                "save_file",
                 "current_file",
                 "has_unsaved_changes",
                 "work_root",
@@ -487,7 +487,7 @@ def show(root=None, debug=False):
         api.Session["AVALON_ASSET"] = "Mock"
         api.Session["AVALON_TASK"] = "Testing"
 
-    with parentlib.application():
+    with tools_lib.application():
         window = Window(root)
         window.setStyleSheet(style.load_stylesheet())
 
