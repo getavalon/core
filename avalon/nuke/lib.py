@@ -53,14 +53,14 @@ def select_nodes(nodes):
 
 
 def add_publish_knob(node):
-    '''Adds Publish node to node
+    """Add Publish knob to node
 
     Arguments:
         node (obj): nuke node to be processed
 
     Returns:
         node (obj): processed nuke node
-    '''
+    """
     if "publish" not in node.knobs():
         divider = nuke.Text_Knob('')
         knob = nuke.Boolean_Knob("publish", "Publish", True)
