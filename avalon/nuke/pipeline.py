@@ -270,8 +270,8 @@ def _install_menu():
         creator,
         publish,
         workfiles,
-        cbloader,
-        cbsceneinventory,
+        loader,
+        sceneinventory,
         contextmanager
     )
 
