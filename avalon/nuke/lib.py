@@ -193,10 +193,9 @@ def imprint(node, data):
             'subset': 'subsetMain'
         }
     """
-    node = set_avalon_knob_data(node, data)
-    node = add_publish_knob(node)
-
-    return node
+    return add_publish_knob(
+        set_avalon_knob_data(node, data)
+    )
 
 
 def ls_img_sequence(path):
