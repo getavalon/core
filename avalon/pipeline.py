@@ -2,6 +2,7 @@
 
 import os
 import sys
+import re
 import json
 import errno
 import types
@@ -160,16 +161,8 @@ class Loader(list):
     order = 0
 
     def __init__(self, context):
-        try:
-            fname = context['representation']['data']['path']
-        except KeyError:
-            template = context["project"]["config"]["template"]["publish"]
-            data = context['representation']['context']
-            data["root"] = registered_root()
-            data["silo"] = context["asset"].get("silo")
-            fname = template.format(**data)
-
-        self.fname = fname
+        representation = context['representation']
+        self.fname = get_representation_path(representation)
 
     def load(self, context, name=None, namespace=None, options=None):
         """Load asset via database
@@ -1224,8 +1217,37 @@ def switch(container, representation):
     return loader.switch(container, new_representation)
 
 
+def format_template_with_optional_keys(data, template):
+    # Remove optional missing keys
+    pattern = re.compile(r"<.*?>")
+    invalid_optionals = []
+    for group in pattern.findall(template):
+        try:
+            group.format(**data)
+        except KeyError:
+            invalid_optionals.append(group)
+
+    for group in invalid_optionals:
+        template = template.replace(group, "")
+
+    work_file = template.format(**data)
+
+    # Remove optional symbols
+    work_file = work_file.replace("<", "")
+    work_file = work_file.replace(">", "")
+
+    return work_file
+
+
 def get_representation_path(representation):
     """Get filename from representation document
+
+    There are three ways of getting the path from representation which are
+    tried in following sequence until successful.
+    1. Get template from representation['data']['template'] and data from
+       representation['context']. Then format template with the data.
+    2. Get template from project['config'] and format it with default data set
+    3. Get representation['data']['path'] and use it directly
 
     Args:
         representation(dict): representation document from the database
@@ -1235,30 +1257,94 @@ def get_representation_path(representation):
 
     """
 
-    version_, subset, asset, project = io.parenthood(representation)
-    template_publish = project["config"]["template"]["publish"]
+    def path_from_represenation():
+        try:
+            template = representation["data"]["template"]
 
-    try:
-        return representation['data']['path']
-    except KeyError:
-        if representation['context']:
-            return template_publish.format(**representation['context'])
-        else:
-            return template_publish.format(**{
-                "root": registered_root(),
-                "project": {
-                    "name": project["name"],
-                    "code": project["data"].get("code", '')
-                },
-                "asset": asset["name"],
-                "silo": asset.get("silo"),
-                "subset": subset["name"],
-                "version": version_["name"],
-                "representation": representation["name"],
-                "user": Session.get("AVALON_USER", getpass.getuser()),
-                "app": Session.get("AVALON_APP", ""),
-                "task": Session.get("AVALON_TASK", "")
-            })
+        except KeyError:
+            return None
+
+        try:
+            context = representation["context"]
+            context["root"] = registered_root()
+            path = format_template_with_optional_keys(context, template)
+
+        except KeyError:
+            # Template references unavailable data
+            return None
+
+        if os.path.exists(path):
+            return os.path.normpath(path)
+
+    def path_from_config():
+        try:
+            version_, subset, asset, project = io.parenthood(representation)
+        except ValueError:
+            log.debug(
+                "Representation %s wasn't found in database, "
+                "like a bug" % representation["name"]
+            )
+            return None
+
+        try:
+            template = project["config"]["template"]["publish"]
+        except KeyError:
+            log.debug(
+                "No template in project %s, "
+                "likely a bug" % project["name"]
+            )
+            return None
+
+        # hierarchy may be equal to "" so it is not possible to use `or`
+        hierarchy = asset.get("data", {}).get("hierarchy")
+        if hierarchy is None:
+            # default list() in get would not discover missing parents on asset
+            parents = asset.get("data", {}).get("parents")
+            if parents is not None:
+                hierarchy = "/".join(parents)
+
+        # Cannot fail, required members only
+        data = {
+            "root": registered_root(),
+            "project": {
+                "name": project["name"],
+                "code": project.get("data", {}).get("code")
+            },
+            "asset": asset["name"],
+            "silo": asset.get("silo"),
+            "hierarchy": hierarchy,
+            "subset": subset["name"],
+            "version": version_["name"],
+            "representation": representation["name"],
+            "family": representation.get("context", {}).get("family"),
+            "user": Session.get("AVALON_USER", getpass.getuser()),
+            "app": Session.get("AVALON_APP", ""),
+            "task": Session.get("AVALON_TASK", "")
+        }
+
+        try:
+            path = format_template_with_optional_keys(data, template)
+        except KeyError as e:
+            log.debug("Template references unavailable data: %s" % e)
+            return None
+
+        if os.path.exists(path):
+            return os.path.normpath(path)
+
+    def path_from_data():
+        if "path" not in representation["data"]:
+            return None
+
+        path = representation["data"]["path"]
+
+        if os.path.exists(path):
+            return os.path.normpath(path)
+
+    return (
+        path_from_represenation() or
+        path_from_config() or
+        path_from_data()
+    )
 
 
 def is_compatible_loader(Loader, context):
