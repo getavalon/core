@@ -190,8 +190,8 @@ class TasksModel(TreeModel):
 
     Columns = ["name", "count"]
 
-    def __init__(self):
-        super(TasksModel, self).__init__()
+    def __init__(self, parent=None):
+        super(TasksModel, self).__init__(parent=parent)
         self._num_assets = 0
         self._icons = {
             "__default__": qtawesome.icon("fa.male",
@@ -213,19 +213,35 @@ class TasksModel(TreeModel):
                                       color=style.colors.default)
                 self._icons[task["name"]] = icon
 
-    def set_assets(self, asset_ids):
+    def set_assets(self, asset_ids=[], asset_entities=None):
         """Set assets to track by their database id
 
         Arguments:
             asset_ids (list): List of asset ids.
+            asset_entities (list): List of asset entities from MongoDB.
 
         """
 
         assets = list()
-        for asset_id in asset_ids:
-            asset = io.find_one({"_id": asset_id, "type": "asset"})
-            assert asset, "Asset not found by id: {0}".format(asset_id)
-            assets.append(asset)
+        if asset_entities is not None:
+            assets = asset_entities
+        else:
+            # prepare filter query
+            or_query = [{"_id": asset_id} for asset_id in asset_ids]
+            _filter = {"type": "asset", "$or": or_query}
+
+            # find assets in db by query
+            assets = [asset for asset in io.find_one(_filter)]
+            db_assets_ids = [asset["_id"] for asset in assets]
+
+            # check if all assets were found
+            not_found = [
+                str(a_id) for a_id in assets_ids if a_id not in db_assets_ids
+            ]
+
+            assert not not_found, "Assets not found by id: {0}".format(
+                ", ".join(not_found)
+            )
 
         self._num_assets = len(assets)
 
@@ -304,9 +320,11 @@ class AssetModel(TreeModel):
 
     DocumentRole = QtCore.Qt.UserRole + 2
     ObjectIdRole = QtCore.Qt.UserRole + 3
+    subsetColorsRole = QtCore.Qt.UserRole + 4
 
     def __init__(self, parent=None):
         super(AssetModel, self).__init__(parent=parent)
+        self.asset_colors = {}
         self.refresh()
 
     def _add_hierarchy(self, assets, parent=None, silos=None):
@@ -324,6 +342,9 @@ class AssetModel(TreeModel):
             None
 
         """
+        # Reset colors
+        self.asset_colors = {}
+
         if silos:
             # WARNING: Silo item "_id" is set to silo value
             # mainly because GUI issue with perserve selection and expanded row
@@ -365,6 +386,8 @@ class AssetModel(TreeModel):
             if asset["_id"] in assets:
                 self._add_hierarchy(assets, parent=item)
 
+            self.asset_colors[asset["_id"]] = []
+
     def refresh(self):
         """Refresh the data for the model."""
 
@@ -398,6 +421,21 @@ class AssetModel(TreeModel):
 
     def flags(self, index):
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
+
+    def setData(self, index, value, role=QtCore.Qt.EditRole):
+        if not index.isValid():
+            return False
+
+        if role == self.subsetColorsRole:
+            asset_id = index.data(self.ObjectIdRole)
+            self.asset_colors[asset_id] = value
+
+            # passing `list()` for PyQt5 (see PYSIDE-462)
+            self.dataChanged.emit(index, index, list())
+
+            return True
+
+        return super(AssetModel, self).setData(index, value, role)
 
     def data(self, index, role):
 
@@ -448,6 +486,10 @@ class AssetModel(TreeModel):
 
         if role == self.DocumentRole:
             return item.get("_document", None)
+
+        if role == self.subsetColorsRole:
+            asset_id = item.get("_id", None)
+            return self.asset_colors.get(asset_id) or []
 
         return super(AssetModel, self).data(index, role)
 

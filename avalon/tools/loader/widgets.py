@@ -45,6 +45,7 @@ class SubsetWidget(QtWidgets.QWidget):
         top_bar_layout.addWidget(groupable)
 
         view = QtWidgets.QTreeView()
+        view.setObjectName("SubsetView")
         view.setIndentation(20)
         view.setStyleSheet("""
             QTreeView::item{
@@ -129,79 +130,166 @@ class SubsetWidget(QtWidgets.QWidget):
             self.model.set_grouping(state)
 
     def on_context_menu(self, point):
+        """Shows menu with loader actions on Right-click.
+
+        Registered actions are filtered by selection and help of
+        `loaders_from_representation` from avalon api. Intersection of actions
+        is shown when more subset is selected. When there are not available
+        actions for selected subsets then special action is shown (works as
+        info message to user): "*No compatible loaders for your selection"
+
+        """
 
         point_index = self.view.indexAt(point)
         if not point_index.isValid():
             return
 
-        item = point_index.data(self.model.ItemRole)
-        if item.get("isGroup"):
-            return
+        # Get selected subsets without groups
+        selection = self.view.selectionModel()
+        rows = selection.selectedRows(column=0)
+
+        items = []
+        for row_index in rows:
+            item = row_index.data(self.model.ItemRole)
+            if item.get("isGroup"):
+                continue
+
+            elif item.get("isMerged"):
+                # TODO use `for` loop of index's rowCount instead of `while` loop
+                idx = 0
+                while idx < 2000:
+                    child_index = row_index.child(idx, 0)
+                    if not child_index.isValid():
+                        break
+                    item = child_index.data(self.model.ItemRole)
+                    if item not in items:
+                        items.append(item)
+                    idx += 1
+
+            else:
+                if item not in items:
+                    items.append(item)
 
         # Get all representation->loader combinations available for the
         # index under the cursor, so we can list the user the options.
         available_loaders = api.discover(api.Loader)
         loaders = list()
 
-        version_id = item["version_document"]["_id"]
-        representations = io.find({"type": "representation",
-                                   "parent": version_id})
-        for representation in representations:
-            for loader in api.loaders_from_representation(
-                    available_loaders,
-                    representation["_id"]
-            ):
-                loaders.append((representation, loader))
+        # Bool if is selected only one subset
+        one_item_selected = (len(items) == 1)
 
+        # Prepare variables for multiple selected subsets
+        first_loaders = []
+        found_combinations = None
+
+        is_first = True
+        for item in items:
+            _found_combinations = []
+
+            version_id = item['version_document']['_id']
+            representations = io.find({
+                "type": "representation",
+                "parent": version_id
+            })
+
+            for representation in representations:
+                for loader in api.loaders_from_representation(
+                        available_loaders,
+                        representation['_id']
+                ):
+                    # skip multiple select variant if one is selected
+                    if one_item_selected:
+                        loaders.append((representation, loader))
+                        continue
+
+                    # store loaders of first subset
+                    if is_first:
+                        first_loaders.append((representation, loader))
+
+                    # store combinations to compare with other subsets
+                    _found_combinations.append(
+                        (representation["name"].lower(), loader)
+                    )
+
+            # skip multiple select variant if one is selected
+            if one_item_selected:
+                continue
+
+            is_first = False
+            # Store first combinations to compare
+            if found_combinations is None:
+                found_combinations = _found_combinations
+            # Intersect found combinations with all previous subsets
+            else:
+                found_combinations = list(
+                    set(found_combinations) & set(_found_combinations)
+                )
+
+        if not one_item_selected:
+            # Filter loaders from first subset by intersected combinations
+            for repre, loader in first_loaders:
+                if (repre["name"], loader) not in found_combinations:
+                    continue
+
+                loaders.append((repre, loader))
+
+        menu = QtWidgets.QMenu(self)
         if not loaders:
             # no loaders available
-            self.echo("No compatible loaders available for this version.")
-            return
+            if one_item_selected:
+                self.echo("No compatible loaders available for this version.")
+                return
 
-        def sorter(value):
-            """Sort the Loaders by their order and then their name"""
-            Plugin = value[1]
-            return Plugin.order, Plugin.__name__
-
-        # List the available loaders
-        menu = QtWidgets.QMenu(self)
-        for representation, loader in sorted(loaders, key=sorter):
-
-            # Label
-            label = getattr(loader, "label", None)
-            if label is None:
-                label = loader.__name__
-
-            # Add the representation as suffix
-            label = "{0} ({1})".format(label, representation["name"])
-
-            action = QtWidgets.QAction(label, menu)
-            action.setData((representation, loader))
-
-            # Add tooltip and statustip from Loader docstring
-            tip = inspect.getdoc(loader)
-            if tip:
-                action.setToolTip(tip)
-                action.setStatusTip(tip)
-
-            # Support font-awesome icons using the `.icon` and `.color`
-            # attributes on plug-ins.
-            icon = getattr(loader, "icon", None)
-            if icon is not None:
-                try:
-                    key = "fa.{0}".format(icon)
-                    color = getattr(loader, "color", "white")
-                    action.setIcon(qtawesome.icon(key, color=color))
-                except Exception as e:
-                    print("Unable to set icon for loader "
-                          "{}: {}".format(loader, e))
-
+            self.echo("No compatible loaders available for your selection.")
+            action = QtWidgets.QAction(
+                "*No compatible loaders for your selection", menu
+            )
             menu.addAction(action)
+
+        else:
+            def sorter(value):
+                """Sort the Loaders by their order and then their name"""
+                Plugin = value[1]
+                return Plugin.order, Plugin.__name__
+
+            # List the available loaders
+            for representation, loader in sorted(loaders, key=sorter):
+
+                # Label
+                label = getattr(loader, "label", None)
+                if label is None:
+                    label = loader.__name__
+
+                # Add the representation as suffix
+                label = "{0} ({1})".format(label, representation['name'])
+
+                action = QtWidgets.QAction(label, menu)
+                action.setData((representation, loader))
+
+                # Add tooltip and statustip from Loader docstring
+                tip = inspect.getdoc(loader)
+                if tip:
+                    action.setToolTip(tip)
+                    action.setStatusTip(tip)
+
+                # Support font-awesome icons using the `.icon` and `.color`
+                # attributes on plug-ins.
+                icon = getattr(loader, "icon", None)
+                if icon is not None:
+                    try:
+                        key = "fa.{0}".format(icon)
+                        color = getattr(loader, "color", "white")
+                        action.setIcon(qtawesome.icon(key, color=color))
+                    except Exception as e:
+                        print("Unable to set icon for loader "
+                              "{}: {}".format(loader, e))
+
+                menu.addAction(action)
 
         # Show the context action menu
         global_point = self.view.mapToGlobal(point)
         action = menu.exec_(global_point)
-        if not action:
+        if not action or not action.data():
             return
 
         # Find the representation name and loader to trigger
@@ -225,20 +313,17 @@ class SubsetWidget(QtWidgets.QWidget):
         rows.insert(0, point_index)
 
         # Trigger
-        for row in rows:
-            item = row.data(self.model.ItemRole)
-            if item.get("isGroup"):
-                continue
-
+        for item in items:
             version_id = item["version_document"]["_id"]
-            representation = io.find_one({"type": "representation",
-                                          "name": representation_name,
-                                          "parent": version_id})
+            representation = io.find_one({
+                "type": "representation",
+                "name": representation_name,
+                "parent": version_id
+            })
             if not representation:
                 self.echo("Subset '{}' has no representation '{}'".format(
-                          item["subset"],
-                          representation_name
-                          ))
+                    item["subset"], representation_name
+                ))
                 continue
 
             try:
@@ -247,19 +332,36 @@ class SubsetWidget(QtWidgets.QWidget):
                 self.echo(exc)
                 continue
 
-    def selected_subsets(self):
+    def selected_subsets(self, _groups=False, _merged=False, _other=True):
         selection = self.view.selectionModel()
         rows = selection.selectedRows(column=0)
 
         subsets = list()
+        if not any([_groups, _merged, _other]):
+            self.echo((
+                "This is a BUG: Selected_subsets args must contain"
+                " at least one value set to True"
+            ))
+            return subset
+
         for row in rows:
             item = row.data(self.model.ItemRole)
-            if not item.get("isGroup"):
-                subsets.append(item)
+            if item.get("isGroup"):
+                if not _groups:
+                    continue
+
+            elif item.get("isMerged"):
+                if not _merged:
+                    continue
+            else:
+                if not _other:
+                    continue
+
+            subsets.append(item)
 
         return subsets
 
-    def group_subsets(self, name, asset_id, items):
+    def group_subsets(self, name, asset_ids, items):
         field = "data.subsetGroup"
 
         if name:
@@ -273,12 +375,13 @@ class SubsetWidget(QtWidgets.QWidget):
         for item in items:
             subsets.append(item["subset"])
 
-        filter = {
-            "type": "subset",
-            "parent": asset_id,
-            "name": {"$in": subsets},
-        }
-        io.update_many(filter, update)
+        for asset_id in asset_ids:
+            filter = {
+                "type": "subset",
+                "parent": asset_id,
+                "name": {"$in": subsets},
+            }
+            io.update_many(filter, update)
 
     def echo(self, message):
         print(message)

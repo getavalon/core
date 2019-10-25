@@ -3,7 +3,8 @@ import logging
 from . import lib
 
 from .models import AssetModel, RecursiveSortFilterProxyModel
-from .views import DeselectableTreeView
+from .views import AssetsView
+from .loader.delegates import AssetDelegate
 from ..vendor import qtawesome
 from ..vendor.Qt import QtWidgets, QtCore, QtGui
 
@@ -27,7 +28,7 @@ class AssetWidget(QtWidgets.QWidget):
     selection_changed = QtCore.Signal()  # on view selection change
     current_changed = QtCore.Signal()    # on view current index change
 
-    def __init__(self, parent=None):
+    def __init__(self, multiselection=False, parent=None):
         super(AssetWidget, self).__init__(parent=parent)
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -41,11 +42,12 @@ class AssetWidget(QtWidgets.QWidget):
         proxy.setSourceModel(model)
         proxy.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
 
-        view = DeselectableTreeView()
-        view.setIndentation(15)
-        view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        view.setHeaderHidden(True)
+        view = AssetsView()
         view.setModel(proxy)
+        if multiselection:
+            asset_delegate = AssetDelegate()
+            view.setSelectionMode(view.ExtendedSelection)
+            view.setItemDelegate(asset_delegate)
 
         # Header
         header = QtWidgets.QHBoxLayout()
@@ -77,13 +79,10 @@ class AssetWidget(QtWidgets.QWidget):
         self.view = view
 
     def _refresh_model(self):
-        with lib.preserve_expanded_rows(
+        with lib.preserve_states(
             self.view, column=0, role=self.model.ObjectIdRole
         ):
-            with lib.preserve_selection(
-                self.view, column=0, role=self.model.ObjectIdRole
-            ):
-                self.model.refresh()
+            self.model.refresh()
 
         self.assets_refreshed.emit()
 
@@ -99,29 +98,38 @@ class AssetWidget(QtWidgets.QWidget):
         return self.view.currentIndex()
 
     def get_selected_assets(self):
-        """Return the assets' ids that are selected."""
+        """Return the documents of selected assets."""
         selection = self.view.selectionModel()
         rows = selection.selectedRows()
-        return [row.data(self.model.ObjectIdRole) for row in rows]
+        assets = [row.data(self.model.DocumentRole) for row in rows]
+
+        # NOTE: skip None object assumed they are silo (backwards comp.)
+        return [asset for asset in assets if asset]
 
     def select_assets(self, assets, expand=True, key="name"):
-        """Select assets by name.
+        """Select assets by item key.
 
         Args:
-            assets (list): List of asset names
+            assets (list): List of asset values that can be found under
+                specified `key`
             expand (bool): Whether to also expand to the asset in the view
+            key (string): Key that specifies where to look for `assets` values
 
         Returns:
             None
+
+        Default `key` is "name" in that case `assets` should contain single
+        asset name or list of asset names. (It is good idea to use "_id" key
+        instead of name in that case `assets` must contain `ObjectId` object/s)
+        It is expected that each value in `assets` will be found only once.
+        If the filters according to the `key` and `assets` correspond to
+        the more asset, only the first found will be selected.
 
         """
         # TODO: Instead of individual selection optimize for many assets
 
         if not isinstance(assets, (tuple, list)):
             assets = [assets]
-        assert isinstance(
-            assets, (tuple, list)
-        ), "Assets must be list or tuple"
 
         # convert to list - tuple cant be modified
         assets = list(assets)

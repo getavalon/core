@@ -10,29 +10,27 @@ from ... import style, api, pipeline
 from . import lib
 from .. import lib as tools_lib
 
+from .. import widgets as tools_widgets
+from ..loader import widgets as loader_widgets
+
 from .models import AssetModel, SubsetsModel, FamiliesFilterProxyModel
 from ..models import RecursiveSortFilterProxyModel
 from ..loader.model import SubsetFilterProxyModel
 from .delegates import VersionDelegate
-from ..loader.delegates import PrettyTimeDelegate
-from .. views import DeselectableTreeView
+from ..loader.delegates import PrettyTimeDelegate, AssetDelegate
+from .. views import AssetsView
 
 log = logging.getLogger(__name__)
 
 
-class SubsetWidget(QtWidgets.QWidget):
+class SubsetWidget(loader_widgets.SubsetWidget):
     """A widget that lists the published subsets for an asset"""
 
-    active_changed = QtCore.Signal()    # active index changed
-    version_changed = QtCore.Signal()   # version state changed for a subset
-
-    def __init__(self, dbcon, enable_grouping=True, parent=None):
-        super(SubsetWidget, self).__init__(parent=parent)
-
+    def __init__(self, dbcon, tool_name, enable_grouping=True, parent=None):
         self.dbcon = dbcon
-        self.tool_name = None
-        if hasattr(parent, 'tool_name'):
-            self.tool_name = parent.tool_name
+        self.tool_name = tool_name
+
+        super(loader_widgets.SubsetWidget, self).__init__(parent=parent)
 
         model = SubsetsModel(
             dbcon=self.dbcon, grouping=enable_grouping, parent=self
@@ -52,6 +50,7 @@ class SubsetWidget(QtWidgets.QWidget):
         top_bar_layout.addWidget(groupable)
 
         view = QtWidgets.QTreeView()
+        view.setObjectName("SubsetView")
         view.setIndentation(20)
         view.setStyleSheet("""
             QTreeView::item{
@@ -127,30 +126,52 @@ class SubsetWidget(QtWidgets.QWidget):
         # Expose this from the widget as a method
         self.set_family_filters = self.family_proxy.setFamiliesFilter
 
-    def is_groupable(self):
-        return self.data["state"]["groupable"].checkState()
-
-    def set_grouping(self, state):
-        with tools_lib.preserve_selection(tree_view=self.view,
-                                          current_index=False):
-            self.model.set_grouping(state)
-
     def on_context_menu(self, point):
+        """Shows menu with loader actions on Right-click.
+
+        Registered actions are filtered by selection and help of
+        `loaders_from_representation` from avalon api. Intersection of actions
+        is shown when more subset is selected. When there are not available
+        actions for selected subsets then special action is shown (works as
+        info message to user): "*No compatible loaders for your selection"
+
+        """
 
         point_index = self.view.indexAt(point)
         if not point_index.isValid():
             return
 
-        item = point_index.data(self.model.ItemRole)
-        if item.get("isGroup"):
-            return
+        # Get selected subsets without groups
+        selection = self.view.selectionModel()
+        rows = selection.selectedRows(column=0)
+
+        items = []
+        for row_index in rows:
+            item = row_index.data(self.model.ItemRole)
+            if item.get("isGroup"):
+                continue
+
+            elif item.get("isMerged"):
+                # TODO use `for` loop of index's rowCount instead of `while` loop
+                idx = 0
+                while idx < 2000:
+                    child_index = row_index.child(idx, 0)
+                    if not child_index.isValid():
+                        break
+                    item = child_index.data(self.model.ItemRole)
+                    if item not in items:
+                        items.append(item)
+                    idx += 1
+            else:
+                if item not in items:
+                    items.append(item)
 
         # Get all representation->loader combinations available for the
         # index under the cursor, so we can list the user the options.
         available_loaders = api.discover(api.Loader)
         if self.tool_name is not None:
             for loader in available_loaders:
-                if hasattr(loader, 'tool_names'):
+                if hasattr(loader, "tool_names"):
                     if not (
                         "*" in loader.tool_names or
                         self.tool_name in loader.tool_names
@@ -159,66 +180,122 @@ class SubsetWidget(QtWidgets.QWidget):
 
         loaders = list()
 
-        version_id = item["version_document"]["_id"]
-        representations = self.dbcon.find({"type": "representation",
-                                   "parent": version_id})
-        for representation in representations:
-            for loader in lib.loaders_from_representation(
-                self.dbcon,
-                available_loaders,
-                representation['_id']
-            ):
-                loaders.append((representation, loader))
+        # Bool if is selected only one subset
+        one_item_selected = (len(items) == 1)
 
+        # Prepare variables for multiple selected subsets
+        first_loaders = []
+        found_combinations = None
+
+        is_first = True
+        for item in items:
+            _found_combinations = []
+
+            version_id = item["version_document"]["_id"]
+            representations = self.dbcon.find({
+                "type": "representation",
+                "parent": version_id
+            })
+
+            for representation in representations:
+                for loader in lib.loaders_from_representation(
+                    self.dbcon,
+                    available_loaders,
+                    representation["_id"]
+                ):
+                    # skip multiple select variant if one is selected
+                    if one_item_selected:
+                        loaders.append((representation, loader))
+                        continue
+
+                    # store loaders of first subset
+                    if is_first:
+                        first_loaders.append((representation, loader))
+
+                    # store combinations to compare with other subsets
+                    _found_combinations.append(
+                        (representation["name"].lower(), loader)
+                    )
+
+            # skip multiple select variant if one is selected
+            if one_item_selected:
+                continue
+
+            is_first = False
+            # Store first combinations to compare
+            if found_combinations is None:
+                found_combinations = _found_combinations
+            # Intersect found combinations with all previous subsets
+            else:
+                found_combinations = list(
+                    set(found_combinations) & set(_found_combinations)
+                )
+
+        if not one_item_selected:
+            # Filter loaders from first subset by intersected combinations
+            for repre, loader in first_loaders:
+                if (repre["name"], loader) not in found_combinations:
+                    continue
+
+                loaders.append((repre, loader))
+
+        menu = QtWidgets.QMenu(self)
         if not loaders:
             # no loaders available
-            self.echo("No compatible loaders available for this version.")
-            return
+            if one_item_selected:
+                self.echo("No compatible loaders available for this version.")
+                return
 
-        def sorter(value):
-            """Sort the Loaders by their order and then their name"""
-            Plugin = value[1]
-            return Plugin.order, Plugin.__name__
-
-        # List the available loaders
-        menu = QtWidgets.QMenu(self)
-        for representation, loader in sorted(loaders, key=sorter):
-
-            # Label
-            label = getattr(loader, "label", None)
-            if label is None:
-                label = loader.__name__
-
-            # Add the representation as suffix
-            label = "{0} ({1})".format(label, representation["name"])
-
-            action = QtWidgets.QAction(label, menu)
-            action.setData((representation, loader))
-
-            # Add tooltip and statustip from Loader docstring
-            tip = inspect.getdoc(loader)
-            if tip:
-                action.setToolTip(tip)
-                action.setStatusTip(tip)
-
-            # Support font-awesome icons using the `.icon` and `.color`
-            # attributes on plug-ins.
-            icon = getattr(loader, "icon", None)
-            if icon is not None:
-                try:
-                    key = "fa.{0}".format(icon)
-                    color = getattr(loader, "color", "white")
-                    action.setIcon(qtawesome.icon(key, color=color))
-                except Exception as e:
-                    print("Unable to set icon for loader "
-                          "{}: {}".format(loader, e))
-
+            self.echo("No compatible loaders available for your selection.")
+            action = QtWidgets.QAction(
+                "*No compatible loaders for your selection", menu
+            )
             menu.addAction(action)
+
+        else:
+            def sorter(value):
+                """Sort the Loaders by their order and then their name"""
+                Plugin = value[1]
+                return Plugin.order, Plugin.__name__
+
+            # List the available loaders
+            for representation, loader in sorted(loaders, key=sorter):
+
+                # Label
+                label = getattr(loader, "label", None)
+                if label is None:
+                    label = loader.__name__
+
+                # Add the representation as suffix
+                label = "{0} ({1})".format(label, representation["name"])
+
+                action = QtWidgets.QAction(label, menu)
+                action.setData((representation, loader))
+
+                # Add tooltip and statustip from Loader docstring
+                tip = inspect.getdoc(loader)
+                if tip:
+                    action.setToolTip(tip)
+                    action.setStatusTip(tip)
+
+                # Support font-awesome icons using the `.icon` and `.color`
+                # attributes on plug-ins.
+                icon = getattr(loader, "icon", None)
+                if icon is not None:
+                    try:
+                        key = "fa.{0}".format(icon)
+                        color = getattr(loader, "color", "white")
+                        action.setIcon(qtawesome.icon(key, color=color))
+                    except Exception as e:
+                        print("Unable to set icon for loader "
+                              "{}: {}".format(loader, e))
+
+                menu.addAction(action)
 
         # Show the context action menu
         global_point = self.view.mapToGlobal(point)
         action = menu.exec_(global_point)
-        if not action:
+        if not action or not action.data():
             return
 
         # Find the representation name and loader to trigger
@@ -242,11 +319,7 @@ class SubsetWidget(QtWidgets.QWidget):
         rows.insert(0, point_index)
 
         # Trigger
-        for row in rows:
-            item = row.data(self.model.ItemRole)
-            if item.get("isGroup"):
-                continue
-
+        for item in items:
             version_id = item["version_document"]["_id"]
             representation = self.dbcon.find_one({
                 "type": "representation",
@@ -255,9 +328,8 @@ class SubsetWidget(QtWidgets.QWidget):
             })
             if not representation:
                 self.echo("Subset '{}' has no representation '{}'".format(
-                          item["subset"],
-                          representation_name
-                          ))
+                    item["subset"], representation_name
+                ))
                 continue
 
             try:
@@ -269,18 +341,6 @@ class SubsetWidget(QtWidgets.QWidget):
             except pipeline.IncompatibleLoaderError as exc:
                 self.echo(exc)
                 continue
-
-    def selected_subsets(self):
-        selection = self.view.selectionModel()
-        rows = selection.selectedRows(column=0)
-
-        subsets = list()
-        for row in rows:
-            item = row.data(self.model.ItemRole)
-            if not item.get("isGroup"):
-                subsets.append(item)
-
-        return subsets
 
     def group_subsets(self, name, asset_id, items):
         field = "data.subsetGroup"
@@ -303,14 +363,11 @@ class SubsetWidget(QtWidgets.QWidget):
         }
         self.dbcon.update_many(filter, update)
 
-    def echo(self, message):
-        print(message)
 
-
-class VersionWidget(QtWidgets.QWidget):
+class VersionWidget(loader_widgets.VersionWidget):
     """A Widget that display information about a specific version"""
     def __init__(self, dbcon, parent=None):
-        super(VersionWidget, self).__init__(parent=parent)
+        super(loader_widgets.VersionWidget, self).__init__(parent=parent)
         self.dbcon = dbcon
         layout = QtWidgets.QVBoxLayout(self)
 
@@ -322,11 +379,8 @@ class VersionWidget(QtWidgets.QWidget):
 
         self.data = data
 
-    def set_version(self, version_id):
-        self.data.set_version(version_id)
 
-
-class VersionTextEdit(QtWidgets.QTextEdit):
+class VersionTextEdit(loader_widgets.VersionTextEdit):
     """QTextEdit that displays version specific information.
 
     This also overrides the context menu to add actions like copying
@@ -335,15 +389,8 @@ class VersionTextEdit(QtWidgets.QTextEdit):
 
     """
     def __init__(self, dbcon, parent=None):
-        super(VersionTextEdit, self).__init__(parent=parent)
         self.dbcon = dbcon
-        self.data = {
-            "source": None,
-            "raw": None
-        }
-
-        # Reset
-        self.set_version(None)
+        super(VersionTextEdit, self).__init__(parent=parent)
 
     def set_version(self, version_id):
 
@@ -367,7 +414,7 @@ class VersionTextEdit(QtWidgets.QTextEdit):
         assert version, "Not a valid version id"
 
         subset = self.dbcon.find_one(
-            {"_id": version['parent'], "type": "subset"}
+            {"_id": version["parent"], "type": "subset"}
         )
         assert subset, "No valid subset parent for version"
 
@@ -376,18 +423,18 @@ class VersionTextEdit(QtWidgets.QTextEdit):
         created = datetime.datetime.strptime(created, "%Y%m%dT%H%M%SZ")
         created = datetime.datetime.strftime(created, "%b %d %Y %H:%M")
 
-        comment = version['data'].get("comment", None) or "No comment"
+        comment = version["data"].get("comment", None) or "No comment"
 
-        source = version['data'].get("source", None)
+        source = version["data"].get("source", None)
         source_label = source if source else "No source"
 
         # Store source and raw data
-        self.data['source'] = source
-        self.data['raw'] = version
+        self.data["source"] = source
+        self.data["raw"] = version
 
         data = {
-            "subset": subset['name'],
-            "version": version['name'],
+            "subset": subset["name"],
+            "version": version["name"],
             "comment": comment,
             "created": created,
             "source": source_label
@@ -404,28 +451,6 @@ class VersionTextEdit(QtWidgets.QTextEdit):
 <b>Source</b><br>
 {source}<br>""".format(**data))
 
-    def contextMenuEvent(self, event):
-        """Context menu with additional actions"""
-        menu = self.createStandardContextMenu()
-
-        # Add additional actions when any text so we can assume
-        # the version is set.
-        if self.toPlainText().strip():
-
-            menu.addSeparator()
-            action = QtWidgets.QAction("Copy source path to clipboard",
-                                       menu)
-            action.triggered.connect(self.on_copy_source)
-            menu.addAction(action)
-
-            action = QtWidgets.QAction("Copy raw data to clipboard",
-                                       menu)
-            action.triggered.connect(self.on_copy_raw)
-            menu.addAction(action)
-
-        menu.exec_(event.globalPos())
-        del menu
-
     def on_copy_source(self):
         """Copy formatted source path to clipboard"""
         source = self.data.get("source", None)
@@ -436,38 +461,16 @@ class VersionTextEdit(QtWidgets.QTextEdit):
         clipboard = QtWidgets.QApplication.clipboard()
         clipboard.setText(path)
 
-    def on_copy_raw(self):
-        """Copy raw version data to clipboard
 
-        The data is string formatted with `pprint.pformat`.
-
-        """
-        raw = self.data.get("raw", None)
-        if not raw:
-            return
-
-        raw_text = pprint.pformat(raw)
-        clipboard = QtWidgets.QApplication.clipboard()
-        clipboard.setText(raw_text)
-
-
-class FamilyListWidget(QtWidgets.QListWidget):
+class FamilyListWidget(loader_widgets.FamilyListWidget):
     """A Widget that lists all available families"""
 
     NameRole = QtCore.Qt.UserRole + 1
     active_changed = QtCore.Signal(list)
 
     def __init__(self, dbcon, parent=None):
-        super(FamilyListWidget, self).__init__(parent=parent)
         self.dbcon = dbcon
-        multi_select = QtWidgets.QAbstractItemView.ExtendedSelection
-        self.setSelectionMode(multi_select)
-        self.setAlternatingRowColors(True)
-        # Enable RMB menu
-        self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        self.customContextMenuRequested.connect(self.show_right_mouse_menu)
-
-        self.itemChanged.connect(self._on_item_changed)
+        super(FamilyListWidget, self).__init__(parent=parent)
 
     def refresh(self):
         """Refresh the listed families.
@@ -513,51 +516,8 @@ class FamilyListWidget(QtWidgets.QListWidget):
 
         self.active_changed.emit(self.get_filters())
 
-    def get_filters(self):
-        """Return the checked family items"""
 
-        items = [self.item(i) for i in
-                 range(self.count())]
-
-        return [item.data(self.NameRole) for item in items if
-                item.checkState() == QtCore.Qt.Checked]
-
-    def _on_item_changed(self):
-        self.active_changed.emit(self.get_filters())
-
-    def _set_checkstate_all(self, state):
-        _state = QtCore.Qt.Checked if state is True else QtCore.Qt.Unchecked
-        self.blockSignals(True)
-        for i in range(self.count()):
-            item = self.item(i)
-            item.setCheckState(_state)
-        self.blockSignals(False)
-        self.active_changed.emit(self.get_filters())
-
-    def show_right_mouse_menu(self, pos):
-        """Build RMB menu under mouse at current position (within widget)"""
-
-        # Get mouse position
-        globalpos = self.viewport().mapToGlobal(pos)
-
-        menu = QtWidgets.QMenu(self)
-
-        # Add enable all action
-        state_checked = QtWidgets.QAction(menu, text="Enable All")
-        state_checked.triggered.connect(
-            lambda: self._set_checkstate_all(True))
-        # Add disable all action
-        state_unchecked = QtWidgets.QAction(menu, text="Disable All")
-        state_unchecked.triggered.connect(
-            lambda: self._set_checkstate_all(False))
-
-        menu.addAction(state_checked)
-        menu.addAction(state_unchecked)
-
-        menu.exec_(globalpos)
-
-
-class AssetWidget(QtWidgets.QWidget):
+class AssetWidget(tools_widgets.AssetWidget):
     """A Widget to display a tree of assets with filter
 
     To list the assets of the active project:
@@ -571,8 +531,8 @@ class AssetWidget(QtWidgets.QWidget):
     selection_changed = QtCore.Signal()  # on view selection change
     current_changed = QtCore.Signal()    # on view current index change
 
-    def __init__(self, dbcon, parent=None):
-        super(AssetWidget, self).__init__(parent=parent)
+    def __init__(self, dbcon, multiselection=False, parent=None):
+        super(tools_widgets.AssetWidget, self).__init__(parent=parent)
         self.setContentsMargins(0, 0, 0, 0)
 
         self.dbcon = dbcon
@@ -587,11 +547,12 @@ class AssetWidget(QtWidgets.QWidget):
         proxy.setSourceModel(model)
         proxy.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
 
-        view = DeselectableTreeView()
-        view.setIndentation(15)
-        view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        view.setHeaderHidden(True)
+        view = AssetsView()
         view.setModel(proxy)
+        if multiselection:
+            asset_delegate = AssetDelegate()
+            view.setSelectionMode(view.ExtendedSelection)
+            view.setItemDelegate(asset_delegate)
 
         # Header
         header = QtWidgets.QHBoxLayout()
@@ -623,82 +584,3 @@ class AssetWidget(QtWidgets.QWidget):
         self.model = model
         self.proxy = proxy
         self.view = view
-
-    def _refresh_model(self):
-        with tools_lib.preserve_expanded_rows(
-            self.view, column=0, role=self.model.ObjectIdRole
-        ):
-            with tools_lib.preserve_selection(
-                self.view, column=0, role=self.model.ObjectIdRole
-            ):
-                self.model.refresh()
-
-        self.assets_refreshed.emit()
-
-    def refresh(self):
-        self._refresh_model()
-
-    def get_active_asset(self):
-        """Return the asset id the current asset."""
-        current = self.view.currentIndex()
-        return current.data(self.model.ItemRole)
-
-    def get_active_index(self):
-        return self.view.currentIndex()
-
-    def get_selected_assets(self):
-        """Return the assets' ids that are selected."""
-        selection = self.view.selectionModel()
-        rows = selection.selectedRows()
-        return [row.data(self.model.ObjectIdRole) for row in rows]
-
-    def select_assets(self, assets, expand=True, key="name"):
-        """Select assets by name.
-
-        Args:
-            assets (list): List of asset names
-            expand (bool): Whether to also expand to the asset in the view
-
-        Returns:
-            None
-
-        """
-        # TODO: Instead of individual selection optimize for many assets
-
-        if not isinstance(assets, (tuple, list)):
-            assets = [assets]
-        assert isinstance(
-            assets, (tuple, list)
-        ), "Assets must be list or tuple"
-
-        # convert to list - tuple cant be modified
-        assets = list(assets)
-
-        # Clear selection
-        selection_model = self.view.selectionModel()
-        selection_model.clearSelection()
-
-        # Select
-        mode = selection_model.Select | selection_model.Rows
-        for index in tools_lib.iter_model_rows(
-            self.proxy, column=0, include_root=False
-        ):
-            # stop iteration if there are no assets to process
-            if not assets:
-                break
-
-            value = index.data(self.model.ItemRole).get(key)
-            if value not in assets:
-                continue
-
-            # Remove processed asset
-            assets.pop(assets.index(value))
-
-            selection_model.select(index, mode)
-
-            if expand:
-                # Expand parent index
-                self.view.expand(self.proxy.parent(index))
-
-            # Set the currently active index
-            self.view.setCurrentIndex(index)
