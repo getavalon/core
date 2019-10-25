@@ -1,8 +1,8 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
 
-    "title": "avalon-core:subset-2.0",
-    "description": "A container of instances",
+    "title": "avalon-core:asset-3.0",
+    "description": "A unit of data",
 
     "type": "object",
 
@@ -11,41 +11,45 @@
     "required": [
         "schema",
         "type",
-        "parent",
         "name",
         "data"
     ],
 
     "properties": {
         "schema": {
-            "description": "The schema associated with this document",
+            "description": "Schema identifier for payload",
             "type": "string",
-            "enum": ["avalon-core:subset-2.0"],
-            "example": "avalon-core:subset-2.0"
+            "enum": ["avalon-core:asset-3.0"],
+            "example": "avalon-core:asset-3.0"
         },
         "type": {
             "description": "The type of document",
             "type": "string",
-            "enum": ["subset"],
-            "example": "subset"
+            "enum": ["asset"],
+            "example": "asset"
         },
         "parent": {
             "description": "Unique identifier to parent document",
             "example": "592c33475f8c1b064c4d1696"
         },
         "name": {
-            "description": "Name of directory",
+            "description": "Name of asset",
             "type": "string",
             "pattern": "^[a-zA-Z0-9_.]*$",
-            "example": "shot01"
+            "example": "Bruce"
+        },
+        "silo": {
+            "description": "Group or container of asset",
+            "type": "string",
+            "pattern": "^[a-zA-Z0-9_.]*$",
+            "example": "assets"
         },
         "data": {
-            "type": "object",
             "description": "Document metadata",
-            "example": {
-                "frameStart": 1000,
-                "frameEnd": 1201
-            }
+            "type": "object",
+            "example": {"key": "value"}
         }
-    }
+    },
+
+    "definitions": {}
 }

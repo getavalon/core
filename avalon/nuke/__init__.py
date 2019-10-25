@@ -15,8 +15,8 @@ from .lib import (
 )
 
 from .workio import (
-    open,
-    save,
+    open_file,
+    save_file,
     current_file,
     has_unsaved_changes,
     file_extensions,
@@ -67,10 +67,14 @@ __all__ = [
     "get_node_path",
 
     # Workfiles API
-    "open",
-    "save",
+    "open_file",
+    "save_file",
     "current_file",
     "has_unsaved_changes",
     "file_extensions",
     "work_root"
 ]
+
+# Backwards API compatibility
+open = open_file
+save = save_file

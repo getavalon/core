@@ -1,11 +1,7 @@
-import time
-from datetime import datetime
-import logging
+from ..vendor.Qt import QtWidgets, QtCore
+from .. import io
 
-from ...vendor.Qt import QtWidgets, QtCore
-from .models import SubsetsModel
-
-log = logging.getLogger(__name__)
+from .models import TreeModel
 
 
 class VersionDelegate(QtWidgets.QStyledItemDelegate):
@@ -14,10 +10,6 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
     version_changed = QtCore.Signal()
     first_run = False
     lock = False
-
-    def __init__(self, dbcon, parent=None):
-        super(VersionDelegate, self).__init__(parent=parent)
-        self.dbcon = dbcon
 
     def _format_version(self, value):
         """Formats integer to displayable version name"""
@@ -28,7 +20,7 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         return self._format_version(value)
 
     def createEditor(self, parent, option, index):
-        item = index.data(SubsetsModel.ItemRole)
+        item = index.data(TreeModel.ItemRole)
         if item.get("isGroup"):
             return
 
@@ -57,18 +49,16 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         assert isinstance(value, int), "Version is not `int`"
 
         # Add all available versions to the editor
-        item = index.data(SubsetsModel.ItemRole)
-        parent_id = item['version_document']['parent']
-        versions = self.db.find(
-            {"type": "version", "parent": parent_id},
-            sort=[("name", 1)]
-        )
+        item = index.data(TreeModel.ItemRole)
+        parent_id = item["version_document"]["parent"]
+        versions = io.find({"type": "version", "parent": parent_id},
+                           sort=[("name", 1)])
         index = 0
         for i, version in enumerate(versions):
-            label = self._format_version(version['name'])
+            label = self._format_version(version["name"])
             editor.addItem(label, userData=version)
 
-            if version['name'] == value:
+            if version["name"] == value:
                 index = i
 
         editor.setCurrentIndex(index)  # Will trigger index-change signal
@@ -78,4 +68,4 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
     def setModelData(self, editor, model, index):
         """Apply the integer version back in the model"""
         version = editor.itemData(editor.currentIndex())
-        model.setData(index, version['name'])
+        model.setData(index, version["name"])

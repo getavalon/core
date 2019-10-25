@@ -11,9 +11,10 @@ from .widgets import (
     SubsetWidget,
     VersionWidget,
     FamilyListWidget,
-    AssetWidget,
-    AssetModel
+    AssetWidget
 )
+from .models import AssetModel
+
 from pypeapp import config
 
 module = sys.modules[__name__]
@@ -49,16 +50,16 @@ class Window(QtWidgets.QDialog):
 
         container = QtWidgets.QWidget()
 
-        self._db = DbConnector()
-        self._db.install()
+        self.dbcon = DbConnector()
+        self.dbcon.install()
 
         self.show_projects = show_projects
         self.show_libraries = show_libraries
 
-        assets = AssetWidget(self)
-        families = FamilyListWidget(self)
-        subsets = SubsetWidget(self)
-        version = VersionWidget(self)
+        assets = AssetWidget(dbcon=self.dbcon, parent=self)
+        families = FamilyListWidget(dbcon=self.dbcon, parent=self)
+        subsets = SubsetWidget(dbcon=self.dbcon, parent=self)
+        version = VersionWidget(dbcon=self.dbcon, parent=self)
 
         # Project
         self.combo_projects = QtWidgets.QComboBox()
@@ -150,12 +151,12 @@ class Window(QtWidgets.QDialog):
                 default, QtCore.Qt.MatchFixedString
             )
             if index:
-                self.db.activate_project(default)
+                self.dbcon.activate_project(default)
                 self.combo_projects.setCurrentIndex(index)
 
     def get_filtered_projects(self):
         projects = list()
-        for project in self.db.projects():
+        for project in self.dbcon.projects():
             is_library = project.get('data', {}).get('library_project', False)
             if (
                 (is_library and self.show_libraries) or
@@ -169,7 +170,7 @@ class Window(QtWidgets.QDialog):
         projects = self.get_filtered_projects()
         project_name = self.combo_projects.currentText()
         if project_name in projects:
-            self.db.activate_project(project_name)
+            self.dbcon.activate_project(project_name)
         self.refresh()
 
     def get_default_project(self):
@@ -194,16 +195,17 @@ class Window(QtWidgets.QDialog):
 
     @property
     def current_project(self):
-        if self.db.active_project().strip() == '':
+        if self.dbcon.active_project().strip() == '':
             return None
-        return self.db.active_project()
+        return self.dbcon.active_project()
 
     def on_projectchanged(self, project_name):
-        self.db.Session['AVALON_PROJECT'] = project_name
-        lib.refresh_family_config(self.db)
+        self.dbcon.Session['AVALON_PROJECT'] = project_name
+        lib.refresh_family_config_cache(self.dbcon)
+        lib.refresh_group_config_cache(self.dbcon)
 
         # Find the set config
-        _config = lib.find_config(self.db)
+        _config = lib.find_config(self.dbcon)
         if hasattr(_config, "install"):
             _config.install()
         else:
@@ -214,7 +216,7 @@ class Window(QtWidgets.QDialog):
         self._assetschanged()
 
         title = "{} - {}"
-        if self.db.active_project() is None:
+        if self.dbcon.active_project() is None:
             title = title.format(
                 self.tool_title,
                 "No project selected"
@@ -223,14 +225,10 @@ class Window(QtWidgets.QDialog):
             title = title.format(
                 self.tool_title,
                 os.path.sep.join(
-                    [lib.registered_root(self.db), self.db.active_project()]
+                    [lib.registered_root(self.dbcon), self.dbcon.active_project()]
                 )
             )
         self.setWindowTitle(title)
-
-    @property
-    def db(self):
-        return self._db
 
     # -------------------------------
     # Delay calling blocking methods
@@ -259,12 +257,12 @@ class Window(QtWidgets.QDialog):
         if self.current_project is None:
             return
         # Ensure a project is loaded
-        project = self.db.find_one({"type": "project"})
+        project = self.dbcon.find_one({"type": "project"})
         assert project, "This is a bug"
 
-        assets_model = self.data["widgets"]["assets"]
-        assets_model.refresh()
-        assets_model.setFocus()
+        assets_widget = self.data["widgets"]["assets"]
+        assets_widget.refresh()
+        assets_widget.setFocus()
 
         families = self.data["widgets"]["families"]
         families.refresh()
@@ -272,7 +270,7 @@ class Window(QtWidgets.QDialog):
         # Update state
         state = self.data["state"]
         state["template"] = project["config"]["template"]["publish"]
-        state["context"]["root"] = lib.registered_root(self.db)
+        state["context"]["root"] = lib.registered_root(self.dbcon)
         state["context"]["project"] = project["name"]
 
     def _assetschanged(self):
@@ -304,7 +302,7 @@ class Window(QtWidgets.QDialog):
         self.data['widgets']['version'].set_version(None)
 
         self.data["state"]["context"]["asset"] = document["name"]
-        self.data["state"]["context"]["silo"] = document["silo"]
+        self.data["state"]["context"]["silo"] = document.get("silo")
         self.echo("Duration: %.3fs" % (time.time() - t1))
 
     def _versionschanged(self):
@@ -319,8 +317,8 @@ class Window(QtWidgets.QDialog):
         if active:
             rows = selection.selectedRows(column=active.column())
             if active in rows:
-                node = active.data(subsets.model.NodeRole)
-                version = node['version_document']['_id']
+                item = active.data(subsets.model.ItemRole)
+                version = item['version_document']['_id']
 
         self.data['widgets']['version'].set_version(version)
 
@@ -349,7 +347,7 @@ class Window(QtWidgets.QDialog):
             print("Force quitted..")
             self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
-        # self.db.uninstall()
+        # self.dbcon.uninstall()
 
         print("Good bye")
         return super(Window, self).closeEvent(event)

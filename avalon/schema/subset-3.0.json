@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
 
-    "title": "avalon-core:subset-2.0",
+    "title": "avalon-core:subset-3.0",
     "description": "A container of instances",
 
     "type": "object",
@@ -20,8 +20,8 @@
         "schema": {
             "description": "The schema associated with this document",
             "type": "string",
-            "enum": ["avalon-core:subset-2.0"],
-            "example": "avalon-core:subset-2.0"
+            "enum": ["avalon-core:subset-3.0"],
+            "example": "avalon-core:subset-3.0"
         },
         "type": {
             "description": "The type of document",
@@ -40,9 +40,20 @@
             "example": "shot01"
         },
         "data": {
-            "type": "object",
             "description": "Document metadata",
+            "type": "object",
+            "required": ["families"],
+            "properties": {
+                "families": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "One or more families associated with this subset"
+                }
+            },
             "example": {
+                "families" : [ 
+                    "avalon.camera"
+                ],
                 "frameStart": 1000,
                 "frameEnd": 1201
             }

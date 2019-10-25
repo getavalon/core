@@ -11,7 +11,7 @@ def has_unsaved_changes():
     return nuke.root().modified()
 
 
-def save(filepath):
+def save_file(filepath):
     path = filepath.replace("\\", "/")
     nuke.scriptSaveAs(path)
     nuke.Root()["name"].setValue(path)
@@ -19,7 +19,7 @@ def save(filepath):
     nuke.Root().setModified(False)
 
 
-def open(filepath):
+def open_file(filepath):
     filepath = filepath.replace("\\", "/")
 
     # To remain in the same window, we have to clear the script and read
@@ -43,7 +43,5 @@ def current_file():
 
 
 def work_root():
-
-    from avalon import api
-
-    return os.path.normpath(api.Session["AVALON_WORKDIR"]).replace("\\", "/")
+    from avalon import Session
+    return os.path.normpath(Session["AVALON_WORKDIR"]).replace("\\", "/")

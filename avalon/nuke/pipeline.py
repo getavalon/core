@@ -17,6 +17,7 @@ def reload_pipeline():
     """Attempt to reload pipeline at run-time.
 
     CAUTION: This is primarily for development and debugging purposes.
+
     """
 
     import importlib
@@ -29,7 +30,7 @@ def reload_pipeline():
                    "avalon.pipeline",
                    "avalon.nuke.pipeline",
                    "avalon.nuke.lib",
-                   "avalon.tools.cbloader.app",
+                   "avalon.tools.loader.app",
                    "avalon.tools.creator.app",
                    "avalon.tools.manager.app",
                    "avalon.tools.libraryloader",
@@ -267,8 +268,8 @@ def _install_menu():
         creator,
         publish,
         workfiles,
-        cbloader,
-        cbsceneinventory,
+        loader,
+        sceneinventory,
         contextmanager,
         libraryloader
     )
@@ -293,10 +294,10 @@ def _install_menu():
     menu.addCommand("Create...", creator.show)
     menu.addCommand(
         "Load...", command=lambda *args:
-        cbloader.show(use_context=True)
+        loader.show(use_context=True)
     )
     menu.addCommand("Publish...", publish.show)
-    menu.addCommand("Manage...", cbsceneinventory.show)
+    menu.addCommand("Manage...", sceneinventory.show)
     menu.addCommand("Library...", libraryloader.show)
 
     menu.addSeparator()
@@ -453,7 +454,6 @@ def _on_task_changed(*args):
     # Update menu
     _uninstall_menu()
     _install_menu()
-
 
 
 @contextlib.contextmanager
