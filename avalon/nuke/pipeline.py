@@ -183,7 +183,8 @@ class Creator(api.Creator):
 
                 return instance
             else:
-                nuke.message("Please select nodes you wish to add to container")
+                nuke.message("Please select nodes you "
+                             "wish to add to a container")
                 return
         else:
             bckd_node = autoBackdrop()
