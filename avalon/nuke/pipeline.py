@@ -176,6 +176,7 @@ class Creator(api.Creator):
             elif len(nodes) >= 2:
                 bckd_node = autoBackdrop()
                 bckd_node["tile_color"].setValue(int(self.node_color, 16))
+                bckd_node["note_font_size"].setValue(24)
                 bckd_node["label"].setValue("[{}]".format(self.name))
                 # add avalon knobs
                 instance = lib.imprint(bckd_node, self.data)
@@ -187,6 +188,7 @@ class Creator(api.Creator):
         else:
             bckd_node = autoBackdrop()
             bckd_node["tile_color"].setValue(int(self.node_color, 16))
+            bckd_node["note_font_size"].setValue(24)
             bckd_node["label"].setValue("[{}]".format(self.name))
             # add avalon knobs
             instance = lib.imprint(bckd_node, self.data)
