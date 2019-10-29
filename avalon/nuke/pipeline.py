@@ -4,7 +4,8 @@ import contextlib
 import importlib
 from collections import OrderedDict
 from pyblish import api as pyblish
-from .. import api, io
+from ..pipeline import AVALON_CONTAINER_ID
+from .. import api, io, schema
 from . import lib
 import nuke
 
@@ -25,24 +26,21 @@ def reload_pipeline():
     api.uninstall()
     _uninstall_menu()
 
-    for module in ("avalon.io",
+    for module in ("avalon.api",
+                   "avalon.io",
                    "avalon.lib",
                    "avalon.pipeline",
-                   "avalon.nuke.pipeline",
-                   "avalon.nuke.lib",
-                   "avalon.tools.loader.app",
-                   "avalon.tools.creator.app",
-                   "avalon.tools.manager.app",
-                   "avalon.tools.libraryloader",
-
-                   "avalon.api",
                    "avalon.tools",
                    "avalon.nuke",
-                   "{}".format(AVALON_CONFIG),
-                   "{}.lib".format(AVALON_CONFIG)):
+                   "avalon.nuke.pipeline",
+                   "avalon.nuke.lib",
+                   "avalon.nuke.workio"
+                   ):
+
         log.info("Reloading module: {}...".format(module))
+
         module = importlib.import_module(module)
-        reload(module)
+        importlib.reload(module)
 
     import avalon.nuke
     api.install(avalon.nuke)
@@ -76,7 +74,7 @@ def containerise(node,
 
     data_imprint = OrderedDict({
         "schema": "avalon-core:container-2.0",
-        "id": "pyblish.avalon.container",
+        "id": AVALON_CONTAINER_ID,
         "name": str(name),
         "namespace": str(namespace),
         "loader": str(loader),
@@ -86,14 +84,14 @@ def containerise(node,
     if data:
         {data_imprint.update({k: v}) for k, v in data.items()}
 
-    log.debug("Imprinting data: {}".format(data_imprint))
+    log.debug("Data for Imprint: {}".format(data_imprint))
 
     lib.set_avalon_knob_data(node, data_imprint)
 
     return node
 
 
-def parse_container(node):
+def parse_container(node, validate=True):
     """Returns containerised data of a node
 
     Reads the imprinted data from `containerise`.
@@ -105,6 +103,9 @@ def parse_container(node):
         container (dict): imprinted container data
     """
     data = lib.get_avalon_knob_data(node)
+
+    if validate:
+        schema.validate(data)
 
     if not isinstance(data, dict):
         return
@@ -140,20 +141,7 @@ def update_container(node, keys=dict()):
 
     data = lib.get_avalon_knob_data(node)
 
-    if not isinstance(data, dict):
-        return
-
-    # If not all required data return the empty container
-    required = ['schema', 'id', 'name',
-                'namespace', 'objectName', 'representation', 'version']
     container = dict()
-
-    # check if key in data
-    for k in required:
-        if not data.get(k, 0):
-            # if not then create the key in container and data
-            data[k] = 0
-
     container = {key: data[key] for key in data}
 
     for key, value in container.items():
@@ -168,20 +156,44 @@ def update_container(node, keys=dict()):
 
 
 class Creator(api.Creator):
-    """Creator cass wrapper
+    """Creator class wrapper
     """
+    node_color = "0xdfea5dff"
+
     def process(self):
+        from nukescripts import autoBackdrop
+        nodes = list()
         if (self.options or {}).get("useSelection"):
             nodes = nuke.selectedNodes()
 
-        if len(nodes) > 0:
-            node = nodes[0]
-        elif len(nodes) > 1:
-            nuke.message("Please select only one node")
+            if len(nodes) == 1:
+                # only one node is selected
+                node = nodes[0]
+                instance = lib.imprint(node, self.data)
+                return instance
 
-        instance = lib.imprint(node, self.data)
+            elif len(nodes) >= 2:
+                bckd_node = autoBackdrop()
+                bckd_node["tile_color"].setValue(int(self.node_color, 16))
+                bckd_node["note_font_size"].setValue(24)
+                bckd_node["label"].setValue("[{}]".format(self.name))
+                # add avalon knobs
+                instance = lib.imprint(bckd_node, self.data)
 
-        return instance
+                return instance
+            else:
+                nuke.message("Please select nodes you "
+                             "wish to add to a container")
+                return
+        else:
+            bckd_node = autoBackdrop()
+            bckd_node["tile_color"].setValue(int(self.node_color, 16))
+            bckd_node["note_font_size"].setValue(24)
+            bckd_node["label"].setValue("[{}]".format(self.name))
+            # add avalon knobs
+            instance = lib.imprint(bckd_node, self.data)
+
+            return instance
 
 
 def ls():
@@ -199,7 +211,7 @@ def ls():
     nodes = [n for n in all_nodes]
 
     for n in nodes:
-        log.debug("Listing node: `{}`".format(n.name()))
+        log.debug("name: `{}`".format(n.name()))
         container = parse_container(n)
         if container:
             yield container
@@ -234,7 +246,7 @@ def find_host_config(config):
     try:
         config = importlib.import_module(config.__name__ + ".nuke")
     except ImportError as exc:
-        if str(exc) != "No module name {}".format(config.__name__ + ".nuke"):
+        if str(exc) != "No module named {}".format("nuke"):
             raise
         config = None
 
@@ -270,8 +282,7 @@ def _install_menu():
         workfiles,
         loader,
         sceneinventory,
-        contextmanager,
-        libraryloader
+        contextmanager
     )
 
     # Create menu
@@ -298,77 +309,56 @@ def _install_menu():
     )
     menu.addCommand("Publish...", publish.show)
     menu.addCommand("Manage...", sceneinventory.show)
-    menu.addCommand("Library...", libraryloader.show)
 
     menu.addSeparator()
     menu.addCommand("Reset Frame Range", reset_frame_range_handles)
     menu.addCommand("Reset Resolution", reset_resolution)
 
-    menu.addSeparator()
-    menu.addCommand("Reload Pipeline", reload_pipeline)
+    # add reload pipeline only in debug mode
+    if bool(os.getenv("NUKE_DEBUG")):
+        menu.addSeparator()
+        menu.addCommand("Reload Pipeline", reload_pipeline)
 
 
 def _uninstall_menu():
+    """Uninstalling Avalon menu to Nuke
+    """
     menubar = nuke.menu("Nuke")
     menubar.removeItem(api.Session["AVALON_LABEL"])
 
 
-def reset_frame_range():
-    """Set frame range to current asset"""
-
-    fps = float(api.Session.get("AVALON_FPS", 25))
-
-    nuke.root()["fps"].setValue(fps)
-    asset = api.Session["AVALON_ASSET"]
-    asset = io.find_one({"name": asset, "type": "asset"})
-
-    try:
-        frame_start = int(asset["data"]["frameStart"])
-        frame_end = int(asset["data"]["frameEnd"])
-    except KeyError:
-        log.warning(
-            "Frame range not set! No edit information found for "
-            "\"{0}\".".format(asset["name"])
-        )
-        return
-
-    nuke.root()["first_frame"].setValue(frame_start)
-    nuke.root()["last_frame"].setValue(frame_end)
-
-
 def reset_frame_range_handles():
-    """Set frame range to current asset"""
+    """ Set frame range to current asset
+        Also it will set a Viewer range with
+        displayed handles
+    """
 
     fps = float(api.Session.get("AVALON_FPS", 25))
 
     nuke.root()["fps"].setValue(fps)
     name = api.Session["AVALON_ASSET"]
     asset = io.find_one({"name": name, "type": "asset"})
+    asset_data = asset["data"]
 
-    if "data" not in asset:
-        msg = "Asset {} don't have set any 'data'".format(name)
-        log.warning(msg)
-        nuke.message(msg)
-        return
-    data = asset["data"]
+    handles = get_handles(asset)
 
-    missing_cols = []
-    check_cols = ["frameStart", "frameEnd"]
+    frame_start = int(asset_data.get(
+        "frameStart",
+        asset_data.get("edit_in")))
 
-    for col in check_cols:
-        if col not in data:
-            missing_cols.append(col)
+    frame_end = int(asset_data.get(
+        "frameEnd",
+        asset_data.get("edit_out")))
 
-    if len(missing_cols) > 0:
-        missing = ", ".join(missing_cols)
+    if not all([frame_start, frame_end]):
+        missing = ", ".join(["frame_start", "frame_end"])
         msg = "'{}' are not set for asset '{}'!".format(missing, name)
         log.warning(msg)
         nuke.message(msg)
         return
 
-    handles = get_handles(asset)
-    frame_start = int(asset["data"]["frameStart"]) - handles
-    frame_end = int(asset["data"]["frameEnd"]) + handles
+    frame_start -= handles
+    frame_end += handles
 
     nuke.root()["first_frame"].setValue(frame_start)
     nuke.root()["last_frame"].setValue(frame_end)
@@ -377,13 +367,20 @@ def reset_frame_range_handles():
     vv = nuke.activeViewer().node()
     vv['frame_range_lock'].setValue(True)
     vv['frame_range'].setValue('{0}-{1}'.format(
-        int(asset["data"]["frameStart"]),
-        int(asset["data"]["frameEnd"]))
+        int(asset_data["frameStart"]),
+        int(asset_data["frameEnd"]))
     )
 
 
-
 def get_handles(asset):
+    """ Gets handles data
+
+    Arguments:
+        asset (dict): avalon asset entity
+
+    Returns:
+        handles (int)
+    """
     data = asset["data"]
     if "handles" in data and data["handles"] is not None:
         return int(data["handles"])
@@ -406,16 +403,20 @@ def get_handles(asset):
 def reset_resolution():
     """Set resolution to project resolution."""
     project = io.find_one({"type": "project"})
+    p_data = project["data"]
 
-    try:
-        width = project["data"].get("resolutionWidth", 1920)
-        height = project["data"].get("resolutionHeight", 1080)
-    except KeyError:
-        print(
-            "No resolution information found for \"{0}\".".format(
-                project["name"]
-            )
-        )
+    width = p_data.get("resolution_width",
+                       p_data.get("resolutionWidth"))
+    height = p_data.get("resolution_height",
+                        p_data.get("resolutionHeight"))
+
+    if not all([width, height]):
+        missing = ", ".join(["width", "height"])
+        msg = "No resolution information `{0}` found for '{1}'.".format(
+            missing,
+            project["name"])
+        log.warning(msg)
+        nuke.message(msg)
         return
 
     current_width = nuke.root()["format"].value().width()
@@ -461,13 +462,12 @@ def viewer_update_and_undo_stop():
     """Lock viewer from updating and stop recording undo steps"""
     try:
         # stop active viewer to update any change
-        try:
-            nuke.activeViewer().stop()
-        except Exception as e:
-            log.warning("No available active Viewer: `{}`".format(e))
+        viewer = nuke.activeViewer()
+        if viewer:
+            viewer.stop()
+        else:
+            log.warning("No available active Viewer")
         nuke.Undo.disable()
         yield
     finally:
-        # nuke.Root().knob('lock_connections').setValue(0)
-        # nuke.activeViewer().start()
         nuke.Undo.enable()
