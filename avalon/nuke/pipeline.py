@@ -159,9 +159,10 @@ def update_container(node, keys=dict()):
 class Creator(api.Creator):
     """Creator class wrapper
     """
+    node_color = "0xdfea5dff"
 
     def process(self):
-        import nukescripts
+        from nukescripts import autoBackdrop
         nodes = list()
         if (self.options or {}).get("useSelection"):
             nodes = nuke.selectedNodes()
@@ -173,96 +174,24 @@ class Creator(api.Creator):
                 return instance
 
             elif len(nodes) >= 2:
-                # if more nodes selected
-                output_node = None
-                input_node = None
-
-                # get original output connection
-                connected_to_output = list()
-                for n in nodes:
-                    dep_nodes = n.dependent()
-                    if dep_nodes is []:
-                        continue
-                    for dep_n in dep_nodes:
-                        if dep_n.name() not in [n.name() for n in nodes]:
-                            connected_to_output.append(
-                                nuke.toNode(dep_n.name()))
-                    if connected_to_output:
-                        output_node = n.name()
-
-                # get original input connection
-                inputs = dict()
-                for n in nodes:
-                    connected_to_inputs = list()
-                    ln_n = n.input(0)
-                    if not ln_n:
-                        continue
-                    if ln_n.name() not in [n.name() for n in nodes]:
-                        connected_to_inputs.append(
-                            nuke.toNode(ln_n.name()))
-                    if connected_to_inputs:
-                        inputs[n.name()] = connected_to_inputs
-
-                nuke.nodeCopy('%clipboard%')
-                nukescripts.misc.clear_selection_recursive()
-
-                # more nodes are sellected
-                # jump back from group if we are in any
-                nuke.endGroup()
-
-                # create group node as container for selected nodes
-                GN = nuke.createNode("Group")
-                GN["name"].setValue(self.name)
-
-                # adding content to the group node
-                with GN:
-                    nuke.nodePaste('%clipboard%')
-                    nodes_pasted = [n.name() for n in nuke.selectedNodes()]
-
-                    # input nodes solver (multiple input nodes)
-                    grp_inputs_lnk = dict()
-                    input_index = 0
-                    for i_node_name, inputs in inputs.items():
-                        input_node_name = "{}_input".format(i_node_name)
-                        now_node = nuke.toNode(i_node_name)
-                        input_node = nuke.createNode(
-                            "Input",
-                            input_node_name)
-                        now_node.setInput(0, input_node)
-                        grp_inputs_lnk[input_index] = inputs
-                        input_index += 1
-
-                    # out  put node solver (single output node)
-                    if output_node:
-                        last_node = nuke.toNode(output_node)
-                        out_node = nuke.createNode(
-                            "Output",
-                            "Output1")
-                        out_node.setInput(0, last_node)
-
-
-                # delete the originally selected nodes
-                for n in nodes:
-                    nuke.delete(n)
-
-                # connect group to inputs
-                # list with connected nodes
-                # list with group inputs
-                connected_to_inputs
-                input_node # name of node
-
-                # connect group to ouptut
-                # list with connected outputs
-                connected_to_output
-                output_node
-
+                bckd_node = autoBackdrop()
+                bckd_node["tile_color"].setValue(int(self.node_color, 16))
+                bckd_node["label"].setValue("[{}]".format(self.name))
                 # add avalon knobs
-                instance = lib.imprint(GN, self.data)
+                instance = lib.imprint(bckd_node, self.data)
 
                 return instance
             else:
-                nuke.message("Please select only one node")
+                nuke.message("Please select nodes you wish to add to container")
                 return
+        else:
+            bckd_node = autoBackdrop()
+            bckd_node["tile_color"].setValue(int(self.node_color, 16))
+            bckd_node["label"].setValue("[{}]".format(self.name))
+            # add avalon knobs
+            instance = lib.imprint(bckd_node, self.data)
+
+            return instance
 
 
 def ls():
