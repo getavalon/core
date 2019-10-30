@@ -42,8 +42,8 @@ __all__ = [
     "containerise",
 
     # Workfiles API
-    "open",
-    "save",
+    "open_file",
+    "save_file",
     "current_file",
     "has_unsaved_changes",
     "file_extensions",
