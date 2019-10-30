@@ -404,7 +404,7 @@ def show(debug=False, parent=None, use_context=False):
             module.window.refresh()
             return
         except RuntimeError as e:
-            if not e.message.rstrip().endswith("already deleted."):
+            if not str(e).rstrip().endswith("already deleted."):
                 raise
 
             # Garbage collected
