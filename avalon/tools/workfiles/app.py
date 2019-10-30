@@ -367,7 +367,8 @@ class Window(QtWidgets.QDialog):
             "\nDo you want to save the changes?"
         )
         self._messagebox.setStandardButtons(
-            self._messagebox.Yes | self._messagebox.No | self._messagebox.Cancel
+            self._messagebox.Yes | self._messagebox.No |
+            self._messagebox.Cancel
         )
         result = self._messagebox.exec_()
 
