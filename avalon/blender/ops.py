@@ -30,7 +30,7 @@ def _is_avalon_in_debug_mode() -> bool:
     try:
         # It says `strtobool` returns a bool, but it returns an int :/
         return bool(strtobool(os.environ.get('AVALON_DEBUG', "False")))
-    except:
+    except (ValueError, AttributeError):
         # If it can't logically be converted to a bool, assume it's False.
         return False
 
@@ -245,7 +245,6 @@ class LaunchLoader(LaunchQtApp):
     bl_label = "Load..."
 
     def execute(self, context):
-        from .. import style
         from ..tools import loader
         self._window = loader
         if self._window.app.window is not None:

@@ -9,30 +9,6 @@ from ..lib import logger
 from . import pipeline
 
 
-# TODO (jasper): Remove this function when everyting runs fine with the new way
-# of calling the Qt apps.
-def get_selected() -> List[bpy.types.Object]:
-    """Return the currently selected objects in the current view layer.
-
-    Note:
-        It may seem trivial in Blender to use bpy.context.selected_objects
-        however the context may vary on how the code is being run and the
-        `selected_objects` might not be available. So this function queries
-        it explicitly from the current view layer.
-
-    See:
-        https://blender.stackexchange.com/questions/36281/bpy-context-selected-objects-context-object-has-no-attribute-selected-objects
-
-    Returns:
-        The selected objects.
-
-    """
-    # Note that in Blender 2.8+ the code to see if an object is selected is
-    # object.select_get() as opposed to the object.select getter property
-    # it was before.
-    return [obj for obj in bpy.context.view_layer.objects if obj.select_get()]
-
-
 def imprint(node: bpy.types.bpy_struct_meta_idprop, data: Dict):
     r"""Write `data` to `node` as userDefined attributes
 
@@ -75,7 +51,8 @@ def imprint(node: bpy.types.bpy_struct_meta_idprop, data: Dict):
     pipeline.metadata_update(node, imprint_data)
 
 
-def lsattr(attr: str, value: Union[str, int, bool, List, Dict, None] = None) -> List:
+def lsattr(attr: str,
+           value: Union[str, int, bool, List, Dict, None] = None) -> List:
     r"""Return nodes matching `attr` and `value`
 
     Arguments:
@@ -112,14 +89,18 @@ def lsattrs(attrs: Dict) -> List:
     # For now return all objects, not filtered by scene/collection/view_layer.
     matches = set()
     for coll in dir(bpy.data):
-        if not isinstance(getattr(bpy.data, coll), bpy.types.bpy_prop_collection):
+        if not isinstance(
+                getattr(bpy.data, coll),
+                bpy.types.bpy_prop_collection,
+        ):
             continue
         for node in getattr(bpy.data, coll):
             for attr, value in attrs.items():
                 avalon_prop = node.get(pipeline.AVALON_PROPERTY)
                 if not avalon_prop:
                     continue
-                if avalon_prop.get(attr) and (value is None or avalon_prop.get(attr) == value):
+                if avalon_prop.get(attr) and (value is None or
+                                              avalon_prop.get(attr) == value):
                     matches.add(node)
     return list(matches)
 
@@ -129,7 +110,10 @@ def read(node: bpy.types.bpy_struct_meta_idprop):
     data = dict(node.get(pipeline.AVALON_PROPERTY))
 
     # Ignore hidden/internal data
-    data = {key: value for key, value in data.items() if not key.startswith("_")}
+    data = {
+        key: value
+        for key, value in data.items() if not key.startswith("_")
+    }
 
     return data
 
@@ -162,7 +146,6 @@ def maintained_selection():
                     # the context.
                     logger.exception("Failed to reselect")
                     continue
-
         try:
             bpy.context.view_layer.objects.active = previous_active
         except ReferenceError:

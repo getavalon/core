@@ -150,9 +150,19 @@ def reload_pipeline(*args):
 
     api.uninstall()
 
-    for module in ("avalon.io", "avalon.lib", "avalon.pipeline", "avalon.blender.pipeline",
-                   "avalon.blender.lib", "avalon.tools.loader.app", "avalon.tools.creator.app",
-                   "avalon.tools.manager.app", "avalon.api", "avalon.tools", "avalon.blender"):
+    for module in (
+            "avalon.io",
+            "avalon.lib",
+            "avalon.pipeline",
+            "avalon.blender.pipeline",
+            "avalon.blender.lib",
+            "avalon.tools.loader.app",
+            "avalon.tools.creator.app",
+            "avalon.tools.manager.app",
+            "avalon.api",
+            "avalon.tools",
+            "avalon.blender",
+    ):
         module = importlib.import_module(module)
         importlib.reload(module)
 
@@ -273,7 +283,8 @@ def containerise_existing(container: bpy.types.Collection,
                           namespace: str,
                           context: Dict,
                           loader: Optional[str] = None,
-                          suffix: Optional[str] = "CON") -> bpy.types.Collection:
+                          suffix: Optional[str] = "CON"
+                          ) -> bpy.types.Collection:
     """Imprint or update container with metadata.
 
     Arguments:
@@ -307,7 +318,8 @@ def containerise_existing(container: bpy.types.Collection,
     return container
 
 
-def parse_container(container: bpy.types.Collection, validate: bool = True) -> Dict:
+def parse_container(container: bpy.types.Collection,
+                    validate: bool = True) -> Dict:
     """Return the container node's full container data.
 
     Args:
@@ -374,18 +386,16 @@ def update_hierarchy(containers):
 
     for container in containers:
         # Find parent
-        # FIXME (jasperge): re-evaluate this. How would it be possible to
-        # 'nest' assets? What is container["objectName"] and where does it come
-        # from?
-        # Collections can have several parents, for now assume it has only 1 parent
-        parent = [coll for coll in bpy.data.collections if container in coll.children]
+        # FIXME (jasperge): re-evaluate this. How would it be possible
+        # to 'nest' assets?  Collections can have several parents, for
+        # now assume it has only 1 parent
+        parent = [
+            coll for coll in bpy.data.collections if container in coll.children
+        ]
         for node in parent:
             if node in all_containers:
                 container["parent"] = node
                 break
-
-        # List children
-        # children = [child for child in container.children if child in all_containers]
 
         logger.debug("Container: %s", container)
 
@@ -418,4 +428,7 @@ class Loader(api.Loader):
 
     def __init__(self, context):
         super().__init__(context)
-        self.fname = self.fname.replace(api.registered_root(), "$AVALON_PROJECTS")
+        self.fname = self.fname.replace(
+            api.registered_root(),
+            "$AVALON_PROJECTS",
+        )
