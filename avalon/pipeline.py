@@ -708,7 +708,10 @@ def _validate_signature(module, signatures):
 
         else:
             attr = getattr(module, member)
-            signature = inspect.getargspec(attr)[0]
+            if sys.version_info.major >= 3:
+                signature = inspect.getfullargspec(attr)[0]
+            else:
+                signature = inspect.getargspec(attr)[0]
             required_signature = signatures[member]
 
             assert isinstance(signature, list)
