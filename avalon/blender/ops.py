@@ -330,7 +330,9 @@ class TOPBAR_MT_avalon(bpy.types.Menu):
         else:
             pyblish_menu_icon_id = 0
 
-        context_label = f"{api.Session['AVALON_ASSET']}, {api.Session['AVALON_TASK']}"
+        asset = api.Session['AVALON_ASSET']
+        task = api.Session['AVALON_TASK']
+        context_label = f"{asset}, {task}"
         layout.operator(LaunchContextManager.bl_idname, text=context_label)
         layout.separator()
         layout.operator(LaunchCreator.bl_idname, text="Create...")

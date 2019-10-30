@@ -81,6 +81,7 @@ def _on_task_changed(*args):
     # https://docs.blender.org/api/blender2.8/bpy.types.Operator.html#calling-a-file-selector
     # https://docs.blender.org/api/blender2.8/bpy.types.WindowManager.html#bpy.types.WindowManager.fileselect_add
     workdir = api.Session["AVALON_WORKDIR"]
+    logger.debug("New working directory: %s", workdir)
 
 
 def _register_events():
