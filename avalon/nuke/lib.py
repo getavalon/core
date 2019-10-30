@@ -3,44 +3,64 @@ import contextlib
 import nuke
 import re
 import logging
-import clique
+from ..vendor import (six, clique)
 
 log = logging.getLogger(__name__)
 
 
 @contextlib.contextmanager
 def maintained_selection():
+    """Maintain selection during context
+
+    Example:
+        >>> with maintained_selection():
+        ...     node['selected'].setValue(True)
+        >>> print(node['selected'].value())
+        False
+    """
     nodes = nuke.allNodes()
-    previous_selection = [n.name()
-                          for n in nodes
-                          if n['selected'].value() is True]
+    previous_selection = nuke.selectedNodes()
     try:
         yield
     finally:
         # unselect all selection in case there is some
-        [n['selected'].setValue(False) for n in nodes]
+        reset_selection()
         # and select all previously selected nodes
         if previous_selection:
-            [n['selected'].setValue(True)
-             for n in nodes
-             if n.name() in previous_selection]
+            for n in nodes:
+                if n.name() not in previous_selection:
+                    continue
+                n['selected'].setValue(True)
 
 
 def reset_selection():
-    nodes = nuke.allNodes()
-    [n['selected'].setValue(False) for n in nodes]
+    """Deselect all selected nodes
+    """
+    for node in nuke.selectedNodes():
+        node['selected'] = False
 
 
 def select_nodes(nodes):
+    """Selects all inputed nodes
+
+    Arguments:
+        nodes (list): nuke nodes to be selected
+    """
     assert isinstance(nodes, (list, tuple)), "nodes has to be list or tuple"
-    [n['selected'].setValue(True) for n in nodes]
+
+    for node in nodes:
+        node['selected'].setValue(True)
 
 
 def add_publish_knob(node):
-    '''
-    knob.setFlag(nuke.STARTLINE)
-    knob.clearFlag(nuke.STARTLINE)
-    '''
+    """Add Publish knob to node
+
+    Arguments:
+        node (obj): nuke node to be processed
+
+    Returns:
+        node (obj): processed nuke node
+    """
     if "publish" not in node.knobs():
         divider = nuke.Text_Knob('')
         knob = nuke.Boolean_Knob("publish", "Publish", True)
@@ -50,7 +70,7 @@ def add_publish_knob(node):
     return node
 
 
-def set_avalon_knob_data(node, data={}, prefix="ak:"):
+def set_avalon_knob_data(node, data={}, prefix="avalon:"):
     """ Sets a data into nodes's avalon knob
 
     Arguments:
@@ -127,17 +147,31 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
         return False
 
 
-def get_avalon_knob_data(node, prefix="ak:"):
+def get_avalon_knob_data(node, prefix="avalon:"):
+    """ Gets a data from nodes's avalon knob
+
+    Arguments:
+        node (obj): Nuke node to search for data,
+        prefix (str, optional): filtering prefix
+
+    Returns:
+        data (dict)
+    """
     try:
-        raw_text_data = node['avalon_data'].value()
-    except Exception as e:
+        # check if data available on the node
+        test = node['avalon_data'].value()
+        log.debug("Only testing if data avalable: `{}`".format(test))
+    except NameError as e:
+        # if it doesn't then create it
         log.debug("Creating avalon knob: `{}`".format(e))
         node = set_avalon_knob_data(node)
         return get_avalon_knob_data(node)
 
+    # get data from filtered knobs
     data = {k.replace(prefix, ''): node[k].value()
             for k in node.knobs().keys()
             if prefix in k}
+
     return data
 
 
@@ -146,8 +180,11 @@ def imprint(node, data):
     also including publish knob
 
     Arguments:
-        node (list or obj): A nuke's node object either in list or individual
-        data (list of dict): Any data which needst to be imprinted
+        node (obj): A nuke's node object
+        data (dict): Any data which needst to be imprinted
+
+    Returns:
+        node (obj)
 
     Examples:
         data = {
@@ -156,29 +193,31 @@ def imprint(node, data):
             'subset': 'subsetMain'
         }
     """
-    if not node:
-        return
-    if isinstance(node, list):
-        node = node[0]
-
-    node = set_avalon_knob_data(node, data)
-    node = add_publish_knob(node)
-
-    return node
+    return add_publish_knob(
+        set_avalon_knob_data(node, data)
+    )
 
 
 def ls_img_sequence(path):
+    """Listing all available coherent image sequence from path
 
+    Arguments:
+        path (str): A nuke's node object
+
+    Returns:
+        data (dict): with nuke formated path and frameranges
+    """
     file = os.path.basename(path)
     dir = os.path.dirname(path)
     base, ext = os.path.splitext(file)
     name, padding = os.path.splitext(base)
 
-
+    # populate list of files
     files = [f for f in os.listdir(dir)
              if name in f
              if ext in f]
 
+    # create collection from list of files
     collections, reminder = clique.assemble(files)
 
     if len(collections) > 0:
@@ -195,23 +234,26 @@ def ls_img_sequence(path):
 
 
 def fix_data_for_node_create(data):
+    """Fixing data to be used for nuke knobs
+    """
     for k, v in data.items():
-        try:
-            if isinstance(v, unicode):
-                data[k] = str(v)
-        except Exception:
+        if isinstance(v, six.text_type):
             data[k] = str(v)
-
-        # if "True" in str(v):
-        #     data[k] = True
-        # if "False" in str(v):
-        #     data[k] = False
-        if "0x" in str(v):
+        elif str(v).startswith("0x"):
             data[k] = int(v, 16)
     return data
 
 
 def add_write_node(name, **kwarg):
+    """Adding nuke write node
+
+    Arguments:
+        name (str): nuke node name
+        kwarg (attrs): data for nuke knobs
+
+    Returns:
+        node (obj): nuke write node
+    """
     frame_range = kwarg.get("frame_range", None)
 
     w = nuke.createNode(
@@ -235,33 +277,33 @@ def add_write_node(name, **kwarg):
         w["first"].setValue(frame_range[0])
         w["last"].setValue(frame_range[1])
 
-    log.info(w)
     return w
 
 
 def get_node_path(path, padding=4):
     """Get filename for the Nuke write with padded number as '#'
 
-    >>> get_frame_path("test.exr")
-    ('test', 4, '.exr')
-
-    >>> get_frame_path("filename.#####.tif")
-    ('filename.', 5, '.tif')
-
-    >>> get_frame_path("foobar##.tif")
-    ('foobar', 2, '.tif')
-
-    >>> get_frame_path("foobar_%08d.tif")
-    ('foobar_', 8, '.tif')
-
-    Args:
+    Arguments:
         path (str): The path to render to.
 
     Returns:
         tuple: head, padding, tail (extension)
 
+    Examples:
+        >>> get_frame_path("test.exr")
+        ('test', 4, '.exr')
+
+        >>> get_frame_path("filename.#####.tif")
+        ('filename.', 5, '.tif')
+
+        >>> get_frame_path("foobar##.tif")
+        ('foobar', 2, '.tif')
+
+        >>> get_frame_path("foobar_%08d.tif")
+        ('foobar_', 8, '.tif')
     """
     filename, ext = os.path.splitext(path)
+
     # Find a final number group
     if '%' in filename:
         match = re.match('.*?(%[0-9]+d)$', filename)
