@@ -38,7 +38,7 @@ class InventoryModel(TreeModel):
 
         if role == QtCore.Qt.FontRole:
             # Make top-level entries bold
-            if item.get("isGroupNode"):  # group-item
+            if item.get("isGroupNode") or item.get("isNotSet"):  # group-item
                 font = QtGui.QFont()
                 font.setBold(True)
                 return font
@@ -80,6 +80,8 @@ class InventoryModel(TreeModel):
                 color = item.get("color", style.colors.default)
                 if item.get("isGroupNode"):  # group-item
                     return qtawesome.icon("fa.folder", color=color)
+                elif item.get("isNotSet"):
+                    return qtawesome.icon("fa.exclamation-circle", color=color)
                 else:
                     return qtawesome.icon("fa.file-o", color=color)
 
@@ -210,20 +212,75 @@ class InventoryModel(TreeModel):
         self.beginResetModel()
 
         # Group by representation
-        grouped = defaultdict(list)
+        grouped = defaultdict(lambda: {"items": list()})
         for item in items:
-            grouped[item["representation"]].append(item)
+            grouped[item["representation"]]["items"].append(item)
 
         # Add to model
-        for representation_id, group_items in sorted(grouped.items()):
-
+        not_found = defaultdict(list)
+        not_found_ids = []
+        for repre_id, group_dict in sorted(grouped.items()):
+            group_items = group_dict["items"]
             # Get parenthood per group
-            representation = io.find_one({
-                "_id": io.ObjectId(representation_id)
-            })
+            representation = io.find_one({"_id": io.ObjectId(repre_id)})
+            if not representation:
+                not_found["representation"].append(group_items)
+                not_found_ids.append(repre_id)
+                continue
+
             version = io.find_one({"_id": representation["parent"]})
+            if not version:
+                not_found["version"].append(group_items)
+                not_found_ids.append(repre_id)
+                continue
+
             subset = io.find_one({"_id": version["parent"]})
+            if not subset:
+                not_found["subset"].append(group_items)
+                not_found_ids.append(repre_id)
+                continue
+
             asset = io.find_one({"_id": subset["parent"]})
+            if not asset:
+                not_found["asset"].append(group_items)
+                not_found_ids.append(repre_id)
+                continue
+
+            grouped[repre_id].update({
+                "representation": representation,
+                "version": version,
+                "subset": subset,
+                "asset": asset
+            })
+
+        for id in not_found_ids:
+            grouped.pop(id)
+
+        for where, group_items in not_found.items():
+            # create the group header
+            group_node = Item()
+            name = "< NOT FOUND - {} >".format(where)
+            group_node["Name"] = name
+            group_node["representation"] = name
+            group_node["count"] = len(group_items)
+            group_node["isGroupNode"] = False
+            group_node["isNotSet"] = True
+
+            self.add_child(group_node, parent=parent)
+
+            for items in group_items:
+                item_node = Item()
+                item_node["Name"] = ", ".join(
+                    [item["objectName"] for item in items]
+                )
+                self.add_child(item_node, parent=group_node)
+
+        for repre_id, group_dict in sorted(grouped.items()):
+            group_items = group_dict["items"]
+            representation = grouped[repre_id]["representation"]
+            version = grouped[repre_id]["version"]
+            subset = grouped[repre_id]["subset"]
+            asset = grouped[repre_id]["asset"]
 
             # Get the primary family
             no_family = ""
@@ -253,7 +310,7 @@ class InventoryModel(TreeModel):
             group_node["Name"] = "%s_%s: (%s)" % (asset["name"],
                                                   subset["name"],
                                                   representation["name"])
-            group_node["representation"] = representation_id
+            group_node["representation"] = repre_id
             group_node["version"] = version["name"]
             group_node["highest_version"] = highest_version["name"]
             group_node["family"] = family
