@@ -50,6 +50,7 @@ def _register_callbacks():
 
     def _remove_handler(handlers: List, callback: Callable):
         """Remove the callback from the given handler list."""
+
         try:
             handlers.remove(callback)
         except ValueError:
@@ -73,6 +74,7 @@ def _register_callbacks():
 
 def _on_task_changed(*args):
     """Callback for when the task in the context is changed."""
+
     # TODO (jasper): Blender has no concept of projects or workspace.
     # It would be nice to override 'bpy.ops.wm.open_mainfile' so it takes the
     # workdir as starting directory.  But I don't know if that is possible.
@@ -86,6 +88,7 @@ def _on_task_changed(*args):
 
 def _register_events():
     """Install callbacks for specific events."""
+
     api.on("taskChanged", _on_task_changed)
     logger.info("Installed event callback for 'taskChanged'...")
 
@@ -190,6 +193,7 @@ def _discover_gui() -> Optional[Callable]:
 
 def teardown():
     """Remove integration"""
+
     if not self._has_been_setup:
         return
 
@@ -199,6 +203,7 @@ def teardown():
 
 def add_to_avalon_container(container: bpy.types.Collection):
     """Add the container to the Avalon container."""
+
     avalon_container = bpy.data.collections.get(AVALON_CONTAINERS)
     if not avalon_container:
         avalon_container = bpy.data.collections.new(name=AVALON_CONTAINERS)
@@ -223,6 +228,7 @@ def metadata_update(node: bpy.types.bpy_struct_meta_idprop, data: Dict):
 
     Existing metadata will be updated.
     """
+
     if not node.get(AVALON_PROPERTY):
         node[AVALON_PROPERTY] = dict()
     for key, value in data.items():
@@ -254,6 +260,7 @@ def containerise(name: str,
         The container assembly
 
     """
+
     node_name = f"{context['asset']['name']}_{name}"
     if namespace:
         node_name = f"{namespace}:{node_name}"
@@ -298,6 +305,7 @@ def containerise_existing(container: bpy.types.Collection,
     Returns:
         The container assembly
     """
+
     node_name = container.name
     if namespace:
         node_name = f"{namespace}:{node_name}"
@@ -331,6 +339,7 @@ def parse_container(container: bpy.types.Collection,
         The container schema data for this container node.
 
     """
+
     data = lib.read(container)
 
     # Append transient data
@@ -353,6 +362,7 @@ def ls() -> Iterator:
     disk, it lists assets already loaded in Blender; once loaded they are
     called containers.
     """
+
     containers = _ls()
 
     has_metadata_collector = False
@@ -383,6 +393,7 @@ def update_hierarchy(containers):
     We need both parent and children to visualize the graph.
 
     """
+
     all_containers = set(_ls())  # lookup set
 
     for container in containers:
@@ -405,6 +416,7 @@ def update_hierarchy(containers):
 
 def publish():
     """Shorthand to publish from within host."""
+
     return pyblish.util.publish()
 
 
@@ -425,6 +437,7 @@ class Creator(api.Creator):
 
 class Loader(api.Loader):
     """Base class for Loader plug-ins."""
+
     hosts = ["blender"]
 
     def __init__(self, context):

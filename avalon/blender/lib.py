@@ -30,7 +30,6 @@ def imprint(node: bpy.types.bpy_struct_meta_idprop, data: Dict):
         ...
         >>> cube['avalon']['computedValue']
         6
-
     """
 
     imprint_data = dict()
@@ -69,6 +68,7 @@ def lsattr(attr: str,
     Returns:
         list
     """
+
     return lsattrs({attr: value})
 
 
@@ -86,6 +86,7 @@ def lsattrs(attrs: Dict) -> List:
     Returns a list.
 
     """
+
     # For now return all objects, not filtered by scene/collection/view_layer.
     matches = set()
     for coll in dir(bpy.data):
@@ -99,14 +100,15 @@ def lsattrs(attrs: Dict) -> List:
                 avalon_prop = node.get(pipeline.AVALON_PROPERTY)
                 if not avalon_prop:
                     continue
-                if avalon_prop.get(attr) and (value is None or
-                                              avalon_prop.get(attr) == value):
+                if (avalon_prop.get(attr)
+                        and (value is None or avalon_prop.get(attr) == value)):
                     matches.add(node)
     return list(matches)
 
 
 def read(node: bpy.types.bpy_struct_meta_idprop):
     """Return user-defined attributes from `node`"""
+
     data = dict(node.get(pipeline.AVALON_PROPERTY))
 
     # Ignore hidden/internal data

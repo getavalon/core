@@ -13,20 +13,13 @@ import bpy.utils.previews
 
 import avalon.api as api
 from avalon.vendor.Qt import QtCore, QtWidgets
-from avalon.vendor.Qt.QtWidgets import (
-    QApplication,
-    QDialog,
-    QHBoxLayout,
-    QLabel,
-    QPushButton,
-    QVBoxLayout,
-)
 
 preview_collections: Dict = dict()
 
 
 def _is_avalon_in_debug_mode() -> bool:
     """Check if Avalon is in debug mode."""
+
     try:
         # It says `strtobool` returns a bool, but it returns an int :/
         return bool(strtobool(os.environ.get('AVALON_DEBUG', "False")))
@@ -35,44 +28,54 @@ def _is_avalon_in_debug_mode() -> bool:
         return False
 
 
-class Example(QDialog):
-    """Silly window with quit button."""
+class TestApp(QtWidgets.QDialog):
+    """A simple test app to check if a Qt app runs fine in Blender.
 
+    Is Blender still responsive when the app is visible?
+    Is the Blender context available from within the app?
+    """
     def __init__(self):
         super().__init__()
         self.init_ui()
 
     def init_ui(self):
-        """The UI for this silly window."""
+        """The UI for this test app."""
 
-        bpybtn = QPushButton('Print bpy.context', self)
+        bpybtn = QtWidgets.QPushButton('Print bpy.context', self)
         bpybtn.clicked.connect(self.print_bpy_context)
 
-        activebtn = QPushButton('Print Active Object', self)
+        activebtn = QtWidgets.QPushButton('Print Active Object', self)
         activebtn.clicked.connect(self.print_active)
 
-        selectedbtn = QPushButton('Print Selected Objects', self)
+        selectedbtn = QtWidgets.QPushButton('Print Selected Objects', self)
         selectedbtn.clicked.connect(self.print_selected)
 
-        qbtn = QPushButton('Quit', self)
+        qbtn = QtWidgets.QPushButton('Quit', self)
         qbtn.clicked.connect(self.close)
 
-        vbox = QVBoxLayout(self)
+        vbox = QtWidgets.QVBoxLayout(self)
 
-        hbox_output = QHBoxLayout()
-        self.label = QLabel('')
-        size_policy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed,
-                                            QtWidgets.QSizePolicy.Preferred)
+        hbox_output = QtWidgets.QHBoxLayout()
+        self.label = QtWidgets.QLabel('')
+        size_policy = QtWidgets.QSizePolicy(
+            QtWidgets.QSizePolicy.Fixed,
+            QtWidgets.QSizePolicy.Preferred,
+        )
         self.label.setSizePolicy(size_policy)
         self.label.setMinimumSize(QtCore.QSize(100, 0))
-        self.label.setAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTrailing
-                                | QtCore.Qt.AlignVCenter)
+        # yapf: disable
+        self.label.setAlignment(
+            QtCore.Qt.AlignRight |
+            QtCore.Qt.AlignTrailing |
+            QtCore.Qt.AlignVCenter
+        )
+        # yapf: enable
         hbox_output.addWidget(self.label)
-        self.outputlabel = QLabel('')
+        self.outputlabel = QtWidgets.QLabel('')
         hbox_output.addWidget(self.outputlabel)
         vbox.addLayout(hbox_output)
 
-        hbox_buttons = QHBoxLayout()
+        hbox_buttons = QtWidgets.QHBoxLayout()
         hbox_buttons.addWidget(bpybtn)
         hbox_buttons.addWidget(activebtn)
         hbox_buttons.addWidget(selectedbtn)
@@ -83,7 +86,8 @@ class Example(QDialog):
         self.setWindowTitle('Blender Qt test')
 
     def print_bpy_context(self):
-        """Print `bpy.context` console and UI."""
+        """Print `bpy.context` to the console and UI."""
+
         context_string = pformat(bpy.context.copy(), indent=2)
         print(f"Context: {context_string}")
         self.label.setText('Context:')
@@ -96,7 +100,8 @@ class Example(QDialog):
         self.outputlabel.setText(limited_context_string)
 
     def print_active(self):
-        """Print the active object to console and UI."""
+        """Print the active object to the console and UI."""
+
         context = bpy.context.copy()
         if context.get('object'):
             objname = context['object'].name
@@ -107,7 +112,8 @@ class Example(QDialog):
         self.outputlabel.setText(objname)
 
     def print_selected(self):
-        """Print the selected objects to console and UI."""
+        """Print the selected objects to the console and UI."""
+
         context = bpy.context.copy()
         if context.get('selected_objects'):
             selected_list = [obj.name for obj in context['selected_objects']]
@@ -304,7 +310,7 @@ class LaunchWorkFiles(LaunchQtApp):
         return super().execute(context)
 
 
-class TestApp(LaunchQtApp):
+class LaunchTestApp(LaunchQtApp):
     """Launch a simple test app."""
 
     bl_idname = "wm.avalon_test_app"
@@ -312,7 +318,7 @@ class TestApp(LaunchQtApp):
 
     def execute(self, context):
         from .. import style
-        self._window = Example()
+        self._window = TestApp()
         self._window.setStyleSheet(style.load_stylesheet())
         return super().execute(context)
 
@@ -325,6 +331,7 @@ class TOPBAR_MT_avalon(bpy.types.Menu):
 
     def draw(self, context):
         """Draw the menu in the UI."""
+
         layout = self.layout
 
         pcoll = preview_collections.get("avalon")
@@ -351,13 +358,14 @@ class TOPBAR_MT_avalon(bpy.types.Menu):
         layout.operator(LaunchWorkFiles.bl_idname, text="Work Files...")
         if _is_avalon_in_debug_mode():
             layout.separator()
-            layout.operator(TestApp.bl_idname, text="Test App...")
+            layout.operator(LaunchTestApp.bl_idname, text="Test App...")
         # TODO (jasper): maybe add 'Reload Pipeline', 'Reset Frame Range' and
-        # 'Reset Resolution'?
+        #                'Reset Resolution'?
 
 
 def draw_avalon_menu(self, context):
     """Draw the Avalon menu in the top bar."""
+
     self.layout.menu(TOPBAR_MT_avalon.bl_idname)
 
 
@@ -371,12 +379,13 @@ classes = [
 ]
 if _is_avalon_in_debug_mode():
     # Enable the test app in debug mode
-    classes.append(TestApp)
+    classes.append(LaunchTestApp)
 classes.append(TOPBAR_MT_avalon)
 
 
 def register():
     "Register the operators and menu."
+
     pcoll = bpy.utils.previews.new()
     pyblish_icon_file = Path(__file__).parent / "icons" / "pyblish-32x32.png"
     pcoll.load("pyblish_menu_icon", str(pyblish_icon_file.absolute()), 'IMAGE')
