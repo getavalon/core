@@ -239,7 +239,7 @@ def fix_data_for_node_create(data):
     for k, v in data.items():
         if isinstance(v, six.text_type):
             data[k] = str(v)
-        elif str(v).startswith("0x"):
+        if str(v).startswith("0x"):
             data[k] = int(v, 16)
     return data
 
