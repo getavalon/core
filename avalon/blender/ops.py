@@ -127,8 +127,8 @@ class Example(QDialog):
 class LaunchQtApp(bpy.types.Operator):
     """A Base class for opertors to launch a Qt app."""
 
-    _app: Optional[QApplication]
-    _window: Optional[Union[QDialog, ModuleType]]
+    _app: Optional[QtWidgets.QApplication]
+    _window: Optional[Union[QtWidgets.QDialog, ModuleType]]
     _timer: Optional[bpy.types.Timer]
     _show_args: Optional[List]
     _show_kwargs: Optional[Dict]
@@ -136,21 +136,23 @@ class LaunchQtApp(bpy.types.Operator):
     def __init__(self):
         from .. import style
         print(f"Initialising {self.bl_idname}...")
-        self._app = QApplication.instance() or QApplication(sys.argv)
+        self._app = (QtWidgets.QApplication.instance()
+                     or QtWidgets.QApplication(sys.argv))
         self._app.setStyleSheet(style.load_stylesheet())
 
     def _is_window_visible(self) -> bool:
         """Check if the window of the app is visible.
 
-        If `self._window` is an instance of `QDialog`, simply return
+        If `self._window` is an instance of `QtWidgets.QDialog`, simply return
         `self._window.isVisible()`. If `self._window` is a module check
         if it has `self._window.app.window` and if so, return `isVisible()`
         on that.
         Else return False, because we don't know how to check if the
         window is visible.
         """
-        window: Optional[QDialog] = None
-        if isinstance(self._window, QDialog):
+
+        window: Optional[QtWidgets.QDialog] = None
+        if isinstance(self._window, QtWidgets.QDialog):
             window = self._window
         if isinstance(self._window, ModuleType):
             try:
@@ -193,9 +195,11 @@ class LaunchQtApp(bpy.types.Operator):
         """
 
         # Check if `self._window` is properly set
-        if (getattr(self, "_window") is None
-                or not isinstance(self._window, (QDialog, ModuleType))):
+        if getattr(self, "_window") is None:
             raise AttributeError("`self._window` should be set.")
+        if not isinstance(self._window, (QtWidgets.QDialog, ModuleType)):
+            raise AttributeError(
+                "`self._window` should be a `QDialog or module`.")
 
         args = getattr(self, "_show_args", list())
         kwargs = getattr(self, "_show_kwargs", dict())
@@ -385,6 +389,7 @@ def register():
 
 def unregister():
     """Unregister the operators and menu."""
+
     pcoll = preview_collections.pop("avalon")
     bpy.utils.previews.remove(pcoll)
     bpy.types.TOPBAR_MT_editor_menus.remove(draw_avalon_menu)
