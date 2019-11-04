@@ -70,7 +70,7 @@ def add_publish_knob(node):
     return node
 
 
-def set_avalon_knob_data(node, data={}, prefix="avalon:"):
+def set_avalon_knob_data(node, data={}, prefix="ak:"):
     """ Sets a data into nodes's avalon knob
 
     Arguments:
@@ -147,7 +147,7 @@ def set_avalon_knob_data(node, data={}, prefix="avalon:"):
         return False
 
 
-def get_avalon_knob_data(node, prefix="avalon:"):
+def get_avalon_knob_data(node, prefix="ak:"):
     """ Gets a data from nodes's avalon knob
 
     Arguments:
