@@ -64,7 +64,7 @@ def validate(data, schema=None):
 if sys.version_info[0] == 3:
     basestring = str
 
-if os.environ['AVALON_SCHEMA']:
+if os.environ.get('AVALON_SCHEMA'):
     _SCHEMA_DIR = os.environ['AVALON_SCHEMA']
 else:
     _MODULE_DIR = os.path.dirname(__file__)

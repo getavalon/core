@@ -8,10 +8,22 @@ from .lib import (
     add_publish_knob,
     ls_img_sequence,
     maintained_selection,
-    get_node_path
+    get_node_path,
+    get_avalon_knob_data,
+    set_avalon_knob_data,
+    imprint
 )
+
+from .workio import (
+    file_extensions,
+    has_unsaved_changes,
+    save_file,
+    open_file,
+    current_file,
+    work_root,
+)
+
 from .pipeline import (
-    reload_pipeline,
     install,
     uninstall,
 
@@ -23,8 +35,11 @@ from .pipeline import (
     containerise,
     parse_container,
     update_container,
+    get_handles,
 
+    # Experimental
     viewer_update_and_undo_stop,
+    reload_pipeline,
 )
 
 __all__ = [
@@ -40,12 +55,28 @@ __all__ = [
     "containerise",
     "parse_container",
     "update_container",
+    "get_handles",
 
+    # Experimental
     "viewer_update_and_undo_stop",
 
+    "imprint",
+    "get_avalon_knob_data",
+    "set_avalon_knob_data",
     "add_publish_knob",
     "ls_img_sequence",
     "maintained_selection",
     "get_node_path",
 
+    # Workfiles API
+    "open",
+    "save",
+    "current_file",
+    "has_unsaved_changes",
+    "file_extensions",
+    "work_root"
 ]
+
+# Backwards API compatibility
+open = open_file
+save = save_file

@@ -80,13 +80,13 @@ DEFAULTS = {
         "film": [
             {
                 "name": "shot1",
-                "edit_in": 1000,
-                "edit_out": 1143
+                "frameStart": 1000,
+                "frameEnd": 1143
             },
             {
                 "name": "shot2",
-                "edit_in": 1000,
-                "edit_out": 1081
+                "frameStart": 1000,
+                "frameEnd": 1081
             },
         ]
     }
@@ -222,9 +222,9 @@ def load(name):
         inventory = {"schema": "avalon-core:inventory-1.0"}
         for asset in io.find({"type": "asset", "parent": project["_id"]}):
             silo = asset["silo"]
-            if silo is None:
-                continue
             data = asset["data"]
+
+            data.pop("visualParent", None)  # Hide from manual editing
 
             if silo not in inventory:
                 inventory[silo] = list()
@@ -258,7 +258,9 @@ def _save_inventory_1_0(project_name, data):
             print("Separating project metadata: %s" % key)
             metadata[key] = data.pop(key)
 
-    document = io.find_one({"type": "project"})
+    _filter = {"type": "project"}
+
+    document = io.find_one(_filter)
     if document is None:
         print("'%s' not found, creating.." % project_name)
         _id = create_project(project_name)
@@ -269,7 +271,7 @@ def _save_inventory_1_0(project_name, data):
     for key, value in metadata.items():
         document["data"][key] = value
 
-    io.save(document)
+    io.replace_one(_filter, document)
 
     print("Updating assets..")
     added = list()
@@ -277,10 +279,13 @@ def _save_inventory_1_0(project_name, data):
     missing = list()
     for silo, assets in data.items():
         for asset in assets:
-            asset_doc = io.find_one({
+
+            _filter = {
                 "name": asset["name"],
                 "type": "asset",
-            })
+            }
+
+            asset_doc = io.find_one(_filter)
 
             if asset_doc is None:
                 asset["silo"] = silo
@@ -299,7 +304,7 @@ def _save_inventory_1_0(project_name, data):
                                                         asset_doc["data"][key],
                                                         value))
 
-            io.save(asset_doc)
+            io.replace_one(_filter, asset_doc)
 
     for data in missing:
         print("+ added %s" % data["name"])
@@ -318,7 +323,9 @@ def _save_inventory_1_0(project_name, data):
 
 
 def _save_config_1_0(project_name, data):
-    document = io.find_one({"type": "project"})
+    _filter = {"type": "project"}
+
+    document = io.find_one(_filter)
 
     config = document["config"]
 
@@ -326,10 +333,11 @@ def _save_config_1_0(project_name, data):
     config["tasks"] = data.get("tasks", [])
     config["template"].update(data.get("template", {}))
     config["families"] = data.get("families", [])
+    config["groups"] = data.get("groups", [])
 
     schema.validate(document)
 
-    io.save(document)
+    io.replace_one(_filter, document)
 
 
 def _report(added, updated):

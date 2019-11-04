@@ -15,7 +15,15 @@ from .pipeline import (
     get_current_comp,
     comp_lock_and_undo_chunk
 
+)
 
+from .workio import (
+    open_file,
+    save_file,
+    current_file,
+    has_unsaved_changes,
+    file_extensions,
+    work_root
 )
 
 from .lib import (
@@ -33,6 +41,18 @@ __all__ = [
     "get_current_comp",
     "comp_lock_and_undo_chunk",
 
+    # Workfiles API
+    "open_file",
+    "save_file",
+    "current_file",
+    "has_unsaved_changes",
+    "file_extensions",
+    "work_root",
+
     "maintained_selection"
 
 ]
+
+# Backwards API compatibility
+open = open_file
+save = save_file

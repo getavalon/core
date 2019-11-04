@@ -9,6 +9,15 @@ from .pipeline import (
 
 )
 
+from .workio import (
+    open_file,
+    save_file,
+    current_file,
+    has_unsaved_changes,
+    file_extensions,
+    work_root
+)
+
 from .lib import (
     lsattr,
     lsattrs,
@@ -28,11 +37,23 @@ __all__ = [
     "ls",
     "containerise",
 
-    # Utility functions
-    "maintained_selection",
+    # Workfiles API
+    "open_file",
+    "save_file",
+    "current_file",
+    "has_unsaved_changes",
+    "file_extensions",
+    "work_root",
 
+    # Utility functions
     "lsattr",
     "lsattrs",
     "read",
+
+    "maintained_selection",
     "unique_name"
 ]
+
+# Backwards API compatibility
+open = open_file
+save = save_file

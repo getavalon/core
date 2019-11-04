@@ -26,6 +26,15 @@ from .pipeline import (
 
 )
 
+from .workio import (
+    open_file,
+    save_file,
+    current_file,
+    has_unsaved_changes,
+    file_extensions,
+    work_root
+)
+
 from .lib import (
     export_alembic,
     lsattr,
@@ -61,6 +70,15 @@ __all__ = [
     "is_locked",
     "lock_ignored",
 
+    # Workfiles API
+    "open_file",
+    "save_file",
+    "current_file",
+    "has_unsaved_changes",
+    "file_extensions",
+    "work_root",
+
+    # Utility functions
     "export_alembic",
     "lsattr",
     "lsattrs",
@@ -75,3 +93,7 @@ __all__ = [
     "suspended_refresh",
 
 ]
+
+# Backwards API compatibility
+open = open_file
+save = save_file

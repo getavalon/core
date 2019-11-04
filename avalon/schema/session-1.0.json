@@ -1,5 +1,5 @@
 {
-    "$schema": "http://json-schema.org/schema#",
+    "$schema": "http://json-schema.org/draft-04/schema#",
 
     "title": "avalon-core:session-1.0",
     "description": "The Avalon environment",
@@ -51,6 +51,11 @@
             "type": "string",
             "pattern": "^\\w*$",
             "example": "polly"
+        },
+        "AVALON_WORKDIR": {
+            "description": "Current working directory of a host, such as Maya's location of workspace.mel",
+            "type": "string",
+            "example": "/mnt/projects/alita/assets/vector/maya"
         },
         "AVALON_APP": {
             "description": "Name of application",

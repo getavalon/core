@@ -29,16 +29,16 @@ creator.show()
             <scriptItem id="avalon_load">
                 <label>Load ..</label>
                 <scriptCode><![CDATA[
-from avalon.tools import cbloader
-cbloader.show(use_context=True)
+from avalon.tools import loader
+loader.show(use_context=True)
 ]]></scriptCode>
             </scriptItem>
 
             <scriptItem id="avalon_manage">
                 <label>Manage ..</label>
                 <scriptCode><![CDATA[
-from avalon.tools import cbsceneinventory
-cbsceneinventory.show()
+from avalon.tools import sceneinventory
+sceneinventory.show()
 ]]></scriptCode>
             </scriptItem>
 
@@ -49,6 +49,18 @@ import hou
 from avalon.tools import publish
 parent = hou.qt.mainWindow()
 publish.show(parent)
+                ]]></scriptCode>
+            </scriptItem>
+
+            <separatorItem/>
+
+            <scriptItem id="avalon_workfiles">
+                <label>Work Files ..</label>
+                <scriptCode><![CDATA[
+import hou
+from avalon.tools import workfiles
+#parent = hou.qt.mainWindow()
+workfiles.show()
                 ]]></scriptCode>
             </scriptItem>
 

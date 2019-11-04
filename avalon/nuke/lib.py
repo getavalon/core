@@ -3,50 +3,176 @@ import contextlib
 import nuke
 import re
 import logging
-import toml
+from ..vendor import (six, clique)
 
 log = logging.getLogger(__name__)
 
 
 @contextlib.contextmanager
 def maintained_selection():
+    """Maintain selection during context
+
+    Example:
+        >>> with maintained_selection():
+        ...     node['selected'].setValue(True)
+        >>> print(node['selected'].value())
+        False
+    """
     nodes = nuke.allNodes()
-    previous_selection = [n.name()
-                          for n in nodes
-                          if n['selected'].value() is True]
+    previous_selection = nuke.selectedNodes()
     try:
         yield
     finally:
         # unselect all selection in case there is some
-        [n['selected'].setValue(False) for n in nodes]
+        reset_selection()
         # and select all previously selected nodes
         if previous_selection:
-            [n['selected'].setValue(True)
-             for n in nodes
-             if n.name() in previous_selection]
+            for n in nodes:
+                if n.name() not in previous_selection:
+                    continue
+                n['selected'].setValue(True)
 
 
 def reset_selection():
-    nodes = nuke.allNodes()
-    [n['selected'].setValue(False) for n in nodes]
+    """Deselect all selected nodes
+    """
+    for node in nuke.selectedNodes():
+        node['selected'] = False
 
 
 def select_nodes(nodes):
+    """Selects all inputed nodes
+
+    Arguments:
+        nodes (list): nuke nodes to be selected
+    """
     assert isinstance(nodes, (list, tuple)), "nodes has to be list or tuple"
-    [n['selected'].setValue(True) for n in nodes]
+
+    for node in nodes:
+        node['selected'].setValue(True)
 
 
-def add_avalon_tab_knob(node):
-    """Adding a tab and a knob into a node
+def add_publish_knob(node):
+    """Add Publish knob to node
+
+    Arguments:
+        node (obj): nuke node to be processed
+
+    Returns:
+        node (obj): processed nuke node
+    """
+    if "publish" not in node.knobs():
+        divider = nuke.Text_Knob('')
+        knob = nuke.Boolean_Knob("publish", "Publish", True)
+        knob.setFlag(0x1000)
+        node.addKnob(divider)
+        node.addKnob(knob)
+    return node
+
+
+def set_avalon_knob_data(node, data={}, prefix="ak:"):
+    """ Sets a data into nodes's avalon knob
+
+    Arguments:
+        node (obj): Nuke node to imprint with data,
+        data ( dict): Data to be imprinted into AvalonTab
+        prefix (str, optional): filtering prefix
+
+    Returns:
+        node (obj)
+
+    Examples:
+        data = {
+            'asset': 'sq020sh0280',
+            'family': 'render',
+            'subset': 'subsetMain'
+        }
+    """
+    knobs = [
+        {"name": 'AvalonTab', "value": '', "type": "Tab_Knob"},
+        {"name": 'begin', "value": 'Avalon data group',
+         "type": "Tab_Knob", "group": 2},
+        {"name": '__divider__'},
+        {"name": 'avalon_data',
+         "value": 'Warning! Do not change following data!',
+         "type": "Text_Knob"}
+    ]
+    visible = ["asset", "subset", "name", "namespace"]
+
+    try:
+        # create Avalon Tab and basic knobs
+        for k in knobs:
+            if k["name"] in node.knobs().keys():
+                continue
+
+            if "__divider__" in k["name"]:
+                knob = nuke.Text_Knob("__divider__", "")
+                node.addKnob(knob)
+                continue
+
+            if not k.get("group"):
+                n_knob = getattr(nuke, k["type"])
+                knob = n_knob(k["name"])
+                node.addKnob(knob)
+
+                try:
+                    knob.setValue(k['value'])
+                except TypeError as E:
+                    print(E)
+            else:
+                if k["name"] not in node.knobs().keys():
+                    n_knob = getattr(nuke, k["type"])
+                    knob = n_knob(k["name"], k["value"], k.get("group"))
+                    node.addKnob(knob)
+
+        # add avalon knobs for imprinting data
+        for key, value in data.items():
+            name = prefix + key
+            value = str(value)
+
+            try:
+                knob = node.knob(name)
+                log.info("Updating: `{0}` to `{1}`".format(name, value))
+                node[name].setValue(value)
+            except NameError:
+                log.info("Setting: `{0}` to `{1}`".format(name, value))
+                n_knob = nuke.String_Knob if key in visible else nuke.Text_Knob
+                knob = n_knob(name, key, value)
+                node.addKnob(knob)
+
+        return node
+
+    except NameError as e:
+        log.warning("Failed to add Avalon data to node: `{}`".format(e))
+        return False
+
+
+def get_avalon_knob_data(node, prefix="ak:"):
+    """ Gets a data from nodes's avalon knob
+
+    Arguments:
+        node (obj): Nuke node to search for data,
+        prefix (str, optional): filtering prefix
+
+    Returns:
+        data (dict)
     """
     try:
-        avalon_knob = node['avalon'].value()
-    except Exception:
-        tab = nuke.Tab_Knob("Avalon")
-        uk = nuke.Text_Knob('avalon', 'avalon data')
-        node.addKnob(tab)
-        node.addKnob(uk)
-        log.info("created new user knob avalon")
+        # check if data available on the node
+        test = node['avalon_data'].value()
+        log.debug("Only testing if data avalable: `{}`".format(test))
+    except NameError as e:
+        # if it doesn't then create it
+        log.debug("Creating avalon knob: `{}`".format(e))
+        node = set_avalon_knob_data(node)
+        return get_avalon_knob_data(node)
+
+    # get data from filtered knobs
+    data = {k.replace(prefix, ''): node[k].value()
+            for k in node.knobs().keys()
+            if prefix in k}
+
+    return data
 
 
 def imprint(node, data):
@@ -54,118 +180,80 @@ def imprint(node, data):
     also including publish knob
 
     Arguments:
-        node (list or obj): A nuke's node object either in list or individual
+        node (obj): A nuke's node object
         data (dict): Any data which needst to be imprinted
+
+    Returns:
+        node (obj)
+
+    Examples:
+        data = {
+            'asset': 'sq020sh0280',
+            'family': 'render',
+            'subset': 'subsetMain'
+        }
     """
-    if not node:
-        return
-    if isinstance(node, list):
-        node = node[0]
-
-    add_avalon_tab_knob(node)
-    add_publish_knob(node)
-    node['avalon'].setValue(toml.dumps(data))
-
-    return node
+    return add_publish_knob(
+        set_avalon_knob_data(node, data)
+    )
 
 
-def ls_img_sequence(dirPath, one=None):
-    excluding_patterns = ['_broken_', '._', '/.', '/_']
-    result = {}
-    sortedList = []
-    files = os.listdir(dirPath)
-    for file in files:
-        # print file
-        for ex in excluding_patterns:
-            file_path = os.path.join(dirPath, file).replace('\\', '/')
-            if ex in file_path:
-                continue
-        try:
-            prefix, frame, suffix = file.split('.')
+def ls_img_sequence(path):
+    """Listing all available coherent image sequence from path
 
-            # build a dictionary of the sequences as {name: frames, suffix}
-            #
-            # eg beauty.01.tif ... beauty.99.tif  will convert to
-            # { beauty : [01,02,...,98,99], tif }
+    Arguments:
+        path (str): A nuke's node object
 
-            try:
-                result[prefix][0].append(frame)
-            except KeyError:
-                # we have a new file sequence, so create a new key:value pair
-                result[prefix] = [[frame], suffix]
-        except ValueError:
-            # the file isn't in a sequence, add a dummy key:value pair
-            result[file] = file
+    Returns:
+        data (dict): with nuke formated path and frameranges
+    """
+    file = os.path.basename(path)
+    dir = os.path.dirname(path)
+    base, ext = os.path.splitext(file)
+    name, padding = os.path.splitext(base)
 
-    for prefix in result:
-        if result[prefix] != prefix:
-            frames = result[prefix][0]
-            frames.sort()
+    # populate list of files
+    files = [f for f in os.listdir(dir)
+             if name in f
+             if ext in f]
 
-            # find gaps in sequence
-            startFrame = int(frames[0])
-            endFrame = int(frames[-1])
-            pad = len(frames[0])
-            pad_print = '#' * pad
-            idealRange = set(range(startFrame, endFrame))
-            realFrames = set([int(x) for x in frames])
-            # sets can't be sorted, so cast to a list here
-            missingFrames = list(idealRange - realFrames)
-            missingFrames.sort()
+    # create collection from list of files
+    collections, reminder = clique.assemble(files)
 
-            # calculate fancy ranges
-            subRanges = []
-            for gap in missingFrames:
-                if startFrame != gap:
-                    rangeStart = startFrame
-                    rangeEnd = gap - 1
-                    subRanges.append([rangeStart, rangeEnd])
-                startFrame = gap + 1
+    if len(collections) > 0:
+        head = collections[0].format("{head}")
+        padding = collections[0].format("{padding}") % 1
+        padding = '#' * len(padding)
+        tail = collections[0].format("{tail}")
+        file = head + padding + tail
 
-            subRanges.append([startFrame, endFrame])
-            suffix = result[prefix][1]
-            sortedList.append({
-                'path':
-                os.path.join(dirPath, '.'.join([prefix, pad_print,
-                                                suffix])).replace('\\', '/'),
-                'frames':
-                subRanges
-            })
-        else:
-            sortedList.append(prefix)
-    if one:
-        return sortedList[0]
+        return {'path': os.path.join(dir, file).replace('\\', '/'),
+                'frames': collections[0].format("[{ranges}]")}
     else:
-        return sortedList
-
-
-def add_publish_knob(node):
-    if "publish" not in node.knobs():
-        knob = nuke.Boolean_Knob("publish", "Publish")
-        knob.setFlag(0x1000)
-        knob.setValue(False)
-        node.addKnob(knob)
-    return node
+        return False
 
 
 def fix_data_for_node_create(data):
+    """Fixing data to be used for nuke knobs
+    """
     for k, v in data.items():
-        try:
-            if isinstance(v, unicode):
-                data[k] = str(v)
-        except Exception:
+        if isinstance(v, six.text_type):
             data[k] = str(v)
-
-        if "True" in v:
-            data[k] = True
-        if "False" in v:
-            data[k] = False
-        if "0x" in v:
+        if str(v).startswith("0x"):
             data[k] = int(v, 16)
     return data
 
 
 def add_write_node(name, **kwarg):
+    """Adding nuke write node
+
+    Arguments:
+        name (str): nuke node name
+        kwarg (attrs): data for nuke knobs
+
+    Returns:
+        node (obj): nuke write node
+    """
     frame_range = kwarg.get("frame_range", None)
 
     w = nuke.createNode(
@@ -189,48 +277,44 @@ def add_write_node(name, **kwarg):
         w["first"].setValue(frame_range[0])
         w["last"].setValue(frame_range[1])
 
-    log.info(w)
     return w
 
 
 def get_node_path(path, padding=4):
     """Get filename for the Nuke write with padded number as '#'
 
-    >>> get_frame_path("test.exr")
-    ('test', 4, '.exr')
-
-    >>> get_frame_path("filename.#####.tif")
-    ('filename.', 5, '.tif')
-
-    >>> get_frame_path("foobar##.tif")
-    ('foobar', 2, '.tif')
-
-    >>> get_frame_path("foobar_%08d.tif")
-    ('foobar_', 8, '.tif')
-
-    Args:
+    Arguments:
         path (str): The path to render to.
 
     Returns:
         tuple: head, padding, tail (extension)
 
+    Examples:
+        >>> get_frame_path("test.exr")
+        ('test', 4, '.exr')
+
+        >>> get_frame_path("filename.#####.tif")
+        ('filename.', 5, '.tif')
+
+        >>> get_frame_path("foobar##.tif")
+        ('foobar', 2, '.tif')
+
+        >>> get_frame_path("foobar_%08d.tif")
+        ('foobar_', 8, '.tif')
     """
     filename, ext = os.path.splitext(path)
-    print(filename)
-    print(filename, ext)
+
     # Find a final number group
     if '%' in filename:
-        print("I am here")
         match = re.match('.*?(%[0-9]+d)$', filename)
-        print(match)
         if match:
             padding = int(match.group(1).replace('%', '').replace('d', ''))
             # remove number from end since fusion
             # will swap it with the frame number
             filename = filename.replace(match.group(1), '')
+
     elif '#' in filename:
         match = re.match('.*?(#+)$', filename)
-
         if match:
             padding = len(match.group(1))
             # remove number from end since fusion

@@ -135,6 +135,9 @@ def _from_environment():
             # Path to working directory
             ("AVALON_WORKDIR", None),
 
+            # Optional path to scenes directory (see Work Files API)
+            ("AVALON_SCENEDIR", None),
+
             # Name of current Config
             # TODO(marcus): Establish a suitable default config
             ("AVALON_CONFIG", "no_config"),
@@ -188,7 +191,7 @@ def _from_environment():
         ) if os.getenv(item[0], item[1]) is not None
     }
 
-    session["schema"] = "avalon-core:session-1.0"
+    session["schema"] = "avalon-core:session-2.0"
     try:
         schema.validate(session)
     except schema.ValidationError as e:
@@ -363,6 +366,7 @@ def find_one(filter, projection=None, sort=None):
 
 @auto_reconnect
 def save(*args, **kwargs):
+    """Deprecated, please use `replace_one`"""
     return self._database[Session["AVALON_PROJECT"]].save(
         *args, **kwargs)
 
