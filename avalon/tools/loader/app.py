@@ -414,16 +414,6 @@ def show(debug=False, parent=None, use_context=False):
         import traceback
         sys.excepthook = lambda typ, val, tb: traceback.print_last()
 
-        io.install()
-
-        any_project = next(
-            project for project in io.projects()
-            if project.get("active", True) is not False
-        )
-
-        api.Session["AVALON_PROJECT"] = any_project["name"]
-        module.project = any_project["name"]
-
     with lib.application():
 
         # TODO: Global state, remove these
