@@ -337,14 +337,11 @@ class Window(QtWidgets.QDialog):
 
         # Select last modified file
         if self.list.count():
-            index = modified.index(max(modified))
-            item = self.list.item(index)
+            item = self.list.item(modified.index(max(modified)))
             item.setSelected(True)
 
             # Scroll list so item is visible
-            def scroll_to_item():
-                self.list.scrollToItem(self.list.item(index))
-            QtCore.QTimer.singleShot(100, scroll_to_item)
+            QtCore.QTimer.singleShot(100, lambda: self.list.scrollToItem(item))
 
             self.duplicate_button.setEnabled(True)
         else:
