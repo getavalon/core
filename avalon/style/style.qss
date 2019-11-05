@@ -1203,8 +1203,20 @@ QSplitter::handle:hover {
 
 QSplitter::handle:horizontal {
     width: 1px;
+    background-color: transparent;
 }
 
 QSplitter::handle:vertical {
     height: 1px;
+    background-color: transparent;
+}
+
+QSplitter::handle:vertical:hover {
+    background-color: #787876;
+    border: 1px solid #3A3939;
+}
+
+QSplitter::handle:horizontal:hover {
+    background-color: #787876;
+    border: 1px solid #3A3939;
 }
