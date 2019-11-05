@@ -4,7 +4,7 @@ import nuke
 import re
 import logging
 
-from ..vendor import toml, six, clique
+from ..vendor import six, clique
 
 log = logging.getLogger(__name__)
 
