@@ -1,15 +1,15 @@
 import os
-from collections import OrderedDict
 import importlib
-from .. import api, io, schema
-
 import contextlib
-from pyblish import api as pyblish
-from ..vendor import toml
 import logging
-import nuke
-from . import lib
+from collections import OrderedDict
 
+import nuke
+from pyblish import api as pyblish
+
+from . import lib
+from .. import api, io
+from ..vendor import toml
 from ..pipeline import AVALON_CONTAINER_ID
 
 log = logging.getLogger(__name__)
