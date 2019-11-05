@@ -223,7 +223,7 @@ def show(parent=None):
 
     with lib.application():
         window = App(parent)
-        window.setStyleSheet(style.load_stylesheet())
         window.show()
+        window.setStyleSheet(style.load_stylesheet())
 
         module.window = window
