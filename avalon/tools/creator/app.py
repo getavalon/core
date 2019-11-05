@@ -583,8 +583,8 @@ def show(debug=False, parent=None):
 
     with lib.application():
         window = Window(parent)
-        window.setStyleSheet(style.load_stylesheet())
         window.refresh()
         window.show()
+        window.setStyleSheet(style.load_stylesheet())
 
         module.window = window

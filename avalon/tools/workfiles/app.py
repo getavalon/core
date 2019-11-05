@@ -504,7 +504,7 @@ def show(root=None, debug=False, parent=None):
 
     with tools_lib.application():
         window = Window(root, parent=parent)
-        window.setStyleSheet(style.load_stylesheet())
         window.show()
+        window.setStyleSheet(style.load_stylesheet())
 
         module.window = window
