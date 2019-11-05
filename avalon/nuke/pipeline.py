@@ -286,8 +286,8 @@ def _install_menu():
     menu.addSeparator()
     menu.addCommand("Work Files...",
                     lambda: workfiles.show(
-                        os.environ["AVALON_WORKDIR"]
-                    )
+                        os.environ["AVALON_WORKDIR"],
+                        parent=get_main_window())
                     )
 
     menu.addSeparator()

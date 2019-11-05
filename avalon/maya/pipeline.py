@@ -203,7 +203,8 @@ def launch_workfiles_app(*args):
         os.path.join(
             cmds.workspace(query=True, rootDirectory=True),
             cmds.workspace(fileRuleEntry="scene")
-        )
+        ),
+        parent=self._parent
     )
 
 

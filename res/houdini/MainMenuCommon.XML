@@ -59,8 +59,7 @@ publish.show(parent=hou.ui.mainQtWindow())
                 <scriptCode><![CDATA[
 import hou
 from avalon.tools import workfiles
-#parent = hou.qt.mainWindow()
-workfiles.show()
+workfiles.show(parent=hou.ui.mainQtWindow())
                 ]]></scriptCode>
             </scriptItem>
 
