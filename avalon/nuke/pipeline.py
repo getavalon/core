@@ -1,4 +1,5 @@
 import os
+import sys
 import importlib
 import contextlib
 import logging
@@ -10,9 +11,13 @@ from pyblish import api as pyblish
 from . import lib
 from .. import api, io
 from ..vendor import toml
+from ..vendor.Qt import QtWidgets
 from ..pipeline import AVALON_CONTAINER_ID
 
 log = logging.getLogger(__name__)
+
+self = sys.modules[__name__]
+self._parent = None  # Main Window cache
 
 AVALON_CONFIG = os.environ["AVALON_CONFIG"]
 
@@ -215,6 +220,16 @@ def find_host_config(config):
     return config
 
 
+def get_main_window():
+    """Acquire Nuke's main window"""
+    if self._parent is None:
+        top_widgets = QtWidgets.QApplication.topLevelWidgets()
+        main_window = next(widget for widget in top_widgets if
+                           widget.isWindow() and not widget.isHidden())
+        self._parent = main_window
+    return self._parent
+
+
 def uninstall(config):
     """Uninstall all tha was installed
 
@@ -253,13 +268,20 @@ def _install_menu():
         api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"]
     )
     context_menu = menu.addMenu(label)
-    context_menu.addCommand("Set Context", contextmanager.show)
-
+    context_menu.addCommand("Set Context",
+                            lambda: contextmanager.show(
+                                parent=get_main_window())
+                            )
     menu.addSeparator()
-    menu.addCommand("Create...", creator.show)
-    menu.addCommand("Load...", loader.show)
-    menu.addCommand("Publish...", publish.show)
-    menu.addCommand("Manage...", sceneinventory.show)
+    menu.addCommand("Create...",
+                    lambda: creator.show(parent=get_main_window()))
+    menu.addCommand("Load...",
+                    lambda: loader.show(parent=get_main_window(),
+                                        use_context=True))
+    menu.addCommand("Publish...",
+                    lambda: publish.show(parent=get_main_window()))
+    menu.addCommand("Manage...",
+                    lambda: sceneinventory.show(parent=get_main_window()))
 
     menu.addSeparator()
     menu.addCommand("Work Files...",
