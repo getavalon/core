@@ -238,15 +238,12 @@ def uninstall(config):
 def _install_menu():
     from ..tools import (
         creator,
-        # publish,
+        publish,
         workfiles,
         loader,
         sceneinventory,
         contextmanager
     )
-    # for now we are using `lite` version
-    # TODO: just for now untill qml in Nuke will be fixed (pyblish-qml#301)
-    import pyblish_lite as publish
 
     # Create menu
     menubar = nuke.menu("Nuke")
