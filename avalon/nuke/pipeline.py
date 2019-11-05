@@ -224,8 +224,10 @@ def get_main_window():
     """Acquire Nuke's main window"""
     if self._parent is None:
         top_widgets = QtWidgets.QApplication.topLevelWidgets()
+        name = "Foundry::UI::DockMainWindow"
         main_window = next(widget for widget in top_widgets if
-                           widget.isWindow() and not widget.isHidden())
+                           widget.inherits("QMainWindow") and
+                           widget.metaObject().className() == name)
         self._parent = main_window
     return self._parent
 
