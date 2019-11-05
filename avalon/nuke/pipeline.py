@@ -1,14 +1,16 @@
 import os
-import logging
-import contextlib
 import importlib
+import contextlib
+import logging
 from collections import OrderedDict
-from pyblish import api as pyblish
-from ..pipeline import AVALON_CONTAINER_ID
-from .. import api, io, schema
-from . import lib
-import nuke
 
+import nuke
+from pyblish import api as pyblish
+
+from . import lib
+from .. import api, io, schema
+from ..vendor import toml
+from ..pipeline import AVALON_CONTAINER_ID
 
 log = logging.getLogger(__name__)
 
@@ -92,7 +94,7 @@ def containerise(node,
     return node
 
 
-def parse_container(node, validate=True):
+def parse_container(node):
     """Returns containerised data of a node
 
     Reads the imprinted data from `containerise`.
@@ -122,7 +124,6 @@ def parse_container(node, validate=True):
 
     # Store the node's name
     container["objectName"] = node["name"].value()
-
     # Store reference to the node object
     container["_node"] = node
 

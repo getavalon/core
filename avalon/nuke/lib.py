@@ -3,7 +3,8 @@ import contextlib
 import nuke
 import re
 import logging
-from ..vendor import (six, clique)
+
+from ..vendor import toml, six, clique
 
 log = logging.getLogger(__name__)
 
