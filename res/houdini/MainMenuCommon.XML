@@ -11,7 +11,8 @@ return "%s - %s" % (api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"])
                 <scriptItem id="avalon_context_switch">
                     <label>Set Context</label>
                     <scriptCode><![CDATA[
-from avalon.tools import contextmanager; contextmanager.show()
+from avalon.tools import contextmanager
+contextmanager.show(parent=hou.ui.mainQtWindow())
 ]]></scriptCode>
                 </scriptItem>
             </subMenu>
@@ -22,7 +23,7 @@ from avalon.tools import contextmanager; contextmanager.show()
                 <label>Create ..</label>
                 <scriptCode><![CDATA[
 from avalon.tools import creator
-creator.show()
+creator.show(parent=hou.ui.mainQtWindow())
 ]]></scriptCode>
             </scriptItem>
 
@@ -30,7 +31,7 @@ creator.show()
                 <label>Load ..</label>
                 <scriptCode><![CDATA[
 from avalon.tools import loader
-loader.show(use_context=True)
+loader.show(parent=hou.ui.mainQtWindow(), use_context=True)
 ]]></scriptCode>
             </scriptItem>
 
@@ -38,7 +39,7 @@ loader.show(use_context=True)
                 <label>Manage ..</label>
                 <scriptCode><![CDATA[
 from avalon.tools import sceneinventory
-sceneinventory.show()
+sceneinventory.show(parent=hou.ui.mainQtWindow())
 ]]></scriptCode>
             </scriptItem>
 
@@ -47,8 +48,7 @@ sceneinventory.show()
                 <scriptCode><![CDATA[
 import hou
 from avalon.tools import publish
-parent = hou.qt.mainWindow()
-publish.show(parent)
+publish.show(parent=hou.ui.mainQtWindow())
                 ]]></scriptCode>
             </scriptItem>
 
