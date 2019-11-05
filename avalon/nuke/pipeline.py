@@ -8,8 +8,7 @@ import nuke
 from pyblish import api as pyblish
 
 from . import lib
-from .. import api, io, schema
-from ..vendor import toml
+from .. import api, io
 from ..pipeline import AVALON_CONTAINER_ID
 
 log = logging.getLogger(__name__)
@@ -106,9 +105,6 @@ def parse_container(node):
         container (dict): imprinted container data
     """
     data = lib.get_avalon_knob_data(node)
-
-    if validate:
-        schema.validate(data)
 
     if not isinstance(data, dict):
         return
