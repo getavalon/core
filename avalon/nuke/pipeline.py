@@ -1,15 +1,15 @@
 import os
-from collections import OrderedDict
 import importlib
-from .. import api, io, schema
-
 import contextlib
-from pyblish import api as pyblish
-from ..vendor import toml
 import logging
-import nuke
-from . import lib
+from collections import OrderedDict
 
+import nuke
+from pyblish import api as pyblish
+
+from . import lib
+from .. import api, io
+from ..vendor import toml
 from ..pipeline import AVALON_CONTAINER_ID
 
 log = logging.getLogger(__name__)
@@ -238,15 +238,12 @@ def uninstall(config):
 def _install_menu():
     from ..tools import (
         creator,
-        # publish,
+        publish,
         workfiles,
         loader,
         sceneinventory,
         contextmanager
     )
-    # for now we are using `lite` version
-    # TODO: just for now untill qml in Nuke will be fixed (pyblish-qml#301)
-    import pyblish_lite as publish
 
     # Create menu
     menubar = nuke.menu("Nuke")

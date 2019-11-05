@@ -6,7 +6,6 @@ Anything that isn't defined here is INTERNAL and unreliable for external use.
 
 from .lib import (
     add_publish_knob,
-    ls_img_sequence,
     maintained_selection,
     get_node_path,
 )
@@ -63,7 +62,6 @@ __all__ = [
     "viewer_update_and_undo_stop",
 
     "add_publish_knob",
-    "ls_img_sequence",
     "maintained_selection",
     "get_node_path",
 ]

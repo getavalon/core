@@ -3,7 +3,8 @@ import contextlib
 import nuke
 import re
 import logging
-import toml
+
+from ..vendor import toml
 
 log = logging.getLogger(__name__)
 
