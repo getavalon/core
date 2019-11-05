@@ -423,13 +423,11 @@ def containerise(name,
     return container
 
 
-def parse_container(container, validate=True):
+def parse_container(container):
     """Return the container node's full container data.
 
     Args:
         container (str): A container node name.
-        validate (bool, optional): Whether to validate the container schema.
-            Defaults to True.
 
     Returns:
         dict: The container schema data for this container node.
@@ -442,9 +440,6 @@ def parse_container(container, validate=True):
 
     # Append transient data
     data["objectName"] = container
-
-    if validate:
-        schema.validate(data)
 
     return data
 

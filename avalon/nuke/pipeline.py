@@ -99,7 +99,7 @@ def containerise(node,
     return node
 
 
-def parse_container(node, validate=True):
+def parse_container(node):
     """Returns containerised data of a node
 
     This reads the imprinted data from `containerise`.
@@ -114,9 +114,6 @@ def parse_container(node, validate=True):
 
     # Store the node's name
     data["objectName"] = node["name"].value()
-
-    if validate:
-        schema.validate(data)
 
     return data
 
