@@ -236,8 +236,8 @@ class NameWindow(QtWidgets.QDialog):
 class Window(QtWidgets.QDialog):
     """Work Files Window"""
 
-    def __init__(self, root=None):
-        super(Window, self).__init__()
+    def __init__(self, root=None, parent=None):
+        super(Window, self).__init__(parent)
         self.setWindowTitle("Work Files")
         self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
 
@@ -457,7 +457,7 @@ class Window(QtWidgets.QDialog):
         self.close()
 
 
-def show(root=None, debug=False):
+def show(root=None, debug=False, parent=None):
     """Show Work Files GUI"""
 
     if module.window:
@@ -499,7 +499,7 @@ def show(root=None, debug=False):
         api.Session["AVALON_TASK"] = "Testing"
 
     with tools_lib.application():
-        window = Window(root)
+        window = Window(root, parent=parent)
         window.setStyleSheet(style.load_stylesheet())
         window.show()
 
