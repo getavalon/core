@@ -116,6 +116,7 @@ class SubsetNameLineEdit(QtWidgets.QLineEdit):
 class Window(QtWidgets.QDialog):
 
     stateChanged = QtCore.Signal(bool)
+    taskSubsetFamilies = ["render"]
 
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
@@ -300,9 +301,11 @@ class Window(QtWidgets.QDialog):
         if asset:
             # Get plugin and family
             plugin = item.data(PluginRole)
-            task = io.Session.get('AVALON_TASK', None)
-            sanitized_task = re.sub('[^0-9a-zA-Z]+', '_', task)
             family = plugin.family.rsplit(".", 1)[-1]
+
+            if family in self.taskSubsetFamilies:
+                task = io.Session.get('AVALON_TASK', '')
+                sanitized_task = re.sub('[^0-9a-zA-Z]+', '', task)
 
             # Get all subsets of the current asset
             subsets = io.find(filter={"type": "subset",
@@ -328,11 +331,18 @@ class Window(QtWidgets.QDialog):
             # Update the result
             if subset_name:
                 subset_name = subset_name[0].upper() + subset_name[1:]
-            result.setText("{}{}{}".format(
-                family,
-                sanitized_task.capitalize(),
-                subset_name
-            ))
+
+            if family in self.taskSubsetFamilies:
+                result.setText("{}{}{}".format(
+                    family,
+                    sanitized_task.capitalize(),
+                    subset_name
+                ))
+            else:
+                result.setText("{}{}".format(
+                    family,
+                    subset_name.capitalize()
+                ))
 
             # Indicate subset existence
             if not subset_name:
