@@ -239,7 +239,7 @@ class Window(QtWidgets.QDialog):
     def __init__(self, root=None, parent=None):
         super(Window, self).__init__(parent)
         self.setWindowTitle("Work Files")
-        self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.WindowCloseButtonHint)
 
         self.root = root
 
