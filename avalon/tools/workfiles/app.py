@@ -12,6 +12,7 @@ from .. import lib as tools_lib
 module = sys.modules[__name__]
 module.window = None
 
+
 class NameWindow(QtWidgets.QDialog):
     """Name Window"""
 
