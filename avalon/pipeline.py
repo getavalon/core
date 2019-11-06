@@ -1340,6 +1340,23 @@ def get_representation_path(representation):
         if os.path.exists(path):
             return os.path.normpath(path)
 
+        dir_path, file_name = os.path.split(path)
+        base_name, ext = os.path.splitext(file_name)
+        file_name_items = None
+        if "#" in base_name:
+            file_name_items = [part for part in base_name.split("#") if part]
+        elif "%" in base_name:
+            file_name_items = base_name.split("%")
+
+        if not file_name_items:
+            return
+
+        filename_start = file_name_items[0]
+
+        for _file in os.listdir(dir_path):
+            if _file.startswith(filename_start) and _file.endswith(ext):
+                return os.path.normpath(path)
+
     return (
         path_from_represenation() or
         path_from_config() or
