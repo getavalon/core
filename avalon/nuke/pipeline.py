@@ -21,8 +21,6 @@ def reload_pipeline():
 
     """
 
-    import importlib
-
     api.uninstall()
     _uninstall_menu()
 
@@ -40,7 +38,13 @@ def reload_pipeline():
         log.info("Reloading module: {}...".format(module))
 
         module = importlib.import_module(module)
-        importlib.reload(module)
+
+        try:
+            importlib.reload(module)
+        except AttributeError as e:
+            log.warning("Cannot reload module: {}".format(e))
+            reload(module)
+
 
     import avalon.nuke
     api.install(avalon.nuke)
