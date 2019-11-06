@@ -13,8 +13,8 @@ def main():
                         help="Launch Instance Creator in standalone mode")
     parser.add_argument("--loader", action="store_true",
                         help="Launch Asset Loader in standalone mode")
-    parser.add_argument("--manager", action="store_true",
-                        help="Launch Manager in standalone mode")
+    parser.add_argument("--sceneinventory", action="store_true",
+                        help="Launch Scene Inventory in standalone mode")
     parser.add_argument("--projectmanager", action="store_true",
                         help="Launch Manager in standalone mode")
 
@@ -34,9 +34,9 @@ def main():
         from .tools import loader
         loader.show(debug=True)
 
-    elif args.manager:
-        from .tools import manager
-        manager.show(debug=True)
+    elif args.sceneinventory:
+        from .tools import sceneinventory
+        sceneinventory.show(debug=True)
 
     elif args.projectmanager:
         from .tools import projectmanager

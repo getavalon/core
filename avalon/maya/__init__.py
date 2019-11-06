@@ -27,8 +27,8 @@ from .pipeline import (
 )
 
 from .workio import (
-    open,
-    save,
+    open_file,
+    save_file,
     current_file,
     has_unsaved_changes,
     file_extensions,
@@ -71,8 +71,8 @@ __all__ = [
     "lock_ignored",
 
     # Workfiles API
-    "open",
-    "save",
+    "open_file",
+    "save_file",
     "current_file",
     "has_unsaved_changes",
     "file_extensions",
@@ -93,3 +93,7 @@ __all__ = [
     "suspended_refresh",
 
 ]
+
+# Backwards API compatibility
+open = open_file
+save = save_file

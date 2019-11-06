@@ -115,8 +115,7 @@ def _install_menu():
         creator,
         loader,
         publish,
-        cbloader,
-        cbsceneinventory,
+        sceneinventory,
         contextmanager,
         libraryloader
     )
@@ -154,22 +153,16 @@ def _install_menu():
         cmds.menuItem("Create...",
                       command=lambda *args: creator.show(parent=self._parent))
 
-        if api.Session.get("AVALON_EARLY_ADOPTER"):
-            cmds.menuItem("Load...",
-                          command=lambda *args:
-                          cbloader.show(parent=self._parent,
-                                        use_context=True))
-        else:
-            cmds.menuItem("Load...",
-                          command=lambda *args:
-                          loader.show(parent=self._parent))
+        cmds.menuItem("Load...",
+                      command=lambda *args: loader.show(parent=self._parent,
+                                                        use_context=True))
 
         cmds.menuItem("Publish...",
                       command=lambda *args: publish.show(parent=self._parent),
                       image=publish.ICON)
 
         cmds.menuItem("Manage...",
-                      command=lambda *args: cbsceneinventory.show(
+                      command=lambda *args: sceneinventory.show(
                           parent=self._parent))
 
         cmds.menuItem("Library...", command=lambda *args: libraryloader.show(
@@ -226,19 +219,17 @@ def reload_pipeline(*args):
                    "avalon.maya.interactive",
                    "avalon.maya.pipeline",
                    "avalon.maya.lib",
-                   "avalon.tools.loader.app",
                    "avalon.tools.creator.app",
-                   "avalon.tools.manager.app",
 
                    # NOTE(marcus): These have circular depenendencies
                    #               that is preventing reloadability
-                   # "avalon.tools.cbloader.delegates",
-                   # "avalon.tools.cbloader.model",
-                   # "avalon.tools.cbloader.widgets",
-                   # "avalon.tools.cbloader.app",
-                   # "avalon.tools.cbsceneinventory.model",
-                   # "avalon.tools.cbsceneinventory.proxy",
-                   # "avalon.tools.cbsceneinventory.app",
+                   # "avalon.tools.loader.delegates",
+                   # "avalon.tools.loader.model",
+                   # "avalon.tools.loader.widgets",
+                   # "avalon.tools.loader.app",
+                   # "avalon.tools.sceneinventory.model",
+                   # "avalon.tools.sceneinventory.proxy",
+                   # "avalon.tools.sceneinventory.app",
                    # "avalon.tools.projectmanager.dialogs",
                    # "avalon.tools.projectmanager.lib",
                    # "avalon.tools.projectmanager.model",

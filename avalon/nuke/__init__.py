@@ -15,16 +15,15 @@ from .lib import (
 )
 
 from .workio import (
-    open,
-    save,
-    current_file,
-    has_unsaved_changes,
     file_extensions,
-    work_root
+    has_unsaved_changes,
+    save_file,
+    open_file,
+    current_file,
+    work_root,
 )
 
 from .pipeline import (
-    reload_pipeline,
     install,
     uninstall,
 
@@ -38,7 +37,9 @@ from .pipeline import (
     update_container,
     get_handles,
 
+    # Experimental
     viewer_update_and_undo_stop,
+    reload_pipeline,
 )
 
 __all__ = [
@@ -56,6 +57,7 @@ __all__ = [
     "update_container",
     "get_handles",
 
+    # Experimental
     "viewer_update_and_undo_stop",
 
     "imprint",
@@ -74,3 +76,7 @@ __all__ = [
     "file_extensions",
     "work_root"
 ]
+
+# Backwards API compatibility
+open = open_file
+save = save_file

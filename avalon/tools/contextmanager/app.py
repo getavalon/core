@@ -4,11 +4,14 @@ import logging
 from ... import api
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ..gui.widgets import AssetsWidget
-from ..gui.models import TaskModel
+from ..widgets import AssetWidget
+from ..models import TasksModel
+
+from bson.objectid import ObjectId
 
 module = sys.modules[__name__]
 module.window = None
+
 
 log = logging.getLogger(__name__)
 
@@ -31,7 +34,7 @@ class App(QtWidgets.QDialog):
         accept_btn = QtWidgets.QPushButton("Accept")
 
         # Asset picker
-        assets = AssetsWidget(silo_creatable=False)
+        assets = AssetWidget(parent=self)
 
         # Task picker
         tasks_widgets = QtWidgets.QWidget()
@@ -39,7 +42,7 @@ class App(QtWidgets.QDialog):
         tasks_layout = QtWidgets.QVBoxLayout(tasks_widgets)
         task_view = QtWidgets.QTreeView()
         task_view.setIndentation(0)
-        task_model = TaskModel()
+        task_model = TasksModel()
         task_view.setModel(task_model)
         tasks_layout.addWidget(task_view)
         tasks_layout.addWidget(accept_btn)
@@ -76,12 +79,16 @@ class App(QtWidgets.QDialog):
         self._task_view = task_view
         self._task_model = task_model
         self._assets = assets
+        self._accept_button = accept_btn
 
         self._context_asset = asset_label
         self._context_task = task_label
 
         assets.selection_changed.connect(self.on_asset_changed)
         accept_btn.clicked.connect(self.on_accept_clicked)
+        task_view.selectionModel().selectionChanged.connect(
+            self.on_task_changed)
+        assets.assets_refreshed.connect(self.on_task_changed)
         assets.refresh()
 
         self.select_asset(api.Session["AVALON_ASSET"])
@@ -103,16 +110,22 @@ class App(QtWidgets.QDialog):
         self._context_task.setText("Task: {}".format(task))
 
     def _get_selected_task_name(self):
-        task_index = self._task_view.currentIndex()
+
+        # Make sure we actually get the selected entry as opposed to the
+        # active index. This way we know the task is actually selected and the
+        # view isn't just active on something that is unselectable like
+        # "No Task"
+        selected = self._task_view.selectionModel().selectedRows()
+        if not selected:
+            return
+
+        task_index = selected[0]
         return task_index.data(QtCore.Qt.DisplayRole)
 
     def _get_selected_asset_name(self):
         asset_index = self._assets.get_active_index()
-        asset_data = asset_index.data(self._assets.model.NodeRole)
+        asset_data = asset_index.data(self._assets.model.ItemRole)
         if not asset_data or not isinstance(asset_data, dict):
-            silo = self._assets.get_silo_object()
-            if silo and 'name' in silo:
-                return silo["name"]
             return
 
         return asset_data["name"]
@@ -128,16 +141,28 @@ class App(QtWidgets.QDialog):
             self._last_selected_task = current_task_data
 
         selected = self._assets.get_selected_assets()
-        if len(selected) == 0:
-            silo = self._assets.get_silo_object()
-            if silo:
-                selected = [silo["_id"]]
-
-        self._task_model.set_assets(selected)
+        self._task_model.set_assets(asset_entities=selected)
 
         # Find task with same name
         if self._last_selected_task:
             self.select_task(self._last_selected_task)
+
+        if not self._get_selected_task_name():
+            # If no task got selected after the task model reset
+            # then a "selection change" signal is not emitted.
+            # As such we need to explicitly force the callback.
+            self.on_task_changed()
+
+    def on_task_changed(self):
+        """Callback on task change."""
+
+        # Toggle the "Accept" button enabled state
+        asset = self._get_selected_asset_name()
+        task = self._get_selected_task_name()
+        if not asset or not task:
+            self._accept_button.setEnabled(False)
+        else:
+            self._accept_button.setEnabled(True)
 
     def on_accept_clicked(self):
         """Apply the currently selected task to update current task"""

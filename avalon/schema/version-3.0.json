@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
 
-    "title": "avalon-core:version-2.0",
+    "title": "avalon-core:version-3.0",
     "description": "An individual version",
 
     "type": "object",
@@ -20,8 +20,8 @@
         "schema": {
             "description": "The schema associated with this document",
             "type": "string",
-            "enum": ["avalon-core:version-2.0"],
-            "example": "avalon-core:version-2.0"
+            "enum": ["avalon-core:version-3.0"],
+            "example": "avalon-core:version-3.0"
         },
         "type": {
             "description": "The type of document",
@@ -47,7 +47,7 @@
         "data": {
             "description": "Document metadata",
             "type": "object",
-            "required": ["families", "author", "source", "time"],
+            "required": ["author", "source", "time"],
             "properties": {
                 "time": {
                     "description": "ISO formatted, file-system compatible time",
@@ -72,19 +72,11 @@
                 "source": {
                     "description": "Original file from which this version was made.",
                     "type": "string"
-                },
-                "families": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "One or more families associated with this version"
                 }
             },
             "example": {
                 "source" : "{root}/f02_prod/assets/BubbleWitch/work/modeling/marcus/maya/scenes/model_v001.ma",
                 "author" : "marcus",
-                "families" : [ 
-                    "avalon.model"
-                ],
                 "time" : "20170510T090203Z" 
             }
         }
