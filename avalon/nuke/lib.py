@@ -168,9 +168,10 @@ def get_avalon_knob_data(node, prefix="ak:"):
     """
     # check if lists
     if not isinstance(prefix, list):
-        prefix = list(prefix)
+        prefix = list([prefix])
 
     data = dict()
+    log.debug("___> prefix: `{}`".format(prefix))
     # loop prefix
     for p in prefix:
 
@@ -185,9 +186,9 @@ def get_avalon_knob_data(node, prefix="ak:"):
             return get_avalon_knob_data(node)
 
         # get data from filtered knobs
-        data.update({k.replace(prefix, ''): node[k].value()
+        data.update({k.replace(p, ''): node[k].value()
                     for k in node.knobs().keys()
-                    if prefix in k})
+                    if p in k})
 
     return data
 
