@@ -1341,6 +1341,9 @@ def get_representation_path(representation):
             return os.path.normpath(path)
 
         dir_path, file_name = os.path.split(path)
+        if not os.path.exists(dir_path):
+            return
+
         base_name, ext = os.path.splitext(file_name)
         file_name_items = None
         if "#" in base_name:
