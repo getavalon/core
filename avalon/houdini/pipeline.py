@@ -75,6 +75,13 @@ def find_host_config(config):
     return config
 
 
+def get_main_window():
+    """Acquire Houdini's main window"""
+    if self._parent is None:
+        self._parent = hou.ui.mainQtWindow()
+    return self._parent
+
+
 def reload_pipeline(*args):
     """Attempt to reload pipeline at run-time.
 
@@ -116,7 +123,7 @@ def reload_pipeline(*args):
         module = importlib.import_module(module)
         reload(module)
 
-    self._parent = {hou.ui.mainQtWindow().objectName(): hou.ui.mainQtWindow()}
+    get_main_window()
 
     import avalon.houdini
     api.install(avalon.houdini)
@@ -317,9 +324,7 @@ def on_file_event_callback(event):
 
 
 def on_houdini_initialize():
-
-    main_window = hou.qt.mainWindow()
-    self._parent = {main_window.objectName(): main_window}
+    get_main_window()
 
 
 def _register_callbacks():

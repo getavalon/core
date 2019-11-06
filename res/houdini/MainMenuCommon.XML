@@ -12,7 +12,8 @@ return "%s - %s" % (api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"])
                     <label>Set Context</label>
                     <scriptCode><![CDATA[
 from avalon.tools import contextmanager
-contextmanager.show(parent=hou.ui.mainQtWindow())
+from avalon.houdini import pipeline
+contextmanager.show(parent=pipeline.get_main_window())
 ]]></scriptCode>
                 </scriptItem>
             </subMenu>
@@ -23,7 +24,8 @@ contextmanager.show(parent=hou.ui.mainQtWindow())
                 <label>Create ..</label>
                 <scriptCode><![CDATA[
 from avalon.tools import creator
-creator.show(parent=hou.ui.mainQtWindow())
+from avalon.houdini import pipeline
+creator.show(parent=pipeline.get_main_window())
 ]]></scriptCode>
             </scriptItem>
 
@@ -31,7 +33,8 @@ creator.show(parent=hou.ui.mainQtWindow())
                 <label>Load ..</label>
                 <scriptCode><![CDATA[
 from avalon.tools import loader
-loader.show(parent=hou.ui.mainQtWindow(), use_context=True)
+from avalon.houdini import pipeline
+loader.show(parent=pipeline.get_main_window(), use_context=True)
 ]]></scriptCode>
             </scriptItem>
 
@@ -39,7 +42,8 @@ loader.show(parent=hou.ui.mainQtWindow(), use_context=True)
                 <label>Manage ..</label>
                 <scriptCode><![CDATA[
 from avalon.tools import sceneinventory
-sceneinventory.show(parent=hou.ui.mainQtWindow())
+from avalon.houdini import pipeline
+sceneinventory.show(parent=pipeline.get_main_window())
 ]]></scriptCode>
             </scriptItem>
 
@@ -48,7 +52,8 @@ sceneinventory.show(parent=hou.ui.mainQtWindow())
                 <scriptCode><![CDATA[
 import hou
 from avalon.tools import publish
-publish.show(parent=hou.ui.mainQtWindow())
+from avalon.houdini import pipeline
+publish.show(parent=pipeline.get_main_window())
                 ]]></scriptCode>
             </scriptItem>
 
@@ -59,7 +64,8 @@ publish.show(parent=hou.ui.mainQtWindow())
                 <scriptCode><![CDATA[
 import hou
 from avalon.tools import workfiles
-workfiles.show(parent=hou.ui.mainQtWindow())
+from avalon.houdini import pipeline
+workfiles.show(parent=pipeline.get_main_window())
                 ]]></scriptCode>
             </scriptItem>
 
