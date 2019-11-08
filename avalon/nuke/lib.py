@@ -193,11 +193,20 @@ def create_knobs(data, tab=None):
 
 
 def add_publish_knob(node):
+    """Add Publish knob to node
+
+    Arguments:
+        node (obj): nuke node to be processed
+
+    Returns:
+        node (obj): processed nuke node
+
+    """
     if "publish" not in node.knobs():
-        knob = nuke.Boolean_Knob("publish", "Publish")
-        knob.setFlag(0x1000)
-        knob.setValue(False)
-        node.addKnob(knob)
+        body = OrderedDict()
+        body[("divd", "")] = Knobby("Text_Knob", "")
+        body["publish"] = True
+        imprint(node, body)
     return node
 
 
