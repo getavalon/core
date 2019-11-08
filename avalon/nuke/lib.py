@@ -153,6 +153,7 @@ def create_knobs(data, tab=None):
         elif isinstance(value, bool):
             knob = nuke.Boolean_Knob(name, nice)
             knob.setValue(value)
+            knob.setFlag(nuke.STARTLINE)
 
         elif isinstance(value, int):
             knob = nuke.Int_Knob(name, nice)
