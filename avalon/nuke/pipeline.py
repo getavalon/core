@@ -155,10 +155,13 @@ class Creator(api.Creator):
         if (self.options or {}).get("useSelection"):
             nodes = nuke.selectedNodes()
 
-        instance = [n for n in nodes
-                    if n["name"].value() in self.name] or None
+        nodes = [n for n in nodes
+                 if n["name"].value() in self.name] or None
 
-        instance = lib.imprint(instance, self.data)
+        node = nodes[0]
+        lib.set_avalon_knob_data(node, self.data)
+        lib.add_publish_knob(node)
+        instance = node
 
         return instance
 
