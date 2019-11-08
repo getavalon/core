@@ -244,7 +244,7 @@ def set_avalon_knob_data(node, data=None, prefix="avalon:"):
     body[("divd", "")] = Knobby("Text_Knob", "")
 
     for key, value in data.items():
-        name = prefix + key
+        name = (prefix + key, key)  # Hide prefix on GUI
         if key in editable:
             body[name] = value
         else:
