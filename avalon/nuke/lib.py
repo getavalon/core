@@ -27,7 +27,7 @@ def maintained_selection():
 def imprint(node, data, tab=None):
     """Store attributes with value on node
 
-    Parse user data into Node konbs.
+    Parse user data into Node knobs.
     Use `collections.OrderedDict` to ensure knob order.
 
     Args:
