@@ -252,6 +252,24 @@ def set_avalon_knob_data(node, data=None, prefix="avalon:"):
     return node
 
 
+def get_avalon_knob_data(node, prefix="avalon:"):
+    """ Get data from nodes's avalon knob
+
+    Arguments:
+        node (obj): Nuke node to search for data,
+        prefix (str, optional): filtering prefix
+
+    Returns:
+        data (dict)
+    """
+    data = {
+        knob[len(prefix):]: node[knob].value()
+        for knob in node.knobs().keys()
+        if knob.startsWith(prefix)
+    }
+    return data
+
+
 def fix_data_for_node_create(data):
     for k, v in data.items():
 
