@@ -3,6 +3,7 @@ import contextlib
 import nuke
 import re
 import logging
+from collections import OrderedDict
 
 from ..vendor import six
 
@@ -21,19 +22,6 @@ def maintained_selection():
         # and select all previously selected nodes
         if previous_selection:
             [n['selected'].setValue(True) for n in previous_selection]
-
-
-def add_avalon_tab_knob(node):
-    """Adding a tab and a knob into a node
-    """
-    try:
-        node['avalon'].value()
-    except Exception:
-        tab = nuke.Tab_Knob("Avalon")
-        uk = nuke.Text_Knob('avalon', 'avalon data')
-        node.addKnob(tab)
-        node.addKnob(uk)
-        log.info("created new user knob avalon")
 
 
 def imprint(node, data, tab=None):
@@ -209,6 +197,48 @@ def add_publish_knob(node):
         knob.setFlag(0x1000)
         knob.setValue(False)
         node.addKnob(knob)
+    return node
+
+
+def set_avalon_knob_data(node, data=None, prefix="avalon:"):
+    """ Sets data into nodes's avalon knob
+
+    Arguments:
+        node (obj): Nuke node to imprint with data,
+        data ( dict): Data to be imprinted into AvalonTab
+        prefix (str, optional): filtering prefix
+
+    Returns:
+        node (obj)
+
+    Examples:
+        data = {
+            'asset': 'sq020sh0280',
+            'family': 'render',
+            'subset': 'subsetMain'
+        }
+    """
+    editable = ["asset", "subset", "name", "namespace"]
+
+    data = data or dict()
+
+    group = OrderedDict()
+    body = OrderedDict()
+
+    group["avalonDataGroup"] = body
+    body[("warn", "")] = Knobby("Text_Knob",
+                                "Warning! Do not change following data!")
+    body[("divd", "")] = Knobby("Text_Knob", "")
+
+    for key, value in data.items():
+        name = prefix + key
+        if key in editable:
+            body[name] = value
+        else:
+            body[name] = Knobby("Text_Knob", str(value))
+
+    imprint(node, group, tab="AvalonTab")
+
     return node
 
 
