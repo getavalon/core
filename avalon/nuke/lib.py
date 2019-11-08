@@ -124,7 +124,8 @@ def set_avalon_knob_data(node, data={}, prefix="avalon:"):
                 try:
                     knob.setValue(k['value'])
                 except TypeError as E:
-                    log.info("{} - Not correct knob value. Error: `{}`".format(__name__, E))
+                    log.info("{} - Not correct knob value. "
+                             "Error: `{}`".format(__name__, E))
             else:
                 if k["name"] not in node.knobs().keys():
                     n_knob = getattr(nuke, k["type"])
