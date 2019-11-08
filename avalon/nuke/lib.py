@@ -89,6 +89,11 @@ def set_avalon_knob_data(node, data={}, prefix="avalon:"):
             'subset': 'subsetMain'
         }
     """
+    # fix prefix back compatibility
+    if not isinstance(prefix, list):
+        prefix = [prefix]
+
+    # definition of knobs
     knobs = [
         {"name": 'AvalonTab', "value": '', "type": "Tab_Knob"},
         {"name": 'begin', "value": 'Avalon data group',
@@ -119,7 +124,7 @@ def set_avalon_knob_data(node, data={}, prefix="avalon:"):
                 try:
                     knob.setValue(k['value'])
                 except TypeError as E:
-                    print(E)
+                    log.info("{} - Not correct knob value. Error: `{}`".format(__name__, E))
             else:
                 if k["name"] not in node.knobs().keys():
                     n_knob = getattr(nuke, k["type"])
@@ -128,7 +133,7 @@ def set_avalon_knob_data(node, data={}, prefix="avalon:"):
 
         # add avalon knobs for imprinting data
         for key, value in data.items():
-            name = prefix + key
+            name = prefix[-1] + key
             value = str(value)
 
             try:
