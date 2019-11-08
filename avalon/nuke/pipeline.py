@@ -95,11 +95,7 @@ def containerise(node,
     if data:
         {data_imprint.update({k: v}) for k, v in data.items()}
 
-    log.info("data: {}".format(data_imprint))
-
-    lib.add_avalon_tab_knob(node)
-
-    node['avalon'].setValue(toml.dumps(data_imprint))
+    lib.set_avalon_knob_data(node, data_imprint)
 
     return node
 
