@@ -3,6 +3,7 @@ import importlib
 import contextlib
 import logging
 from collections import OrderedDict
+from __builtin__ import reload
 
 import nuke
 from pyblish import api as pyblish
@@ -46,7 +47,6 @@ def reload_pipeline():
         except AttributeError as e:
             log.warning("Cannot reload module: {}".format(e))
             reload(module)
-
 
     import avalon.nuke
     api.install(avalon.nuke)
