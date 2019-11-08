@@ -8,7 +8,7 @@ import nuke
 from pyblish import api as pyblish
 
 from . import lib
-from .. import api, io
+from .. import api, io, schema
 from ..pipeline import AVALON_CONTAINER_ID
 
 log = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ def containerise(node,
     return node
 
 
-def parse_container(node):
+def parse_container(node, validate=True):
     """Returns containerised data of a node
 
     Reads the imprinted data from `containerise`.
