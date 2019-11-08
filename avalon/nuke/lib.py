@@ -163,20 +163,30 @@ def get_avalon_knob_data(node, prefix="avalon:"):
     Returns:
         data (dict)
     """
-    try:
-        # check if data available on the node
-        test = node['avalon_data'].value()
-        log.debug("Only testing if data avalable: `{}`".format(test))
-    except NameError as e:
-        # if it doesn't then create it
-        log.debug("Creating avalon knob: `{}`".format(e))
-        node = set_avalon_knob_data(node)
-        return get_avalon_knob_data(node)
 
-    # get data from filtered knobs
-    data = {k.replace(prefix, ''): node[k].value()
-            for k in node.knobs().keys()
-            if prefix in k}
+    # check if lists
+    if not isinstance(prefix, list):
+        prefix = list([prefix])
+
+    data = dict()
+    log.debug("___> prefix: `{}`".format(prefix))
+    # loop prefix
+    for p in prefix:
+
+        try:
+            # check if data available on the node
+            test = node['avalon_data'].value()
+            log.debug("Only testing if data avalable: `{}`".format(test))
+        except NameError as e:
+            # if it doesn't then create it
+            log.debug("Creating avalon knob: `{}`".format(e))
+            node = set_avalon_knob_data(node)
+            return get_avalon_knob_data(node)
+
+        # get data from filtered knobs
+        data.update({k.replace(p, ''): node[k].value()
+                    for k in node.knobs().keys()
+                    if p in k})
 
     return data
 
