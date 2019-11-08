@@ -180,10 +180,14 @@ def create_knobs(data, tab=None):
         elif isinstance(value, dict):
             if all(isinstance(v, dict) for v in value.values()):
                 # Create a group of tabs
-                knobs.append(nuke.BeginTabGroup_Knob())
+                begain = nuke.BeginTabGroup_Knob()
+                end = nuke.EndTabGroup_Knob()
+                begain.setName(name)
+                end.setName(name + "_End")
+                knobs.append(begain)
                 for k, v in value.items():
                     knobs += create_knobs(v, tab=k)
-                knobs.append(nuke.EndTabGroup_Knob())
+                knobs.append(end)
             else:
                 # Create a group of knobs
                 knobs.append(nuke.Tab_Knob(name, nice, nuke.TABBEGINGROUP))
