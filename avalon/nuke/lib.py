@@ -115,6 +115,9 @@ def create_knobs(data, tab=None):
         list: nuke.Enumeration_Knob
         six.string_types: nuke.String_Knob
 
+        dict: If it's a nested dict (all values are dict), will turn into
+            A tabs group. Or just a knobs group.
+
     Args:
         data (dict): collection of attributes and their value
         tab (string, optional): Knobs' tab name
