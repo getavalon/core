@@ -106,6 +106,9 @@ def parse_container(node):
     """
     data = lib.get_avalon_knob_data(node)
 
+    if validate and data and data.get("schema"):
+        schema.validate(data)
+
     if not isinstance(data, dict):
         return
 
