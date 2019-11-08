@@ -4,7 +4,7 @@ import nuke
 import re
 import logging
 
-from ..vendor import toml
+from ..vendor import six
 
 log = logging.getLogger(__name__)
 
@@ -36,24 +36,167 @@ def add_avalon_tab_knob(node):
         log.info("created new user knob avalon")
 
 
-def imprint(node, data):
-    """Adding `Avalon data` into a node's Avalon Tab/Avalon knob
-    also including publish knob
+def imprint(node, data, tab=None):
+    """Store attributes with value on node
 
-    Arguments:
-        node (list or obj): A nuke's node object either in list or individual
-        data (dict): Any data which needst to be imprinted
+    Parse user data into Node konbs.
+    Use `collections.OrderedDict` to ensure knob order.
+
+    Args:
+        node(nuke.Node): node object from Nuke
+        data(dict): collection of attributes and their value
+
+    Returns:
+        None
+
+    Examples:
+        ```
+        import nuke
+        from avalon.nuke import lib
+
+        node = nuke.createNode("NoOp")
+        data = {
+            # Regular type of attributes
+            "myList": ["x", "y", "z"],
+            "myBool": True,
+            "myFloat": 0.1,
+            "myInt": 5,
+
+            # Creating non-default imprint type of knob
+            "MyFilePath": lib.Knobby("File_Knob", "/file/path"),
+            "divider": lib.Knobby("Text_Knob", ""),
+
+            # Manual nice knob naming
+            ("my_knob", "Nice Knob Name"): "some text",
+
+            # dict type will be created as knob group
+            "KnobGroup": {
+                "knob1": 5,
+                "knob2": "hello",
+                "knob3": ["a", "b"],
+            },
+
+            # Nested dict will be created as tab group
+            "TabGroup": {
+                "tab1": {"count": 5},
+                "tab2": {"isGood": True},
+                "tab3": {"direction": ["Left", "Right"]},
+            },
+        }
+        lib.imprint(node, data, tab="Demo")
+
+        ```
+
     """
-    if not node:
-        return
-    if isinstance(node, list):
-        node = node[0]
+    for knob in create_knobs(data, tab):
+        node.addKnob(knob)
 
-    add_avalon_tab_knob(node)
-    add_publish_knob(node)
-    node['avalon'].setValue(toml.dumps(data))
 
-    return node
+class Knobby(object):
+    """For creating knob which it's type isn't mapped in `create_knobs`
+
+    Args:
+        type (string): Nuke knob type name
+        value: Value to be set with `Knob.setValue`, put `None` if not required
+        *args: Args other than knob name for initializing knob class
+
+    """
+
+    def __init__(self, type, value, *args):
+        self.type = type
+        self.value = value
+        self.args = args
+
+    def create(self, name, nice=None):
+        knob_cls = getattr(nuke, self.type)
+        knob = knob_cls(name, nice, *self.args)
+        if self.value is not None:
+            knob.setValue(self.value)
+        return knob
+
+
+def create_knobs(data, tab=None):
+    """Create knobs by data
+
+    Depending on the type of each dict value and creates the correct Knob.
+
+    Mapped types:
+        bool: nuke.Boolean_Knob
+        int: nuke.Int_Knob
+        float: nuke.Double_Knob
+        list: nuke.Enumeration_Knob
+        six.string_types: nuke.String_Knob
+
+    Args:
+        data (dict): collection of attributes and their value
+        tab (string, optional): Knobs' tab name
+
+    Returns:
+        list: A list of `nuke.Knob` objects
+
+    """
+    def nice_naming(key):
+        """Convert camelCase name into UI Display Name"""
+        words = re.findall('[A-Z][^A-Z]*', key[0].upper() + key[1:])
+        return " ".join(words)
+
+    # Turn key-value pairs into knobs
+    knobs = list()
+
+    if tab:
+        knobs.append(nuke.Tab_Knob(tab))
+
+    for key, value in data.items():
+        # Knob name
+        if isinstance(key, tuple):
+            name, nice = key
+        else:
+            name, nice = key, nice_naming(key)
+
+        # Create knob by value type
+        if isinstance(value, Knobby):
+            knobby = value
+            knob = knobby.create(name, nice)
+
+        elif isinstance(value, float):
+            knob = nuke.Double_Knob(name, nice)
+            knob.setValue(value)
+
+        elif isinstance(value, bool):
+            knob = nuke.Boolean_Knob(name, nice)
+            knob.setValue(value)
+
+        elif isinstance(value, int):
+            knob = nuke.Int_Knob(name, nice)
+            knob.setValue(value)
+
+        elif isinstance(value, six.string_types):
+            knob = nuke.String_Knob(name, nice)
+            knob.setValue(value)
+
+        elif isinstance(value, list):
+            knob = nuke.Enumeration_Knob(name, nice, value)
+
+        elif isinstance(value, dict):
+            if all(isinstance(v, dict) for v in value.values()):
+                # Create a group of tabs
+                knobs.append(nuke.BeginTabGroup_Knob())
+                for k, v in value.items():
+                    knobs += create_knobs(v, tab=k)
+                knobs.append(nuke.EndTabGroup_Knob())
+            else:
+                # Create a group of knobs
+                knobs.append(nuke.Tab_Knob(name, nice, nuke.TABBEGINGROUP))
+                knobs += create_knobs(value)
+                knobs.append(nuke.Tab_Knob(name, nice, nuke.TABENDGROUP))
+            continue
+
+        else:
+            raise TypeError("Unsupported type: %r" % type(value))
+
+        knobs.append(knob)
+
+    return knobs
 
 
 def add_publish_knob(node):
