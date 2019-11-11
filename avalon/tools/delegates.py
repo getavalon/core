@@ -1,9 +1,7 @@
 from ..vendor.Qt import QtWidgets, QtCore
 from .. import io
-import logging
 from .models import TreeModel
 
-log = logging.getLogger(__file__)
 
 class VersionDelegate(QtWidgets.QStyledItemDelegate):
     """A delegate that display version integer formatted as version string."""
