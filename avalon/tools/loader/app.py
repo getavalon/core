@@ -421,8 +421,8 @@ def show(debug=False, parent=None, use_context=False):
         lib.refresh_group_config_cache()
 
         window = Window(parent)
-        window.setStyleSheet(style.load_stylesheet())
         window.show()
+        window.setStyleSheet(style.load_stylesheet())
 
         if use_context:
             context = {"asset": api.Session["AVALON_ASSET"],

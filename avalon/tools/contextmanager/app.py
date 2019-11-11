@@ -42,6 +42,7 @@ class App(QtWidgets.QDialog):
         task_view.setIndentation(0)
         task_model = TasksModel()
         task_view.setModel(task_model)
+        task_view_selection = task_view.selectionModel()
         tasks_layout.addWidget(task_view)
         tasks_layout.addWidget(accept_btn)
         task_view.setColumnHidden(1, True)
@@ -84,8 +85,7 @@ class App(QtWidgets.QDialog):
 
         assets.selection_changed.connect(self.on_asset_changed)
         accept_btn.clicked.connect(self.on_accept_clicked)
-        task_view.selectionModel().selectionChanged.connect(
-            self.on_task_changed)
+        task_view_selection.selectionChanged.connect(self.on_task_changed)
         assets.assets_refreshed.connect(self.on_task_changed)
         assets.refresh()
 
@@ -223,7 +223,7 @@ def show(parent=None):
 
     with lib.application():
         window = App(parent)
-        window.setStyleSheet(style.load_stylesheet())
         window.show()
+        window.setStyleSheet(style.load_stylesheet())
 
         module.window = window

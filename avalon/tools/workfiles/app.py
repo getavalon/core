@@ -12,6 +12,7 @@ from .. import lib as tools_lib
 module = sys.modules[__name__]
 module.window = None
 
+
 class NameWindow(QtWidgets.QDialog):
     """Name Window"""
 
@@ -236,10 +237,10 @@ class NameWindow(QtWidgets.QDialog):
 class Window(QtWidgets.QDialog):
     """Work Files Window"""
 
-    def __init__(self, root=None):
-        super(Window, self).__init__()
+    def __init__(self, root=None, parent=None):
+        super(Window, self).__init__(parent)
         self.setWindowTitle("Work Files")
-        self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.WindowCloseButtonHint)
 
         self.root = root
 
@@ -458,7 +459,7 @@ class Window(QtWidgets.QDialog):
         self.close()
 
 
-def show(root=None, debug=False):
+def show(root=None, debug=False, parent=None):
     """Show Work Files GUI"""
 
     if module.window:
@@ -500,8 +501,8 @@ def show(root=None, debug=False):
         api.Session["AVALON_TASK"] = "Testing"
 
     with tools_lib.application():
-        window = Window(root)
-        window.setStyleSheet(style.load_stylesheet())
+        window = Window(root, parent=parent)
         window.show()
+        window.setStyleSheet(style.load_stylesheet())
 
         module.window = window

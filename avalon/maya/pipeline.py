@@ -94,6 +94,16 @@ def find_host_config(config):
     return config
 
 
+def get_main_window():
+    """Acquire Maya's main window"""
+    if self._parent is None:
+        self._parent = {
+            widget.objectName(): widget
+            for widget in QtWidgets.QApplication.topLevelWidgets()
+        }["MayaWindow"]
+    return self._parent
+
+
 def uninstall(config):
     """Uninstall Maya-specific functionality of avalon-core.
 
@@ -203,7 +213,8 @@ def launch_workfiles_app(*args):
         os.path.join(
             cmds.workspace(query=True, rootDirectory=True),
             cmds.workspace(fileRuleEntry="scene")
-        )
+        ),
+        parent=self._parent
     )
 
 
@@ -249,10 +260,7 @@ def reload_pipeline(*args):
         module = importlib.import_module(module)
         reload(module)
 
-    self._parent = {
-        widget.objectName(): widget
-        for widget in QtWidgets.QApplication.topLevelWidgets()
-    }["MayaWindow"]
+    get_main_window()
 
     import avalon.maya
     api.install(avalon.maya)
@@ -624,10 +632,7 @@ def _on_maya_initialized(*args):
         return
 
     # Keep reference to the main Window, once a main window exists.
-    self._parent = {
-        widget.objectName(): widget
-        for widget in QtWidgets.QApplication.topLevelWidgets()
-    }["MayaWindow"]
+    get_main_window()
 
 
 def _on_scene_new(*args):
