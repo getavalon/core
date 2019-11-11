@@ -1,5 +1,6 @@
 from ..vendor.Qt import QtWidgets, QtCore
 from .. import io
+
 from .models import TreeModel
 
 
