@@ -1,8 +1,9 @@
 from ..vendor.Qt import QtWidgets, QtCore
 from .. import io
-
+import logging
 from .models import TreeModel
 
+log = logging.getLogger(__file__)
 
 class VersionDelegate(QtWidgets.QStyledItemDelegate):
     """A delegate that display version integer formatted as version string."""
@@ -16,6 +17,8 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         return "v{0:03d}".format(value)
 
     def displayText(self, value, locale):
+        if not isinstance(value, int):
+            value = int(value)
         assert isinstance(value, int), "Version is not `int`"
         return self._format_version(value)
 
