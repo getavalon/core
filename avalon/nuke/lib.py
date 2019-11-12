@@ -88,6 +88,11 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
             'subset': 'subsetMain'
         }
     """
+    # fix prefix back compatibility
+    if not isinstance(prefix, list):
+        prefix = [prefix]
+
+    # definition of knobs
     knobs = [
         {"name": 'AvalonTab', "value": '', "type": "Tab_Knob"},
         {"name": 'begin', "value": 'Avalon data group',
@@ -120,7 +125,7 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
                 try:
                     knob.setValue(k['value'])
                 except TypeError as E:
-                    print(E)
+                    log.info("{} - Not correct knob value. Error: `{}`".format(__name__, E))
             else:
                 if k["name"] not in node.knobs().keys():
                     n_knob = getattr(nuke, k["type"])
@@ -129,7 +134,7 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
 
         # add avalon knobs for imprinting data
         for key, value in data.items():
-            name = prefix + key
+            name = prefix[-1] + key
             value = str(value)
 
             try:
@@ -168,9 +173,10 @@ def get_avalon_knob_data(node, prefix="ak:"):
     """
     # check if lists
     if not isinstance(prefix, list):
-        prefix = list(prefix)
+        prefix = list([prefix])
 
     data = dict()
+    log.debug("___> prefix: `{}`".format(prefix))
     # loop prefix
     for p in prefix:
 
@@ -185,9 +191,9 @@ def get_avalon_knob_data(node, prefix="ak:"):
             return get_avalon_knob_data(node)
 
         # get data from filtered knobs
-        data.update({k.replace(prefix, ''): node[k].value()
+        data.update({k.replace(p, ''): node[k].value()
                     for k in node.knobs().keys()
-                    if prefix in k})
+                    if p in k})
 
     return data
 

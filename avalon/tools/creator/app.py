@@ -301,6 +301,8 @@ class Window(QtWidgets.QDialog):
         if asset:
             # Get plugin and family
             plugin = item.data(PluginRole)
+            task = io.Session.get('AVALON_TASK', None)
+            sanitized_task = re.sub('[^0-9a-zA-Z]+', '_', task)
             family = plugin.family.rsplit(".", 1)[-1]
             regex = "{}*".format(family)
             existed_subset_split = family
