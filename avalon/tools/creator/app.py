@@ -116,6 +116,7 @@ class SubsetNameLineEdit(QtWidgets.QLineEdit):
 class Window(QtWidgets.QDialog):
 
     stateChanged = QtCore.Signal(bool)
+    taskSubsetFamilies = ["render"]
 
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
@@ -301,15 +302,29 @@ class Window(QtWidgets.QDialog):
             # Get plugin and family
             plugin = item.data(PluginRole)
             family = plugin.family.rsplit(".", 1)[-1]
+            regex = "{}*".format(family)
+            existed_subset_split = family
+
+            if family in self.taskSubsetFamilies:
+                task = io.Session.get('AVALON_TASK', '')
+                sanitized_task = re.sub('[^0-9a-zA-Z]+', '', task)
+                regex = "{}{}*".format(
+                    family,
+                    sanitized_task.capitalize()
+                )
+                existed_subset_split = "{}{}".format(
+                    family,
+                    sanitized_task.capitalize()
+                )
 
             # Get all subsets of the current asset
             subsets = io.find(filter={"type": "subset",
-                                      "name": {"$regex": "{}*".format(family),
+                                      "name": {"$regex": regex,
                                                "$options": "i"},
                                       "parent": asset["_id"]}) or []
 
             # Get all subsets' their subset name, "Default", "High", "Low"
-            existed_subsets = [sub["name"].split(family)[-1]
+            existed_subsets = [sub["name"].split(existed_subset_split)[-1]
                                for sub in subsets]
 
             if plugin.defaults and isinstance(plugin.defaults, list):
@@ -326,7 +341,18 @@ class Window(QtWidgets.QDialog):
             # Update the result
             if subset_name:
                 subset_name = subset_name[0].upper() + subset_name[1:]
-            result.setText("{}{}".format(family, subset_name))
+
+            if family in self.taskSubsetFamilies:
+                result.setText("{}{}{}".format(
+                    family,
+                    sanitized_task.capitalize(),
+                    subset_name
+                ))
+            else:
+                result.setText("{}{}".format(
+                    family,
+                    subset_name.capitalize()
+                ))
 
             # Indicate subset existence
             if not subset_name:
