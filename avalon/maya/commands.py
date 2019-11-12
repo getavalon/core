@@ -8,6 +8,7 @@ For interactive use, see :mod:`interactive.py`
 """
 
 from maya import cmds
+import math
 
 from .. import io, api
 
