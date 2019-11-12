@@ -1,3 +1,5 @@
+import __builtin__
+
 from ..vendor.Qt import QtWidgets, QtCore
 from .. import io
 
@@ -16,8 +18,10 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         return "v{0:03d}".format(value)
 
     def displayText(self, value, locale):
-        if not isinstance(value, int):
-            value = int(value)
+        _types = [k for k in __builtin__.__dict__.keys()]
+        if 'long' in _types:
+            if isinstance(value, long):
+                value = int(value)
         assert isinstance(value, int), "Version is not `int`"
         return self._format_version(value)
 
@@ -48,6 +52,10 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
 
         # Current value of the index
         value = index.data(QtCore.Qt.DisplayRole)
+        _types = [k for k in __builtin__.__dict__.keys()]
+        if 'long' in _types:
+            if isinstance(value, long):
+                value = int(value)
         assert isinstance(value, int), "Version is not `int`"
 
         # Add all available versions to the editor
