@@ -1,10 +1,12 @@
-import __builtin__
-
 from ..vendor.Qt import QtWidgets, QtCore
 from .. import io
 
 from .models import TreeModel
 
+try:
+    import builtins
+except ModuleNotFoundError:
+    import __builtin__ as builtins
 
 class VersionDelegate(QtWidgets.QStyledItemDelegate):
     """A delegate that display version integer formatted as version string."""
@@ -18,7 +20,7 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         return "v{0:03d}".format(value)
 
     def displayText(self, value, locale):
-        _types = [k for k in __builtin__.__dict__.keys()]
+        _types = [k for k in builtins.__dict__.keys()]
         if 'long' in _types:
             if isinstance(value, long):
                 value = int(value)
@@ -52,7 +54,7 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
 
         # Current value of the index
         value = index.data(QtCore.Qt.DisplayRole)
-        _types = [k for k in __builtin__.__dict__.keys()]
+        _types = [k for k in builtins.__dict__.keys()]
         if 'long' in _types:
             if isinstance(value, long):
                 value = int(value)
