@@ -1368,7 +1368,7 @@ def get_representation_path(representation):
 
 
 def get_thumbnail_path(
-    version, thumb_type, use_full_thumbnail=False, dbcon=None
+    version, thumb_type, use_full_thumbnail=True, dbcon=None
 ):
     """Get thumbnail filename from version document
 
