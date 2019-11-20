@@ -132,16 +132,17 @@ def parse_container(node):
     return container
 
 
-def update_container(node, keys=dict()):
+def update_container(node, keys=None):
     """Returns node with updateted containder data
 
     Arguments:
         node (object): The node in Nuke to imprint as container,
-        keys (dict): data which should be updated
+        keys (dict, optional): data which should be updated
 
     Returns:
         node (object): nuke node with updated container data
     """
+    keys = keys or dict()
 
     data = lib.get_avalon_knob_data(node)
 
