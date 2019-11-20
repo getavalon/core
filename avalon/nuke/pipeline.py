@@ -80,20 +80,20 @@ def containerise(node,
         node (nuke.Node): containerised nuke's node object
 
     """
+    data = OrderedDict(
+        [
+            ("schema", "avalon-core:container-2.0"),
+            ("id", AVALON_CONTAINER_ID),
+            ("name", name),
+            ("namespace", namespace),
+            ("loader", str(loader)),
+            ("representation", context["representation"]["_id"]),
+        ],
 
-    data_imprint = OrderedDict({
-        "schema": "avalon-core:container-2.0",
-        "id": AVALON_CONTAINER_ID,
-        "name": str(name),
-        "namespace": str(namespace),
-        "loader": str(loader),
-        "representation": str(context["representation"]["_id"]),
-    })
+        **data or dict()
+    )
 
-    if data:
-        {data_imprint.update({k: v}) for k, v in data.items()}
-
-    lib.set_avalon_knob_data(node, data_imprint)
+    lib.set_avalon_knob_data(node, data)
 
     return node
 
