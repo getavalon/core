@@ -10,7 +10,6 @@ from pyblish import api as pyblish
 
 from . import lib
 from .. import api, io
-from ..vendor import toml
 from ..vendor.Qt import QtWidgets
 from ..pipeline import AVALON_CONTAINER_ID
 
@@ -103,20 +102,34 @@ def containerise(node,
 def parse_container(node):
     """Returns containerised data of a node
 
-    This reads the imprinted data from `containerise`.
+    Reads the imprinted data from `containerise`.
 
+    Arguments:
+        node (obj): Nuke's node object to read imprinted data
+
+    Returns:
+        container (dict): imprinted container data
     """
-
-    raw_text_data = node['avalon'].value()
-    data = toml.loads(raw_text_data, _dict=dict)
+    data = lib.get_avalon_knob_data(node)
 
     if not isinstance(data, dict):
         return
 
-    # Store the node's name
-    data["objectName"] = node["name"].value()
+    # If not all required data return the empty container
+    required = ["schema", "id", "name",
+                "namespace", "loader", "representation"]
 
-    return data
+    if not all(key in data for key in required):
+        return
+
+    container = {key: data[key] for key in required}
+
+    # Store the node's name
+    container["objectName"] = node["name"].value()
+    # Store reference to the node object
+    container["_node"] = node
+
+    return container
 
 
 def update_container(node, keys=dict()):
@@ -130,7 +143,10 @@ def update_container(node, keys=dict()):
         node (object): nuke node with updated container data
     """
 
-    container = parse_container(node)
+    data = lib.get_avalon_knob_data(node)
+
+    container = dict()
+    container = {key: data[key] for key in data}
 
     for key, value in container.items():
         try:
@@ -138,8 +154,7 @@ def update_container(node, keys=dict()):
         except KeyError:
             pass
 
-    node['avalon'].setValue('')
-    node['avalon'].setValue(toml.dumps(container))
+    node = lib.set_avalon_knob_data(node, container)
 
     return node
 
