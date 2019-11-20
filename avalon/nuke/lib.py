@@ -199,10 +199,10 @@ def add_publish_knob(node):
     """Add Publish knob to node
 
     Arguments:
-        node (obj): nuke node to be processed
+        node (nuke.Node): nuke node to be processed
 
     Returns:
-        node (obj): processed nuke node
+        node (nuke.Node): processed nuke node
 
     """
     if "publish" not in node.knobs():
@@ -217,12 +217,12 @@ def set_avalon_knob_data(node, data=None, prefix="avalon:"):
     """ Sets data into nodes's avalon knob
 
     Arguments:
-        node (obj): Nuke node to imprint with data,
-        data ( dict): Data to be imprinted into AvalonTab
+        node (nuke.Node): Nuke node to imprint with data,
+        data (dict, optional): Data to be imprinted into AvalonTab
         prefix (str, optional): filtering prefix
 
     Returns:
-        node (obj)
+        node (nuke.Node)
 
     Examples:
         data = {
@@ -259,7 +259,7 @@ def get_avalon_knob_data(node, prefix="avalon:"):
     """ Get data from nodes's avalon knob
 
     Arguments:
-        node (obj): Nuke node to search for data,
+        node (nuke.Node): Nuke node to search for data,
         prefix (str, optional): filtering prefix
 
     Returns:

@@ -64,21 +64,20 @@ def containerise(node,
                  context,
                  loader=None,
                  data=None):
-    """Bundle `nodes` into an assembly and imprint it with metadata
+    """Bundle `node` into an assembly and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
     for loaded assets.
 
     Arguments:
-        node (object): The node in Nuke to imprint as container,
-        usually a Reader.
+        node (nuke.Node): Nuke's node object to imprint as container
         name (str): Name of resulting assembly
         namespace (str): Namespace under which to host container
         context (dict): Asset information
         loader (str, optional): Name of node used to produce this container.
 
     Returns:
-        Node
+        node (nuke.Node): containerised nuke's node object
 
     """
 
@@ -105,7 +104,7 @@ def parse_container(node):
     Reads the imprinted data from `containerise`.
 
     Arguments:
-        node (obj): Nuke's node object to read imprinted data
+        node (nuke.Node): Nuke's node object to read imprinted data
 
     Returns:
         container (dict): imprinted container data
@@ -136,11 +135,11 @@ def update_container(node, keys=None):
     """Returns node with updateted containder data
 
     Arguments:
-        node (object): The node in Nuke to imprint as container,
+        node (nuke.Node): The node in Nuke to imprint as container,
         keys (dict, optional): data which should be updated
 
     Returns:
-        node (object): nuke node with updated container data
+        node (nuke.Node): nuke node with updated container data
     """
     keys = keys or dict()
 
