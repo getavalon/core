@@ -268,7 +268,7 @@ def get_avalon_knob_data(node, prefix="avalon:"):
     data = {
         knob[len(prefix):]: node[knob].value()
         for knob in node.knobs().keys()
-        if knob.startsWith(prefix)
+        if knob.startswith(prefix)
     }
     return data
 
