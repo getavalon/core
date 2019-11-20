@@ -4,6 +4,7 @@ import nuke
 import re
 import logging
 from ..vendor import (six, clique)
+from nukescripts import clear_selection_recursive
 
 log = logging.getLogger(__name__)
 
@@ -36,8 +37,7 @@ def maintained_selection():
 def reset_selection():
     """Deselect all selected nodes
     """
-    for node in nuke.selectedNodes():
-        node['selected'] = False
+    clear_selection_recursive()
 
 
 def select_nodes(nodes):
