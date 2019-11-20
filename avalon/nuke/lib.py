@@ -231,26 +231,43 @@ def set_avalon_knob_data(node, data=None, prefix="avalon:"):
             'subset': 'subsetMain'
         }
     """
+    data = data or dict()
+    create = OrderedDict()
+
+    tab_name = "AvalonTab"
     editable = ["asset", "subset", "name", "namespace"]
 
-    data = data or dict()
-
-    group = OrderedDict()
-    body = OrderedDict()
-
-    group["avalonDataGroup"] = body
-    body[("warn", "")] = Knobby("Text_Knob",
-                                "Warning! Do not change following data!")
-    body[("divd", "")] = Knobby("Text_Knob", "")
+    existed_knobs = node.knobs()
 
     for key, value in data.items():
-        name = (prefix + key, key)  # Hide prefix on GUI
-        if key in editable:
-            body[name] = value
-        else:
-            body[name] = Knobby("Text_Knob", str(value))
+        knob_name = prefix + key
+        gui_name = key
 
-    imprint(node, group, tab="AvalonTab")
+        if knob_name in existed_knobs:
+            # Set value
+            node[knob_name].setValue(value)
+        else:
+            # New knob
+            name = (knob_name, gui_name)  # Hide prefix on GUI
+            if key in editable:
+                create[name] = value
+            else:
+                create[name] = Knobby("Text_Knob", str(value))
+
+    if tab_name in existed_knobs:
+        tab_name = None
+    else:
+        tab = OrderedDict()
+        warn = Knobby("Text_Knob", "Warning! Do not change following data!")
+        divd = Knobby("Text_Knob", "")
+        head = [
+            (("warn", ""), warn),
+            (("divd", ""), divd),
+        ]
+        tab["avalonDataGroup"] = OrderedDict(head + create.items())
+        create = tab
+
+    imprint(node, create, tab=tab_name)
 
     return node
 
