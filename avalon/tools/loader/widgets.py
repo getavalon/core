@@ -1,9 +1,11 @@
+import os
 import datetime
 import pprint
 import inspect
+import collections
 
 from ...vendor import Qt
-from ...vendor.Qt import QtWidgets, QtCore, QtCompat
+from ...vendor.Qt import QtWidgets, QtCore, QtCompat, QtGui
 from ...vendor import qtawesome
 from ... import io
 from ... import api
@@ -590,16 +592,22 @@ class VersionWidget(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout(self)
 
-        label = QtWidgets.QLabel("Version")
+        thumbnail = QtWidgets.QLabel(self)
+        thumbnail.setAlignment(QtCore.Qt.AlignCenter)
+        label = QtWidgets.QLabel("Version", self)
         data = VersionTextEdit()
         data.setReadOnly(True)
+
+        layout.addWidget(thumbnail)
         layout.addWidget(label)
         layout.addWidget(data)
 
         self.data = data
+        self.thumbnail_cacher = ThumbnailCacher(thumbnail)
 
     def set_version(self, version_id):
         self.data.set_version(version_id)
+        self.thumbnail_cacher.set_version(version_id)
 
 
 class FamilyListWidget(QtWidgets.QListWidget):
