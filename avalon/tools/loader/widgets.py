@@ -508,6 +508,81 @@ class VersionTextEdit(QtWidgets.QTextEdit):
         clipboard.setText(raw_text)
 
 
+class ThumbnailCacher:
+    width = 190
+    height = 100
+    def __init__(self, thumbnail_label, max_thumbnails=30, dbcon=None):
+        self.thumbnail_label = thumbnail_label
+        self.cached_thumbs = collections.OrderedDict()
+        self.max_thumbnails = max_thumbnails
+        if dbcon is None:
+            dbcon = io
+        self.dbcon = dbcon
+
+        # TODO get res path much better way
+        loader_path = os.path.dirname(os.path.abspath(__file__))
+        avalon_path = os.path.dirname(os.path.dirname(loader_path))
+        default_pix_path = os.path.join(
+            os.path.dirname(avalon_path),
+            "res", "tools", "images", "default_thumbnail.png"
+        )
+        self.default_pix = QtGui.QPixmap(default_pix_path)
+
+    def _store_thumbnail(self, identifier, path):
+        if not path:
+            return None
+        path = os.path.normpath(path)
+        if not os.path.exists(path):
+            return None
+        # TODO
+        new_pixmap = QtGui.QPixmap(path)
+        if len(self.cached_thumbs) >= self.max_thumbnails:
+            self.cached_thumbs.popitem(last=False)
+
+        self.cached_thumbs[identifier] = new_pixmap
+        return new_pixmap
+
+    def set_version(self, version_id):
+        thumb = self._get_thumbnail(version_id)
+        if thumb:
+            if (
+                thumb.width() != self.width or
+                thumb.height() != self.height
+            ):
+                thumb = thumb.scaled(
+                    self.width, self.height, QtCore.Qt.KeepAspectRatio
+                )
+                self.cached_thumbs[version_id] = thumb
+            self.thumbnail_label.setPixmap(thumb)
+            return
+
+        if (
+            self.default_pix.width() != self.width or
+            self.default_pix.height() != self.height
+        ):
+            self.default_pix = self.default_pix.scaled(
+                self.width, self.height, QtCore.Qt.KeepAspectRatio
+            )
+        self.thumbnail_label.setPixmap(self.default_pix)
+
+    def _get_thumbnail(self, identifier):
+        if not identifier:
+            return None
+
+        if identifier in self.cached_thumbs:
+            return self.cached_thumbs[identifier]
+
+        if not isinstance(identifier, io.ObjectId):
+            return None
+
+        version = self.dbcon.find_one({"_id": identifier, "type": "version"})
+        if not version:
+            return None
+
+        path = pipeline.get_thumbnail_path(version, "small", dbcon=self.dbcon)
+        return self._store_thumbnail(identifier, path)
+
+
 class VersionWidget(QtWidgets.QWidget):
     """A Widget that display information about a specific version"""
     def __init__(self, parent=None):
