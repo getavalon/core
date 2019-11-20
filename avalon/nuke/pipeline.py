@@ -140,20 +140,18 @@ def update_container(node, keys=None):
 
     Returns:
         node (nuke.Node): nuke node with updated container data
+
+    Raises:
+        TypeError on given an invalid container node
+
     """
     keys = keys or dict()
 
-    data = lib.get_avalon_knob_data(node)
+    container = parse_container(node)
+    if not container:
+        raise TypeError("Not a valid container node.")
 
-    container = dict()
-    container = {key: data[key] for key in data}
-
-    for key, value in container.items():
-        try:
-            container[key] = keys[key]
-        except KeyError:
-            pass
-
+    container.update(keys)
     node = lib.set_avalon_knob_data(node, container)
 
     return node
