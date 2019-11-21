@@ -171,13 +171,7 @@ class Creator(api.Creator):
         if (self.options or {}).get("useSelection"):
             nodes = nuke.selectedNodes()
 
-            if len(nodes) == 1:
-                # only one node is selected
-                node = nodes[0]
-                instance = lib.imprint(node, self.data)
-                return instance
-
-            elif len(nodes) >= 2:
+            if len(nodes) >= 1:
                 bckd_node = autoBackdrop()
                 bckd_node["tile_color"].setValue(int(self.node_color, 16))
                 bckd_node["note_font_size"].setValue(24)
