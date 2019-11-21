@@ -70,7 +70,7 @@ def add_publish_knob(node):
     return node
 
 
-def set_avalon_knob_data(node, data={}, prefix="ak:"):
+def set_avalon_knob_data(node, data={}, prefix="avalon:"):
     """ Sets a data into nodes's avalon knob
 
     Arguments:
@@ -88,10 +88,6 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
             'subset': 'subsetMain'
         }
     """
-    # fix prefix back compatibility
-    if not isinstance(prefix, list):
-        prefix = [prefix]
-
     # definition of knobs
     knobs = [
         {"name": 'AvalonTab', "value": '', "type": "Tab_Knob"},
@@ -125,7 +121,8 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
                 try:
                     knob.setValue(k['value'])
                 except TypeError as E:
-                    log.info("{} - Not correct knob value. Error: `{}`".format(__name__, E))
+                    log.info("{} - Not correct knob value. "
+                             "Error: `{}`".format(__name__, E))
             else:
                 if k["name"] not in node.knobs().keys():
                     n_knob = getattr(nuke, k["type"])
@@ -134,7 +131,7 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
 
         # add avalon knobs for imprinting data
         for key, value in data.items():
-            name = prefix[-1] + key
+            name = prefix + key
             value = str(value)
 
             try:
@@ -161,7 +158,7 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
         return False
 
 
-def get_avalon_knob_data(node, prefix="ak:"):
+def get_avalon_knob_data(node, prefix="avalon:"):
     """ Gets a data from nodes's avalon knob
 
     Arguments:
@@ -176,10 +173,12 @@ def get_avalon_knob_data(node, prefix="ak:"):
         prefix = list([prefix])
 
     data = dict()
-    log.debug("___> prefix: `{}`".format(prefix))
+
     # loop prefix
     for p in prefix:
-
+        # check if the node is avalon tracked
+        if "AvalonTab" not in node.knobs():
+            continue
         try:
             # check if data available on the node
             test = node['avalon_data'].value()
