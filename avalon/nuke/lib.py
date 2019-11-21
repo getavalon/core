@@ -158,7 +158,7 @@ def set_avalon_knob_data(node, data={}, prefix="avalon:"):
         return False
 
 
-def get_avalon_knob_data(node, prefix="ak:"):
+def get_avalon_knob_data(node, prefix="avalon:"):
     """ Gets a data from nodes's avalon knob
 
     Arguments:
@@ -173,10 +173,12 @@ def get_avalon_knob_data(node, prefix="ak:"):
         prefix = list([prefix])
 
     data = dict()
-    log.debug("___> prefix: `{}`".format(prefix))
+
     # loop prefix
     for p in prefix:
-
+        # check if the node is avalon tracked
+        if "AvalonTab" not in node.knobs():
+            continue
         try:
             # check if data available on the node
             test = node['avalon_data'].value()
