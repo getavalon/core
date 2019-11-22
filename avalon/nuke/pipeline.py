@@ -185,6 +185,7 @@ class Creator(api.Creator):
 
             if len(nodes) >= 1:
                 bckd_node = autoBackdrop()
+                bckd_node["name"].setValue("{}_BDN".format(self.name))
                 bckd_node["tile_color"].setValue(int(self.node_color, 16))
                 bckd_node["note_font_size"].setValue(24)
                 bckd_node["label"].setValue("[{}]".format(self.name))
@@ -198,6 +199,7 @@ class Creator(api.Creator):
                 return
         else:
             bckd_node = autoBackdrop()
+            bckd_node["name"].setValue("{}_BDN".format(self.name))
             bckd_node["tile_color"].setValue(int(self.node_color, 16))
             bckd_node["note_font_size"].setValue(24)
             bckd_node["label"].setValue("[{}]".format(self.name))
