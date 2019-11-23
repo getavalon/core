@@ -20,7 +20,12 @@ def maintained_selection():
     """
     nodes = nuke.allNodes()
     previous_selection = nuke.selectedNodes()
+
+    # deselect all nodes
+    reset_selection()
+
     try:
+        # do the operation
         yield
     finally:
         # unselect all selection in case there is some
