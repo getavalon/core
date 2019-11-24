@@ -34,7 +34,7 @@ def maintained_selection():
         # and select all previously selected nodes
         if previous_selection:
             for n in nodes:
-                if n.name() not in previous_selection:
+                if n not in previous_selection:
                     continue
                 n['selected'].setValue(True)
 
