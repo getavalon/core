@@ -33,10 +33,13 @@ def maintained_selection():
         reset_selection()
         # and select all previously selected nodes
         if previous_selection:
-            for n in nodes:
-                if n not in previous_selection:
-                    continue
-                n['selected'].setValue(True)
+            try:
+                for n in nodes:
+                    if n not in previous_selection:
+                        continue
+                    n['selected'].setValue(True)
+            except ValueError as e:
+                log.warning(e)
 
 
 def reset_selection():
