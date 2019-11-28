@@ -86,13 +86,15 @@ class Knobby(object):
     Args:
         type (string): Nuke knob type name
         value: Value to be set with `Knob.setValue`, put `None` if not required
+        flags (list, optional): Knob flags to be set with `Knob.setFlag`
         *args: Args other than knob name for initializing knob class
 
     """
 
-    def __init__(self, type, value, *args):
+    def __init__(self, type, value, flags=None, *args):
         self.type = type
         self.value = value
+        self.flags = flags or []
         self.args = args
 
     def create(self, name, nice=None):
@@ -100,6 +102,8 @@ class Knobby(object):
         knob = knob_cls(name, nice, *self.args)
         if self.value is not None:
             knob.setValue(self.value)
+        for flag in self.flags:
+            knob.setFlag(flag)
         return knob
 
 
