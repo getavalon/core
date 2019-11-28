@@ -195,6 +195,46 @@ def create_knobs(data, tab=None):
     return knobs
 
 
+KNOB_TYPE_EXCLUDED_ON_READ = (
+    20,  # Tab Knob
+    26,  # Text Knob
+)
+
+
+def read(node):
+    """Return user-defined knobs from given `node`
+
+    Args:
+        node (nuke.Node): Nuke node object
+
+    Returns:
+        list: A list of nuke.Knob object
+
+    """
+    data = dict()
+
+    pattern = ("(?<=addUserKnob {)"
+               "([0-9]*) (\S*)"  # Matching knob type and knob name
+               "(?=[ |}])")
+    tcl_script = node.writeKnobs(nuke.WRITE_USER_KNOB_DEFS)
+    result = re.search(pattern, tcl_script)
+
+    if result:
+        first_user_knob = result.group(2)
+        # Collect user knobs from the end of the knob list
+        for knob in reversed(node.allKnobs()):
+            knob_name = knob.name()
+            knob_type = nuke.knob(knob.fullyQualifiedName(), type=True)
+
+            if knob_type not in KNOB_TYPE_EXCLUDED_ON_READ:
+                data[knob_name] = knob.value()
+
+            if knob_name == first_user_knob:
+                break
+
+    return data
+
+
 def add_publish_knob(node):
     """Add Publish knob to node
 
