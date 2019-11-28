@@ -201,7 +201,8 @@ def create_knobs(data, tab=None):
 
 EXCLUDED_KNOB_TYPE_ON_READ = (
     20,  # Tab Knob
-    26,  # Text Knob
+    26,  # Text Knob (But for backward compatibility, still be read
+         #            if value is not an empty string.)
 )
 
 
@@ -215,6 +216,14 @@ def read(node):
         list: A list of nuke.Knob object
 
     """
+    def compat_prefixed(knob_name):
+        if knob_name.startswith("avalon:"):
+            return knob_name[len("avalon:"):]
+        elif knob_name.startswith("ak:"):
+            return knob_name[len("ak:"):]
+        else:
+            return knob_name
+
     data = dict()
 
     pattern = ("(?<=addUserKnob {)"
@@ -230,8 +239,16 @@ def read(node):
             knob_name = knob.name()
             knob_type = nuke.knob(knob.fullyQualifiedName(), type=True)
 
-            if knob_type not in EXCLUDED_KNOB_TYPE_ON_READ:
-                data[knob_name] = knob.value()
+            value = knob.value()
+
+            if (
+                knob_type not in EXCLUDED_KNOB_TYPE_ON_READ or
+                # For compating read-only string data that imprinted
+                # by `nuke.Text_Knob`.
+                (knob_type == 26 and value)
+            ):
+                key = compat_prefixed(knob_name)
+                data[key] = value
 
             if knob_name == first_user_knob:
                 break
