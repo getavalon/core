@@ -898,8 +898,8 @@ def create(name, asset, family, options=None, data=None):
             with host.maintained_selection():
                 print("Running %s" % plugin)
                 instance = plugin.process()
-        except Exception as e:
-            log.warning(e)
+        except Exception:
+            log.warning(traceback.format_exc())
             continue
         plugins.append(plugin)
 
