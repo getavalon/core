@@ -195,7 +195,7 @@ def create_knobs(data, tab=None):
     return knobs
 
 
-KNOB_TYPE_EXCLUDED_ON_READ = (
+EXCLUDED_KNOB_TYPE_ON_READ = (
     20,  # Tab Knob
     26,  # Text Knob
 )
@@ -226,7 +226,7 @@ def read(node):
             knob_name = knob.name()
             knob_type = nuke.knob(knob.fullyQualifiedName(), type=True)
 
-            if knob_type not in KNOB_TYPE_EXCLUDED_ON_READ:
+            if knob_type not in EXCLUDED_KNOB_TYPE_ON_READ:
                 data[knob_name] = knob.value()
 
             if knob_name == first_user_knob:
