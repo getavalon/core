@@ -4,6 +4,7 @@ import nuke
 import re
 import logging
 from ..vendor import (six, clique)
+from nukescripts import clear_selection_recursive
 
 log = logging.getLogger(__name__)
 
@@ -44,8 +45,7 @@ def maintained_selection():
 def reset_selection():
     """Deselect all selected nodes
     """
-    for node in nuke.selectedNodes():
-        node['selected'] = False
+    clear_selection_recursive()
 
 
 def select_nodes(nodes):
@@ -136,7 +136,7 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
                 try:
                     knob.setValue(k['value'])
                 except TypeError as E:
-                    log.info("{} - Not correct knob value. Error: `{}`".format(__name__, E))
+                    log.info("{} - Not correct knob (`{}`) value (`{}`). Error: `{}`".format(__name__, k["name"], k['value'], E))
             else:
                 if k["name"] not in node.knobs().keys():
                     n_knob = getattr(nuke, k["type"])
@@ -208,6 +208,7 @@ def get_avalon_knob_data(node, prefix="ak:"):
 
     return data
 
+
 def check_subsetname_exists(nodes, subset_name):
     """
     Checking if node is not already created to secure there is no duplicity
@@ -219,9 +220,11 @@ def check_subsetname_exists(nodes, subset_name):
     Returns:
         bool: True of False
     """
-    return next((True for n in nodes
-    if subset_name in get_avalon_knob_data(n,
-        ["avalon:", "ak:"]).get("subset", "")), False)
+    result = next((True for n in nodes
+                   if subset_name in get_avalon_knob_data(
+                        n, ["avalon:", "ak:"]).get("subset", "")), False)
+    return result
+
 
 def imprint(node, data):
     """Adding `Avalon data` into a node's Avalon Tab/Avalon knob
