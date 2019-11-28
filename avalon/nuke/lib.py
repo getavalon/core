@@ -56,8 +56,11 @@ def select_nodes(nodes):
     """
     assert isinstance(nodes, (list, tuple)), "nodes has to be list or tuple"
 
-    for node in nodes:
-        node['selected'].setValue(True)
+    try:
+        for node in nodes:
+            node['selected'].setValue(True)
+    except ValueError as e:
+        log.warning(e)
 
 
 def add_publish_knob(node):
