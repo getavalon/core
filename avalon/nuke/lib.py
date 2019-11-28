@@ -296,7 +296,9 @@ def set_avalon_knob_data(node, data=None, prefix="avalon:"):
             if key in editable:
                 create[name] = value
             else:
-                create[name] = Knobby("Text_Knob", str(value))
+                create[name] = Knobby("String_Knob",
+                                      str(value),
+                                      flags=[nuke.READ_ONLY])
 
     if tab_name in existed_knobs:
         tab_name = None
