@@ -237,8 +237,11 @@ def read(node):
         # Collect user knobs from the end of the knob list
         for knob in reversed(node.allKnobs()):
             knob_name = knob.name()
-            knob_type = nuke.knob(knob.fullyQualifiedName(), type=True)
+            if not knob_name:
+                # Ignore unnamed knob
+                continue
 
+            knob_type = nuke.knob(knob.fullyQualifiedName(), type=True)
             value = knob.value()
 
             if (
