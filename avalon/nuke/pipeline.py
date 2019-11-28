@@ -10,7 +10,6 @@ from pyblish import api as pyblish
 
 from . import lib
 from .. import api, io
-from ..vendor import toml
 from ..vendor.Qt import QtWidgets
 from ..pipeline import AVALON_CONTAINER_ID
 
@@ -65,41 +64,36 @@ def containerise(node,
                  context,
                  loader=None,
                  data=None):
-    """Bundle `nodes` into an assembly and imprint it with metadata
+    """Bundle `node` into an assembly and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
     for loaded assets.
 
     Arguments:
-        node (object): The node in Nuke to imprint as container,
-        usually a Reader.
+        node (nuke.Node): Nuke's node object to imprint as container
         name (str): Name of resulting assembly
         namespace (str): Namespace under which to host container
         context (dict): Asset information
         loader (str, optional): Name of node used to produce this container.
 
     Returns:
-        Node
+        node (nuke.Node): containerised nuke's node object
 
     """
+    data = OrderedDict(
+        [
+            ("schema", "avalon-core:container-2.0"),
+            ("id", AVALON_CONTAINER_ID),
+            ("name", name),
+            ("namespace", namespace),
+            ("loader", str(loader)),
+            ("representation", context["representation"]["_id"]),
+        ],
 
-    data_imprint = OrderedDict({
-        "schema": "avalon-core:container-2.0",
-        "id": AVALON_CONTAINER_ID,
-        "name": str(name),
-        "namespace": str(namespace),
-        "loader": str(loader),
-        "representation": str(context["representation"]["_id"]),
-    })
+        **data or dict()
+    )
 
-    if data:
-        {data_imprint.update({k: v}) for k, v in data.items()}
-
-    log.info("data: {}".format(data_imprint))
-
-    lib.add_avalon_tab_knob(node)
-
-    node['avalon'].setValue(toml.dumps(data_imprint))
+    lib.set_avalon_knob_data(node, data)
 
     return node
 
@@ -107,43 +101,58 @@ def containerise(node,
 def parse_container(node):
     """Returns containerised data of a node
 
-    This reads the imprinted data from `containerise`.
+    Reads the imprinted data from `containerise`.
 
+    Arguments:
+        node (nuke.Node): Nuke's node object to read imprinted data
+
+    Returns:
+        container (dict): imprinted container data
     """
-
-    raw_text_data = node['avalon'].value()
-    data = toml.loads(raw_text_data, _dict=dict)
+    data = lib.get_avalon_knob_data(node)
 
     if not isinstance(data, dict):
         return
 
+    # If not all required data return the empty container
+    required = ["schema", "id", "name",
+                "namespace", "loader", "representation"]
+
+    if not all(key in data for key in required):
+        return
+
+    container = {key: data[key] for key in required}
+
     # Store the node's name
-    data["objectName"] = node["name"].value()
+    container["objectName"] = node["name"].value()
+    # Store reference to the node object
+    container["_node"] = node
 
-    return data
+    return container
 
 
-def update_container(node, keys=dict()):
+def update_container(node, keys=None):
     """Returns node with updateted containder data
 
     Arguments:
-        node (object): The node in Nuke to imprint as container,
-        keys (dict): data which should be updated
+        node (nuke.Node): The node in Nuke to imprint as container,
+        keys (dict, optional): data which should be updated
 
     Returns:
-        node (object): nuke node with updated container data
+        node (nuke.Node): nuke node with updated container data
+
+    Raises:
+        TypeError on given an invalid container node
+
     """
+    keys = keys or dict()
 
     container = parse_container(node)
+    if not container:
+        raise TypeError("Not a valid container node.")
 
-    for key, value in container.items():
-        try:
-            container[key] = keys[key]
-        except KeyError:
-            pass
-
-    node['avalon'].setValue('')
-    node['avalon'].setValue(toml.dumps(container))
+    container.update(keys)
+    node = lib.set_avalon_knob_data(node, container)
 
     return node
 
@@ -155,10 +164,13 @@ class Creator(api.Creator):
         if (self.options or {}).get("useSelection"):
             nodes = nuke.selectedNodes()
 
-        instance = [n for n in nodes
-                    if n["name"].value() in self.name] or None
+        nodes = [n for n in nodes
+                 if n["name"].value() in self.name] or None
 
-        instance = lib.imprint(instance, self.data)
+        node = nodes[0]
+        lib.set_avalon_knob_data(node, self.data)
+        lib.add_publish_knob(node)
+        instance = node
 
         return instance
 
