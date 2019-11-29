@@ -1,6 +1,7 @@
+import os
 import argparse
 
-from . import pipeline, version
+from . import pipeline, version, api
 
 
 def main():
@@ -17,6 +18,8 @@ def main():
                         help="Launch Scene Inventory in standalone mode")
     parser.add_argument("--projectmanager", action="store_true",
                         help="Launch Manager in standalone mode")
+    parser.add_argument("--workfiles", action="store_true",
+                        help="Launch Workfiles in standalone mode")
 
     args, unknown = parser.parse_known_args()
     host = pipeline.debug_host()
@@ -28,10 +31,12 @@ def main():
 
     elif args.creator:
         from .tools import creator
+        api.Session["AVALON_ASSET"] = "Mock"
         creator.show(debug=True)
 
     elif args.loader:
         from .tools import loader
+        api.Session["AVALON_PROJECTS"] = os.path.expanduser("~/projects")
         loader.show(debug=True)
 
     elif args.sceneinventory:
@@ -41,6 +46,10 @@ def main():
     elif args.projectmanager:
         from .tools import projectmanager
         projectmanager.cli(unknown)
+
+    elif args.workfiles:
+        from .tools import workfiles
+        workfiles.show(debug=True)
 
     else:
         parser.print_help()

@@ -38,7 +38,6 @@ def validate(data, schema=None):
     """
 
     root, schema = data["schema"].rsplit(":", 1)
-    # log_.info(root)
     # assert root in (
     #     "mindbender-core",  # Backwards compatiblity
     #     "avalon-core",
