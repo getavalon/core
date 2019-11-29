@@ -211,7 +211,7 @@ class App(QtWidgets.QDialog):
         Returns:
             None
         """
-        self._assets.select_assets(assetname)
+        self._assets.select_assets([assetname], expand=True)
 
 
 def show(parent=None):
