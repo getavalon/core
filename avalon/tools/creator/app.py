@@ -66,11 +66,11 @@ class SubsetNameLineEdit(QtWidgets.QLineEdit):
         self.setToolTip("Only alphanumeric characters (A-Z a-z 0-9), "
                         "'_' and '.' are allowed.")
 
-        self._status_color = None
+        self._status_color = self.colors["empty"][0]
 
         anim = QtCore.QPropertyAnimation()
         anim.setTargetObject(self)
-        anim.setPropertyName("status_color")
+        anim.setPropertyName(b"status_color")
         anim.setEasingCurve(QtCore.QEasingCurve.InCubic)
         anim.setDuration(300)
         anim.setStartValue(QtGui.QColor("#C84747"))  # `Invalid` status color
