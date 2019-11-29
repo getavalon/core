@@ -227,7 +227,7 @@ def read(node):
     data = dict()
 
     pattern = ("(?<=addUserKnob {)"
-               "([0-9]*) (\S*)"  # Matching knob type and knob name
+               "([0-9]*) (\\S*)"  # Matching knob type and knob name
                "(?=[ |}])")
     tcl_script = node.writeKnobs(nuke.WRITE_USER_KNOB_DEFS)
     result = re.search(pattern, tcl_script)
