@@ -335,12 +335,17 @@ class OptionalAction(QtWidgets.QWidgetAction):
     def __init__(self, label, parent):
         super(OptionalAction, self).__init__(parent)
         self.widget = OptionalActionWidget(label, parent)
+        self.widget.option.clicked.connect(self.on_option)
+        self.use_option = False
 
     def setIcon(self, icon):
         self.widget.setIcon(icon)
 
     def createWidget(self, parent):
         return self.widget
+
+    def on_option(self):
+        self.use_option = True
 
 
 class OptionalActionWidget(QtWidgets.QWidget):
@@ -380,8 +385,6 @@ class OptionalActionWidget(QtWidgets.QWidget):
         self.option = option
         self.body = body
 
-        option.clicked.connect(self.on_option)
-
     def setIcon(self, icon):
         pixmap = icon.pixmap(16, 16)
         self.icon.setPixmap(pixmap)
@@ -393,10 +396,6 @@ class OptionalActionWidget(QtWidgets.QWidget):
     def leaveEvent(self, event):
         self.body.setBackgroundRole(QtGui.QPalette.Window)
         self.body.setAutoFillBackground(False)
-
-    def on_option(self):
-        dialog = OptionDialog(self)
-        dialog.show()
 
 
 class OptionBox(QtWidgets.QWidget):

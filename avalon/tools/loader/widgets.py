@@ -10,6 +10,7 @@ from ... import pipeline
 
 from .. import lib as tools_lib
 from ..delegates import VersionDelegate
+from ..widgets import OptionalAction, OptionDialog
 
 from .model import (
     SubsetsModel,
@@ -172,7 +173,12 @@ class SubsetWidget(QtWidgets.QWidget):
             # Add the representation as suffix
             label = "{0} ({1})".format(label, representation["name"])
 
-            action = QtWidgets.QAction(label, menu)
+            # Load options
+            if hasattr(loader, "options"):
+                action = OptionalAction(label, menu)
+            else:
+                action = QtWidgets.QAction(label, menu)
+
             action.setData((representation, loader))
 
             # Add tooltip and statustip from Loader docstring
@@ -200,6 +206,12 @@ class SubsetWidget(QtWidgets.QWidget):
         action = menu.exec_(global_point)
         if not action:
             return
+
+        # Pop option dialog
+        if getattr(action, "use_option", False):
+            dialog = OptionDialog(self)
+            if not dialog.exec_():
+                return
 
         # Find the representation name and loader to trigger
         action_representation, loader = action.data()
