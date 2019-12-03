@@ -322,3 +322,127 @@ def _list_project_silos():
         log.warning("Project '%s' has no active silos", project["name"])
 
     return list(sorted(silos))
+
+
+class OptionalAction(QtWidgets.QWidgetAction):
+    """Menu action with option box
+
+    A menu action like Maya's menu item with option box, implemented by
+    subclassing `QtWidgets.QWidgetAction`.
+
+    """
+
+    def __init__(self, label, parent):
+        super(OptionalAction, self).__init__(parent)
+        self.widget = OptionalActionWidget(label, parent)
+
+    def setIcon(self, icon):
+        self.widget.setIcon(icon)
+
+    def createWidget(self, parent):
+        return self.widget
+
+
+class OptionalActionWidget(QtWidgets.QWidget):
+    """Main widget class for `OptionalAction`"""
+
+    def __init__(self, label, parent=None):
+        super(OptionalActionWidget, self).__init__(parent)
+
+        body = QtWidgets.QWidget()
+        body.setStyleSheet("background: transparent;")
+
+        icon = QtWidgets.QLabel()
+        label = QtWidgets.QLabel(label)
+        option = OptionBox(body)
+
+        icon.setFixedSize(40, 16)
+        option.setFixedSize(30, 30)
+
+        layout = QtWidgets.QHBoxLayout(body)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+        layout.addWidget(icon)
+        layout.addWidget(label)
+        layout.addSpacing(6)
+
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(6, 1, 2, 1)
+        layout.setSpacing(0)
+        layout.addWidget(body)
+        layout.addWidget(option)
+
+        self.setFixedHeight(32)
+        self.setMouseTracking(True)
+
+        self.icon = icon
+        self.label = label
+        self.option = option
+        self.body = body
+
+        option.clicked.connect(self.on_option)
+
+    def setIcon(self, icon):
+        pixmap = icon.pixmap(16, 16)
+        self.icon.setPixmap(pixmap)
+
+    def enterEvent(self, event):
+        self.body.setBackgroundRole(QtGui.QPalette.Highlight)
+        self.body.setAutoFillBackground(True)
+
+    def leaveEvent(self, event):
+        self.body.setBackgroundRole(QtGui.QPalette.Window)
+        self.body.setAutoFillBackground(False)
+
+    def on_option(self):
+        dialog = OptionDialog(self)
+        dialog.show()
+
+
+class OptionBox(QtWidgets.QWidget):
+    """Option box widget class for `OptionalActionWidget`"""
+
+    clicked = QtCore.Signal()
+
+    def __init__(self, parent):
+        super(OptionBox, self).__init__(parent)
+
+        label = QtWidgets.QLabel()
+
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addSpacing(8)
+        layout.addWidget(label)
+
+        icon = qtawesome.icon("fa.sticky-note-o", color="#c6c6c6")
+        pixmap = icon.pixmap(18, 18)
+        label.setPixmap(pixmap)
+
+        self.setStyleSheet("background: transparent;")
+        self._parent = parent
+        self._hovered = False
+
+    def mouseReleaseEvent(self, event):
+        if self._hovered:
+            self.clicked.emit()
+
+    def enterEvent(self, event):
+        parent = self._parent
+        parent.setBackgroundRole(QtGui.QPalette.Highlight)
+        parent.setAutoFillBackground(True)
+        self.setBackgroundRole(QtGui.QPalette.Highlight)
+        self.setAutoFillBackground(True)
+        self._hovered = True
+
+    def leaveEvent(self, event):
+        self.setBackgroundRole(QtGui.QPalette.Window)
+        self.setAutoFillBackground(False)
+        self._hovered = False
+
+
+class OptionDialog(QtWidgets.QDialog):
+    """Option dialog shown by option box"""
+
+    def __init__(self, parent=None):
+        super(OptionDialog, self).__init__(parent)
+        self.setModal(True)
