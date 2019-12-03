@@ -425,6 +425,7 @@ class OptionBox(QtWidgets.QWidget):
     def mouseReleaseEvent(self, event):
         if self._hovered:
             self.clicked.emit()
+        super(OptionBox, self).mouseReleaseEvent(event)
 
     def enterEvent(self, event):
         parent = self._parent
