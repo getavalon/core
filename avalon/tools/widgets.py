@@ -332,21 +332,28 @@ class OptionalAction(QtWidgets.QWidgetAction):
 
     """
 
-    def __init__(self, label, icon, parent):
+    def __init__(self, label, icon, use_option, parent):
         super(OptionalAction, self).__init__(parent)
         self.label = label
         self.icon = icon
-        self.use_option = False
+        self.use_option = use_option
+        self.optioned = False
 
     def createWidget(self, parent):
         widget = OptionalActionWidget(self.label, parent)
-        widget.option.clicked.connect(self.on_option)
+
         if self.icon:
             widget.setIcon(self.icon)
+
+        if self.use_option:
+            widget.option.clicked.connect(self.on_option)
+        else:
+            widget.option.setVisible(False)
+
         return widget
 
     def on_option(self):
-        self.use_option = True
+        self.optioned = True
 
 
 class OptionalActionWidget(QtWidgets.QWidget):
@@ -362,7 +369,7 @@ class OptionalActionWidget(QtWidgets.QWidget):
         label = QtWidgets.QLabel(label)
         option = OptionBox(body)
 
-        icon.setFixedSize(40, 16)
+        icon.setFixedSize(24, 16)
         option.setFixedSize(30, 30)
 
         layout = QtWidgets.QHBoxLayout(body)

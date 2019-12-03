@@ -202,13 +202,9 @@ class SubsetWidget(QtWidgets.QWidget):
                           "{}: {}".format(loader, e))
                     icon = None
 
-            # Load options
-            if enable_option and hasattr(loader, "options"):
-                action = OptionalAction(label, icon, menu)
-            else:
-                action = QtWidgets.QAction(label, menu)
-                if icon:
-                    action.setIcon(icon)
+            # Optional action
+            use_option = enable_option and hasattr(loader, "options")
+            action = OptionalAction(label, icon, use_option, menu)
 
             action.setData((representation, loader))
 
@@ -232,7 +228,7 @@ class SubsetWidget(QtWidgets.QWidget):
         options = None
 
         # Pop option dialog
-        if getattr(action, "use_option", False):
+        if getattr(action, "optioned", False):
             dialog = OptionDialog(self)
             dialog.setWindowTitle(action.label + " Options")
             dialog.create(loader.options)
