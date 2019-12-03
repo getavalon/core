@@ -189,11 +189,26 @@ class SubsetWidget(QtWidgets.QWidget):
             # Add the representation as suffix
             label = "{0} ({1})".format(label, representation["name"])
 
+            # Support font-awesome icons using the `.icon` and `.color`
+            # attributes on plug-ins.
+            icon = getattr(loader, "icon", None)
+            if icon is not None:
+                try:
+                    key = "fa.{0}".format(icon)
+                    color = getattr(loader, "color", "white")
+                    icon = qtawesome.icon(key, color=color)
+                except Exception as e:
+                    print("Unable to set icon for loader "
+                          "{}: {}".format(loader, e))
+                    icon = None
+
             # Load options
             if enable_option and hasattr(loader, "options"):
-                action = OptionalAction(label, menu)
+                action = OptionalAction(label, icon, menu)
             else:
                 action = QtWidgets.QAction(label, menu)
+                if icon:
+                    action.setIcon(icon)
 
             action.setData((representation, loader))
 
@@ -202,18 +217,6 @@ class SubsetWidget(QtWidgets.QWidget):
             if tip:
                 action.setToolTip(tip)
                 action.setStatusTip(tip)
-
-            # Support font-awesome icons using the `.icon` and `.color`
-            # attributes on plug-ins.
-            icon = getattr(loader, "icon", None)
-            if icon is not None:
-                try:
-                    key = "fa.{0}".format(icon)
-                    color = getattr(loader, "color", "white")
-                    action.setIcon(qtawesome.icon(key, color=color))
-                except Exception as e:
-                    print("Unable to set icon for loader "
-                          "{}: {}".format(loader, e))
 
             menu.addAction(action)
 
