@@ -156,6 +156,22 @@ class SubsetWidget(QtWidgets.QWidget):
             self.echo("No compatible loaders available for this version.")
             return
 
+        # Get selected rows
+        selection = self.view.selectionModel()
+        rows = selection.selectedRows(column=0)
+        # Ensure active point index is also used as first column so we can
+        # correctly push it to the end in the rows list.
+        point_index = point_index.sibling(point_index.row(), 0)
+        # Ensure point index is run first.
+        try:
+            rows.remove(point_index)
+        except ValueError:
+            pass
+        rows.insert(0, point_index)
+
+        # Enable optional action when only one item being selected
+        enable_option = len(rows) == 1
+
         def sorter(value):
             """Sort the Loaders by their order and then their name"""
             Plugin = value[1]
@@ -174,7 +190,7 @@ class SubsetWidget(QtWidgets.QWidget):
             label = "{0} ({1})".format(label, representation["name"])
 
             # Load options
-            if hasattr(loader, "options"):
+            if enable_option and hasattr(loader, "options"):
                 action = OptionalAction(label, menu)
             else:
                 action = QtWidgets.QAction(label, menu)
@@ -219,19 +235,6 @@ class SubsetWidget(QtWidgets.QWidget):
 
         # Run the loader for all selected indices, for those that have the
         # same representation available
-        selection = self.view.selectionModel()
-        rows = selection.selectedRows(column=0)
-
-        # Ensure active point index is also used as first column so we can
-        # correctly push it to the end in the rows list.
-        point_index = point_index.sibling(point_index.row(), 0)
-
-        # Ensure point index is run first.
-        try:
-            rows.remove(point_index)
-        except ValueError:
-            pass
-        rows.insert(0, point_index)
 
         # Trigger
         for row in rows:
