@@ -226,15 +226,22 @@ class SubsetWidget(QtWidgets.QWidget):
         if not action:
             return
 
-        # Pop option dialog
-        if getattr(action, "use_option", False):
-            dialog = OptionDialog(self)
-            if not dialog.exec_():
-                return
-
         # Find the representation name and loader to trigger
         action_representation, loader = action.data()
         representation_name = action_representation["name"]  # extension
+        options = None
+
+        # Pop option dialog
+        if getattr(action, "use_option", False):
+            dialog = OptionDialog(self)
+            dialog.setWindowTitle(action.label + " Options")
+            dialog.create(loader.options)
+
+            if not dialog.exec_():
+                return
+
+            # Get option
+            options = dialog.options()
 
         # Run the loader for all selected indices, for those that have the
         # same representation available
@@ -257,7 +264,10 @@ class SubsetWidget(QtWidgets.QWidget):
                 continue
 
             try:
-                api.load(Loader=loader, representation=representation)
+                api.load(Loader=loader,
+                         representation=representation,
+                         options=options)
+
             except pipeline.IncompatibleLoaderError as exc:
                 self.echo(exc)
                 continue

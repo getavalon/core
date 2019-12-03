@@ -447,3 +447,24 @@ class OptionDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(OptionDialog, self).__init__(parent)
         self.setModal(True)
+        self.inputs = list()
+
+    def create(self, options):
+        decision = QtWidgets.QWidget()
+        accept = QtWidgets.QPushButton("Accept")
+        cancel = QtWidgets.QPushButton("Cancel")
+
+        layout = QtWidgets.QHBoxLayout(decision)
+        layout.addWidget(accept)
+        layout.addWidget(cancel)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        for widget in self.inputs:
+            layout.addWidget(widget)
+        layout.addWidget(decision)
+
+        accept.clicked.connect(self.accept)
+        cancel.clicked.connect(self.reject)
+
+    def options(self):
+        pass
