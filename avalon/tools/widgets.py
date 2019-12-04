@@ -476,6 +476,7 @@ class OptionDialog(QtWidgets.QDialog):
         for widget in options:
             widget.link(self._inputs)
             layout.addWidget(widget)
+        layout.addSpacing(20)
         layout.addWidget(decision)
 
         accept.clicked.connect(self.accept)

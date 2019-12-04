@@ -19,8 +19,9 @@ class InputBase(QtWidgets.QWidget):
         label = QtWidgets.QLabel(nice_naming(name))
         label.setToolTip(help)
 
-        layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(label)
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.addWidget(label, stretch=False)
+        layout.addSpacing(4)
 
         self.layout = layout
         self.key = name
@@ -54,7 +55,7 @@ class Bool(InputBase):
         if default:
             input.setChecked()
 
-        layout = QtWidgets.QVBoxLayout(self)
+        layout = QtWidgets.QHBoxLayout(self)
         layout.addWidget(input)
 
         self.layout = layout
@@ -86,7 +87,7 @@ class Int(InputBase):
         input.setMinimum(min)
         input.setMaximum(max)
 
-        self.layout.addWidget(input)
+        self.layout.addWidget(input, stretch=True)
         self.input = input
 
     def get(self):
@@ -216,7 +217,7 @@ class GetOne(InputBase):
         input.addItems(elements)
         input.setCurrentIndex(default)
 
-        self.layout.addWidget(input)
+        self.layout.addWidget(input, stretch=True)
         self.input = input
         self.as_string = as_string
 
