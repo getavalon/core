@@ -454,7 +454,7 @@ class OptionDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(OptionDialog, self).__init__(parent)
         self.setModal(True)
-        self.inputs = list()
+        self._inputs = dict()
 
     def create(self, options):
         decision = QtWidgets.QWidget()
@@ -466,7 +466,8 @@ class OptionDialog(QtWidgets.QDialog):
         layout.addWidget(cancel)
 
         layout = QtWidgets.QVBoxLayout(self)
-        for widget in self.inputs:
+        for widget in options:
+            widget.link(self._inputs)
             layout.addWidget(widget)
         layout.addWidget(decision)
 
@@ -474,4 +475,8 @@ class OptionDialog(QtWidgets.QDialog):
         cancel.clicked.connect(self.reject)
 
     def options(self):
-        pass
+        options = dict()
+        for key, input in self._inputs.items():
+            options[key] = input.get()
+
+        return options
