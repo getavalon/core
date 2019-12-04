@@ -433,7 +433,6 @@ class OptionBox(QtWidgets.QWidget):
         label.setPixmap(pixmap)
 
         self.setStyleSheet("background: transparent;")
-        self._parent = parent
         self._hovered = False
 
     def mouseReleaseEvent(self, event):
@@ -442,9 +441,6 @@ class OptionBox(QtWidgets.QWidget):
         super(OptionBox, self).mouseReleaseEvent(event)
 
     def enterEvent(self, event):
-        parent = self._parent
-        parent.setBackgroundRole(QtGui.QPalette.Highlight)
-        parent.setAutoFillBackground(True)
         self.setBackgroundRole(QtGui.QPalette.Highlight)
         self.setAutoFillBackground(True)
         self._hovered = True
