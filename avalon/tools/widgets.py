@@ -337,6 +337,7 @@ class OptionalAction(QtWidgets.QWidgetAction):
         self.label = label
         self.icon = icon
         self.use_option = use_option
+        self.option_tip = ""
         self.optioned = False
 
     def createWidget(self, parent):
@@ -347,10 +348,16 @@ class OptionalAction(QtWidgets.QWidgetAction):
 
         if self.use_option:
             widget.option.clicked.connect(self.on_option)
+            widget.option.setToolTip(self.option_tip)
         else:
             widget.option.setVisible(False)
 
         return widget
+
+    def set_option_tip(self, options):
+        sep = "\n\n"
+        mak = (lambda opt: opt.key + " :\n    " + opt.tip)
+        self.option_tip = sep.join(mak(opt) for opt in options)
 
     def on_option(self):
         self.optioned = True

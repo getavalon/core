@@ -206,6 +206,10 @@ class SubsetWidget(QtWidgets.QWidget):
             use_option = enable_option and hasattr(loader, "options")
             action = OptionalAction(label, icon, use_option, menu)
 
+            if use_option:
+                # Add option box tip
+                action.set_option_tip(loader.options)
+
             action.setData((representation, loader))
 
             # Add tooltip and statustip from Loader docstring
