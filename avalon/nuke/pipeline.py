@@ -13,9 +13,6 @@ import nuke
 
 log = logging.getLogger(__name__)
 
-self = sys.modules[__name__]
-self._parent = None  # Main Window cache
-
 AVALON_CONFIG = os.environ["AVALON_CONFIG"]
 
 
@@ -79,18 +76,6 @@ def containerise(node,
         node (obj): containerised nuke's node object
 
     """
-    data = OrderedDict(
-        [
-            ("schema", "avalon-core:container-2.0"),
-            ("id", AVALON_CONTAINER_ID),
-            ("name", name),
-            ("namespace", namespace),
-            ("loader", str(loader)),
-            ("representation", context["representation"]["_id"]),
-        ],
-
-        **data or dict()
-    )
 
     data_imprint = OrderedDict({
         "schema": "avalon-core:container-2.0",
@@ -141,30 +126,34 @@ def parse_container(node, validate=True):
 
     # Store the node's name
     container["objectName"] = node["name"].value()
+
     # Store reference to the node object
     container["_node"] = node
 
     return container
 
 
-def update_container(node, keys=None):
+def update_container(node, keys=dict()):
     """Returns node with updateted containder data
 
     Arguments:
-        node (nuke.Node): The node in Nuke to imprint as container,
-        keys (dict, optional): data which should be updated
+        node (object): The node in Nuke to imprint as container,
+        keys (dict): data which should be updated
 
     Returns:
-        node (nuke.Node): nuke node with updated container data
+        node (object): nuke node with updated container data
+    """
 
     data = lib.get_avalon_knob_data(node)
 
     container = dict()
     container = {key: data[key] for key in data}
 
-    container = parse_container(node)
-    if not container:
-        raise TypeError("Not a valid container node.")
+    for key, value in container.items():
+        try:
+            container[key] = keys[key]
+        except KeyError:
+            pass
 
     node = lib.set_avalon_knob_data(node, container)
 
@@ -283,18 +272,6 @@ def find_host_config(config):
     return config
 
 
-def get_main_window():
-    """Acquire Nuke's main window"""
-    if self._parent is None:
-        top_widgets = QtWidgets.QApplication.topLevelWidgets()
-        name = "Foundry::UI::DockMainWindow"
-        main_window = next(widget for widget in top_widgets if
-                           widget.inherits("QMainWindow") and
-                           widget.metaObject().className() == name)
-        self._parent = main_window
-    return self._parent
-
-
 def uninstall(config):
     """Uninstall all that was previously installed
 
@@ -335,26 +312,13 @@ def _install_menu():
         api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"]
     )
     context_menu = menu.addMenu(label)
-    context_menu.addCommand("Set Context",
-                            lambda: contextmanager.show(
-                                parent=get_main_window())
-                            )
-    menu.addSeparator()
-    menu.addCommand("Create...",
-                    lambda: creator.show(parent=get_main_window()))
-    menu.addCommand("Load...",
-                    lambda: loader.show(parent=get_main_window(),
-                                        use_context=True))
-    menu.addCommand("Publish...",
-                    lambda: publish.show(parent=get_main_window()))
-    menu.addCommand("Manage...",
-                    lambda: sceneinventory.show(parent=get_main_window()))
+    context_menu.addCommand("Set Context", contextmanager.show)
 
     menu.addSeparator()
     menu.addCommand("Work Files...",
                     lambda: workfiles.show(
-                        os.environ["AVALON_WORKDIR"],
-                        parent=get_main_window())
+                        os.environ["AVALON_WORKDIR"]
+                    )
                     )
     menu.addSeparator()
     menu.addCommand("Create...", creator.show)
