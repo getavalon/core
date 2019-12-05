@@ -695,7 +695,8 @@ def register_plugin(superclass, obj):
     if obj not in _registered_plugins[superclass]:
         _registered_plugins[superclass].append(obj)
 
-
+register_plugin(ThumbnailResolver, BinaryThumbnail)
+register_plugin(ThumbnailResolver, TemplateResolver)
 def register_plugin_path(superclass, path):
     """Register a directory of one or more plug-ins
 
