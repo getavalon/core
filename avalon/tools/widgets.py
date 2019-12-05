@@ -399,6 +399,10 @@ class OptionalActionWidget(QtWidgets.QWidget):
         self.option = option
         self.body = body
 
+        # (NOTE) For removing ugly QLable shadow FX when highlighted in Nuke.
+        #   See https://stackoverflow.com/q/52838690/4145300
+        label.setStyle(QtWidgets.QStyleFactory.create("Plastique"))
+
     def setIcon(self, icon):
         pixmap = icon.pixmap(16, 16)
         self.icon.setPixmap(pixmap)
