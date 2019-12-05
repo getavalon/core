@@ -6,6 +6,7 @@ import re
 import json
 import errno
 import types
+import copy
 import shutil
 import getpass
 import logging
@@ -474,6 +475,25 @@ class Application(Action):
             raise ValueError(
                 "This is typically a bug in the pipeline, "
                 "ask your developer.")
+
+
+@lib.log
+class ThumbnailResolver(object):
+    """Determine how to get data from thumbnail entity.
+
+    "priority" - determines the order of processing in `get_thumbnail_binary`,
+        lower number is processed earlier.
+    "thumbnail_types" - it is expected that thumbnails will be used in more
+        more than one level, there is only ["thumbnail"] type at the moment
+        of creating this docstring but it is expected to add "ico" and "full"
+        in future.
+    """
+
+    priority = 100
+    thumbnail_types = ["*"]
+
+    def process(self, thumbnail_entity, thumbnail_type):
+        pass
 
 
 def discover(superclass):
