@@ -396,7 +396,6 @@ class OptionalActionWidget(QtWidgets.QWidget):
         self.setMouseTracking(True)
 
         self.icon = icon
-        self.label = label
         self.option = option
         self.body = body
 
