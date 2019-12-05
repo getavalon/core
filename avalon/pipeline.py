@@ -978,9 +978,6 @@ def update_current_task(task=None, asset=None, app=None):
                                       "type": "asset"})
         assert asset_document, "Asset must exist"
         changed["AVALON_SILO"] = asset_document.get("silo") or ""
-        parents = asset_document["data"]["parents"]
-        hierarchy = os.path.sep.join(parents) or ""
-        changed['AVALON_HIERARCHY'] = hierarchy
 
     # Compute work directory (with the temporary changed session so far)
     project = io.find_one({"type": "project"},
@@ -995,10 +992,8 @@ def update_current_task(task=None, asset=None, app=None):
     if not os.path.exists(workdir):
         os.makedirs(workdir)
 
-    parents = asset_document['data'].get('parents', [])
-    hierarchy = ""
-    if len(parents) > 0:
-        hierarchy = os.path.sep.join(parents)
+    parents = asset_document["data"].get("parents") or []
+    hierarchy = os.path.sep.join(parents) or ""
     changed['AVALON_HIERARCHY'] = hierarchy
 
     # Update the full session in one go to avoid half updates

@@ -362,14 +362,6 @@ class Window(QtWidgets.QDialog):
             else:
                 subset.as_new()
 
-            # Indicate subset existence
-            if not subset_name:
-                subset.as_empty()
-            elif subset_name in existed_subsets:
-                subset.as_exists()
-            else:
-                subset.as_new()
-
             item.setData(ExistsRole, True)
 
         else:
@@ -636,8 +628,8 @@ def show(debug=False, parent=None):
 
     with lib.application():
         window = Window(parent)
+        window.setStyleSheet(style.load_stylesheet())
         window.refresh()
         window.show()
-        window.setStyleSheet(style.load_stylesheet())
 
         module.window = window
