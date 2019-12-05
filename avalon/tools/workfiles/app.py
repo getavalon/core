@@ -9,6 +9,9 @@ from ... import style, io, api
 
 from .. import lib as tools_lib
 
+module = sys.modules[__name__]
+module.window = None
+
 
 class NameWindow(QtWidgets.QDialog):
     """Name Window"""
@@ -234,10 +237,10 @@ class NameWindow(QtWidgets.QDialog):
 class Window(QtWidgets.QDialog):
     """Work Files Window"""
 
-    def __init__(self, root=None):
-        super(Window, self).__init__()
+    def __init__(self, root=None, parent=None):
+        super(Window, self).__init__(parent)
         self.setWindowTitle("Work Files")
-        self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.WindowCloseButtonHint)
 
         self.root = root
 
@@ -300,17 +303,21 @@ class Window(QtWidgets.QDialog):
         self.browse_button.pressed.connect(self.on_browse_pressed)
         self.save_as_button.pressed.connect(self.on_save_as_pressed)
 
+        self._name_window = None
+        self._messagebox = None
+
         self.open_button.setFocus()
 
         self.refresh()
         self.resize(400, 550)
 
     def get_name(self):
-        window = NameWindow(self.root)
-        window.setStyleSheet(style.load_stylesheet())
-        window.exec_()
 
-        return window.get_result()
+        self._name_window = NameWindow(self.root)
+        self._name_window.setStyleSheet(style.load_stylesheet())
+        self._name_window.exec_()
+
+        return self._name_window.get_result()
 
     def refresh(self):
         self.list.clear()
@@ -352,22 +359,23 @@ class Window(QtWidgets.QDialog):
         nuke.scriptSaveAs(file_path)
 
     def save_changes_prompt(self):
-        messagebox = QtWidgets.QMessageBox()
-        messagebox.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-        messagebox.setIcon(messagebox.Warning)
-        messagebox.setWindowTitle("Unsaved Changes!")
-        messagebox.setText(
+        self._messagebox = QtWidgets.QMessageBox()
+        self._messagebox.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        self._messagebox.setIcon(self._messagebox.Warning)
+        self._messagebox.setWindowTitle("Unsaved Changes!")
+        self._messagebox.setText(
             "There are unsaved changes to the current file."
             "\nDo you want to save the changes?"
         )
-        messagebox.setStandardButtons(
-            messagebox.Yes | messagebox.No | messagebox.Cancel
+        self._messagebox.setStandardButtons(
+            self._messagebox.Yes | self._messagebox.No |
+            self._messagebox.Cancel
         )
-        result = messagebox.exec_()
+        result = self._messagebox.exec_()
 
-        if result == messagebox.Yes:
+        if result == self._messagebox.Yes:
             return True
-        elif result == messagebox.No:
+        elif result == self._messagebox.No:
             return False
         else:
             return None
@@ -450,8 +458,12 @@ class Window(QtWidgets.QDialog):
         self.close()
 
 
-def show(root=None, debug=False):
+def show(root=None, debug=False, parent=None):
     """Show Work Files GUI"""
+
+    if module.window:
+        module.window.close()
+        del(module.window)
 
     host = api.registered_host()
     if host is None:
@@ -488,13 +500,8 @@ def show(root=None, debug=False):
         api.Session["AVALON_TASK"] = "Testing"
 
     with tools_lib.application():
-        window = Window(root)
+        window = Window(root, parent=parent)
+        window.show()
         window.setStyleSheet(style.load_stylesheet())
 
-        if debug:
-            # Enable closing in standalone
-            window.show()
-
-        else:
-            # Cause modal dialog
-            window.exec_()
+        module.window = window
