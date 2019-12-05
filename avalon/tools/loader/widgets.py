@@ -510,16 +510,21 @@ class VersionTextEdit(QtWidgets.QTextEdit):
         clipboard.setText(raw_text)
 
 
-class ThumbnailCacher:
-    width = 190
-    height = 100
-    def __init__(self, thumbnail_label, max_thumbnails=30, dbcon=None):
-        self.thumbnail_label = thumbnail_label
-        self.cached_thumbs = collections.OrderedDict()
-        self.max_thumbnails = max_thumbnails
+class ThumbnailWidget(QtWidgets.QLabel):
+
+    aspect_ratio = (16, 9)
+    max_width = 300
+
+    def __init__(self, dbcon=None, parent=None):
+        super(ThumbnailWidget, self).__init__(parent)
         if dbcon is None:
             dbcon = io
         self.dbcon = dbcon
+
+        self.current_thumb_id = None
+        self.current_thumbnail = None
+
+        self.setAlignment(QtCore.Qt.AlignCenter)
 
         # TODO get res path much better way
         loader_path = os.path.dirname(os.path.abspath(__file__))
@@ -530,59 +535,76 @@ class ThumbnailCacher:
         )
         self.default_pix = QtGui.QPixmap(default_pix_path)
 
-    def _store_thumbnail(self, identifier, path):
-        if not path:
-            return None
-        path = os.path.normpath(path)
-        if not os.path.exists(path):
-            return None
-        # TODO
-        new_pixmap = QtGui.QPixmap(path)
-        if len(self.cached_thumbs) >= self.max_thumbnails:
-            self.cached_thumbs.popitem(last=False)
+    def height(self):
+        width = self.width()
+        asp_w, asp_h = self.aspect_ratio
 
-        self.cached_thumbs[identifier] = new_pixmap
-        return new_pixmap
+        return (width / asp_w) * asp_h
 
-    def set_version(self, version_id):
-        thumb = self._get_thumbnail(version_id)
-        if thumb:
-            if (
-                thumb.width() != self.width or
-                thumb.height() != self.height
-            ):
-                thumb = thumb.scaled(
-                    self.width, self.height, QtCore.Qt.KeepAspectRatio
-                )
-                self.cached_thumbs[version_id] = thumb
-            self.thumbnail_label.setPixmap(thumb)
+    def width(self):
+        width = super(ThumbnailWidget, self).width()
+        if width > self.max_width:
+            width = self.max_width
+        return width
+
+    def set_pixmap(self, pixmap=None):
+        if not pixmap:
+            pixmap = self.default_pix
+
+        self.current_thumbnail = pixmap
+
+        pixmap = self.scale_pixmap(pixmap)
+        self.setPixmap(pixmap)
+
+    def resizeEvent(self, event):
+        if not self.current_thumbnail:
+            return
+        cur_pix = self.scale_pixmap(self.current_thumbnail)
+        self.setPixmap(cur_pix)
+
+    def scale_pixmap(self, pixmap):
+        return pixmap.scaled(
+            self.width(), self.height(), QtCore.Qt.KeepAspectRatio
+        )
+
+    def set_thumbnail(self, entity=None):
+        if not entity:
+            self.set_pixmap()
             return
 
-        if (
-            self.default_pix.width() != self.width or
-            self.default_pix.height() != self.height
-        ):
-            self.default_pix = self.default_pix.scaled(
-                self.width, self.height, QtCore.Qt.KeepAspectRatio
-            )
-        self.thumbnail_label.setPixmap(self.default_pix)
+        if isinstance(entity, (list, tuple)):
+            if len(entity) == 1:
+                entity = entity[0]
+            else:
+                self.set_pixmap()
+                return
 
-    def _get_thumbnail(self, identifier):
-        if not identifier:
-            return None
+        thumbnail_id = entity.get("data", {}).get("thumbnail_id")
+        if thumbnail_id == self.current_thumb_id:
+            if self.current_thumbnail is None:
+                self.set_pixmap()
+            return
 
-        if identifier in self.cached_thumbs:
-            return self.cached_thumbs[identifier]
+        self.current_thumb_id = thumbnail_id
+        if not thumbnail_id:
+            self.set_pixmap()
+            return
 
-        if not isinstance(identifier, io.ObjectId):
-            return None
+        thumbnail_ent = io.find_one({"type": "thumbnail", "_id": thumbnail_id})
+        if not thumbnail_ent:
+            return
 
-        version = self.dbcon.find_one({"_id": identifier, "type": "version"})
-        if not version:
-            return None
+        thumbnail_bin = pipeline.get_thumbnail_binary(
+            thumbnail_ent, "thumbnail"
+        )
+        if not thumbnail_bin:
+            self.set_pixmap()
+            return
 
-        path = pipeline.get_thumbnail_path(version, "small", dbcon=self.dbcon)
-        return self._store_thumbnail(identifier, path)
+        thumbnail = QtGui.QPixmap()
+        thumbnail.loadFromData(thumbnail_bin)
+
+        self.set_pixmap(thumbnail)
 
 
 class VersionWidget(QtWidgets.QWidget):
@@ -592,22 +614,17 @@ class VersionWidget(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout(self)
 
-        thumbnail = QtWidgets.QLabel(self)
-        thumbnail.setAlignment(QtCore.Qt.AlignCenter)
         label = QtWidgets.QLabel("Version", self)
         data = VersionTextEdit()
         data.setReadOnly(True)
 
-        layout.addWidget(thumbnail)
         layout.addWidget(label)
         layout.addWidget(data)
 
         self.data = data
-        self.thumbnail_cacher = ThumbnailCacher(thumbnail)
 
     def set_version(self, version_id):
         self.data.set_version(version_id)
-        self.thumbnail_cacher.set_version(version_id)
 
 
 class FamilyListWidget(QtWidgets.QListWidget):
