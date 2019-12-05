@@ -1438,174 +1438,36 @@ def get_representation_path(representation):
     )
 
 
-def get_thumbnail_path(
-    version, thumb_type, use_full_thumbnail=True, dbcon=None
-):
-    """Get thumbnail filename from version document
+def get_thumbnail_binary(thumbnail_entity, thumbnail_type):
+    if not thumbnail_entity:
+        return
 
-    First try if exists `thumbnail` representation else return None.
-    Then try to find if thumbnail representation's data contain
-    `thumbnail_data` where should be stored thumbnail template and
-    all stored thumbnail types.
+    resolvers = discover(ThumbnailResolver)
+    resolvers = sorted(resolvers, key=lambda cls: cls.priority)
 
-    There are two ways of getting the path from representation which are
-    tried in following sequence until successful(like get_representation_path).
-    1. Get template from representation['data']['thumbnail_data']['template']
-       and data from representation['context'] with overrides stored in
-       representation['data']['thumbnail_data'][{thumb_type}]['context'].
-       Then format template with the data.
-    2. Get representation['data']['thumbnail_data'][{thumb_type}]['path'] and
-       use it directly
-
-    Args:
-        version(dict): version document from the database
-        thumb_type(str): thumbnail type representing key in `thumbnail_data`
-        use_full_thumbnail(bool): use full thumbnail if type of thumbnail
-            is not found in `thumbnail_data`
-
-    Returns:
-        str: fullpath of the representation
-
-    """
-    if dbcon is None:
-        dbcon = io
-    representation = dbcon.find_one({
-        "type": "representation",
-        "parent": version["_id"],
-        "name": "thumbnail"
-    })
-    if not representation:
-        return None
-
-    def path_from_represenation(use_thumbnail_data=True):
-        try:
-            if use_thumbnail_data:
-                thumb_data = representation["data"]["thumbnail_data"]
-                template = thumb_data["template"]
-            else:
-                template = representation["data"]["template"]
-
-        except KeyError:
-            return None
-
-        try:
-            context = representation["context"]
-            if use_thumbnail_data:
-                thumb_context = thumb_data[thumb_type].get("context") or {}
-                for key, value in thumb_context.items():
-                    context[key] = value
-
-            context["root"] = registered_root()
-            path = format_template_with_optional_keys(context, template)
-
-        except KeyError:
-            # Template references unavailable data
-            return None
-
-        if os.path.exists(path):
-            return os.path.normpath(path)
-
-    def path_from_data(use_thumbnail_data=True):
-        try:
-            if use_thumbnail_data:
-                thumb_data = representation["data"]["thumbnail_data"]
-                path = thumb_data[thumb_type]["path"]
-            else:
-                path = representation["data"]["path"]
-        except KeyError:
-            return None
-
-        if os.path.exists(path):
-            return os.path.normpath(path)
-
-        dir_path, file_name = os.path.split(path)
-        if not os.path.exists(dir_path):
-            return None
-
-        base_name, ext = os.path.splitext(file_name)
-        file_name_items = None
-        if "#" in base_name:
-            file_name_items = [part for part in base_name.split("#") if part]
-        elif "%" in base_name:
-            file_name_items = base_name.split("%")
-
-        if not file_name_items:
-            return None
-
-        filename_start = file_name_items[0]
-
-        for _file in os.listdir(dir_path):
-            if _file.startswith(filename_start) and _file.endswith(ext):
-                return os.path.normpath(path)
-
-    def path_from_config():
-        try:
-            version_, subset, asset, project = dbcon.parenthood(representation)
-        except ValueError:
-            log.debug(
-                "Representation %s wasn't found in database, "
-                "like a bug" % representation["name"]
+    for Resolver in resolvers:
+        available_types = Resolver.thumbnail_types
+        if (
+            thumbnail_type not in available_types and
+            "*" not in available_types and
+            (
+                isinstance(available_types, (list, tuple)) and
+                len(available_types) == 0
             )
-            return None
-
+        ):
+            continue
         try:
-            template = project["config"]["template"]["publish"]
-        except KeyError:
-            log.debug(
-                "No template in project %s, "
-                "likely a bug" % project["name"]
-            )
-            return None
+            instance = Resolver()
+            result = instance.process(thumbnail_entity, thumbnail_type)
+            if result:
+                return result
 
-        # hierarchy may be equal to "" so it is not possible to use `or`
-        hierarchy = asset.get("data", {}).get("hierarchy")
-        if hierarchy is None:
-            # default list() in get would not discover missing parents on asset
-            parents = asset.get("data", {}).get("parents")
-            if parents is not None:
-                hierarchy = "/".join(parents)
+        except Exception:
+            log.warning("Resolver {0} failed durring process.".format(
+                Resolver.__class__.__name__
+            ))
+            traceback.print_exception(*sys.exc_info())
 
-        # Cannot fail, required members only
-        data = {
-            "root": registered_root(),
-            "project": {
-                "name": project["name"],
-                "code": project.get("data", {}).get("code")
-            },
-            "asset": asset["name"],
-            "silo": asset.get("silo"),
-            "hierarchy": hierarchy,
-            "subset": subset["name"],
-            "version": version_["name"],
-            "representation": representation["name"],
-            "family": representation.get("context", {}).get("family"),
-            "user": dbcon.Session.get("AVALON_USER", getpass.getuser()),
-            "app": dbcon.Session.get("AVALON_APP", ""),
-            "task": dbcon.Session.get("AVALON_TASK", "")
-        }
-
-        try:
-            path = format_template_with_optional_keys(data, template)
-        except KeyError as e:
-            log.debug("Template references unavailable data: %s" % e)
-            return None
-
-        if os.path.exists(path):
-            return os.path.normpath(path)
-
-    found_by_repre = (
-        path_from_represenation() or
-        path_from_data()
-    )
-    if found_by_repre or use_full_thumbnail is False:
-        return found_by_repre
-
-    # use full thumbnail if thumb_type and `use_full_thumbnail` is set to True
-    return (
-        path_from_represenation(False) or
-        path_from_config() or
-        path_from_data(False)
-    )
 
 def is_compatible_loader(Loader, context):
     """Return whether a loader is compatible with a context.
