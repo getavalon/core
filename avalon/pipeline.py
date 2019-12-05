@@ -496,6 +496,57 @@ class ThumbnailResolver(object):
         pass
 
 
+class TemplateResolver(ThumbnailResolver):
+
+    priority = 90
+
+    def process(self, thumbnail_entity, thumbnail_type):
+        template = thumbnail_entity["data"].get("template")
+        if not template:
+            log.debug("Thumbnail entity does not have set template")
+            return
+
+        project = io.find_one({"type": "project"})
+
+        template_data = copy.deepcopy(
+            thumbnail_entity["data"].get("template_data") or {}
+        )
+        template_data.update({
+            "_id": str(thumbnail_entity["_id"]),
+            "thumbnail_type": thumbnail_type,
+            "thumbnail_root": os.environ.get("AVALON_THUMBNAIL_ROOT"),
+            "project": {
+                "name": project["name"],
+                "code": project["data"].get("code")
+            }
+        })
+
+        try:
+            filepath = os.path.normpath(template.format(**template_data))
+        except KeyError:
+            log.warning((
+                "Missing template data keys for template <{0}> || Data: {1}"
+            ).format(template, str(template_data)))
+            return
+
+        if not os.path.exists(filepath):
+            log.warning("File does not exist \"{0}\"".format(filepath))
+            return
+
+        with open(filepath, "rb") as _file:
+            content = _file.read()
+
+        return content
+
+
+class BinaryThumbnail(ThumbnailResolver):
+
+    priority = 100
+
+    def process(self, thumbnail_entity, thumbnail_type):
+        return thumbnail_entity["data"].get("binary_data")
+
+
 def discover(superclass):
     """Find and return subclasses of `superclass`"""
 
