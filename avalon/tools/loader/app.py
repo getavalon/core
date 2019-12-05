@@ -492,7 +492,7 @@ def show(debug=False, parent=None, use_context=False):
             module.window.refresh()
             return
         except RuntimeError as e:
-            if not e.message.rstrip().endswith("already deleted."):
+            if not str(e).rstrip().endswith("already deleted."):
                 raise
 
             # Garbage collected
@@ -502,12 +502,7 @@ def show(debug=False, parent=None, use_context=False):
         import traceback
         sys.excepthook = lambda typ, val, tb: traceback.print_last()
 
-        io.install()
-
-        any_project = next(
-            project for project in io.projects()
-            if project.get("active", True) is not False
-        )
+    with lib.application():
 
         api.Session["AVALON_PROJECT"] = any_project["name"]
         module.project = any_project["name"]
@@ -521,6 +516,7 @@ def show(debug=False, parent=None, use_context=False):
         window = Window(parent)
         window.setStyleSheet(style.load_stylesheet())
         window.show()
+        window.setStyleSheet(style.load_stylesheet())
 
         if use_context:
             context = {"asset": api.Session["AVALON_ASSET"]}

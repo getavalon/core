@@ -995,6 +995,12 @@ def update_current_task(task=None, asset=None, app=None):
     if not os.path.exists(workdir):
         os.makedirs(workdir)
 
+    parents = asset_document['data'].get('parents', [])
+    hierarchy = ""
+    if len(parents) > 0:
+        hierarchy = os.path.sep.join(parents)
+    changed['AVALON_HIERARCHY'] = hierarchy
+
     # Update the full session in one go to avoid half updates
     Session.update(changed)
 

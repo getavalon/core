@@ -47,6 +47,8 @@ def reset_selection():
     """
     clear_selection_recursive()
 
+    Parse user data into Node knobs.
+    Use `collections.OrderedDict` to ensure knob order.
 
 def select_nodes(nodes):
     """Selects all inputed nodes
@@ -80,6 +82,46 @@ def add_publish_knob(node):
         node.addKnob(knob)
     return node
 
+    Returns:
+        None
+
+    Examples:
+        ```
+        import nuke
+        from avalon.nuke import lib
+
+        node = nuke.createNode("NoOp")
+        data = {
+            # Regular type of attributes
+            "myList": ["x", "y", "z"],
+            "myBool": True,
+            "myFloat": 0.1,
+            "myInt": 5,
+
+            # Creating non-default imprint type of knob
+            "MyFilePath": lib.Knobby("File_Knob", "/file/path"),
+            "divider": lib.Knobby("Text_Knob", ""),
+
+            # Manual nice knob naming
+            ("my_knob", "Nice Knob Name"): "some text",
+
+            # dict type will be created as knob group
+            "KnobGroup": {
+                "knob1": 5,
+                "knob2": "hello",
+                "knob3": ["a", "b"],
+            },
+
+            # Nested dict will be created as tab group
+            "TabGroup": {
+                "tab1": {"count": 5},
+                "tab2": {"isGood": True},
+                "tab3": {"direction": ["Left", "Right"]},
+            },
+        }
+        lib.imprint(node, data, tab="Demo")
+
+        ```
 
 def set_avalon_knob_data(node, data={}, prefix="ak:"):
     """ Sets a data into nodes's avalon knob
@@ -226,9 +268,13 @@ def check_subsetname_exists(nodes, subset_name):
     return result
 
 
-def imprint(node, data):
-    """Adding `Avalon data` into a node's Avalon Tab/Avalon knob
-    also including publish knob
+class Knobby(object):
+    """For creating knob which it's type isn't mapped in `create_knobs`
+
+    Args:
+        type (string): Nuke knob type name
+        value: Value to be set with `Knob.setValue`, put `None` if not required
+        *args: Args other than knob name for initializing knob class
 
     Arguments:
         node (obj): A nuke's node object
@@ -282,6 +328,24 @@ def ls_img_sequence(path):
                 'frames': collections[0].format("[{ranges}]")}
     else:
         return False
+
+
+def get_avalon_knob_data(node, prefix="avalon:"):
+    """ Get data from nodes's avalon knob
+
+    Arguments:
+        node (nuke.Node): Nuke node to search for data,
+        prefix (str, optional): filtering prefix
+
+    Returns:
+        data (dict)
+    """
+    data = {
+        knob[len(prefix):]: node[knob].value()
+        for knob in node.knobs().keys()
+        if knob.startswith(prefix)
+    }
+    return data
 
 
 def fix_data_for_node_create(data):
