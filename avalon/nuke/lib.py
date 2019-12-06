@@ -207,6 +207,20 @@ def get_avalon_knob_data(node, prefix="avalon:"):
 
     return data
 
+def check_subsetname_exists(nodes, subset_name):
+    """
+    Checking if node is not already created to secure there is no duplicity
+
+    Arguments:
+        nodes (list): list of nuke.Node objects
+        subset_name (str): name we try to find
+
+    Returns:
+        bool: True of False
+    """
+    return next((True for n in nodes
+    if subset_name in get_avalon_knob_data(n,
+        ["avalon:", "ak:"]).get("subset", "")), False)
 
 def check_subsetname_exists(nodes, subset_name):
     """
