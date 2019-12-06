@@ -128,7 +128,7 @@ def _install_menu():
         loader,
         publish,
         sceneinventory,
-        libraryloader
+        libraryloader,
         contextmanager
     )
 
