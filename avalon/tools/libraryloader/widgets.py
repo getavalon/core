@@ -371,21 +371,14 @@ class VersionWidget(loader_widgets.VersionWidget):
         self.dbcon = dbcon
         layout = QtWidgets.QVBoxLayout(self)
 
-        thumbnail = QtWidgets.QLabel(self)
-        thumbnail.setAlignment(QtCore.Qt.AlignCenter)
         label = QtWidgets.QLabel("Version", self)
         data = VersionTextEdit(dbcon=self.dbcon, parent=self)
         data.setReadOnly(True)
 
-        layout.addWidget(thumbnail)
         layout.addWidget(label)
         layout.addWidget(data)
 
         self.data = data
-        self.thumbnail_cacher = loader_widgets.ThumbnailCacher(
-            thumbnail, dbcon=dbcon
-        )
-        self.thumbnail_cacher.set_version(None)
 
 
 class VersionTextEdit(loader_widgets.VersionTextEdit):

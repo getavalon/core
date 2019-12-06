@@ -590,12 +590,14 @@ class ThumbnailWidget(QtWidgets.QLabel):
             self.set_pixmap()
             return
 
-        thumbnail_ent = io.find_one({"type": "thumbnail", "_id": thumbnail_id})
+        thumbnail_ent = self.dbcon.find_one(
+            {"type": "thumbnail", "_id": thumbnail_id}
+        )
         if not thumbnail_ent:
             return
 
         thumbnail_bin = pipeline.get_thumbnail_binary(
-            thumbnail_ent, "thumbnail"
+            thumbnail_ent, "thumbnail", self.dbcon
         )
         if not thumbnail_bin:
             self.set_pixmap()

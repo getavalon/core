@@ -492,6 +492,9 @@ class ThumbnailResolver(object):
     priority = 100
     thumbnail_types = ["*"]
 
+    def __init__(self, dbcon):
+        self.dbcon = dbcon
+
     def process(self, thumbnail_entity, thumbnail_type):
         pass
 
@@ -506,7 +509,7 @@ class TemplateResolver(ThumbnailResolver):
             log.debug("Thumbnail entity does not have set template")
             return
 
-        project = io.find_one({"type": "project"})
+        project = self.dbcon.find_one({"type": "project"})
 
         template_data = copy.deepcopy(
             thumbnail_entity["data"].get("template_data") or {}
@@ -540,8 +543,6 @@ class TemplateResolver(ThumbnailResolver):
 
 
 class BinaryThumbnail(ThumbnailResolver):
-
-    priority = 100
 
     def process(self, thumbnail_entity, thumbnail_type):
         return thumbnail_entity["data"].get("binary_data")
@@ -1439,12 +1440,14 @@ def get_representation_path(representation):
     )
 
 
-def get_thumbnail_binary(thumbnail_entity, thumbnail_type):
+def get_thumbnail_binary(thumbnail_entity, thumbnail_type, dbcon=None):
     if not thumbnail_entity:
         return
 
     resolvers = discover(ThumbnailResolver)
     resolvers = sorted(resolvers, key=lambda cls: cls.priority)
+    if dbcon is None:
+        dbcon = io
 
     for Resolver in resolvers:
         available_types = Resolver.thumbnail_types
@@ -1458,7 +1461,7 @@ def get_thumbnail_binary(thumbnail_entity, thumbnail_type):
         ):
             continue
         try:
-            instance = Resolver()
+            instance = Resolver(dbcon)
             result = instance.process(thumbnail_entity, thumbnail_type)
             if result:
                 return result

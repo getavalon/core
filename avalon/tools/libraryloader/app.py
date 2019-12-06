@@ -13,6 +13,7 @@ from .widgets import (
     FamilyListWidget,
     AssetWidget
 )
+from ..loader.widgets import ThumbnailWidget
 from .models import AssetModel
 
 from pypeapp import config
@@ -64,6 +65,13 @@ class Window(QtWidgets.QDialog):
             dbcon=self.dbcon, tool_name=self.tool_name, parent=self
         )
         version = VersionWidget(dbcon=self.dbcon, parent=self)
+        thumbnail = ThumbnailWidget(dbcon=self.dbcon)
+
+        thumb_ver_body = QtWidgets.QWidget()
+        thumb_ver_layout = QtWidgets.QVBoxLayout(thumb_ver_body)
+        thumb_ver_layout.setContentsMargins(0, 0, 0, 0)
+        thumb_ver_layout.addWidget(thumbnail)
+        thumb_ver_layout.addWidget(version)
 
         # Project
         self.combo_projects = QtWidgets.QComboBox()
@@ -82,7 +90,7 @@ class Window(QtWidgets.QDialog):
         split = QtWidgets.QSplitter()
         split.addWidget(asset_filter_splitter)
         split.addWidget(subsets)
-        split.addWidget(version)
+        split.addWidget(thumb_ver_body)
         split.setSizes([180, 950, 200])
         container_layout.addWidget(split)
 
@@ -107,6 +115,7 @@ class Window(QtWidgets.QDialog):
                 "assets": assets,
                 "subsets": subsets,
                 "version": version,
+                "thumbnail": thumbnail
             },
             "label": {
                 "message": message,
@@ -336,6 +345,7 @@ class Window(QtWidgets.QDialog):
 
         # Clear the version information on asset change
         self.data["widgets"]["version"].set_version(None)
+        self.data["widgets"]["thumbnail"].set_thumbnail(asset_docs)
 
         self.data["state"]["context"]["assets"] = asset_names
         self.data["state"]["context"]["assetIds"] = asset_ids
@@ -398,19 +408,34 @@ class Window(QtWidgets.QDialog):
 
         # Active must be in the selected rows otherwise we
         # assume it's not actually an "active" current index.
-        version = None
+        version_docs = None
+        version_id = None
         active = selection.currentIndex()
-        if active:
-            rows = selection.selectedRows(column=active.column())
-            if active in rows:
-                item = active.data(subsets.model.ItemRole)
-                if (
-                    item is not None and
-                    not (item.get("isGroup") or item.get("isMerged"))
-                ):
-                    version = item["version_document"]["_id"]
+        rows = selection.selectedRows(column=active.column())
+        if active and active in rows:
+            item = active.data(subsets.model.ItemRole)
+            if (
+                item is not None and
+                not (item.get("isGroup") or item.get("isMerged"))
+            ):
+                version_id = item["version_document"]["_id"]
 
-        self.data["widgets"]["version"].set_version(version)
+        if rows:
+            version_docs = []
+            for index in rows:
+                if not index or not index.isValid():
+                    continue
+                item = index.data(subsets.model.ItemRole)
+                if (
+                    item is None or
+                    item.get("isGroup") or
+                    item.get("isMerged")
+                ):
+                    continue
+                version_docs.append(item["version_document"])
+
+        self.data["widgets"]["version"].set_version(version_id)
+        self.data["widgets"]["thumbnail"].set_thumbnail(version_docs)
 
     def _set_context(self, context, refresh=True):
         """Set the selection in the interface using a context.
