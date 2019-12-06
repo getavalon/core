@@ -1,3 +1,8 @@
+"""
+NOTE: The required `Qt` module has changed to use the one that vendorized.
+      Remember to change to relative import when updating this.
+"""
+
 import re
 import logging
 
