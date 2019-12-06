@@ -143,6 +143,9 @@ class Window(QtWidgets.QDialog):
         subsets.version_changed.connect(self.on_versionschanged)
         self.combo_projects.currentTextChanged.connect(self.on_project_change)
 
+        # Set default thumbnail on start
+        thumbnail.set_thumbnail(None)
+
         # Try set default project
         self._set_projects(True)
 
