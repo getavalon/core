@@ -4,6 +4,7 @@ import nuke
 import re
 import logging
 from ..vendor import (six, clique)
+from nukescripts import clear_selection_recursive
 
 log = logging.getLogger(__name__)
 
@@ -20,24 +21,31 @@ def maintained_selection():
     """
     nodes = nuke.allNodes()
     previous_selection = nuke.selectedNodes()
+
+    # deselect all nodes
+    reset_selection()
+
     try:
+        # do the operation
         yield
     finally:
         # unselect all selection in case there is some
         reset_selection()
         # and select all previously selected nodes
         if previous_selection:
-            for n in nodes:
-                if n.name() not in previous_selection:
-                    continue
-                n['selected'].setValue(True)
+            try:
+                for n in nodes:
+                    if n not in previous_selection:
+                        continue
+                    n['selected'].setValue(True)
+            except ValueError as e:
+                log.warning(e)
 
 
 def reset_selection():
     """Deselect all selected nodes
     """
-    for node in nuke.selectedNodes():
-        node['selected'] = False
+    clear_selection_recursive()
 
 
 def select_nodes(nodes):
@@ -48,8 +56,11 @@ def select_nodes(nodes):
     """
     assert isinstance(nodes, (list, tuple)), "nodes has to be list or tuple"
 
-    for node in nodes:
-        node['selected'].setValue(True)
+    try:
+        for node in nodes:
+            node['selected'].setValue(True)
+    except ValueError as e:
+        log.warning(e)
 
 
 def add_publish_knob(node):
@@ -195,6 +206,23 @@ def get_avalon_knob_data(node, prefix="avalon:"):
                     if p in k})
 
     return data
+
+
+def check_subsetname_exists(nodes, subset_name):
+    """
+    Checking if node is not already created to secure there is no duplicity
+
+    Arguments:
+        nodes (list): list of nuke.Node objects
+        subset_name (str): name we try to find
+
+    Returns:
+        bool: True of False
+    """
+    result = next((True for n in nodes
+                   if subset_name in get_avalon_knob_data(
+                        n, ["avalon:", "ak:"]).get("subset", "")), False)
+    return result
 
 
 def imprint(node, data):
