@@ -241,7 +241,7 @@ class SubsetWidget(QtWidgets.QWidget):
                 return
 
             # Get option
-            options = dialog.options()
+            options = dialog.parse()
 
         # Run the loader for all selected indices, for those that have the
         # same representation available

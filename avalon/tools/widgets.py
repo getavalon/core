@@ -4,7 +4,7 @@ from . import lib
 
 from .models import AssetModel, RecursiveSortFilterProxyModel
 from .views import DeselectableTreeView
-from ..vendor import qtawesome
+from ..vendor import qtawesome, qargparse
 from ..vendor.Qt import QtWidgets, QtCore, QtGui
 
 from .. import style
@@ -356,7 +356,7 @@ class OptionalAction(QtWidgets.QWidgetAction):
 
     def set_option_tip(self, options):
         sep = "\n\n"
-        mak = (lambda opt: opt.key + " :\n    " + opt.tip)
+        mak = (lambda opt: opt["name"] + " :\n    " + opt["help"])
         self.option_tip = sep.join(mak(opt) for opt in options)
 
     def on_option(self):
@@ -460,9 +460,11 @@ class OptionDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super(OptionDialog, self).__init__(parent)
         self.setModal(True)
-        self._inputs = dict()
+        self._options = dict()
 
     def create(self, options):
+        parser = qargparse.QArgumentParser(arguments=options)
+
         decision = QtWidgets.QWidget()
         accept = QtWidgets.QPushButton("Accept")
         cancel = QtWidgets.QPushButton("Cancel")
@@ -472,18 +474,15 @@ class OptionDialog(QtWidgets.QDialog):
         layout.addWidget(cancel)
 
         layout = QtWidgets.QVBoxLayout(self)
-        for widget in options:
-            widget.link(self._inputs)
-            layout.addWidget(widget)
-        layout.addSpacing(20)
+        layout.addWidget(parser)
         layout.addWidget(decision)
 
         accept.clicked.connect(self.accept)
         cancel.clicked.connect(self.reject)
+        parser.changed.connect(self.on_changed)
 
-    def options(self):
-        options = dict()
-        for key, input in self._inputs.items():
-            options[key] = input.get()
+    def on_changed(self, argument):
+        self._options[argument["name"]] = argument.read()
 
-        return options
+    def parse(self):
+        return self._options.copy()
