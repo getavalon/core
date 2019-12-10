@@ -7,9 +7,9 @@ import re
 import logging
 
 from collections import OrderedDict as odict
-from .Qt import QtCore, QtWidgets
+from .Qt import QtCore, QtWidgets, QtGui
 
-__version__ = "0.5.1"
+__version__ = "0.5.2"
 _log = logging.getLogger(__name__)
 _type = type  # used as argument
 
@@ -150,10 +150,15 @@ class QArgumentParser(QtWidgets.QWidget):
             widget.setAttribute(QtCore.Qt.WA_StyledBackground)
             widget.setEnabled(arg["enabled"])
 
+        # Align label on top of row if widget is over two times heiger
+        height = (lambda w: w.sizeHint().height())
+        label_on_top = height(label) * 2 < height(widget)
+        alignment = (QtCore.Qt.AlignTop,) if label_on_top else ()
+
         layout = self.layout()
-        layout.addWidget(label, self._row, 0, QtCore.Qt.AlignTop)
+        layout.addWidget(label, self._row, 0, *alignment)
         layout.addWidget(widget, self._row, 1)
-        layout.addWidget(reset, self._row, 2, QtCore.Qt.AlignTop)
+        layout.addWidget(reset, self._row, 2, *alignment)
         layout.setColumnStretch(1, 1)
 
         def on_changed(*_):
@@ -188,13 +193,15 @@ class QArgument(QtCore.QObject):
 
     # Provide a left-hand side label for this argument
     label = True
+    # For defining default value for each argument type
+    default = None
 
-    def __init__(self, name, **kwargs):
+    def __init__(self, name, default=None, **kwargs):
         super(QArgument, self).__init__(kwargs.pop("parent", None))
 
         kwargs["name"] = name
         kwargs["label"] = kwargs.get("label", camel_to_title(name))
-        kwargs["default"] = kwargs.get("default", None)
+        kwargs["default"] = self.default if default is None else default
         kwargs["help"] = kwargs.get("help", "")
         kwargs["read"] = kwargs.get("read")
         kwargs["write"] = kwargs.get("write")
@@ -284,17 +291,23 @@ class Tristate(QArgument):
 
 
 class Number(QArgument):
+    default = 0
+
     def create(self):
         if isinstance(self, Float):
             widget = QtWidgets.QDoubleSpinBox()
+            widget.setMinimum(self._data.get("min", 0.0))
+            widget.setMaximum(self._data.get("max", 99.99))
         else:
             widget = QtWidgets.QSpinBox()
+            widget.setMinimum(self._data.get("min", 0))
+            widget.setMaximum(self._data.get("max", 99))
 
         widget.editingFinished.connect(self.changed.emit)
         self._read = lambda: widget.value()
         self._write = lambda value: widget.setValue(value)
 
-        if self["default"] is not None:
+        if self["default"] != self.default:
             self._write(self["default"])
 
         return widget
@@ -312,6 +325,46 @@ class Range(Number):
     pass
 
 
+class Double3(QArgument):
+    default = (0, 0, 0)
+
+    def create(self):
+        widget = QtWidgets.QWidget()
+        layout = QtWidgets.QHBoxLayout(widget)
+        layout.setContentsMargins(0, 0, 0, 0)
+        x, y, z = (self.child_arg(layout, i) for i in range(3))
+
+        self._read = lambda: (
+            float(x.text()), float(y.text()), float(z.text()))
+        self._write = lambda value: [
+            w.setText(str(float(v))) for w, v in zip([x, y, z], value)]
+
+        if self["default"] != self.default:
+            self._write(self["default"])
+
+        return widget
+
+    def child_arg(self, layout, index):
+        widget = QtWidgets.QLineEdit()
+        widget.setValidator(QtGui.QDoubleValidator())
+
+        default = str(float(self["default"][index]))
+        widget.setText(default)
+
+        def focusOutEvent(event):
+            if not widget.text():
+                widget.setText(default)  # Ensure value exists for `_read`
+            QtWidgets.QLineEdit.focusOutEvent(widget, event)
+        widget.focusOutEvent = focusOutEvent
+
+        widget.editingFinished.connect(self.changed.emit)
+        widget.returnPressed.connect(widget.editingFinished.emit)
+
+        layout.addWidget(widget)
+
+        return widget
+
+
 class String(QArgument):
     def __init__(self, *args, **kwargs):
         super(String, self).__init__(*args, **kwargs)
@@ -326,6 +379,7 @@ class String(QArgument):
 
         if isinstance(self, Info):
             widget.setReadOnly(True)
+        widget.setPlaceholderText(self._data.get("placeholder", ""))
 
         if self["default"] is not None:
             self._write(self["default"])
@@ -592,6 +646,7 @@ def _demo():
         "Some other value",
         "And finally, value C",
     ])
+    parser.add_argument("location", type=Double3)
 
     parser.show()
     app.exec_()
