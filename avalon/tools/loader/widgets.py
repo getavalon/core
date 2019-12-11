@@ -10,7 +10,7 @@ from ... import pipeline
 
 from .. import lib as tools_lib
 from ..delegates import VersionDelegate
-from ..widgets import OptionalAction, OptionDialog
+from ..widgets import OptionalMenu, OptionalAction, OptionDialog
 
 from .model import (
     SubsetsModel,
@@ -178,7 +178,7 @@ class SubsetWidget(QtWidgets.QWidget):
             return Plugin.order, Plugin.__name__
 
         # List the available loaders
-        menu = QtWidgets.QMenu(self)
+        menu = OptionalMenu(self)
         for representation, loader in sorted(loaders, key=sorter):
 
             # Label

@@ -324,6 +324,38 @@ def _list_project_silos():
     return list(sorted(silos))
 
 
+class OptionalMenu(QtWidgets.QMenu):
+    """A subclass of `QtWidgets.QMenu` to work with `OptionalAction`
+
+    This menu has reimplemented `mouseReleaseEvent`, `mouseMoveEvent` and
+    `leaveEvent` to provide better action hightlighting and triggering for
+    actions that were instances of `QtWidgets.QWidgetAction`.
+
+    """
+
+    def mouseReleaseEvent(self, event):
+        """Emit option clicked signal if mouse released on it"""
+        active = self.actionAt(event.pos())
+        if active and active.use_option:
+            option = active.widget.option
+            if option.is_hovered(event.globalPos()):
+                option.clicked.emit()
+        super(OptionalMenu, self).mouseReleaseEvent(event)
+
+    def mouseMoveEvent(self, event):
+        """Add highlight to active action"""
+        active = self.actionAt(event.pos())
+        for action in self.actions():
+            action.set_highlight(action is active, event.globalPos())
+        super(OptionalMenu, self).mouseMoveEvent(event)
+
+    def leaveEvent(self, event):
+        """Remove highlight from all actions"""
+        for action in self.actions():
+            action.set_highlight(False)
+        super(OptionalMenu, self).leaveEvent(event)
+
+
 class OptionalAction(QtWidgets.QWidgetAction):
     """Menu action with option box
 
@@ -342,6 +374,7 @@ class OptionalAction(QtWidgets.QWidgetAction):
 
     def createWidget(self, parent):
         widget = OptionalActionWidget(self.label, parent)
+        self.widget = widget
 
         if self.icon:
             widget.setIcon(self.icon)
@@ -361,6 +394,22 @@ class OptionalAction(QtWidgets.QWidgetAction):
 
     def on_option(self):
         self.optioned = True
+
+    def set_highlight(self, state, global_pos=None):
+        body = self.widget.body
+        option = self.widget.option
+
+        role = QtGui.QPalette.Highlight if state else QtGui.QPalette.Window
+        body.setBackgroundRole(role)
+        body.setAutoFillBackground(state)
+
+        if not self.use_option:
+            return
+
+        state = option.is_hovered(global_pos)
+        role = QtGui.QPalette.Highlight if state else QtGui.QPalette.Window
+        option.setBackgroundRole(role)
+        option.setAutoFillBackground(state)
 
 
 class OptionalActionWidget(QtWidgets.QWidget):
@@ -392,8 +441,9 @@ class OptionalActionWidget(QtWidgets.QWidget):
         layout.addWidget(body)
         layout.addWidget(option)
 
-        self.setFixedHeight(32)
+        body.setMouseTracking(True)
         self.setMouseTracking(True)
+        self.setFixedHeight(32)
 
         self.icon = icon
         self.option = option
@@ -406,14 +456,6 @@ class OptionalActionWidget(QtWidgets.QWidget):
     def setIcon(self, icon):
         pixmap = icon.pixmap(16, 16)
         self.icon.setPixmap(pixmap)
-
-    def enterEvent(self, event):
-        self.body.setBackgroundRole(QtGui.QPalette.Highlight)
-        self.body.setAutoFillBackground(True)
-
-    def leaveEvent(self, event):
-        self.body.setBackgroundRole(QtGui.QPalette.Window)
-        self.body.setAutoFillBackground(False)
 
 
 class OptionBox(QtWidgets.QWidget):
@@ -435,23 +477,15 @@ class OptionBox(QtWidgets.QWidget):
         pixmap = icon.pixmap(18, 18)
         label.setPixmap(pixmap)
 
+        label.setMouseTracking(True)
+        self.setMouseTracking(True)
         self.setStyleSheet("background: transparent;")
-        self._hovered = False
 
-    def mouseReleaseEvent(self, event):
-        if self._hovered:
-            self.clicked.emit()
-        super(OptionBox, self).mouseReleaseEvent(event)
-
-    def enterEvent(self, event):
-        self.setBackgroundRole(QtGui.QPalette.Highlight)
-        self.setAutoFillBackground(True)
-        self._hovered = True
-
-    def leaveEvent(self, event):
-        self.setBackgroundRole(QtGui.QPalette.Window)
-        self.setAutoFillBackground(False)
-        self._hovered = False
+    def is_hovered(self, global_pos):
+        if global_pos is None:
+            return False
+        pos = self.mapFromGlobal(global_pos)
+        return self.rect().contains(pos)
 
 
 class OptionDialog(QtWidgets.QDialog):
