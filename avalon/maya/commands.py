@@ -34,29 +34,22 @@ def reset_frame_range():
         cmds.warning("No edit information found for %s" % shot["name"])
         return
 
-    # this handles fps set as decimal number. For example
-    # fps 25.0 is corrected to int so mapping will still work
-    avalon_fps = api.Session.get("AVALON_FPS")
-    d, i = math.modf(float(api.Session.get("AVALON_FPS", 25)))
-    if d == 0.0:
-        avalon_fps = int(i)
-
-    fps = {'15': 'game',
-           '24': 'film',
-           '25': 'pal',
-           '30': 'ntsc',
-           '48': 'show',
-           '50': 'palf',
-           '60': 'ntscf',
-           '23.98': '23.976fps',
-           '23.976': '23.976fps',
-           '29.97': '29.97fps',
-           '47.952': '47.952fps',
-           '47.95': '47.952fps',
-           '59.94': '59.94fps',
-           '44100': '44100fps',
-           '48000': '48000fps'
-           }.get(str(avalon_fps), "pal")  # Default to "pal"
+    fps = {15: 'game',
+           24: 'film',
+           25: 'pal',
+           30: 'ntsc',
+           48: 'show',
+           50: 'palf',
+           60: 'ntscf',
+           23.98: '23.976fps',
+           23.976: '23.976fps',
+           29.97: '29.97fps',
+           47.952: '47.952fps',
+           47.95: '47.952fps',
+           59.94: '59.94fps',
+           44100: '44100fps',
+           48000: '48000fps'
+           }.get(float(api.Session.get("AVALON_FPS", 25)), "pal")
 
     cmds.currentUnit(time=fps)
 
