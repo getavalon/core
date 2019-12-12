@@ -155,15 +155,14 @@ class Creator(api.Creator):
     """Creator class wrapper
     """
     def process(self):
-        nodes = nuke.allNodes()
-
         if (self.options or {}).get("useSelection"):
             nodes = nuke.selectedNodes()
 
-        nodes = [n for n in nodes
-                 if n["name"].value() in self.name] or None
+        if len(nodes) > 0:
+            node = nodes[0]
+        elif len(nodes) > 1:
+            nuke.message("Please select only one node")
 
-        node = nodes[0]
         lib.set_avalon_knob_data(node, self.data)
         lib.add_publish_knob(node)
         instance = node
