@@ -303,11 +303,13 @@ def _install_menu():
                     )
 
     menu.addSeparator()
-    menu.addCommand("Reset Frame Range", reset_frame_range)
+    menu.addCommand("Reset Frame Range", reset_frame_range_handles)
     menu.addCommand("Reset Resolution", reset_resolution)
 
-    menu.addSeparator()
-    menu.addCommand("Reload Pipeline", reload_pipeline)
+    # add reload pipeline only in debug mode
+    if bool(os.getenv("NUKE_DEBUG")):
+        menu.addSeparator()
+        menu.addCommand("Reload Pipeline", reload_pipeline)
 
 
 def _uninstall_menu():
