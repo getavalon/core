@@ -155,6 +155,8 @@ def update_container(node, keys=None):
 
 
 class Creator(api.Creator):
+    """Creator class wrapper
+    """
     def process(self):
         nodes = nuke.allNodes()
 
@@ -242,7 +244,7 @@ def get_main_window():
 
 
 def uninstall(config):
-    """Uninstall all tha was installed
+    """Uninstall all that was previously installed
 
     This is where you undo everything that was done in `install()`.
     That means, removing menus, deregistering families and  data
@@ -262,6 +264,8 @@ def uninstall(config):
 
 
 def _install_menu():
+    """Installing Avalon menu to Nuke
+    """
     from ..tools import (
         creator,
         publish,
@@ -310,6 +314,8 @@ def _install_menu():
 
 
 def _uninstall_menu():
+    """Uninstalling Avalon menu to Nuke
+    """
     menubar = nuke.menu("Nuke")
     menubar.removeItem(api.Session["AVALON_LABEL"])
 
