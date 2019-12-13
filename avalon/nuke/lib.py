@@ -387,13 +387,9 @@ def fix_data_for_node_create(data):
     """Fixing data to be used for nuke knobs
     """
     for k, v in data.items():
-        try:
-            if isinstance(v, unicode):
-                data[k] = str(v)
-        except Exception:
+        if isinstance(v, six.text_type):
             data[k] = str(v)
-
-        if "0x" in str(v):
+        if str(v).startswith("0x"):
             data[k] = int(v, 16)
     return data
 
