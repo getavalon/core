@@ -153,18 +153,37 @@ def update_container(node, keys=None):
 class Creator(api.Creator):
     """Creator class wrapper
     """
+    node_color = "0xdfea5dff"
+
     def process(self):
+        from nukescripts import autoBackdrop
+
+        instance = None
+
         if (self.options or {}).get("useSelection"):
+
             nodes = nuke.selectedNodes()
+            if not nodes:
+                nuke.message("Please select nodes that you "
+                             "wish to add to a container")
+                return
 
-        if len(nodes) > 0:
-            node = nodes[0]
-        elif len(nodes) > 1:
-            nuke.message("Please select only one node")
+            elif len(nodes) == 1:
+                # only one node is selected
+                instance = nodes[0]
 
-        lib.set_avalon_knob_data(node, self.data)
-        lib.add_publish_knob(node)
-        instance = node
+        if not instance:
+            # Not using selection or multiple nodes selected
+            bckd_node = autoBackdrop()
+            bckd_node["tile_color"].setValue(int(self.node_color, 16))
+            bckd_node["note_font_size"].setValue(24)
+            bckd_node["label"].setValue("[{}]".format(self.name))
+
+            instance = bckd_node
+
+        # add avalon knobs
+        lib.set_avalon_knob_data(instance, self.data)
+        lib.add_publish_knob(instance)
 
         return instance
 
