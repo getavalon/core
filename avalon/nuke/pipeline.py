@@ -3,6 +3,7 @@ import sys
 import importlib
 import logging
 from collections import OrderedDict
+from __builtin__ import reload
 
 import nuke
 from pyblish import api as pyblish
