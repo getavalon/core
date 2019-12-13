@@ -351,7 +351,7 @@ class Window(QtWidgets.QDialog):
             else:
                 result.setText("{}{}".format(
                     family,
-                    subset_name.capitalize()
+                    subset_name
                 ))
 
             # Indicate subset existence
