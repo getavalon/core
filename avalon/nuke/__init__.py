@@ -6,6 +6,7 @@ Anything that isn't defined here is INTERNAL and unreliable for external use.
 
 from .lib import (
     maintained_selection,
+    imprint,
     read,
 
     add_publish_knob,
@@ -62,6 +63,7 @@ __all__ = [
     "update_container",
     "get_handles",
 
+    "imprint",
     "read",
 
     # Experimental
