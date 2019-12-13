@@ -1,13 +1,13 @@
 import sys
 import time
 
-from ..projectmanager.widget import AssetWidget, AssetModel
-
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import api, io, style
+
+from ..models import AssetModel
+from ..widgets import AssetWidget
 from .. import lib
 
-from .lib import refresh_family_config
 from .widgets import SubsetWidget, VersionWidget, FamilyListWidget
 
 module = sys.modules[__name__]
@@ -37,7 +37,7 @@ class Window(QtWidgets.QDialog):
 
         container = QtWidgets.QWidget()
 
-        assets = AssetWidget()
+        assets = AssetWidget(silo_creatable=False)
         families = FamilyListWidget()
         subsets = SubsetWidget()
         version = VersionWidget()
@@ -57,6 +57,10 @@ class Window(QtWidgets.QDialog):
         split.addWidget(subsets)
         split.addWidget(version)
         split.setSizes([180, 950, 200])
+
+        # Remove QSplitter border
+        split.setStyleSheet("QSplitter { border: 0px; }")
+
         container_layout.addWidget(split)
 
         body_layout = QtWidgets.QHBoxLayout(body)
@@ -91,6 +95,7 @@ class Window(QtWidgets.QDialog):
                     "root": None,
                     "project": None,
                     "asset": None,
+                    "assetId": None,
                     "silo": None,
                     "subset": None,
                     "version": None,
@@ -103,8 +108,6 @@ class Window(QtWidgets.QDialog):
         assets.selection_changed.connect(self.on_assetschanged)
         subsets.active_changed.connect(self.on_subsetschanged)
         subsets.version_changed.connect(self.on_versionschanged)
-
-        refresh_family_config()
 
         # Defaults
         self.resize(1330, 700)
@@ -171,17 +174,13 @@ class Window(QtWidgets.QDialog):
             return
 
         document = asset_item.data(DocumentRole)
-        subsets_model.set_asset(document['_id'])
-
-        # Enforce the columns to fit the data (purely cosmetic)
-        rows = subsets_model.rowCount(QtCore.QModelIndex())
-        for i in range(rows):
-            subsets.view.resizeColumnToContents(i)
+        subsets_model.set_asset(document["_id"])
 
         # Clear the version information on asset change
-        self.data['model']['version'].set_version(None)
+        self.data["model"]["version"].set_version(None)
 
         self.data["state"]["context"]["asset"] = document["name"]
+        self.data["state"]["context"]["assetId"] = document["_id"]
         self.data["state"]["context"]["silo"] = document["silo"]
         self.echo("Duration: %.3fs" % (time.time() - t1))
 
@@ -197,10 +196,11 @@ class Window(QtWidgets.QDialog):
         if active:
             rows = selection.selectedRows(column=active.column())
             if active in rows:
-                node = active.data(subsets.model.NodeRole)
-                version = node['version_document']['_id']
+                node = active.data(subsets.model.ItemRole)
+                if node is not None and not node.get("isGroup"):
+                    version = node["version_document"]["_id"]
 
-        self.data['model']['version'].set_version(version)
+        self.data["model"]["version"].set_version(version)
 
     def _set_context(self, context, refresh=True):
         """Set the selection in the interface using a context.
@@ -237,7 +237,7 @@ class Window(QtWidgets.QDialog):
             # scheduled refresh and the silo tabs are not shown.
             self._refresh()
 
-        asset_widget = self.data['model']['assets']
+        asset_widget = self.data["model"]["assets"]
         asset_widget.set_silo(silo)
         asset_widget.select_assets([asset], expand=True)
 
@@ -269,6 +269,114 @@ class Window(QtWidgets.QDialog):
         print("Good bye")
         return super(Window, self).closeEvent(event)
 
+    def keyPressEvent(self, event):
+        modifiers = event.modifiers()
+        ctrl_pressed = QtCore.Qt.ControlModifier & modifiers
+
+        # Grouping subsets on pressing Ctrl + G
+        if (ctrl_pressed and event.key() == QtCore.Qt.Key_G and
+                not event.isAutoRepeat()):
+            self.show_grouping_dialog()
+            return
+
+        return super(Window, self).keyPressEvent(event)
+
+    def show_grouping_dialog(self):
+        subsets = self.data["model"]["subsets"]
+        if not subsets.is_groupable():
+            self.echo("Grouping not enabled.")
+            return
+
+        selected = subsets.selected_subsets()
+        if not selected:
+            self.echo("No selected subset.")
+            return
+
+        dialog = SubsetGroupingDialog(items=selected, parent=self)
+        dialog.grouped.connect(self._assetschanged)
+        dialog.show()
+
+
+class SubsetGroupingDialog(QtWidgets.QDialog):
+
+    grouped = QtCore.Signal()
+
+    def __init__(self, items, parent=None):
+        super(SubsetGroupingDialog, self).__init__(parent=parent)
+        self.setWindowTitle("Grouping Subsets")
+        self.setMinimumWidth(250)
+        self.setModal(True)
+
+        self.items = items
+        self.subsets = parent.data["model"]["subsets"]
+        self.asset_id = parent.data["state"]["context"]["assetId"]
+
+        name = QtWidgets.QLineEdit()
+        name.setPlaceholderText("Remain blank to ungroup..")
+
+        # Menu for pre-defined subset groups
+        name_button = QtWidgets.QPushButton()
+        name_button.setFixedWidth(18)
+        name_button.setFixedHeight(20)
+        name_menu = QtWidgets.QMenu(name_button)
+        name_button.setMenu(name_menu)
+
+        name_layout = QtWidgets.QHBoxLayout()
+        name_layout.addWidget(name)
+        name_layout.addWidget(name_button)
+        name_layout.setContentsMargins(0, 0, 0, 0)
+
+        group_btn = QtWidgets.QPushButton("Apply")
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(QtWidgets.QLabel("Group Name"))
+        layout.addLayout(name_layout)
+        layout.addWidget(group_btn)
+
+        group_btn.clicked.connect(self.on_group)
+        group_btn.setAutoDefault(True)
+        group_btn.setDefault(True)
+
+        self.name = name
+        self.name_menu = name_menu
+
+        self._build_menu()
+
+    def _build_menu(self):
+        menu = self.name_menu
+        button = menu.parent()
+        # Get and destroy the action group
+        group = button.findChild(QtWidgets.QActionGroup)
+        if group:
+            group.deleteLater()
+
+        active_groups = lib.get_active_group_config(self.asset_id,
+                                                    include_predefined=True)
+        # Build new action group
+        group = QtWidgets.QActionGroup(button)
+        for data in sorted(active_groups, key=lambda x: x["order"]):
+            name = data["name"]
+            icon = data["icon"]
+
+            action = group.addAction(name)
+            action.setIcon(icon)
+            menu.addAction(action)
+
+        group.triggered.connect(self._on_action_clicked)
+        button.setEnabled(not menu.isEmpty())
+
+    def _on_action_clicked(self, action):
+        self.name.setText(action.text())
+
+    def on_group(self):
+        name = self.name.text().strip()
+        self.subsets.group_subsets(name, self.asset_id, self.items)
+
+        with lib.preserve_selection(tree_view=self.subsets.view,
+                                    current_index=False):
+            self.grouped.emit()
+            self.close()
+
 
 def show(debug=False, parent=None, use_context=False):
     """Display Loader GUI
@@ -296,7 +404,7 @@ def show(debug=False, parent=None, use_context=False):
             module.window.refresh()
             return
         except RuntimeError as e:
-            if not e.message.rstrip().endswith("already deleted."):
+            if not str(e).rstrip().endswith("already deleted."):
                 raise
 
             # Garbage collected
@@ -306,24 +414,19 @@ def show(debug=False, parent=None, use_context=False):
         import traceback
         sys.excepthook = lambda typ, val, tb: traceback.print_last()
 
-        io.install()
-
-        any_project = next(
-            project for project in io.projects()
-            if project.get("active", True) is not False
-        )
-
-        api.Session["AVALON_PROJECT"] = any_project["name"]
-        module.project = any_project["name"]
-
     with lib.application():
+
+        # TODO: Global state, remove these
+        lib.refresh_family_config_cache()
+        lib.refresh_group_config_cache()
+
         window = Window(parent)
-        window.setStyleSheet(style.load_stylesheet())
         window.show()
+        window.setStyleSheet(style.load_stylesheet())
 
         if use_context:
-            context = {"asset": api.Session['AVALON_ASSET'],
-                       "silo": api.Session['AVALON_SILO']}
+            context = {"asset": api.Session["AVALON_ASSET"],
+                       "silo": api.Session["AVALON_SILO"]}
             window.set_context(context, refresh=True)
         else:
             window.refresh()

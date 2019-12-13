@@ -4,18 +4,11 @@ import logging
 from functools import partial
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ...vendor import qtawesome as qta
+from ...vendor import qtawesome
 from ... import io, api, style
-from .. import lib as tools_lib
 
-# todo(roy): refactor loading from other tools
-from ..projectmanager.widget import (
-    preserve_expanded_rows,
-    preserve_selection,
-    _iter_model_rows,
-)
-from ..loader.delegates import VersionDelegate
-from ..loader.lib import refresh_family_config
+from .. import lib as tools_lib
+from ..delegates import VersionDelegate
 
 from .proxy import FilterProxyModel
 from .model import InventoryModel
@@ -73,7 +66,7 @@ class View(QtWidgets.QTreeView):
                 api.update(item, -1)
             self.data_changed.emit()
 
-        update_icon = qta.icon("fa.angle-double-up", color=DEFAULT_COLOR)
+        update_icon = qtawesome.icon("fa.angle-double-up", color=DEFAULT_COLOR)
         updatetolatest_action = QtWidgets.QAction(update_icon,
                                                   "Update to latest",
                                                   menu)
@@ -81,7 +74,7 @@ class View(QtWidgets.QTreeView):
             lambda: _on_update_to_latest(items))
 
         # set version
-        set_version_icon = qta.icon("fa.hashtag", color=DEFAULT_COLOR)
+        set_version_icon = qtawesome.icon("fa.hashtag", color=DEFAULT_COLOR)
         set_version_action = QtWidgets.QAction(set_version_icon,
                                                "Set version",
                                                menu)
@@ -89,7 +82,7 @@ class View(QtWidgets.QTreeView):
             lambda: self.show_version_dialog(items))
 
         # switch asset
-        switch_asset_icon = qta.icon("fa.sitemap", color=DEFAULT_COLOR)
+        switch_asset_icon = qtawesome.icon("fa.sitemap", color=DEFAULT_COLOR)
         switch_asset_action = QtWidgets.QAction(switch_asset_icon,
                                                 "Switch Asset",
                                                 menu)
@@ -97,21 +90,21 @@ class View(QtWidgets.QTreeView):
             lambda: self.show_switch_dialog(items))
 
         # remove
-        remove_icon = qta.icon("fa.remove", color=DEFAULT_COLOR)
+        remove_icon = qtawesome.icon("fa.remove", color=DEFAULT_COLOR)
         remove_action = QtWidgets.QAction(remove_icon, "Remove items", menu)
         remove_action.triggered.connect(
             lambda: self.show_remove_warning_dialog(items))
 
         # go back to flat view
         if self._hierarchy_view:
-            back_to_flat_icon = qta.icon("fa.list", color=DEFAULT_COLOR)
+            back_to_flat_icon = qtawesome.icon("fa.list", color=DEFAULT_COLOR)
             back_to_flat_action = QtWidgets.QAction(back_to_flat_icon,
                                                     "Back to Full-View",
                                                     menu)
             back_to_flat_action.triggered.connect(self.leave_hierarchy)
 
         # send items to hierarchy view
-        enter_hierarchy_icon = qta.icon("fa.indent", color="#d8d8d8")
+        enter_hierarchy_icon = qtawesome.icon("fa.indent", color="#d8d8d8")
         enter_hierarchy_action = QtWidgets.QAction(enter_hierarchy_icon,
                                                    "Cherry-Pick (Hierarchy)",
                                                    menu)
@@ -149,7 +142,7 @@ class View(QtWidgets.QTreeView):
             for action in custom_actions:
 
                 color = action.color or DEFAULT_COLOR
-                icon = qta.icon("fa.%s" % action.icon, color=color)
+                icon = qtawesome.icon("fa.%s" % action.icon, color=color)
                 action_item = QtWidgets.QAction(icon, action.label, submenu)
                 action_item.triggered.connect(
                     partial(self.process_custom_action, action, items))
@@ -249,8 +242,8 @@ class View(QtWidgets.QTreeView):
             "toggle": selection_model.Toggle,
         }[options.get("mode", "select")]
 
-        for item in _iter_model_rows(model, 0):
-            node = item.data(InventoryModel.NodeRole)
+        for item in tools_lib.iter_model_rows(model, 0):
+            node = item.data(InventoryModel.ItemRole)
             if node.get("isGroupNode"):
                 continue
 
@@ -287,7 +280,7 @@ class View(QtWidgets.QTreeView):
 
         # Extend to the sub-items
         all_indices = self.extend_to_children(indices)
-        nodes = [dict(i.data(InventoryModel.NodeRole)) for i in all_indices
+        nodes = [dict(i.data(InventoryModel.ItemRole)) for i in all_indices
                  if i.parent().isValid()]
 
         if self._hierarchy_view:
@@ -481,9 +474,9 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self._representations_box = SearchComboBox(
             placeholder="<representation>")
 
-        self._asset_label = QtWidgets.QLabel('')
-        self._subset_label = QtWidgets.QLabel('')
-        self._repre_label = QtWidgets.QLabel('')
+        self._asset_label = QtWidgets.QLabel("")
+        self._subset_label = QtWidgets.QLabel("")
+        self._repre_label = QtWidgets.QLabel("")
 
         main_layout = QtWidgets.QVBoxLayout()
         context_layout = QtWidgets.QHBoxLayout()
@@ -491,7 +484,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         subset_layout = QtWidgets.QVBoxLayout()
         repre_layout = QtWidgets.QVBoxLayout()
 
-        accept_icon = qta.icon("fa.check", color="white")
+        accept_icon = qtawesome.icon("fa.check", color="white")
         accept_btn = QtWidgets.QPushButton()
         accept_btn.setIcon(accept_icon)
         accept_btn.setFixedWidth(24)
@@ -588,11 +581,11 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         subset_label = default
         repre_label = default
 
-        if self._assets_box.currentText() != '':
+        if self._assets_box.currentText() != "":
             asset_label = self._assets_box.currentText()
-        if self._subsets_box.currentText() != '':
+        if self._subsets_box.currentText() != "":
             subset_label = self._subsets_box.currentText()
-        if self._representations_box.currentText() != '':
+        if self._representations_box.currentText() != "":
             repre_label = self._representations_box.currentText()
 
         self._asset_label.setText(asset_label)
@@ -642,7 +635,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                     "type": "version",
                     "parent": subset["_id"]
                 },
-                sort=[('name', -1)]
+                sort=[("name", -1)]
             )
             if version is None:
                 repre_ok = False
@@ -656,22 +649,22 @@ class SwitchAssetDialog(QtWidgets.QDialog):
             if repre is None:
                 repre_ok = False
 
-        asset_sheet = ''
-        subset_sheet = ''
-        repre_sheet = ''
-        accept_sheet = ''
-        error_msg = '*Please select'
+        asset_sheet = ""
+        subset_sheet = ""
+        repre_sheet = ""
+        accept_sheet = ""
+        error_msg = "*Please select"
         if asset_ok is False:
-            asset_sheet = 'border: 1px solid red;'
+            asset_sheet = "border: 1px solid red;"
             self._asset_label.setText(error_msg)
         if subset_ok is False:
-            subset_sheet = 'border: 1px solid red;'
+            subset_sheet = "border: 1px solid red;"
             self._subset_label.setText(error_msg)
         if repre_ok is False:
-            repre_sheet = 'border: 1px solid red;'
+            repre_sheet = "border: 1px solid red;"
             self._repre_label.setText(error_msg)
         if asset_ok and subset_ok and repre_ok:
-            accept_sheet = 'border: 1px solid green;'
+            accept_sheet = "border: 1px solid green;"
 
         self._assets_box.setStyleSheet(asset_sheet)
         self._subsets_box.setStyleSheet(subset_sheet)
@@ -682,13 +675,13 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
     def _get_assets(self):
         filtered_assets = []
-        for asset in io.find({'type': 'asset'}):
+        for asset in io.find({"type": "asset"}):
             subsets = io.find({
-                'type': 'subset',
-                'parent': asset['_id']
+                "type": "subset",
+                "parent": asset["_id"]
             })
             for subs in subsets:
-                filtered_assets.append(asset['name'])
+                filtered_assets.append(asset["name"])
                 break
 
         return filtered_assets
@@ -696,10 +689,10 @@ class SwitchAssetDialog(QtWidgets.QDialog):
     def _get_subsets(self):
         # Filter subsets by asset in dropdown
         if self._assets_box.currentText() != "":
-            parents = []
+            parents = list()
             parents.append(io.find_one({
-                'type': 'asset',
-                'name': self._assets_box.currentText()
+                "type": "asset",
+                "name": self._assets_box.currentText()
             }))
 
             return self._get_document_names("subset", parents)
@@ -717,12 +710,12 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         possible_subsets = None
         for asset in assets:
             subsets = io.find({
-                'type': 'subset',
-                'parent': asset['_id']
+                "type": "subset",
+                "parent": asset["_id"]
             })
             asset_subsets = set()
             for subset in subsets:
-                asset_subsets.add(subset['name'])
+                asset_subsets.add(subset["name"])
 
             if possible_subsets is None:
                 possible_subsets = asset_subsets
@@ -739,16 +732,16 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
             for subset in subsets:
                 entity = io.find_one({
-                    'type': 'subset',
-                    'name': subset
+                    "type": "subset",
+                    "name": subset
                 })
 
                 entity = io.find_one(
                     {
-                        'type': 'version',
-                        'parent': entity['_id']
+                        "type": "version",
+                        "parent": entity["_id"]
                     },
-                    sort=[('name', -1)]
+                    sort=[("name", -1)]
                 )
                 if entity not in parents:
                     parents.append(entity)
@@ -767,12 +760,12 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         possible_repres = None
         for version in versions:
             representations = io.find({
-                'type': 'representation',
-                'parent': version['_id']
+                "type": "representation",
+                "parent": version["_id"]
             })
             repres = set()
             for repre in representations:
-                repres.add(repre['name'])
+                repres.add(repre["name"])
 
             if possible_repres is None:
                 possible_repres = repres
@@ -847,7 +840,7 @@ class Window(QtWidgets.QDialog):
         outdated_only.setToolTip("Show outdated files only")
         outdated_only.setChecked(False)
 
-        icon = qta.icon("fa.refresh", color="white")
+        icon = qtawesome.icon("fa.refresh", color="white")
         refresh_button = QtWidgets.QPushButton()
         refresh_button.setIcon(icon)
 
@@ -865,7 +858,7 @@ class Window(QtWidgets.QDialog):
 
         # apply delegates
         version_delegate = VersionDelegate(self)
-        column = model.COLUMNS.index("version")
+        column = model.Columns.index("version")
         view.setItemDelegateForColumn(column, version_delegate)
 
         layout.addLayout(control_layout)
@@ -904,14 +897,14 @@ class Window(QtWidgets.QDialog):
         self.view.setColumnWidth(3, 150)  # family
         self.view.setColumnWidth(4, 100)  # namespace
 
-        refresh_family_config()
+        tools_lib.refresh_family_config_cache()
 
     def refresh(self):
-        with preserve_expanded_rows(tree_view=self.view,
-                                    role=self.model.UniqueRole):
-            with preserve_selection(tree_view=self.view,
-                                    role=self.model.UniqueRole,
-                                    current_index=False):
+        with tools_lib.preserve_expanded_rows(tree_view=self.view,
+                                              role=self.model.UniqueRole):
+            with tools_lib.preserve_selection(tree_view=self.view,
+                                              role=self.model.UniqueRole,
+                                              current_index=False):
                 if self.view._hierarchy_view:
                     self.model.refresh(selected=self.view._selected)
                 else:
@@ -924,6 +917,8 @@ def show(root=None, debug=False, parent=None):
     Arguments:
         debug (bool, optional): Run in debug-mode,
             defaults to False
+        parent (QtCore.QObject, optional): When provided parent the interface
+            to this QObject.
 
     """
 
@@ -933,20 +928,14 @@ def show(root=None, debug=False, parent=None):
     except (RuntimeError, AttributeError):
         pass
 
-    if debug is True:
-        io.install()
-
-        any_project = next(
-            project for project in io.projects()
-            if project.get("active", True) is not False
-        )
-
-        api.Session["AVALON_PROJECT"] = any_project["name"]
+    if debug:
+        import traceback
+        sys.excepthook = lambda typ, val, tb: traceback.print_last()
 
     with tools_lib.application():
         window = Window(parent)
-        window.setStyleSheet(style.load_stylesheet())
         window.show()
+        window.setStyleSheet(style.load_stylesheet())
         window.refresh()
 
         module.window = window

@@ -5,6 +5,7 @@ import importlib
 import contextlib
 
 from maya import cmds, OpenMaya
+import maya.api.OpenMaya as om
 from pyblish import api as pyblish
 
 from . import lib, compat
@@ -93,6 +94,16 @@ def find_host_config(config):
     return config
 
 
+def get_main_window():
+    """Acquire Maya's main window"""
+    if self._parent is None:
+        self._parent = {
+            widget.objectName(): widget
+            for widget in QtWidgets.QApplication.topLevelWidgets()
+        }["MayaWindow"]
+    return self._parent
+
+
 def uninstall(config):
     """Uninstall Maya-specific functionality of avalon-core.
 
@@ -112,6 +123,7 @@ def uninstall(config):
 
 def _install_menu():
     from ..tools import (
+        projectmanager,
         creator,
         loader,
         publish,
@@ -138,7 +150,7 @@ def _install_menu():
                                      subMenu=True)
 
         cmds.menuItem("setCurrentContext",
-                      label="Set Context",
+                      label="Edit Context..",
                       parent=context_menu,
                       command=lambda *args: contextmanager.show(
                           parent=self._parent
@@ -168,15 +180,24 @@ def _install_menu():
 
         cmds.menuItem("Work Files", command=launch_workfiles_app)
 
-        cmds.menuItem("System",
-                      label="System",
-                      tearOff=True,
+        system = cmds.menuItem("System",
+                               label="System",
+                               tearOff=True,
+                               subMenu=True,
+                               parent=self._menu)
+
+        cmds.menuItem("Project Manager",
+                      command=lambda *args: projectmanager.show(
+                        parent=self._parent))
+
+        cmds.menuItem("Reinstall Avalon",
+                      label="Reinstall Avalon",
                       subMenu=True,
-                      parent=self._menu)
+                      parent=system)
 
-        cmds.menuItem("Reload Pipeline", command=reload_pipeline)
+        cmds.menuItem("Confirm", command=reload_pipeline)
 
-        cmds.setParent("..", menu=True)
+        cmds.setParent(self._menu, menu=True)
 
         cmds.menuItem("Reset Frame Range",
                       command=interactive.reset_frame_range)
@@ -192,7 +213,8 @@ def launch_workfiles_app(*args):
         os.path.join(
             cmds.workspace(query=True, rootDirectory=True),
             cmds.workspace(fileRuleEntry="scene")
-        )
+        ),
+        parent=self._parent
     )
 
 
@@ -238,10 +260,7 @@ def reload_pipeline(*args):
         module = importlib.import_module(module)
         reload(module)
 
-    self._parent = {
-        widget.objectName(): widget
-        for widget in QtWidgets.QApplication.topLevelWidgets()
-    }["MayaWindow"]
+    get_main_window()
 
     import avalon.maya
     api.install(avalon.maya)
@@ -412,7 +431,7 @@ def containerise(name,
     return container
 
 
-def parse_container(container, validate=True):
+def parse_container(container):
     """Return the container node's full container data.
 
     Args:
@@ -430,27 +449,58 @@ def parse_container(container, validate=True):
     # Append transient data
     data["objectName"] = container
 
-    if validate:
-        schema.validate(data)
-
     return data
 
 
 def _ls():
-    containers = list()
-    for identifier in (AVALON_CONTAINER_ID,
-                       "pyblish.mindbender.container"):
-        containers += lib.lsattr("id", identifier)
+    """Yields Avalon container node names.
 
-    return containers
+    Used by `ls()` to retrieve the nodes and then query the full container's
+    data.
+
+    Yields:
+        str: Avalon container node name (objectSet)
+
+    """
+
+    def _maya_iterate(iterator):
+        """Helper to iterate a maya iterator"""
+        while not iterator.isDone():
+            yield iterator.thisNode()
+            iterator.next()
+
+    ids = {AVALON_CONTAINER_ID,
+           # Backwards compatibility
+           "pyblish.mindbender.container"}
+
+    # Iterate over all 'set' nodes in the scene to detect whether
+    # they have the avalon container ".id" attribute.
+    fn_dep = om.MFnDependencyNode()
+    iterator = om.MItDependencyNodes(om.MFn.kSet)
+    for mobject in _maya_iterate(iterator):
+        if mobject.apiTypeStr != "kSet":
+            # Only match by exact type
+            continue
+
+        fn_dep.setObject(mobject)
+        if not fn_dep.hasAttribute("id"):
+            continue
+
+        plug = fn_dep.findPlug("id", True)
+        value = plug.asString()
+        if value in ids:
+            yield fn_dep.name()
 
 
 def ls():
-    """List containers from active Maya scene
+    """Yields containers from active Maya scene
 
     This is the host-equivalent of api.ls(), but instead of listing
     assets on disk, it lists assets already loaded in Maya; once loaded
     they are called 'containers'
+
+    Yields:
+        dict: container
 
     """
     container_names = _ls()
@@ -582,10 +632,7 @@ def _on_maya_initialized(*args):
         return
 
     # Keep reference to the main Window, once a main window exists.
-    self._parent = {
-        widget.objectName(): widget
-        for widget in QtWidgets.QApplication.topLevelWidgets()
-    }["MayaWindow"]
+    get_main_window()
 
 
 def _on_scene_new(*args):

@@ -1,24 +1,21 @@
-
 import logging
 
 from collections import defaultdict
 
 from ... import api, io, style
 from ...vendor.Qt import QtCore, QtGui
-from ...vendor import qtawesome as qta
-from .lib import walk_hierarchy
+from ...vendor import qtawesome
 
-# todo(roy): refactor loading from other tools
-from ..loader import lib as loader_lib
-from ..projectmanager.model import (
-    TreeModel, Node
-)
+from .. import lib as tools_lib
+from ..models import TreeModel, Item
+
+from . import lib
 
 
 class InventoryModel(TreeModel):
     """The model for the inventory"""
 
-    COLUMNS = ["Name", "version", "count", "family", "objectName"]
+    Columns = ["Name", "version", "count", "family", "loader", "objectName"]
 
     OUTDATED_COLOR = QtGui.QColor(235, 30, 30)
     CHILD_OUTDATED_COLOR = QtGui.QColor(200, 160, 30)
@@ -37,11 +34,11 @@ class InventoryModel(TreeModel):
         if not index.isValid():
             return
 
-        node = index.internalPointer()
+        item = index.internalPointer()
 
         if role == QtCore.Qt.FontRole:
             # Make top-level entries bold
-            if node.get("isGroupNode"):  # group-item
+            if item.get("isGroupNode"):  # group-item
                 font = QtGui.QFont()
                 font.setBold(True)
                 return font
@@ -49,17 +46,17 @@ class InventoryModel(TreeModel):
         if role == QtCore.Qt.ForegroundRole:
             # Set the text color to the OUTDATED_COLOR when the
             # collected version is not the same as the highest version
-            key = self.COLUMNS[index.column()]
+            key = self.Columns[index.column()]
             outdated = (lambda n: n.get("version") != n.get("highest_version"))
             if key == "version":  # version
-                if node.get("isGroupNode"):  # group-item
-                    if outdated(node):
+                if item.get("isGroupNode"):  # group-item
+                    if outdated(item):
                         return self.OUTDATED_COLOR
 
                     if self._hierarchy_view:
                         # If current group is not outdated, check if any
                         # outdated children.
-                        for _node in walk_hierarchy(node):
+                        for _node in lib.walk_hierarchy(item):
                             if outdated(_node):
                                 return self.CHILD_OUTDATED_COLOR
                 else:
@@ -67,31 +64,31 @@ class InventoryModel(TreeModel):
                     if self._hierarchy_view:
                         # Although this is not a group item, we still need
                         # to distinguish which one contain outdated child.
-                        for _node in walk_hierarchy(node):
+                        for _node in lib.walk_hierarchy(item):
                             if outdated(_node):
                                 return self.CHILD_OUTDATED_COLOR.darker(150)
 
                     return self.GRAYOUT_COLOR
 
-            if key == "Name" and not node.get("isGroupNode"):
+            if key == "Name" and not item.get("isGroupNode"):
                 return self.GRAYOUT_COLOR
 
         # Add icons
         if role == QtCore.Qt.DecorationRole:
             if index.column() == 0:
                 # Override color
-                color = node.get("color", style.colors.default)
-                if node.get("isGroupNode"):  # group-item
-                    return qta.icon("fa.folder", color=color)
+                color = item.get("color", style.colors.default)
+                if item.get("isGroupNode"):  # group-item
+                    return qtawesome.icon("fa.folder", color=color)
                 else:
-                    return qta.icon("fa.file-o", color=color)
+                    return qtawesome.icon("fa.file-o", color=color)
 
             if index.column() == 3:
                 # Family icon
-                return node.get("familyIcon", None)
+                return item.get("familyIcon", None)
 
         if role == self.UniqueRole:
-            return node["representation"] + node.get("objectName", "<none>")
+            return item["representation"] + item.get("objectName", "<none>")
 
         return super(InventoryModel, self).data(index, role)
 
@@ -142,7 +139,7 @@ class InventoryModel(TreeModel):
                     # Parent not in selection, this is root item.
                     item["parent"] = None
 
-            parents = [self._root_node]
+            parents = [self._root_item]
 
             # The length of `items` array is the maximum depth that a
             # hierarchy could be.
@@ -203,9 +200,11 @@ class InventoryModel(TreeModel):
 
         Args:
             items (generator): the items to be processed as returned by `ls()`
+            parent (Item, optional): Set this item as parent for the added
+              items when provided. Defaults to the root of the model.
 
         Returns:
-            node.Node: root node which has children added based on the data
+            node.Item: root node which has children added based on the data
         """
 
         self.beginResetModel()
@@ -227,16 +226,19 @@ class InventoryModel(TreeModel):
             asset = io.find_one({"_id": subset["parent"]})
 
             # Get the primary family
-            family = version["data"].get("family", "")
-            if not family:
-                families = version["data"].get("families", [])
-                if families:
-                    family = families[0]
+            no_family = ""
+            if subset["schema"] == "avalon-core:subset-3.0":
+                families = subset["data"]["families"]
+                prim_family = families[0] if families else no_family
+            else:
+                prim_family = version["data"].get("family")
+                if not prim_family:
+                    families = version["data"].get("families")
+                    prim_family = families[0] if families else no_family
 
             # Get the label and icon for the family if in configuration
-            family_config = loader_lib.get(loader_lib.FAMILY_CONFIG,
-                                           family)
-            family = family_config.get("label", family)
+            family_config = tools_lib.get_family_cached_config(prim_family)
+            family = family_config.get("label", prim_family)
             family_icon = family_config.get("icon", None)
 
             # Store the highest available version so the model can know
@@ -247,7 +249,7 @@ class InventoryModel(TreeModel):
             }, sort=[("name", -1)])
 
             # create the group header
-            group_node = Node()
+            group_node = Item()
             group_node["Name"] = "%s_%s: (%s)" % (asset["name"],
                                                   subset["name"],
                                                   representation["name"])
@@ -262,7 +264,7 @@ class InventoryModel(TreeModel):
             self.add_child(group_node, parent=parent)
 
             for item in group_items:
-                item_node = Node()
+                item_node = Item()
                 item_node.update(item)
 
                 # store the current version on the item
@@ -277,4 +279,4 @@ class InventoryModel(TreeModel):
 
         self.endResetModel()
 
-        return self._root_node
+        return self._root_item

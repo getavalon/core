@@ -8,7 +8,7 @@ deployed, this number is embedded into the Python package.
 """
 
 VERSION_MAJOR = 5
-VERSION_MINOR = 3
+VERSION_MINOR = 6
 VERSION_PATCH = 0
 
 version = "%s.%s" % (VERSION_MAJOR, VERSION_MINOR)
@@ -36,8 +36,9 @@ except ImportError:
         ).rstrip())
 
         # Builds since previous minor version
-        VERSION_PATCH -= 1489
+        VERSION_PATCH -= 1531
         VERSION_PATCH -= 83
+        VERSION_PATCH -= 86
 
     except Exception:
         # Otherwise, no big deal

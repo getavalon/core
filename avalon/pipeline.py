@@ -708,7 +708,10 @@ def _validate_signature(module, signatures):
 
         else:
             attr = getattr(module, member)
-            signature = inspect.getargspec(attr)[0]
+            if sys.version_info.major >= 3:
+                signature = inspect.getfullargspec(attr)[0]
+            else:
+                signature = inspect.getargspec(attr)[0]
             required_signature = signatures[member]
 
             assert isinstance(signature, list)
@@ -821,8 +824,8 @@ def debug_host():
 
     host.__dict__.update({
         "ls": ls,
-        "open": lambda fname: None,
-        "save": lambda fname: None,
+        "open_file": lambda fname: None,
+        "save_file": lambda fname: None,
         "current_file": lambda: os.path.expanduser("~/temp.txt"),
         "has_unsaved_changes": lambda: False,
         "work_root": lambda: os.path.expanduser("~/temp"),
@@ -1291,7 +1294,11 @@ def is_compatible_loader(Loader, context):
         bool
 
     """
-    families = context["version"]["data"]["families"]
+    if context["subset"]["schema"] == "avalon-core:subset-3.0":
+        families = context["subset"]["data"]["families"]
+    else:
+        families = context["version"]["data"].get("families", [])
+
     representation = context["representation"]
     has_family = ("*" in Loader.families or
                   any(family in Loader.families for family in families))
