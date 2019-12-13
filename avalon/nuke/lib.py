@@ -5,7 +5,7 @@ import re
 import logging
 from collections import OrderedDict
 
-from ..vendor import six
+from ..vendor import six, clique
 
 log = logging.getLogger(__name__)
 
@@ -30,6 +30,25 @@ def maintained_selection():
         # and select all previously selected nodes
         if previous_selection:
             [n['selected'].setValue(True) for n in previous_selection]
+
+
+def reset_selection():
+    """Deselect all selected nodes
+    """
+    for node in nuke.selectedNodes():
+        node["selected"] = False
+
+
+def select_nodes(nodes):
+    """Selects all inputed nodes
+
+    Arguments:
+        nodes (list): nuke nodes to be selected
+    """
+    assert isinstance(nodes, (list, tuple)), "nodes has to be list or tuple"
+
+    for node in nodes:
+        node["selected"].setValue(True)
 
 
 def imprint(node, data, tab=None):
@@ -457,3 +476,38 @@ def get_node_path(path, padding=4):
             filename = filename.replace(match.group(1), '')
 
     return filename, padding, ext
+
+
+def ls_img_sequence(path):
+    """Listing all available coherent image sequence from path
+
+    Arguments:
+        path (str): A nuke's node object
+
+    Returns:
+        data (dict): with nuke formated path and frameranges
+    """
+    file = os.path.basename(path)
+    dir = os.path.dirname(path)
+    base, ext = os.path.splitext(file)
+    name, padding = os.path.splitext(base)
+
+    # populate list of files
+    files = [f for f in os.listdir(dir)
+             if name in f
+             if ext in f]
+
+    # create collection from list of files
+    collections, reminder = clique.assemble(files)
+
+    if len(collections) > 0:
+        head = collections[0].format("{head}")
+        padding = collections[0].format("{padding}") % 1
+        padding = "#" * len(padding)
+        tail = collections[0].format("{tail}")
+        file = head + padding + tail
+
+        return {"path": os.path.join(dir, file).replace("\\", "/"),
+                "frames": collections[0].format("[{ranges}]")}
+    else:
+        return False
