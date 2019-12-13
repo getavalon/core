@@ -5,8 +5,10 @@ Anything that isn't defined here is INTERNAL and unreliable for external use.
 """
 
 from .lib import (
-    add_publish_knob,
     maintained_selection,
+    read,
+
+    add_publish_knob,
     get_node_path,
 )
 
@@ -57,6 +59,8 @@ __all__ = [
     "containerise",
     "parse_container",
     "update_container",
+
+    "read",
 
     # Experimental
     "viewer_update_and_undo_stop",

@@ -107,28 +107,25 @@ def parse_container(node):
         node (nuke.Node): Nuke's node object to read imprinted data
 
     Returns:
-        container (dict): imprinted container data
+        dict: The container schema data for this container node.
+
     """
-    data = lib.get_avalon_knob_data(node)
+    data = lib.read(node)
 
-    if not isinstance(data, dict):
-        return
-
+    # (TODO) Remove key validation when `ls` has re-implemented.
+    #
     # If not all required data return the empty container
     required = ["schema", "id", "name",
                 "namespace", "loader", "representation"]
-
     if not all(key in data for key in required):
         return
 
-    container = {key: data[key] for key in required}
-
     # Store the node's name
-    container["objectName"] = node["name"].value()
+    data["objectName"] = node["name"].value()
     # Store reference to the node object
-    container["_node"] = node
+    data["_node"] = node
 
-    return container
+    return data
 
 
 def update_container(node, keys=None):
