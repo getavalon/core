@@ -274,7 +274,7 @@ def reload_pipeline(*args):
 def _uninstall_menu():
     
     # In Maya 2020+ don't use the QApplication.instance()
-    # during startup (userSetup.py) as it will return about
+    # during startup (userSetup.py) as it will return a
     # QtCore.QCoreApplication instance which does not have
     # the allWidgets method. As such, we call the staticmethod.
     all_widgets = QtWidgets.QApplication.allWidgets()
