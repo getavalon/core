@@ -4,6 +4,7 @@ import nuke
 import re
 import logging
 from ..vendor import (six, clique)
+from nukescripts import clear_selection_recursive
 
 log = logging.getLogger(__name__)
 
@@ -20,24 +21,31 @@ def maintained_selection():
     """
     nodes = nuke.allNodes()
     previous_selection = nuke.selectedNodes()
+
+    # deselect all nodes
+    reset_selection()
+
     try:
+        # do the operation
         yield
     finally:
         # unselect all selection in case there is some
         reset_selection()
         # and select all previously selected nodes
         if previous_selection:
-            for n in nodes:
-                if n.name() not in previous_selection:
-                    continue
-                n['selected'].setValue(True)
+            try:
+                for n in nodes:
+                    if n not in previous_selection:
+                        continue
+                    n['selected'].setValue(True)
+            except ValueError as e:
+                log.warning(e)
 
 
 def reset_selection():
     """Deselect all selected nodes
     """
-    for node in nuke.selectedNodes():
-        node['selected'] = False
+    clear_selection_recursive()
 
 
 def select_nodes(nodes):
@@ -48,8 +56,11 @@ def select_nodes(nodes):
     """
     assert isinstance(nodes, (list, tuple)), "nodes has to be list or tuple"
 
-    for node in nodes:
-        node['selected'].setValue(True)
+    try:
+        for node in nodes:
+            node['selected'].setValue(True)
+    except ValueError as e:
+        log.warning(e)
 
 
 def add_publish_knob(node):
@@ -70,7 +81,7 @@ def add_publish_knob(node):
     return node
 
 
-def set_avalon_knob_data(node, data={}, prefix="ak:"):
+def set_avalon_knob_data(node, data={}, prefix="avalon:"):
     """ Sets a data into nodes's avalon knob
 
     Arguments:
@@ -88,10 +99,6 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
             'subset': 'subsetMain'
         }
     """
-    # fix prefix back compatibility
-    if not isinstance(prefix, list):
-        prefix = [prefix]
-
     # definition of knobs
     knobs = [
         {"name": 'AvalonTab', "value": '', "type": "Tab_Knob"},
@@ -125,7 +132,8 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
                 try:
                     knob.setValue(k['value'])
                 except TypeError as E:
-                    log.info("{} - Not correct knob value. Error: `{}`".format(__name__, E))
+                    log.info("{} - Not correct knob value. "
+                             "Error: `{}`".format(__name__, E))
             else:
                 if k["name"] not in node.knobs().keys():
                     n_knob = getattr(nuke, k["type"])
@@ -134,7 +142,7 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
 
         # add avalon knobs for imprinting data
         for key, value in data.items():
-            name = prefix[-1] + key
+            name = prefix + key
             value = str(value)
 
             try:
@@ -161,7 +169,7 @@ def set_avalon_knob_data(node, data={}, prefix="ak:"):
         return False
 
 
-def get_avalon_knob_data(node, prefix="ak:"):
+def get_avalon_knob_data(node, prefix="avalon:"):
     """ Gets a data from nodes's avalon knob
 
     Arguments:
@@ -176,10 +184,12 @@ def get_avalon_knob_data(node, prefix="ak:"):
         prefix = list([prefix])
 
     data = dict()
-    log.debug("___> prefix: `{}`".format(prefix))
+
     # loop prefix
     for p in prefix:
-
+        # check if the node is avalon tracked
+        if "AvalonTab" not in node.knobs():
+            continue
         try:
             # check if data available on the node
             test = node['avalon_data'].value()
@@ -196,6 +206,37 @@ def get_avalon_knob_data(node, prefix="ak:"):
                     if p in k})
 
     return data
+
+def check_subsetname_exists(nodes, subset_name):
+    """
+    Checking if node is not already created to secure there is no duplicity
+
+    Arguments:
+        nodes (list): list of nuke.Node objects
+        subset_name (str): name we try to find
+
+    Returns:
+        bool: True of False
+    """
+    return next((True for n in nodes
+    if subset_name in get_avalon_knob_data(n,
+        ["avalon:", "ak:"]).get("subset", "")), False)
+
+def check_subsetname_exists(nodes, subset_name):
+    """
+    Checking if node is not already created to secure there is no duplicity
+
+    Arguments:
+        nodes (list): list of nuke.Node objects
+        subset_name (str): name we try to find
+
+    Returns:
+        bool: True of False
+    """
+    result = next((True for n in nodes
+                   if subset_name in get_avalon_knob_data(
+                        n, ["avalon:", "ak:"]).get("subset", "")), False)
+    return result
 
 
 def imprint(node, data):
