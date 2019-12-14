@@ -5,6 +5,7 @@ import importlib
 import contextlib
 
 from maya import cmds, OpenMaya
+import maya.utils
 import maya.api.OpenMaya as om
 from pyblish import api as pyblish
 
@@ -205,7 +206,11 @@ def _install_menu():
                       command=interactive.reset_resolution)
 
     # Allow time for uninstallation to finish.
-    QtCore.QTimer.singleShot(100, deferred)
+    # We use Maya's executeDeferred instead of QTimer.singleShot
+    # so that it only gets called after Maya UI has initialized too.
+    # This is crucial with Maya 2020+ which initializes without UI
+    # first as a QCoreApplication
+    maya.utils.executeDeferred(deferred)
 
 
 def launch_workfiles_app(*args):
@@ -267,8 +272,14 @@ def reload_pipeline(*args):
 
 
 def _uninstall_menu():
-    app = QtWidgets.QApplication.instance()
-    widgets = dict((w.objectName(), w) for w in app.allWidgets())
+    
+    # In Maya 2020+ don't use the QApplication.instance()
+    # during startup (userSetup.py) as it will return about
+    # QtCore.QCoreApplication instance which does not have
+    # the allWidgets method. As such, we call the staticmethod.
+    all_widgets = QtWidgets.QApplication.allWidgets()
+    
+    widgets = dict((w.objectName(), w) for w in all_widgets)
     menu = widgets.get(self._menu)
 
     if menu:
