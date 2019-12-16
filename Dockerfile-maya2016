@@ -17,9 +17,10 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && \
 
 # Avoid creation of auxilliary files
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV TRAVIS=1
 
 WORKDIR /workspace
 
 ENTRYPOINT \
 	PYTHONPATH=$(pwd):$PYTHONPATH mayapy -u run_maya_tests.py && \
-	mayapy -c "import sys, os, coveralls;coveralls.wear() if os.getenv('TRAVIS_JOB_ID') else sys.stdout.write('Skipping coveralls')"
+	mayapy -m coveralls
