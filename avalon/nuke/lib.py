@@ -86,13 +86,15 @@ class Knobby(object):
     Args:
         type (string): Nuke knob type name
         value: Value to be set with `Knob.setValue`, put `None` if not required
+        flags (list, optional): Knob flags to be set with `Knob.setFlag`
         *args: Args other than knob name for initializing knob class
 
     """
 
-    def __init__(self, type, value, *args):
+    def __init__(self, type, value, flags=None, *args):
         self.type = type
         self.value = value
+        self.flags = flags or []
         self.args = args
 
     def create(self, name, nice=None):
@@ -100,6 +102,8 @@ class Knobby(object):
         knob = knob_cls(name, nice, *self.args)
         if self.value is not None:
             knob.setValue(self.value)
+        for flag in self.flags:
+            knob.setFlag(flag)
         return knob
 
 
@@ -195,6 +199,66 @@ def create_knobs(data, tab=None):
     return knobs
 
 
+EXCLUDED_KNOB_TYPE_ON_READ = (
+    20,  # Tab Knob
+    26,  # Text Knob (But for backward compatibility, still be read
+         #            if value is not an empty string.)
+)
+
+
+def read(node):
+    """Return user-defined knobs from given `node`
+
+    Args:
+        node (nuke.Node): Nuke node object
+
+    Returns:
+        list: A list of nuke.Knob object
+
+    """
+    def compat_prefixed(knob_name):
+        if knob_name.startswith("avalon:"):
+            return knob_name[len("avalon:"):]
+        elif knob_name.startswith("ak:"):
+            return knob_name[len("ak:"):]
+        else:
+            return knob_name
+
+    data = dict()
+
+    pattern = ("(?<=addUserKnob {)"
+               "([0-9]*) (\\S*)"  # Matching knob type and knob name
+               "(?=[ |}])")
+    tcl_script = node.writeKnobs(nuke.WRITE_USER_KNOB_DEFS)
+    result = re.search(pattern, tcl_script)
+
+    if result:
+        first_user_knob = result.group(2)
+        # Collect user knobs from the end of the knob list
+        for knob in reversed(node.allKnobs()):
+            knob_name = knob.name()
+            if not knob_name:
+                # Ignore unnamed knob
+                continue
+
+            knob_type = nuke.knob(knob.fullyQualifiedName(), type=True)
+            value = knob.value()
+
+            if (
+                knob_type not in EXCLUDED_KNOB_TYPE_ON_READ or
+                # For compating read-only string data that imprinted
+                # by `nuke.Text_Knob`.
+                (knob_type == 26 and value)
+            ):
+                key = compat_prefixed(knob_name)
+                data[key] = value
+
+            if knob_name == first_user_knob:
+                break
+
+    return data
+
+
 def add_publish_knob(node):
     """Add Publish knob to node
 
@@ -252,7 +316,9 @@ def set_avalon_knob_data(node, data=None, prefix="avalon:"):
             if key in editable:
                 create[name] = value
             else:
-                create[name] = Knobby("Text_Knob", str(value))
+                create[name] = Knobby("String_Knob",
+                                      str(value),
+                                      flags=[nuke.READ_ONLY])
 
     if tab_name in existed_knobs:
         tab_name = None
