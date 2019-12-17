@@ -1,18 +1,22 @@
 import os
-from collections import OrderedDict
+import sys
 import importlib
-from .. import api, io, schema
-
 import contextlib
-from pyblish import api as pyblish
-from ..vendor import toml
 import logging
-import nuke
-from . import lib
+from collections import OrderedDict
 
+import nuke
+from pyblish import api as pyblish
+
+from . import lib
+from .. import api, io
+from ..vendor.Qt import QtWidgets
 from ..pipeline import AVALON_CONTAINER_ID
 
 log = logging.getLogger(__name__)
+
+self = sys.modules[__name__]
+self._parent = None  # Main Window cache
 
 AVALON_CONFIG = os.environ["AVALON_CONFIG"]
 
@@ -60,88 +64,92 @@ def containerise(node,
                  context,
                  loader=None,
                  data=None):
-    """Bundle `nodes` into an assembly and imprint it with metadata
+    """Bundle `node` into an assembly and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
     for loaded assets.
 
     Arguments:
-        node (object): The node in Nuke to imprint as container,
-        usually a Reader.
+        node (nuke.Node): Nuke's node object to imprint as container
         name (str): Name of resulting assembly
         namespace (str): Namespace under which to host container
         context (dict): Asset information
         loader (str, optional): Name of node used to produce this container.
 
     Returns:
-        Node
+        node (nuke.Node): containerised nuke's node object
 
     """
+    data = OrderedDict(
+        [
+            ("schema", "avalon-core:container-2.0"),
+            ("id", AVALON_CONTAINER_ID),
+            ("name", name),
+            ("namespace", namespace),
+            ("loader", str(loader)),
+            ("representation", context["representation"]["_id"]),
+        ],
 
-    data_imprint = OrderedDict({
-        "schema": "avalon-core:container-2.0",
-        "id": AVALON_CONTAINER_ID,
-        "name": str(name),
-        "namespace": str(namespace),
-        "loader": str(loader),
-        "representation": str(context["representation"]["_id"]),
-    })
+        **data or dict()
+    )
 
-    if data:
-        {data_imprint.update({k: v}) for k, v in data.items()}
-
-    log.info("data: {}".format(data_imprint))
-
-    lib.add_avalon_tab_knob(node)
-
-    node['avalon'].setValue(toml.dumps(data_imprint))
+    lib.set_avalon_knob_data(node, data)
 
     return node
 
 
-def parse_container(node, validate=True):
+def parse_container(node):
     """Returns containerised data of a node
 
-    This reads the imprinted data from `containerise`.
+    Reads the imprinted data from `containerise`.
+
+    Arguments:
+        node (nuke.Node): Nuke's node object to read imprinted data
+
+    Returns:
+        dict: The container schema data for this container node.
 
     """
+    data = lib.read(node)
 
-    raw_text_data = node['avalon'].value()
-    data = toml.loads(raw_text_data, _dict=dict)
-
-    if not isinstance(data, dict):
+    # (TODO) Remove key validation when `ls` has re-implemented.
+    #
+    # If not all required data return the empty container
+    required = ["schema", "id", "name",
+                "namespace", "loader", "representation"]
+    if not all(key in data for key in required):
         return
 
     # Store the node's name
     data["objectName"] = node["name"].value()
-
-    if validate:
-        schema.validate(data)
+    # Store reference to the node object
+    data["_node"] = node
 
     return data
 
 
-def update_container(node, keys=dict()):
+def update_container(node, keys=None):
     """Returns node with updateted containder data
 
     Arguments:
-        node (object): The node in Nuke to imprint as container,
-        keys (dict): data which should be updated
+        node (nuke.Node): The node in Nuke to imprint as container,
+        keys (dict, optional): data which should be updated
 
     Returns:
-        node (object): nuke node with updated container data
+        node (nuke.Node): nuke node with updated container data
+
+    Raises:
+        TypeError on given an invalid container node
+
     """
+    keys = keys or dict()
 
     container = parse_container(node)
+    if not container:
+        raise TypeError("Not a valid container node.")
 
-    for key, value in container.items():
-        try:
-            container[key] = keys[key]
-        except KeyError:
-            pass
-
-    node['avalon'].setValue('')
-    node['avalon'].setValue(toml.dumps(container))
+    container.update(keys)
+    node = lib.set_avalon_knob_data(node, container)
 
     return node
 
@@ -153,10 +161,13 @@ class Creator(api.Creator):
         if (self.options or {}).get("useSelection"):
             nodes = nuke.selectedNodes()
 
-        instance = [n for n in nodes
-                    if n["name"].value() in self.name] or None
+        nodes = [n for n in nodes
+                 if n["name"].value() in self.name] or None
 
-        instance = lib.imprint(instance, self.data)
+        node = nodes[0]
+        lib.set_avalon_knob_data(node, self.data)
+        lib.add_publish_knob(node)
+        instance = node
 
         return instance
 
@@ -218,6 +229,18 @@ def find_host_config(config):
     return config
 
 
+def get_main_window():
+    """Acquire Nuke's main window"""
+    if self._parent is None:
+        top_widgets = QtWidgets.QApplication.topLevelWidgets()
+        name = "Foundry::UI::DockMainWindow"
+        main_window = next(widget for widget in top_widgets if
+                           widget.inherits("QMainWindow") and
+                           widget.metaObject().className() == name)
+        self._parent = main_window
+    return self._parent
+
+
 def uninstall(config):
     """Uninstall all tha was installed
 
@@ -241,15 +264,12 @@ def uninstall(config):
 def _install_menu():
     from ..tools import (
         creator,
-        # publish,
+        publish,
         workfiles,
         loader,
         sceneinventory,
         contextmanager
     )
-    # for now we are using `lite` version
-    # TODO: just for now untill qml in Nuke will be fixed (pyblish-qml#301)
-    import pyblish_lite as publish
 
     # Create menu
     menubar = nuke.menu("Nuke")
@@ -259,19 +279,26 @@ def _install_menu():
         api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"]
     )
     context_menu = menu.addMenu(label)
-    context_menu.addCommand("Set Context", contextmanager.show)
-
+    context_menu.addCommand("Set Context",
+                            lambda: contextmanager.show(
+                                parent=get_main_window())
+                            )
     menu.addSeparator()
-    menu.addCommand("Create...", creator.show)
-    menu.addCommand("Load...", loader.show)
-    menu.addCommand("Publish...", publish.show)
-    menu.addCommand("Manage...", sceneinventory.show)
+    menu.addCommand("Create...",
+                    lambda: creator.show(parent=get_main_window()))
+    menu.addCommand("Load...",
+                    lambda: loader.show(parent=get_main_window(),
+                                        use_context=True))
+    menu.addCommand("Publish...",
+                    lambda: publish.show(parent=get_main_window()))
+    menu.addCommand("Manage...",
+                    lambda: sceneinventory.show(parent=get_main_window()))
 
     menu.addSeparator()
     menu.addCommand("Work Files...",
                     lambda: workfiles.show(
-                        os.environ["AVALON_WORKDIR"]
-                    )
+                        os.environ["AVALON_WORKDIR"],
+                        parent=get_main_window())
                     )
 
     menu.addSeparator()

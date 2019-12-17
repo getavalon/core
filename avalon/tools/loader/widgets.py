@@ -10,6 +10,7 @@ from ... import pipeline
 
 from .. import lib as tools_lib
 from ..delegates import VersionDelegate
+from ..widgets import OptionalMenu, OptionalAction, OptionDialog
 
 from .model import (
     SubsetsModel,
@@ -155,13 +156,29 @@ class SubsetWidget(QtWidgets.QWidget):
             self.echo("No compatible loaders available for this version.")
             return
 
+        # Get selected rows
+        selection = self.view.selectionModel()
+        rows = selection.selectedRows(column=0)
+        # Ensure active point index is also used as first column so we can
+        # correctly push it to the end in the rows list.
+        point_index = point_index.sibling(point_index.row(), 0)
+        # Ensure point index is run first.
+        try:
+            rows.remove(point_index)
+        except ValueError:
+            pass
+        rows.insert(0, point_index)
+
+        # Enable optional action when only one item being selected
+        enable_option = len(rows) == 1
+
         def sorter(value):
             """Sort the Loaders by their order and then their name"""
             Plugin = value[1]
             return Plugin.order, Plugin.__name__
 
         # List the available loaders
-        menu = QtWidgets.QMenu(self)
+        menu = OptionalMenu(self)
         for representation, loader in sorted(loaders, key=sorter):
 
             # Label
@@ -172,15 +189,6 @@ class SubsetWidget(QtWidgets.QWidget):
             # Add the representation as suffix
             label = "{0} ({1})".format(label, representation["name"])
 
-            action = QtWidgets.QAction(label, menu)
-            action.setData((representation, loader))
-
-            # Add tooltip and statustip from Loader docstring
-            tip = inspect.getdoc(loader)
-            if tip:
-                action.setToolTip(tip)
-                action.setStatusTip(tip)
-
             # Support font-awesome icons using the `.icon` and `.color`
             # attributes on plug-ins.
             icon = getattr(loader, "icon", None)
@@ -188,10 +196,27 @@ class SubsetWidget(QtWidgets.QWidget):
                 try:
                     key = "fa.{0}".format(icon)
                     color = getattr(loader, "color", "white")
-                    action.setIcon(qtawesome.icon(key, color=color))
+                    icon = qtawesome.icon(key, color=color)
                 except Exception as e:
                     print("Unable to set icon for loader "
                           "{}: {}".format(loader, e))
+                    icon = None
+
+            # Optional action
+            use_option = enable_option and hasattr(loader, "options")
+            action = OptionalAction(label, icon, use_option, menu)
+
+            if use_option:
+                # Add option box tip
+                action.set_option_tip(loader.options)
+
+            action.setData((representation, loader))
+
+            # Add tooltip and statustip from Loader docstring
+            tip = inspect.getdoc(loader)
+            if tip:
+                action.setToolTip(tip)
+                action.setStatusTip(tip)
 
             menu.addAction(action)
 
@@ -204,22 +229,22 @@ class SubsetWidget(QtWidgets.QWidget):
         # Find the representation name and loader to trigger
         action_representation, loader = action.data()
         representation_name = action_representation["name"]  # extension
+        options = None
+
+        # Pop option dialog
+        if getattr(action, "optioned", False):
+            dialog = OptionDialog(self)
+            dialog.setWindowTitle(action.label + " Options")
+            dialog.create(loader.options)
+
+            if not dialog.exec_():
+                return
+
+            # Get option
+            options = dialog.parse()
 
         # Run the loader for all selected indices, for those that have the
         # same representation available
-        selection = self.view.selectionModel()
-        rows = selection.selectedRows(column=0)
-
-        # Ensure active point index is also used as first column so we can
-        # correctly push it to the end in the rows list.
-        point_index = point_index.sibling(point_index.row(), 0)
-
-        # Ensure point index is run first.
-        try:
-            rows.remove(point_index)
-        except ValueError:
-            pass
-        rows.insert(0, point_index)
 
         # Trigger
         for row in rows:
@@ -239,7 +264,10 @@ class SubsetWidget(QtWidgets.QWidget):
                 continue
 
             try:
-                api.load(Loader=loader, representation=representation)
+                api.load(Loader=loader,
+                         representation=representation,
+                         options=options)
+
             except pipeline.IncompatibleLoaderError as exc:
                 self.echo(exc)
                 continue

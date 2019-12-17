@@ -1,5 +1,6 @@
 import sys
 import inspect
+import re
 
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ...vendor import qtawesome
@@ -18,6 +19,97 @@ ExistsRole = QtCore.Qt.UserRole + 4
 PluginRole = QtCore.Qt.UserRole + 5
 
 Separator = "---separator---"
+
+
+class SubsetNameValidator(QtGui.QRegExpValidator):
+
+    invalid = QtCore.Signal(set)
+    pattern = "^[a-zA-Z0-9_.]*$"
+
+    def __init__(self):
+        reg = QtCore.QRegExp(self.pattern)
+        super(SubsetNameValidator, self).__init__(reg)
+
+    def validate(self, input, pos):
+        results = super(SubsetNameValidator, self).validate(input, pos)
+        if results[0] == self.Invalid:
+            self.invalid.emit(self.invalid_chars(input))
+        return results
+
+    def invalid_chars(self, input):
+        invalid = set()
+        re_valid = re.compile(self.pattern)
+        for char in input:
+            if char == " ":
+                invalid.add("' '")
+                continue
+            if not re_valid.match(char):
+                invalid.add(char)
+        return invalid
+
+
+class SubsetNameLineEdit(QtWidgets.QLineEdit):
+
+    report = QtCore.Signal(str)
+    colors = {
+        "empty": (QtGui.QColor("#78879b"), ""),
+        "exists": (QtGui.QColor("#4E76BB"), "border-color: #4E76BB;"),
+        "new": (QtGui.QColor("#7AAB8F"), "border-color: #7AAB8F;"),
+    }
+
+    def __init__(self, *args, **kwargs):
+        super(SubsetNameLineEdit, self).__init__(*args, **kwargs)
+
+        validator = SubsetNameValidator()
+        self.setValidator(validator)
+        self.setToolTip("Only alphanumeric characters (A-Z a-z 0-9), "
+                        "'_' and '.' are allowed.")
+
+        self._status_color = self.colors["empty"][0]
+
+        anim = QtCore.QPropertyAnimation()
+        anim.setTargetObject(self)
+        anim.setPropertyName(b"status_color")
+        anim.setEasingCurve(QtCore.QEasingCurve.InCubic)
+        anim.setDuration(300)
+        anim.setStartValue(QtGui.QColor("#C84747"))  # `Invalid` status color
+        self.animation = anim
+
+        validator.invalid.connect(self.on_invalid)
+
+    def on_invalid(self, invalid):
+        message = "Invalid character: %s" % ", ".join(invalid)
+        self.report.emit(message)
+        self.animation.stop()
+        self.animation.start()
+
+    def as_empty(self):
+        self._set_border("empty")
+        self.report.emit("Empty subset name ..")
+
+    def as_exists(self):
+        self._set_border("exists")
+        self.report.emit("Existing subset, appending next version.")
+
+    def as_new(self):
+        self._set_border("new")
+        self.report.emit("New subset, creating first version.")
+
+    def _set_border(self, status):
+        qcolor, style = self.colors[status]
+        self.animation.setEndValue(qcolor)
+        self.setStyleSheet(style)
+
+    def _get_status_color(self):
+        return self._status_color
+
+    def _set_status_color(self, color):
+        self._status_color = color
+        self.setStyleSheet("border-color: %s;" % color.name())
+
+    status_color = QtCore.Property(QtGui.QColor,
+                                   _get_status_color,
+                                   _set_status_color)
 
 
 class Window(QtWidgets.QDialog):
@@ -45,7 +137,7 @@ class Window(QtWidgets.QDialog):
 
         listing = QtWidgets.QListWidget()
         asset = QtWidgets.QLineEdit()
-        name = QtWidgets.QLineEdit()
+        name = SubsetNameLineEdit()
         result = QtWidgets.QLineEdit()
         result.setStyleSheet("color: gray;")
         result.setEnabled(False)
@@ -54,7 +146,6 @@ class Window(QtWidgets.QDialog):
 
         subset_button = QtWidgets.QPushButton()
         subset_button.setFixedWidth(18)
-        subset_button.setFixedHeight(20)
         subset_menu = QtWidgets.QMenu(subset_button)
         subset_button.setMenu(subset_menu)
 
@@ -63,6 +154,7 @@ class Window(QtWidgets.QDialog):
         name_layout = QtWidgets.QHBoxLayout()
         name_layout.addWidget(name)
         name_layout.addWidget(subset_button)
+        name_layout.setSpacing(3)
         name_layout.setContentsMargins(0, 0, 0, 0)
 
         layout = QtWidgets.QVBoxLayout(container)
@@ -127,6 +219,7 @@ class Window(QtWidgets.QDialog):
         create_btn.clicked.connect(self.on_create)
         name.returnPressed.connect(self.on_create)
         name.textChanged.connect(self.on_data_changed)
+        name.report.connect(self.echo)
         asset.textChanged.connect(self.on_data_changed)
         listing.currentItemChanged.connect(self.on_selection_changed)
         listing.currentItemChanged.connect(header.set_item)
@@ -191,21 +284,28 @@ class Window(QtWidgets.QDialog):
         subset_name = subset.text()
         asset_name = asset_name.text()
 
-        # Get the assets from the database which match with the name
-        assets_db = io.find(filter={"type": "asset"}, projection={"name": 1})
-        assets = [asset for asset in assets_db if asset_name in asset["name"]]
+        # Early exit if no asset name
+        if not asset_name.strip():
+            self._build_menu([])
+            item.setData(ExistsRole, False)
+            self.echo("Asset name is required ..")
+            self.stateChanged.emit(False)
+            return
 
-        if assets:
+        # Get the asset from the database which match with the name
+        asset = io.find_one({"name": asset_name, "type": "asset"},
+                            projection={"_id": 1})
+
+        if asset:
             # Get plugin and family
             plugin = item.data(PluginRole)
             family = plugin.family.rsplit(".", 1)[-1]
 
             # Get all subsets of the current asset
-            asset_ids = [asset["_id"] for asset in assets]
             subsets = io.find(filter={"type": "subset",
                                       "name": {"$regex": "{}*".format(family),
                                                "$options": "i"},
-                                      "parent": {"$in": asset_ids}}) or []
+                                      "parent": asset["_id"]}) or []
 
             # Get all subsets' their subset name, "Default", "High", "Low"
             existed_subsets = [sub["name"].split(family)[-1]
@@ -227,17 +327,24 @@ class Window(QtWidgets.QDialog):
                 subset_name = subset_name[0].upper() + subset_name[1:]
             result.setText("{}{}".format(family, subset_name))
 
+            # Indicate subset existence
+            if not subset_name:
+                subset.as_empty()
+            elif subset_name in existed_subsets:
+                subset.as_exists()
+            else:
+                subset.as_new()
+
             item.setData(ExistsRole, True)
-            self.echo("Ready ..")
+
         else:
             self._build_menu([])
             item.setData(ExistsRole, False)
-            self.echo("'%s' not found .." % asset_name)
+            self.echo("Asset '%s' not found .." % asset_name)
 
         # Update the valid state
         valid = (
             subset_name.strip() != "" and
-            asset_name.strip() != "" and
             item.data(QtCore.Qt.ItemIsEnabled) and
             item.data(ExistsRole)
         )
@@ -476,8 +583,8 @@ def show(debug=False, parent=None):
 
     with lib.application():
         window = Window(parent)
-        window.setStyleSheet(style.load_stylesheet())
         window.refresh()
         window.show()
+        window.setStyleSheet(style.load_stylesheet())
 
         module.window = window

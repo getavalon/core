@@ -75,6 +75,13 @@ def find_host_config(config):
     return config
 
 
+def get_main_window():
+    """Acquire Houdini's main window"""
+    if self._parent is None:
+        self._parent = hou.ui.mainQtWindow()
+    return self._parent
+
+
 def reload_pipeline(*args):
     """Attempt to reload pipeline at run-time.
 
@@ -116,7 +123,7 @@ def reload_pipeline(*args):
         module = importlib.import_module(module)
         reload(module)
 
-    self._parent = {hou.ui.mainQtWindow().objectName(): hou.ui.mainQtWindow()}
+    get_main_window()
 
     import avalon.houdini
     api.install(avalon.houdini)
@@ -201,12 +208,11 @@ def containerise(name,
     return container
 
 
-def parse_container(container, validate=True):
+def parse_container(container):
     """Return the container node's full container data.
 
     Args:
         container (hou.Node): A container node name.
-        validate(bool): turn the validation for the container on or off
 
     Returns:
         dict: The container schema data for this container node.
@@ -220,9 +226,6 @@ def parse_container(container, validate=True):
     # Append transient data
     data["objectName"] = container.path()
     data["node"] = container
-
-    if validate:
-        schema.validate(data)
 
     return data
 
@@ -321,9 +324,7 @@ def on_file_event_callback(event):
 
 
 def on_houdini_initialize():
-
-    main_window = hou.qt.mainWindow()
-    self._parent = {main_window.objectName(): main_window}
+    get_main_window()
 
 
 def _register_callbacks():

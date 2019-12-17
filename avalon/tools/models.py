@@ -195,7 +195,9 @@ class TasksModel(TreeModel):
         self._num_assets = 0
         self._icons = {
             "__default__": qtawesome.icon("fa.male",
-                                          color=style.colors.default)
+                                          color=style.colors.default),
+            "__no_task__": qtawesome.icon("fa.exclamation-circle",
+                                          color=style.colors.mid)
         }
 
         self._get_task_icons()
@@ -238,10 +240,11 @@ class TasksModel(TreeModel):
         default_icon = self._icons["__default__"]
 
         if not tasks:
+            no_task_icon = self._icons["__no_task__"]
             item = Item({
                 "name": "No task",
                 "count": 0,
-                "icon": default_icon,
+                "icon": no_task_icon,
                 "enabled": False,
             })
 
@@ -316,27 +319,26 @@ class AssetModel(TreeModel):
         if refresh:
             self.refresh()
 
-    def _add_hierarchy(self, parent=None):
+    def _add_hierarchy(self, assets, parent=None):
+        """Add the assets that are related to the parent as children items.
 
-        # Find the assets under the parent
-        find_data = {
-            "type": "asset",
-            "silo": self._silo,
-        }
-        if parent is None:
-            # if not a parent find all that are parented to the project
-            # or do *not* have a visualParent field at all
-            find_data["$or"] = [
-                {"data.visualParent": {"$exists": False}},
-                {"data.visualParent": None}
-            ]
-        else:
-            find_data["data.visualParent"] = parent["_id"]
+        This method does *not* query the database. These instead are queried
+        in a single batch upfront as an optimization to reduce database
+        queries. Resulting in up to 10x speed increase.
 
-        assets = io.find(find_data).sort("name", 1)
+        Args:
+            assets (dict): All assets in the currently active silo stored
+                by key/value
 
-        for asset in assets:
+        Returns:
+            None
 
+        """
+
+        parent_id = parent["_id"] if parent else None
+        current_assets = assets.get(parent_id, list())
+
+        for asset in current_assets:
             # get label from data, otherwise use name
             data = asset.get("data", {})
             label = data.get("label", asset["name"])
@@ -356,8 +358,9 @@ class AssetModel(TreeModel):
             })
             self.add_child(item, parent=parent)
 
-            # Add asset's children recursively
-            self._add_hierarchy(item)
+            # Add asset's children recursively if it has children
+            if asset["_id"] in assets:
+                self._add_hierarchy(assets, parent=item)
 
     def refresh(self):
         """Refresh the data for the model."""
@@ -365,7 +368,23 @@ class AssetModel(TreeModel):
         self.clear()
         self.beginResetModel()
         if self._silo:
-            self._add_hierarchy(parent=None)
+
+            # Get all assets in current silo sorted by name
+            db_assets = io.find({
+                "type": "asset",
+                "silo": self._silo
+            }).sort("name", 1)
+
+            # Group the assets by their visual parent's id
+            assets_by_parent = collections.defaultdict(list)
+            for asset in db_assets:
+                parent_id = asset.get("data", {}).get("visualParent") or None
+                assets_by_parent[parent_id].append(asset)
+
+            # Build the hierarchical tree items recursively
+            self._add_hierarchy(assets_by_parent,
+                                parent=None)
+
         self.endResetModel()
 
     def flags(self, index):

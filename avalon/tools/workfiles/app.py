@@ -15,6 +15,9 @@ from ..models import TasksModel
 
 log = logging.getLogger(__name__)
 
+module = sys.modules[__name__]
+module.window = None
+
 
 class NameWindow(QtWidgets.QDialog):
     """Name Window to define a unique filename inside a root folder
@@ -391,10 +394,10 @@ class Window(QtWidgets.QMainWindow):
     """Work Files Window"""
     title = "Work Files"
 
-    def __init__(self):
-        super(Window, self).__init__()
+    def __init__(self, parent=None):
+        super(Window, self).__init__(parent)
         self.setWindowTitle(self.title)
-        self.setWindowFlags(QtCore.Qt.WindowCloseButtonHint)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.WindowCloseButtonHint)
 
         # Setup
         self.root = None
@@ -473,6 +476,8 @@ class Window(QtWidgets.QMainWindow):
 
         self.refresh()
         self.resize(750, 500)
+
+        self.widgets["fileOpen"].setFocus()
 
     def set_context(self, context):
 
@@ -560,7 +565,7 @@ class Window(QtWidgets.QMainWindow):
         file_list.setMinimumWidth(file_list.sizeHintForColumn(0) + 30)
 
     def save_changes_prompt(self):
-        messagebox = QtWidgets.QMessageBox()
+        messagebox = QtWidgets.QMessageBox(parent=self)
         messagebox.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         messagebox.setIcon(messagebox.Warning)
         messagebox.setWindowTitle("Unsaved Changes!")
@@ -591,13 +596,13 @@ class Window(QtWidgets.QMainWindow):
 
             if result:
                 # Save current scene, continue to open file
-                host.save(host.current_file())
+                host.save_file(host.current_file())
 
             else:
                 # Don't save, continue to open file
                 pass
 
-        return host.open(filepath)
+        return host.open_file(filepath)
 
     def on_duplicate_pressed(self):
         work_file = self.get_filename()
@@ -653,7 +658,7 @@ class Window(QtWidgets.QMainWindow):
             return
 
         file_path = os.path.join(self.root, work_file)
-        self.host.save(file_path)
+        self.host.save_file(file_path)
 
         self.close()
 
@@ -685,17 +690,21 @@ class Window(QtWidgets.QMainWindow):
         self.refresh()
 
 
-def show(root=None, debug=False):
+def show(root=None, debug=False, parent=None):
     """Show Work Files GUI"""
     # todo: remove `root` argument to show()
+
+    if module.window:
+        module.window.close()
+        del(module.window)
 
     host = api.registered_host()
     if host is None:
         raise RuntimeError("No registered host.")
 
     # Verify the host has implemented the api for Work Files
-    required = ["open",
-                "save",
+    required = ["open_file",
+                "save_file",
                 "current_file",
                 "has_unsaved_changes",
                 "work_root",
@@ -714,17 +723,11 @@ def show(root=None, debug=False):
         api.Session["AVALON_TASK"] = "Testing"
 
     with tools_lib.application():
-        global window
         window = Window()
         window.setStyleSheet(style.load_stylesheet())
 
-        if debug:
-            # Enable closing in standalone
-            window.show()
-            return window
+        window = Window(parent=parent)
+        window.show()
+        window.setStyleSheet(style.load_stylesheet())
 
-        else:
-            # Cause modal dialog
-            # todo: force modal again
-            window.show()
-            return window
+        module.window = window

@@ -33,17 +33,22 @@ def reset_frame_range():
         cmds.warning("No edit information found for %s" % shot["name"])
         return
 
-    fps = {
-        "12": "12fps",
-        "15": "game",
-        "16": "16fps",
-        "24": "film",
-        "25": "pal",
-        "30": "ntsc",
-        "48": "show",
-        "50": "palf",
-        "60": "ntscf"
-    }.get(api.Session.get("AVALON_FPS"), "pal")  # Default to "pal"
+    fps = {15: 'game',
+           24: 'film',
+           25: 'pal',
+           30: 'ntsc',
+           48: 'show',
+           50: 'palf',
+           60: 'ntscf',
+           23.98: '23.976fps',
+           23.976: '23.976fps',
+           29.97: '29.97fps',
+           47.952: '47.952fps',
+           47.95: '47.952fps',
+           59.94: '59.94fps',
+           44100: '44100fps',
+           48000: '48000fps'
+           }.get(float(api.Session.get("AVALON_FPS", 25)), "pal")
 
     cmds.currentUnit(time=fps)
 
