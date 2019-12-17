@@ -8,13 +8,12 @@ from pprint import pformat
 from types import ModuleType
 from typing import Dict, List, Optional, Union
 
-import bpy
 import bpy.utils.previews
 
 import avalon.api as api
 from avalon.vendor.Qt import QtCore, QtWidgets
 
-from . import lib
+from . import bpy
 
 preview_collections: Dict = dict()
 
@@ -90,8 +89,7 @@ class TestApp(QtWidgets.QDialog):
     def print_bpy_context(self):
         """Print `bpy.context` to the console and UI."""
 
-        # context = bpy.context.copy()
-        context = lib.bpy_context()
+        context = bpy.context.copy()
         context_string = pformat(context, indent=2)
         print(f"Context: {context_string}")
         self.label.setText('Context:')
@@ -106,8 +104,7 @@ class TestApp(QtWidgets.QDialog):
     def print_active(self):
         """Print the active object to the console and UI."""
 
-        # context = bpy.context.copy()
-        context = lib.bpy_context()
+        context = bpy.context.copy()
         if context.get('object'):
             objname = context['object'].name
         else:
@@ -119,8 +116,7 @@ class TestApp(QtWidgets.QDialog):
     def print_selected(self):
         """Print the selected objects to the console and UI."""
 
-        # context = bpy.context.copy()
-        context = lib.bpy_context()
+        context = bpy.context.copy()
         if context.get('selected_objects'):
             selected_list = [obj.name for obj in context['selected_objects']]
         else:
