@@ -154,3 +154,43 @@ def maintained_selection():
             # This could happen if the active node was deleted during the
             # context.
             logger.exception("Failed to set active object.")
+
+
+class BpyContext():
+    """Because there are issues with retreiving `bpy.context` from a Qt app (for
+    example 'selected_objects'), you can use this function instead. It tries to
+    fill in all missing keys.
+
+    It returns the custom BpyContext object that should behave (almost)
+    identical to the regular `bpy.context` object.
+
+    If the attribute is found, return it. If not get the value in another way.
+    """
+    def __init__(self):
+        self.__dict__ = bpy.context.copy()
+
+    @property
+    def active_object(self):
+        return getattr(self, 'active_object', self._active_object())
+
+    @property
+    def object(self):
+        return self.active_object
+
+    @property
+    def selected_objects(self):
+        return getattr(self, 'selected_objects', self._selected_objects())
+
+    def _active_object(self):
+        """Return the active object from the view layer."""
+        return self.view_layer.objects.active
+
+    def _selected_objects(self):
+        """Return the selected objects from the view layer."""
+        return [obj for obj in self.scene.objects if obj.select_get()]
+
+
+def bpy_context() -> BpyContext:
+    """Convenience function to return a BpyContext object."""
+
+    return BpyContext()
