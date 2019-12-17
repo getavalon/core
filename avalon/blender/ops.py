@@ -14,6 +14,8 @@ import bpy.utils.previews
 import avalon.api as api
 from avalon.vendor.Qt import QtCore, QtWidgets
 
+from . import lib
+
 preview_collections: Dict = dict()
 
 
@@ -88,7 +90,9 @@ class TestApp(QtWidgets.QDialog):
     def print_bpy_context(self):
         """Print `bpy.context` to the console and UI."""
 
-        context_string = pformat(bpy.context.copy(), indent=2)
+        # context = bpy.context.copy()
+        context = lib.bpy_context()
+        context_string = pformat(context, indent=2)
         print(f"Context: {context_string}")
         self.label.setText('Context:')
         # Limit the text to 50 lines for display in the UI
@@ -102,7 +106,8 @@ class TestApp(QtWidgets.QDialog):
     def print_active(self):
         """Print the active object to the console and UI."""
 
-        context = bpy.context.copy()
+        # context = bpy.context.copy()
+        context = lib.bpy_context()
         if context.get('object'):
             objname = context['object'].name
         else:
@@ -114,7 +119,8 @@ class TestApp(QtWidgets.QDialog):
     def print_selected(self):
         """Print the selected objects to the console and UI."""
 
-        context = bpy.context.copy()
+        # context = bpy.context.copy()
+        context = lib.bpy_context()
         if context.get('selected_objects'):
             selected_list = [obj.name for obj in context['selected_objects']]
         else:
