@@ -425,6 +425,10 @@ class FilesWidget(QtWidgets.QWidget):
         self.root = None
         self.host = api.registered_host()
 
+        # Avoid crash in Blender and store the message box
+        # (setting parent doesn't work as it hides the message box)
+        self._messagebox = None
+
         widgets = {
             "list": QtWidgets.QListWidget(),
             "duplicate": QtWidgets.QPushButton("Duplicate"),
@@ -515,7 +519,9 @@ class FilesWidget(QtWidgets.QWidget):
         return host.open_file(filepath)
 
     def save_changes_prompt(self):
-        messagebox = QtWidgets.QMessageBox(parent=self)
+        self._messagebox = QtWidgets.QMessageBox()
+        messagebox = self._messagebox
+
         messagebox.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         messagebox.setIcon(messagebox.Warning)
         messagebox.setWindowTitle("Unsaved Changes!")
@@ -526,6 +532,7 @@ class FilesWidget(QtWidgets.QWidget):
         messagebox.setStandardButtons(
             messagebox.Yes | messagebox.No | messagebox.Cancel
         )
+
         result = messagebox.exec_()
 
         if result == messagebox.Yes:
