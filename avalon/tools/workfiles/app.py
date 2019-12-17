@@ -508,8 +508,19 @@ class FilesWidget(QtWidgets.QWidget):
                 return False
 
             if result:
+
+                current_file = host.current_file()
+                if not current_file:
+                    # If the user requested to save the current scene
+                    # we can't actually automatically do so if the current
+                    # file has not been saved with a name yet. So we'll have
+                    # to opt out.
+                    log.error("Can't save scene with no filename. Please "
+                              "first save your work file using 'Save As'.")
+                    return
+
                 # Save current scene, continue to open file
-                host.save_file(host.current_file())
+                host.save_file(current_file)
 
             else:
                 # Don't save, continue to open file
