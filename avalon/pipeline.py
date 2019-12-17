@@ -953,24 +953,32 @@ def compute_session_changes(session, task=None, asset=None, app=None):
     if not any([task, asset, app]):
         return changes
 
-    if task:
-        changes["AVALON_TASK"] = task
-
-    if app:
-        changes["AVALON_APP"] = app
-
-    # Update silo and hierarchy when asset changed
+    # Get asset document and asset
+    asset_document = None
     if asset:
         if isinstance(asset, dict):
-            # Assume database document
+            # Assume asset database document
             asset_document = asset
             asset = asset["name"]
         else:
+            # Assume asset name
             asset_document = io.find_one({"name": asset,
                                           "type": "asset"})
             assert asset_document, "Asset must exist"
 
-        changes["AVALON_ASSET"] = asset
+    # Detect any changes compared session
+    mapping = {
+        "AVALON_ASSET": asset,
+        "AVALON_TASK": task,
+        "AVALON_APP": app,
+    }
+    changes = {key: value for key, value in mapping.items() if value
+               and value != session.get(key)}
+    if not changes:
+        return changes
+
+    # Update silo and hierarchy when asset changed
+    if "AVALON_ASSET" in changes:
 
         # Update silo
         changes["AVALON_SILO"] = asset_document["silo"]
