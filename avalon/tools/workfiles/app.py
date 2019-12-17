@@ -627,8 +627,7 @@ class FilesWidget(QtWidgets.QWidget):
         # Define a custom session so we can query the work root
         # for a "Work area" that is not our current Session.
         # This way we can browse it even before we enter it.
-        # todo: refactor to use pipeline.compute_session_changes()
-        session = get_asset_task_session(self._asset, self._task)
+        session = self._get_session()
         self.root = self.host.work_root(session)
 
         modified = []
