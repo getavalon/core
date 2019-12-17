@@ -785,8 +785,14 @@ class Window(QtWidgets.QMainWindow):
             log.warning("No task selected.")
             return
 
-        asset_name = asset["name"]
-        api.update_current_task(task=task_name, asset=asset_name)
+        changes = pipeline.compute_session_changes(session=api.Session,
+                                                   asset=asset,
+                                                   task=task_name)
+        if not changes:
+            # No need to update since we are already there.
+            return
+
+        api.update_current_task(task=task_name, asset=asset)
 
         self.refresh()
 
