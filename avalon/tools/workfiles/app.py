@@ -4,10 +4,11 @@ import getpass
 import re
 import shutil
 import logging
+import platform
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ...vendor import qtawesome
-from ... import style, io, api
+from ... import style, io, api, pipeline
 
 from .. import lib as tools_lib
 from ..widgets import AssetWidget
@@ -27,26 +28,30 @@ class NameWindow(QtWidgets.QDialog):
 
     """
 
-    def __init__(self, parent, root):
+    def __init__(self, parent, root, session=None):
         super(NameWindow, self).__init__(parent=parent)
         self.setWindowFlags(self.windowFlags() | QtCore.Qt.FramelessWindowHint)
 
         self.result = None
         self.host = api.registered_host()
-        self.root = self.host.work_root()
+        self.root = root
         self.work_file = None
 
-        # Get work file name
+        if session is None:
+            # Fallback to active session
+            session = api.Session
+
+        # Set work file data for template formatting
         self.data = {
             "project": io.find_one(
-                {"name": api.Session["AVALON_PROJECT"], "type": "project"}
+                {"name": session["AVALON_PROJECT"], "type": "project"}
             ),
             "asset": io.find_one(
-                {"name": api.Session["AVALON_ASSET"], "type": "asset"}
+                {"name": session["AVALON_ASSET"], "type": "asset"}
             ),
             "task": {
-                "name": api.Session["AVALON_TASK"].lower(),
-                "label": api.Session["AVALON_TASK"]
+                "name": session["AVALON_TASK"].lower(),
+                "label": session["AVALON_TASK"]
             },
             "version": 1,
             "user": getpass.getuser(),
@@ -207,10 +212,18 @@ class NameWindow(QtWidgets.QDialog):
             template = self.get_work_file(template)
             template = "^" + template + "$"           # match beginning to end
 
+            # Match with ignore case on Windows due to the Windows
+            # OS not being case-sensitive. This avoids later running
+            # into the error that the file did exist if it existed
+            # with a different upper/lower-case.
+            kwargs = {}
+            if platform.system() == "Windows":
+                kwargs["flags"] = re.IGNORECASE
+
             # Get highest version among existing matching files
             version = 1
             for file in sorted(files):
-                match = re.match(template, file)
+                match = re.match(template, file, **kwargs)
                 if not match:
                     continue
 
@@ -278,11 +291,14 @@ class ContextBreadcrumb(QtWidgets.QWidget):
             self.widgets[name].setStyleSheet("QLabel{ font-size: 12pt; }")
 
     def refresh(self):
+        self.set_session(api.Session)
+
+    def set_session(self, session):
 
         self.context = {
-            "project": api.Session["AVALON_PROJECT"],
-            "asset": api.Session["AVALON_ASSET"],
-            "task": api.Session["AVALON_TASK"]
+            "project": session["AVALON_PROJECT"],
+            "asset": session["AVALON_ASSET"],
+            "task": session["AVALON_TASK"]
         }
 
         # Refresh labels
@@ -303,6 +319,9 @@ class ContextBreadcrumb(QtWidgets.QWidget):
 
 
 class TasksWidget(QtWidgets.QWidget):
+
+    task_changed = QtCore.Signal()
+
     def __init__(self):
         super(TasksWidget, self).__init__()
         self.setContentsMargins(0, 0, 0, 0)
@@ -319,6 +338,10 @@ class TasksWidget(QtWidgets.QWidget):
         # Hide the default tasks "count" as we don't need that data here.
         view.setColumnHidden(1, True)
 
+        selection = view.selectionModel()
+        #selection.selectionChanged.connect(self.selection_changed)
+        selection.currentChanged.connect(self.task_changed)
+
         self.models = {
             "tasks": model
         }
@@ -331,6 +354,10 @@ class TasksWidget(QtWidgets.QWidget):
 
     def set_asset(self, asset_id):
 
+        if asset_id is None:
+            # Asset deselected
+            return
+
         # Try and preserve the last selected task and reselect it
         # after switching assets. If there's no currently selected
         # asset keep whatever the "last selected" was prior to it.
@@ -342,6 +369,9 @@ class TasksWidget(QtWidgets.QWidget):
 
         if self._last_selected_task:
             self.select_task(self._last_selected_task)
+
+        # Force a task changed emit.
+        self.task_changed.emit()
 
     def select_task(self, task):
         """Select a task by name.
@@ -386,67 +416,36 @@ class TasksWidget(QtWidgets.QWidget):
 
 class FilesWidget(QtWidgets.QWidget):
     """A widget displaying files that allows to save"""
-    # todo: separate out the files display from window
-    pass
-
-
-class Window(QtWidgets.QMainWindow):
-    """Work Files Window"""
-    title = "Work Files"
-
     def __init__(self, parent=None):
-        super(Window, self).__init__(parent)
-        self.setWindowTitle(self.title)
-        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.WindowCloseButtonHint)
+        super(FilesWidget, self).__init__(parent=parent)
 
         # Setup
+        self._asset = None
+        self._task = None
         self.root = None
         self.host = api.registered_host()
 
-        pages = {
-            "home": QtWidgets.QWidget()
-        }
-
         widgets = {
-            "pages": QtWidgets.QStackedWidget(),
-            "header": ContextBreadcrumb(),
-            "body": QtWidgets.QWidget(),
-            "assets": AssetWidget(silo_creatable=False),
-            "tasks": TasksWidget(),
-            "files": QtWidgets.QWidget(),
-            "fileList": QtWidgets.QListWidget(),
-            "fileDuplicate": QtWidgets.QPushButton("Duplicate"),
-            "fileOpen": QtWidgets.QPushButton("Open"),
-            "fileBrowse": QtWidgets.QPushButton("Browse"),
-            "fileCurrent": QtWidgets.QLabel(),
-            "fileSave": QtWidgets.QPushButton("Save As")
+            "list": QtWidgets.QListWidget(),
+            "duplicate": QtWidgets.QPushButton("Duplicate"),
+            "open": QtWidgets.QPushButton("Open"),
+            "browse": QtWidgets.QPushButton("Browse"),
+            #"currentFile": QtWidgets.QLabel(),
+            "save": QtWidgets.QPushButton("Save As")
         }
-
-        self.setCentralWidget(widgets["pages"])
-        widgets["pages"].addWidget(pages["home"])
-
-        # Build homepage
-        layout = QtWidgets.QVBoxLayout(pages["home"])
-        layout.addWidget(widgets["header"])
-        layout.addWidget(widgets["body"])
-
-        # Build body
-        layout = QtWidgets.QHBoxLayout(widgets["body"])
-        layout.addWidget(widgets["assets"])
-        layout.addWidget(widgets["tasks"])
-        layout.addWidget(widgets["files"])
 
         # Build buttons widget for files widget
         buttons = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(buttons)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(widgets["fileDuplicate"])
-        layout.addWidget(widgets["fileOpen"])
-        layout.addWidget(widgets["fileBrowse"])
+        #layout.addWidget(widgets["duplicate"])
+        layout.addWidget(widgets["open"])
+        layout.addWidget(widgets["browse"])
 
         # Build files widgets
-        layout = QtWidgets.QVBoxLayout(widgets["files"])
-        layout.addWidget(widgets["fileList"])
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(widgets["list"])
         layout.addWidget(buttons)
 
         separator = QtWidgets.QFrame()
@@ -454,48 +453,87 @@ class Window(QtWidgets.QMainWindow):
         separator.setFrameShadow(QtWidgets.QFrame.Plain)
         layout.addWidget(separator)
 
-        layout.addWidget(widgets["fileCurrent"])
-        layout.addWidget(widgets["fileSave"])
+        #layout.addWidget(widgets["currentFile"])
+        layout.addWidget(widgets["save"])
 
-        widgets["fileDuplicate"].pressed.connect(self.on_duplicate_pressed)
-        widgets["fileOpen"].pressed.connect(self.on_open_pressed)
-        widgets["fileList"].doubleClicked.connect(self.on_open_pressed)
-        widgets["tasks"].widgets["view"].doubleClicked.connect(
-            self.on_task_pressed
-        )
-        widgets["fileBrowse"].pressed.connect(self.on_browse_pressed)
-        widgets["fileSave"].pressed.connect(self.on_save_as_pressed)
-
-        # Force focus on the open button by default, required for Houdini.
-        widgets["fileOpen"].setFocus()
-
-        # Connect signals
-        widgets["assets"].current_changed.connect(self.on_asset_changed)
+        widgets["list"].doubleClicked.connect(self.on_open_pressed)
+        widgets["duplicate"].pressed.connect(self.on_duplicate_pressed)
+        widgets["open"].pressed.connect(self.on_open_pressed)
+        widgets["browse"].pressed.connect(self.on_browse_pressed)
+        widgets["save"].pressed.connect(self.on_save_as_pressed)
 
         self.widgets = widgets
 
-        self.refresh()
-        self.resize(750, 500)
+    def set_asset_task(self, asset, task):
+        self._asset = asset
+        self._task = task
 
-        self.widgets["fileOpen"].setFocus()
+    def _get_session(self):
+        """Return a modified session for the current asset and task"""
 
-    def set_context(self, context):
+        session = api.Session.copy()
+        # todo: expose this in the API?
+        changes = pipeline.compute_session_changes(session,
+                                                   asset=self._asset,
+                                                   task=self._task)
+        session.update(changes)
 
-        if "asset" in context:
-            asset = context["asset"]
-            asset_document = io.find_one({"name": asset,
-                                          "type": "asset"})
+        return session
 
-            # Set silo
-            silo = asset_document["data"].get("silo")
-            if self.widgets["assets"].get_current_silo() != silo:
-                self.widgets["assets"].set_silo(silo)
+    def _enter_session(self):
+        """Enter the asset and task session currently selected"""
 
-            # Select the asset
-            self.widgets["assets"].select_assets([asset], expand=True)
+        session = api.Session.copy()
+        changes = pipeline.compute_session_changes(session,
+                                                   asset=self._asset,
+                                                   task=self._task)
+        if not changes:
+            # Return early if we're already in the right Session context
+            # to avoid any unwanted Task Changed callbacks to be triggered.
+            return
 
-        if "task" in context:
-            self.widgets["tasks"].select_task(context["task"])
+        api.update_current_task(asset=self._asset, task=self._task)
+
+    def open_file(self, filepath):
+        host = self.host
+        if host.has_unsaved_changes():
+            result = self.save_changes_prompt()
+
+            if result is None:
+                # Cancel operation
+                return False
+
+            if result:
+                # Save current scene, continue to open file
+                host.save_file(host.current_file())
+
+            else:
+                # Don't save, continue to open file
+                pass
+
+        self._enter_session()
+        return host.open_file(filepath)
+
+    def save_changes_prompt(self):
+        messagebox = QtWidgets.QMessageBox(parent=self)
+        messagebox.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        messagebox.setIcon(messagebox.Warning)
+        messagebox.setWindowTitle("Unsaved Changes!")
+        messagebox.setText(
+            "There are unsaved changes to the current file."
+            "\nDo you want to save the changes?"
+        )
+        messagebox.setStandardButtons(
+            messagebox.Yes | messagebox.No | messagebox.Cancel
+        )
+        result = messagebox.exec_()
+
+        if result == messagebox.Yes:
+            return True
+        elif result == messagebox.No:
+            return False
+        else:
+            return None
 
     def get_filename(self):
         """Show save dialog to define filename for save or duplicate
@@ -504,30 +542,94 @@ class Window(QtWidgets.QMainWindow):
             str: The filename to create.
 
         """
+        session = self._get_session()
+
         window = NameWindow(parent=self,
-                            root=self.root)
+                            root=self.root,
+                            session=session)
         window.exec_()
 
         return window.get_result()
 
+    def on_duplicate_pressed(self):
+        work_file = self.get_filename()
+
+        if not work_file:
+            return
+
+        src = os.path.join(
+            self.root, self.widgets["list"].selectedItems()[0].text()
+        )
+        dst = os.path.join(
+            self.root, work_file
+        )
+        shutil.copy(src, dst)
+
+        self.refresh()
+
+    def on_open_pressed(self):
+
+        selection = self.widgets["list"].selectedItems()
+        if not selection:
+            print("No file selected to open..")
+            return
+
+        work_file = os.path.join(self.root, selection[0].text())
+        return self.open_file(work_file)
+
+    def on_browse_pressed(self):
+
+        filter = " *".join(self.host.file_extensions())
+        filter = "Work File (*{0})".format(filter)
+        work_file = QtWidgets.QFileDialog.getOpenFileName(
+            caption="Work Files",
+            dir=self.root,
+            filter=filter
+        )[0]
+
+        if not work_file:
+            return
+
+        self.open_file(work_file)
+
+    def on_save_as_pressed(self):
+        work_file = self.get_filename()
+
+        if not work_file:
+            return
+
+        file_path = os.path.join(self.root, work_file)
+
+        self._enter_session()   # Make sure we are in the right session
+        self.host.save_file(file_path)
+        self.refresh()
+
     def refresh(self):
-
-        self.root = self.host.work_root()
-
-        # Refresh asset widget
-        self.widgets["assets"].refresh()
+        """Refresh listed files for current selection in the interface"""
 
         # Refresh current scene label
-        filepath = self.host.current_file()
-        current = os.path.basename(filepath) if filepath else "<unsaved>"
-        self.widgets["fileCurrent"].setText("Current File: %s" % current)
+        #filepath = self.host.current_file()
+        #current = os.path.basename(filepath) if filepath else "<unsaved>"
+        #self.widgets["currentFile"].setText("Current File: %s" % current)
 
-        # Refresh breadcrumbs
-        self.widgets["header"].refresh()
-
-        # Refresh files list
-        file_list = self.widgets["fileList"]
+        # Clear the list
+        file_list = self.widgets["list"]
         file_list.clear()
+
+        if not self._asset:
+            # No asset selected
+            return
+
+        if not self._task:
+            # No task selected
+            return
+
+        # Define a custom session so we can query the work root
+        # for a "Work area" that is not our current Session.
+        # This way we can browse it even before we enter it.
+        # todo: refactor to use pipeline.compute_session_changes()
+        session = get_asset_task_session(self._asset, self._task)
+        self.root = self.host.work_root(session)
 
         modified = []
         extensions = set(self.host.file_extensions())
@@ -554,122 +656,128 @@ class Window(QtWidgets.QMainWindow):
             # Scroll list so item is visible
             def callback():
                 """Delayed callback to scroll to the item"""
-                self.widgets["fileList"].scrollToItem(item)
+                self.widgets["list"].scrollToItem(item)
 
             QtCore.QTimer.singleShot(100, callback)
 
-            self.widgets["fileDuplicate"].setEnabled(True)
+            self.widgets["duplicate"].setEnabled(True)
         else:
-            self.widgets["fileDuplicate"].setEnabled(False)
+            self.widgets["duplicate"].setEnabled(False)
 
         file_list.setMinimumWidth(file_list.sizeHintForColumn(0) + 30)
 
-    def save_changes_prompt(self):
-        messagebox = QtWidgets.QMessageBox(parent=self)
-        messagebox.setWindowFlags(QtCore.Qt.FramelessWindowHint)
-        messagebox.setIcon(messagebox.Warning)
-        messagebox.setWindowTitle("Unsaved Changes!")
-        messagebox.setText(
-            "There are unsaved changes to the current file."
-            "\nDo you want to save the changes?"
+
+class Window(QtWidgets.QMainWindow):
+    """Work Files Window"""
+    title = "Work Files"
+
+    def __init__(self, parent=None):
+        super(Window, self).__init__(parent=parent)
+        self.setWindowTitle(self.title)
+        self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.WindowCloseButtonHint)
+
+        pages = {
+            "home": QtWidgets.QWidget()
+        }
+
+        widgets = {
+            "pages": QtWidgets.QStackedWidget(),
+            "header": ContextBreadcrumb(),
+            "body": QtWidgets.QWidget(),
+            "assets": AssetWidget(silo_creatable=False),
+            "tasks": TasksWidget(),
+            "files": FilesWidget()
+        }
+
+        self.setCentralWidget(widgets["pages"])
+        widgets["pages"].addWidget(pages["home"])
+
+        # Build home
+        layout = QtWidgets.QVBoxLayout(pages["home"])
+        #layout.addWidget(widgets["header"])
+        layout.addWidget(widgets["body"])
+
+        # Build home - body
+        layout = QtWidgets.QVBoxLayout(widgets["body"])
+        split = QtWidgets.QSplitter()
+        split.addWidget(widgets["assets"])
+        split.addWidget(widgets["tasks"])
+        split.addWidget(widgets["files"])
+        split.setStretchFactor(0, 1)
+        split.setStretchFactor(1, 1)
+        split.setStretchFactor(2, 3)
+        layout.addWidget(split)
+
+        # Connect signals
+        widgets["tasks"].widgets["view"].doubleClicked.connect(
+            self.on_task_pressed
         )
-        messagebox.setStandardButtons(
-            messagebox.Yes | messagebox.No | messagebox.Cancel
-        )
-        result = messagebox.exec_()
+        widgets["assets"].current_changed.connect(self.on_asset_changed)
+        widgets["tasks"].task_changed.connect(self.on_task_changed)
 
-        if result == messagebox.Yes:
-            return True
-        elif result == messagebox.No:
-            return False
-        else:
-            return None
-
-    def open(self, filepath):
-        host = self.host
-        if host.has_unsaved_changes():
-            result = self.save_changes_prompt()
-
-            if result is None:
-                # Cancel operation
-                return False
-
-            if result:
-                # Save current scene, continue to open file
-                host.save_file(host.current_file())
-
-            else:
-                # Don't save, continue to open file
-                pass
-
-        return host.open_file(filepath)
-
-    def on_duplicate_pressed(self):
-        work_file = self.get_filename()
-
-        if not work_file:
-            return
-
-        src = os.path.join(
-            self.root, self.widgets["fileList"].selectedItems()[0].text()
-        )
-        dst = os.path.join(
-            self.root, work_file
-        )
-        shutil.copy(src, dst)
-
+        self.widgets = widgets
         self.refresh()
 
-    def on_open_pressed(self):
+        # Force focus on the open button by default, required for Houdini.
+        self.widgets["files"].widgets["open"].setFocus()
 
-        selection = self.widgets["fileList"].selectedItems()
-        if not selection:
-            print("No file selected to open..")
-            return
+        self.resize(900, 600)
 
-        work_file = os.path.join(self.root, selection[0].text())
-
-        result = self.open(work_file)
-        if result:
-            self.close()
-
-    def on_browse_pressed(self):
-
-        filter = " *".join(self.host.file_extensions())
-        filter = "Work File (*{0})".format(filter)
-        work_file = QtWidgets.QFileDialog.getOpenFileName(
-            caption="Work Files",
-            dir=self.root,
-            filter=filter
-        )[0]
-
-        if not work_file:
-            self.refresh()
-            return
-
-        self.open(work_file)
-
-        self.close()
-
-    def on_save_as_pressed(self):
-        work_file = self.get_filename()
-
-        if not work_file:
-            return
-
-        file_path = os.path.join(self.root, work_file)
-        self.host.save_file(file_path)
-
-        self.close()
+    def on_task_changed(self):
+        # Since we query the disk give it slightly more delay
+        tools_lib.schedule(self._on_task_changed, 100, channel="mongo")
 
     def on_asset_changed(self):
+        tools_lib.schedule(self._on_asset_changed, 50, channel="mongo")
+
+    def set_context(self, context):
+
+        if "asset" in context:
+            asset = context["asset"]
+            asset_document = io.find_one({"name": asset,
+                                          "type": "asset"})
+
+            # Set silo
+            silo = asset_document["data"].get("silo")
+            if self.widgets["assets"].get_current_silo() != silo:
+                self.widgets["assets"].set_silo(silo)
+
+            # Select the asset
+            self.widgets["assets"].select_assets([asset], expand=True)
+
+            # Force a refresh on Tasks?
+            self.widgets["tasks"].set_asset(asset_id=asset_document["_id"])
+
+        if "task" in context:
+            self.widgets["tasks"].select_task(context["task"])
+
+    def refresh(self):
+
+        # Refresh asset widget
+        self.widgets["assets"].refresh()
+
+        # Refresh breadcrumbs
+        #self.widgets["header"].set_session(session)
+
+        self._on_task_changed()
+
+    def _on_asset_changed(self):
         asset = self.widgets["assets"].get_active_asset()
+
+        if not asset:
+            # Force disable the other widgets if no
+            # active selection
+            self.widgets["tasks"].setEnabled(False)
+            self.widgets["files"].setEnabled(False)
+        else:
+            self.widgets["tasks"].setEnabled(True)
+
         self.widgets["tasks"].set_asset(asset)
 
     def on_task_pressed(self):
 
-        asset_id = self.widgets["assets"].get_active_asset()
-        if not asset_id:
+        asset = self.widgets["assets"].get_active_asset_document()
+        if not asset:
             log.warning("No asset selected.")
             return
 
@@ -678,19 +786,25 @@ class Window(QtWidgets.QMainWindow):
             log.warning("No task selected.")
             return
 
-        # Get the asset name from asset id.
-        asset = io.find_one({"_id": io.ObjectId(asset_id), "type": "asset"})
-        if not asset:
-            log.error("Invalid asset id: %s" % asset_id)
-            return
-
         asset_name = asset["name"]
         api.update_current_task(task=task_name, asset=asset_name)
 
         self.refresh()
 
+    def _on_task_changed(self):
 
-def show(root=None, debug=False, parent=None):
+        asset = self.widgets["assets"].get_active_asset_document()
+        task = self.widgets["tasks"].get_current_task()
+
+        self.widgets["tasks"].setEnabled(bool(asset))
+        self.widgets["files"].setEnabled(all([bool(task), bool(asset)]))
+
+        files = self.widgets["files"]
+        files.set_asset_task(asset, task)
+        files.refresh()
+
+
+def show(root=None, debug=False, parent=None, use_context=True):
     """Show Work Files GUI"""
     # todo: remove `root` argument to show()
 
@@ -727,6 +841,14 @@ def show(root=None, debug=False, parent=None):
         window.setStyleSheet(style.load_stylesheet())
 
         window = Window(parent=parent)
+        window.refresh()
+
+        if use_context:
+            context = {"asset": api.Session["AVALON_ASSET"],
+                       "silo": api.Session["AVALON_SILO"],
+                       "task": api.Session["AVALON_TASK"]}
+            window.set_context(context)
+
         window.show()
         window.setStyleSheet(style.load_stylesheet())
 
