@@ -837,8 +837,6 @@ def show(root=None, debug=False, parent=None, use_context=True):
         api.Session["AVALON_TASK"] = "Testing"
 
     with tools_lib.application():
-        window = Window()
-        window.setStyleSheet(style.load_stylesheet())
 
         window = Window(parent=parent)
         window.refresh()
