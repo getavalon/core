@@ -140,11 +140,14 @@ class LaunchQtApp(bpy.types.Operator):
     _show_kwargs: Optional[Dict]
 
     def __init__(self):
-        from .. import style
         print(f"Initialising {self.bl_idname}...")
-        self._app = (QtWidgets.QApplication.instance()
-                     or QtWidgets.QApplication(sys.argv))
-        self._app.setStyleSheet(style.load_stylesheet())
+        app_instance = QtWidgets.QApplication.instance()
+        if not app_instance:
+            from .. import style
+            app_instance = QtWidgets.QApplication(sys.argv)
+            app_instance.setStyleSheet(style.load_stylesheet())
+
+        self._app = app_instance
 
     def _is_window_visible(self) -> bool:
         """Check if the window of the app is visible.
