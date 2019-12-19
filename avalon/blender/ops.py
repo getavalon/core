@@ -178,7 +178,6 @@ class LaunchQtApp(bpy.types.Operator):
 
     def modal(self, context, event):
         """Run modal to keep Blender and the Qt UI responsive."""
-
         if event.type == 'TIMER':
             if self._is_window_visible():
                 # Process events if the window is visible
@@ -213,17 +212,17 @@ class LaunchQtApp(bpy.types.Operator):
         args = getattr(self, "_show_args", list())
         kwargs = getattr(self, "_show_kwargs", dict())
         self._window.show(*args, **kwargs)
-        wm = context.window_manager
-        # Run every 0.01 seconds
-        self._timer = wm.event_timer_add(0.01, window=context.window)
-        wm.modal_handler_add(self)
+
+        self._timer = context.window_manager.event_timer_add(
+            1/120, window=context.window
+        )
+        context.window_manager.modal_handler_add(self)
 
         return {'RUNNING_MODAL'}
 
     def cancel(self, context):
         """Remove the event timer when stopping the operator."""
-        wm = context.window_manager
-        wm.event_timer_remove(self._timer)
+        context.window_manager.event_timer_remove(self._timer)
 
 
 class LaunchContextManager(LaunchQtApp):
