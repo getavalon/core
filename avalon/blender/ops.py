@@ -4,7 +4,6 @@ import os
 import sys
 from distutils.util import strtobool
 from pathlib import Path
-from pprint import pformat
 from types import ModuleType
 from typing import Dict, List, Optional, Union
 
@@ -12,7 +11,8 @@ import bpy
 import bpy.utils.previews
 
 from .. import api
-from ..vendor.Qt import QtCore, QtWidgets
+from ..vendor.Qt import QtWidgets
+
 
 preview_collections: Dict = dict()
 
@@ -26,108 +26,6 @@ def _is_avalon_in_debug_mode() -> bool:
     except (ValueError, AttributeError):
         # If it can't logically be converted to a bool, assume it's False.
         return False
-
-
-class TestApp(QtWidgets.QDialog):
-    """A simple test app to check if a Qt app runs fine in Blender.
-
-    Is Blender still responsive when the app is visible?
-    Is the Blender context available from within the app?
-    """
-    def __init__(self):
-        super().__init__()
-        self.init_ui()
-
-    def init_ui(self):
-        """The UI for this test app."""
-
-        bpybtn = QtWidgets.QPushButton('Print bpy.context', self)
-        bpybtn.clicked.connect(self.print_bpy_context)
-
-        activebtn = QtWidgets.QPushButton('Print Active Object', self)
-        activebtn.clicked.connect(self.print_active)
-
-        selectedbtn = QtWidgets.QPushButton('Print Selected Objects', self)
-        selectedbtn.clicked.connect(self.print_selected)
-
-        qbtn = QtWidgets.QPushButton('Quit', self)
-        qbtn.clicked.connect(self.close)
-
-        vbox = QtWidgets.QVBoxLayout(self)
-
-        hbox_output = QtWidgets.QHBoxLayout()
-        self.label = QtWidgets.QLabel('')
-        size_policy = QtWidgets.QSizePolicy(
-            QtWidgets.QSizePolicy.Fixed,
-            QtWidgets.QSizePolicy.Preferred,
-        )
-        self.label.setSizePolicy(size_policy)
-        self.label.setMinimumSize(QtCore.QSize(100, 0))
-        # yapf: disable
-        self.label.setAlignment(
-            QtCore.Qt.AlignRight |
-            QtCore.Qt.AlignTrailing |
-            QtCore.Qt.AlignVCenter
-        )
-        # yapf: enable
-        hbox_output.addWidget(self.label)
-        self.outputlabel = QtWidgets.QLabel('')
-        hbox_output.addWidget(self.outputlabel)
-        vbox.addLayout(hbox_output)
-
-        hbox_buttons = QtWidgets.QHBoxLayout()
-        hbox_buttons.addWidget(bpybtn)
-        hbox_buttons.addWidget(activebtn)
-        hbox_buttons.addWidget(selectedbtn)
-        hbox_buttons.addWidget(qbtn)
-        vbox.addLayout(hbox_buttons)
-
-        self.setGeometry(300, 300, 300, 200)
-        self.setWindowTitle('Blender Qt test')
-
-    def print_bpy_context(self):
-        """Print `bpy.context` to the console and UI."""
-
-        context_string = pformat(bpy.context.copy(), indent=2)
-        print(f"Context: {context_string}")
-        self.label.setText('Context:')
-        # Limit the text to 50 lines for display in the UI
-        context_list = context_string.split('\n')
-        limited_context_list = context_list[0:50]
-        if len(context_list) > len(limited_context_list):
-            limited_context_list.append('(...)')
-        limited_context_string = '\n'.join(limited_context_list)
-        self.outputlabel.setText(limited_context_string)
-
-    def print_active(self):
-        """Print the active object to the console and UI."""
-
-        context = bpy.context.copy()
-        if context.get('object'):
-            objname = context['object'].name
-        else:
-            objname = 'No active object.'
-        print(f"Active Object: {objname}")
-        self.label.setText('Active Object:')
-        self.outputlabel.setText(objname)
-
-    def print_selected(self):
-        """Print the selected objects to the console and UI."""
-
-        context = bpy.context.copy()
-        if context.get('selected_objects'):
-            selected_list = [obj.name for obj in context['selected_objects']]
-        else:
-            selected_list = ['No selected objects.']
-        selected_string = '\n'.join(selected_list)
-        print(f"Selected Objects: {selected_string}")
-        # Limit the text to 50 lines for display in the UI
-        limited_selected_list = selected_list[0:50]
-        if len(selected_list) > len(limited_selected_list):
-            limited_selected_list.append('(...)')
-        limited_selected_string = '\n'.join(limited_selected_list)
-        self.label.setText('Selected Objects:')
-        self.outputlabel.setText(limited_selected_string)
 
 
 class LaunchQtApp(bpy.types.Operator):
