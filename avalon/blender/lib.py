@@ -53,8 +53,10 @@ def imprint(node: bpy.types.bpy_struct_meta_idprop, data: Dict):
     pipeline.metadata_update(node, imprint_data)
 
 
-def lsattr(attr: str,
-           value: Union[str, int, bool, List, Dict, None] = None) -> List:
+def lsattr(
+    attr: str,
+    value: Union[str, int, bool, List, Dict, None] = None
+) -> List:
     r"""Return nodes matching `attr` and `value`
 
     Arguments:
@@ -92,20 +94,25 @@ def lsattrs(attrs: Dict) -> List:
 
     # For now return all objects, not filtered by scene/collection/view_layer.
     matches = set()
-    for coll in dir(bpy.data):
+    for coll in dir(bpy.context.blend_data):
+        nodes = getattr(bpy.context.blend_data, coll, None)
         if not isinstance(
-                getattr(bpy.data, coll),
-                bpy.types.bpy_prop_collection,
+            nodes, bpy.types.bpy_prop_collection,
         ):
             continue
-        for node in getattr(bpy.data, coll):
+        for node in nodes:
             for attr, value in attrs.items():
                 avalon_prop = node.get(pipeline.AVALON_PROPERTY)
                 if not avalon_prop:
                     continue
-                if (avalon_prop.get(attr)
-                        and (value is None or avalon_prop.get(attr) == value)):
+
+                avalon_prop_val = avalon_prop.get(attr)
+                if not avalon_prop_val:
+                    continue
+
+                if value is None or avalon_prop_val == value:
                     matches.add(node)
+
     return list(matches)
 
 
@@ -133,14 +140,13 @@ def maintained_selection():
         ...     bpy.ops.object.select_all(action='DESELECT')
         >>> # Selection restored
     """
-
-    previous_selection = bpy.context.selected_objects
+    previous_selection = get_selection()
     previous_active = bpy.context.view_layer.objects.active
     try:
         yield
     finally:
         # Clear the selection
-        for node in bpy.context.selected_objects:
+        for node in get_selection():
             node.select_set(state=False)
         if previous_selection:
             for node in previous_selection:
