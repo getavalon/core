@@ -10,8 +10,8 @@ import bpy
 
 import pyblish.api
 import pyblish.util
-from avalon import api, schema
 
+from .. import api, schema
 from ..lib import logger
 from ..pipeline import AVALON_CONTAINER_ID
 from . import lib, ops

@@ -11,8 +11,8 @@ from typing import Dict, List, Optional, Union
 import bpy
 import bpy.utils.previews
 
-import avalon.api as api
-from avalon.vendor.Qt import QtCore, QtWidgets
+from .. import api
+from ..vendor.Qt import QtCore, QtWidgets
 
 preview_collections: Dict = dict()
 

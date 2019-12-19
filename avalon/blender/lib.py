@@ -4,7 +4,6 @@ import contextlib
 from typing import Dict, List, Union
 
 import bpy
-
 from ..lib import logger
 from . import pipeline
 
