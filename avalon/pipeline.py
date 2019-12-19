@@ -902,7 +902,7 @@ def create(name, asset, family, options=None, data=None):
                 print("Running %s" % plugin)
                 instance = plugin.process()
         except Exception:
-            log.warning(traceback.format_exc())
+            traceback.print_exception(*sys.exc_info())
             continue
         plugins.append(plugin)
 
