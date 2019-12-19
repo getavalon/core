@@ -8,6 +8,10 @@ from ..lib import logger
 from . import pipeline
 
 
+def get_selection():
+    return [obj for obj in bpy.context.scene.objects if obj.select_get()]
+
+
 def imprint(node: bpy.types.bpy_struct_meta_idprop, data: Dict):
     r"""Write `data` to `node` as userDefined attributes
 
