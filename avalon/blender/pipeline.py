@@ -2,6 +2,7 @@
 
 import importlib
 import sys
+import traceback
 from types import ModuleType
 from typing import Callable, Dict, Iterator, List, Optional
 
@@ -110,6 +111,9 @@ def install(config: ModuleType):
 
     This function is called automatically on calling `api.install(blender)`.
     """
+
+    # Override excepthook to not crash blender on exception
+    sys.excepthook = lambda *exc_info: traceback.print_exception(*exc_info)
 
     _register_callbacks()
     _register_events()
