@@ -204,7 +204,10 @@ class LaunchWorkFiles(LaunchQtApp):
 
     def execute(self, context):
         from ..tools import workfiles
-        root = str(Path(os.environ.get("AVALON_WORKDIR", ""), "scene"))
+        root = str(Path(
+            os.environ.get("AVALON_WORKDIR", ""),
+            os.environ.get("AVALON_SCENEDIR", "")
+        ))
         self._window = workfiles
         self._show_kwargs = {"root": root}
         return super().execute(context)
