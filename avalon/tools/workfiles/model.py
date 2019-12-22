@@ -116,12 +116,3 @@ class FilesModel(TreeModel):
                 return "Date modified"
 
         return super(FilesModel, self).headerData(section, orientation, role)
-
-    def flags(self, index):
-        flags = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
-
-        # Make the version column editable
-        if index.column() == 2:  # version column
-            flags |= QtCore.Qt.ItemIsEditable
-
-        return flags
