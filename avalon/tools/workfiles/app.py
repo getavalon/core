@@ -13,6 +13,9 @@ from ... import style, io, api, pipeline
 from .. import lib as tools_lib
 from ..widgets import AssetWidget
 from ..models import TasksModel
+from ..delegates import PrettyTimeDelegate
+
+from .model import FilesModel
 
 log = logging.getLogger(__name__)
 
@@ -411,7 +414,13 @@ class TasksWidget(QtWidgets.QWidget):
         view = self.widgets["view"]
         index = view.currentIndex()
         index = index.sibling(index.row(), 0)  # ensure column zero for name
-        return index.data(QtCore.Qt.DisplayRole)
+
+        selection = view.selectionModel()
+        if selection.isSelected(index):
+            # Ignore when the current task is not selected as the "No task"
+            # placeholder might be the current index even though it's
+            # disallowed to be selected. So we only return if it is selected.
+            return index.data(QtCore.Qt.DisplayRole)
 
 
 class FilesWidget(QtWidgets.QWidget):
@@ -425,58 +434,94 @@ class FilesWidget(QtWidgets.QWidget):
         self.root = None
         self.host = api.registered_host()
 
+        # Whether to automatically select the latest modified
+        # file on a refresh of the files model.
+        self.auto_select_latest_modified = True
+
         # Avoid crash in Blender and store the message box
         # (setting parent doesn't work as it hides the message box)
         self._messagebox = None
 
         widgets = {
-            "list": QtWidgets.QListWidget(),
+            "filter": QtWidgets.QLineEdit(),
+            "list": QtWidgets.QTreeView(),
             "duplicate": QtWidgets.QPushButton("Duplicate"),
             "open": QtWidgets.QPushButton("Open"),
             "browse": QtWidgets.QPushButton("Browse"),
-            #"currentFile": QtWidgets.QLabel(),
             "save": QtWidgets.QPushButton("Save As")
         }
+
+        delegates = {
+            "time": PrettyTimeDelegate()
+        }
+
+        # Create the files model
+        extensions = set(self.host.file_extensions())
+        self.model = FilesModel(file_extensions=extensions)
+        self.proxy = QtCore.QSortFilterProxyModel()
+        self.proxy.setSourceModel(self.model)
+        self.proxy.setDynamicSortFilter(True)
+        self.proxy.setSortCaseSensitivity(QtCore.Qt.CaseInsensitive)
+
+        # Set up the file list tree view
+        widgets["list"].setModel(self.proxy)
+        widgets["list"].setSortingEnabled(True)
+        widgets["list"].setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
+        # Date modified delegate
+        widgets["list"].setItemDelegateForColumn(1, delegates["time"])
+
+        # Default to a wider first filename column it is what we mostly care
+        # about and the date modified is relatively small anyway.
+        widgets["list"].setColumnWidth(0, 330)
+
+        widgets["filter"].textChanged.connect(self.proxy.setFilterFixedString)
+        widgets["filter"].setPlaceholderText("Filter files..")
 
         # Build buttons widget for files widget
         buttons = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(buttons)
         layout.setContentsMargins(0, 0, 0, 0)
-        #layout.addWidget(widgets["duplicate"])
         layout.addWidget(widgets["open"])
         layout.addWidget(widgets["browse"])
+        layout.addWidget(widgets["save"])
 
         # Build files widgets
         layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(widgets["filter"])
         layout.addWidget(widgets["list"])
         layout.addWidget(buttons)
 
-        separator = QtWidgets.QFrame()
-        separator.setFrameShape(QtWidgets.QFrame.HLine)
-        separator.setFrameShadow(QtWidgets.QFrame.Plain)
-        layout.addWidget(separator)
-
-        #layout.addWidget(widgets["currentFile"])
-        layout.addWidget(widgets["save"])
-
         widgets["list"].doubleClicked.connect(self.on_open_pressed)
+        widgets["list"].customContextMenuRequested.connect(
+            self.on_context_menu
+        )
         widgets["duplicate"].pressed.connect(self.on_duplicate_pressed)
         widgets["open"].pressed.connect(self.on_open_pressed)
         widgets["browse"].pressed.connect(self.on_browse_pressed)
         widgets["save"].pressed.connect(self.on_save_as_pressed)
 
         self.widgets = widgets
+        self.delegates = delegates
 
     def set_asset_task(self, asset, task):
         self._asset = asset
         self._task = task
 
+        # Define a custom session so we can query the work root
+        # for a "Work area" that is not our current Session.
+        # This way we can browse it even before we enter it.
+        if self._asset and self._task:
+            session = self._get_session()
+            self.root = self.host.work_root(session)
+            self.model.set_root(self.root)
+        else:
+            self.model.set_root(None)
+
     def _get_session(self):
         """Return a modified session for the current asset and task"""
 
         session = api.Session.copy()
-        # todo: expose this in the API?
         changes = pipeline.compute_session_changes(session,
                                                    asset=self._asset,
                                                    task=self._task)
@@ -570,14 +615,13 @@ class FilesWidget(QtWidgets.QWidget):
         return window.get_result()
 
     def on_duplicate_pressed(self):
+
         work_file = self.get_filename()
 
         if not work_file:
             return
 
-        src = os.path.join(
-            self.root, self.widgets["list"].selectedItems()[0].text()
-        )
+        src = self._get_selected_filepath()
         dst = os.path.join(
             self.root, work_file
         )
@@ -585,15 +629,25 @@ class FilesWidget(QtWidgets.QWidget):
 
         self.refresh()
 
+    def _get_selected_filepath(self):
+        """Return current filepath selected in view"""
+        model = self.model
+        view = self.widgets["list"]
+        selection = view.selectionModel()
+        index = selection.currentIndex()
+        if not index.isValid():
+            return
+
+        return index.data(model.FilePathRole)
+
     def on_open_pressed(self):
 
-        selection = self.widgets["list"].selectedItems()
-        if not selection:
+        path = self._get_selected_filepath()
+        if not path:
             print("No file selected to open..")
             return
 
-        work_file = os.path.join(self.root, selection[0].text())
-        return self.open_file(work_file)
+        return self.open_file(path)
 
     def on_browse_pressed(self):
 
@@ -624,64 +678,56 @@ class FilesWidget(QtWidgets.QWidget):
 
     def refresh(self):
         """Refresh listed files for current selection in the interface"""
+        self.model.refresh()
 
-        # Refresh current scene label
-        #filepath = self.host.current_file()
-        #current = os.path.basename(filepath) if filepath else "<unsaved>"
-        #self.widgets["currentFile"].setText("Current File: %s" % current)
+        if self.auto_select_latest_modified:
+            tools_lib.schedule(self._select_last_modified_file,
+                               100)
 
-        # Clear the list
-        file_list = self.widgets["list"]
-        file_list.clear()
+    def on_context_menu(self, point):
 
-        if not self._asset:
-            # No asset selected
+        view = self.widgets["list"]
+        index = view.indexAt(point)
+        if not index.isValid():
             return
 
-        if not self._task:
-            # No task selected
+        menu = QtWidgets.QMenu(self)
+
+        # Duplicate
+        action = QtWidgets.QAction("Duplicate", menu)
+        tip = "Duplicate selected file."
+        action.setToolTip(tip)
+        action.setStatusTip(tip)
+        action.triggered.connect(self.on_duplicate_pressed)
+        menu.addAction(action)
+
+        # Show the context action menu
+        global_point = view.mapToGlobal(point)
+        action = menu.exec_(global_point)
+        if not action:
             return
 
-        # Define a custom session so we can query the work root
-        # for a "Work area" that is not our current Session.
-        # This way we can browse it even before we enter it.
-        session = self._get_session()
-        self.root = self.host.work_root(session)
+    def _select_last_modified_file(self):
+        """Utility function to select the file with latest date modified"""
 
-        modified = []
-        extensions = set(self.host.file_extensions())
+        role = self.model.DateModifiedRole
+        view = self.widgets["list"]
+        model = view.model()
 
-        if os.path.exists(self.root):
-            for f in sorted(os.listdir(self.root)):
-                path = os.path.join(self.root, f)
-                if os.path.isdir(path):
-                    continue
+        highest_index = None
+        highest = 0
+        for row in range(model.rowCount()):
+            index = model.index(row, 0, parent=QtCore.QModelIndex())
+            if not index.isValid():
+                continue
 
-                if extensions and os.path.splitext(f)[1] not in extensions:
-                    continue
+            modified = index.data(role)
+            if modified > highest:
+                highest_index = index
+                highest = modified
 
-                file_list.addItem(f)
-                modified.append(os.path.getmtime(path))
-        else:
-            log.warning("Work root does not exist: %s" % self.root)
-
-        # Select last modified file
-        if file_list.count():
-            item = file_list.item(modified.index(max(modified)))
-            item.setSelected(True)
-
-            # Scroll list so item is visible
-            def callback():
-                """Delayed callback to scroll to the item"""
-                self.widgets["list"].scrollToItem(item)
-
-            QtCore.QTimer.singleShot(100, callback)
-
-            self.widgets["duplicate"].setEnabled(True)
-        else:
-            self.widgets["duplicate"].setEnabled(False)
-
-        file_list.setMinimumWidth(file_list.sizeHintForColumn(0) + 30)
+        if highest_index:
+            view.setCurrentIndex(highest_index)
 
 
 class Window(QtWidgets.QMainWindow):
@@ -725,11 +771,16 @@ class Window(QtWidgets.QMainWindow):
         split.setStretchFactor(2, 3)
         layout.addWidget(split)
 
+        # Add top margin for tasks to align it visually with files as
+        # the files widget has a filter field which tasks does not.
+        widgets["tasks"].setContentsMargins(0, 32, 0, 0)
+
         # Connect signals
         widgets["tasks"].widgets["view"].doubleClicked.connect(
             self.on_task_pressed
         )
         widgets["assets"].current_changed.connect(self.on_asset_changed)
+        widgets["assets"].silo_changed.connect(self.on_asset_changed)
         widgets["tasks"].task_changed.connect(self.on_task_changed)
 
         self.widgets = widgets
@@ -755,7 +806,7 @@ class Window(QtWidgets.QMainWindow):
                                           "type": "asset"})
 
             # Set silo
-            silo = asset_document["data"].get("silo")
+            silo = asset_document.get("silo")
             if self.widgets["assets"].get_current_silo() != silo:
                 self.widgets["assets"].set_silo(silo)
 
