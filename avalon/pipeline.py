@@ -972,8 +972,8 @@ def compute_session_changes(session, task=None, asset=None, app=None):
         "AVALON_TASK": task,
         "AVALON_APP": app,
     }
-    changes = {key: value for key, value in mapping.items() if value
-               and value != session.get(key)}
+    changes = {key: value for key, value in mapping.items()
+               if value and value != session.get(key)}
     if not changes:
         return changes
 
