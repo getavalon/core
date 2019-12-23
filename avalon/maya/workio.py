@@ -35,6 +35,10 @@ def work_root(session):
     scene_dir = None
 
     # Query scene file rule from workspace.mel if it exists in WORKDIR
+    # We are parsing the workspace.mel manually as opposed to temporarily
+    # setting the Workspace in Maya in a context manager since Maya had a
+    # tendency to crash on frequently changing the workspace when this
+    # function was called many times as one scrolled through Work Files assets.
     workspace_mel = os.path.join(work_dir, "workspace.mel")
     if os.path.exists(workspace_mel):
         scene_rule = 'workspace -fr "scene" '
