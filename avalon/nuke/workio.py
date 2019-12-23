@@ -44,6 +44,8 @@ def current_file():
 
 def work_root(session):
 
+    work_dir = session["AVALON_WORKDIR"]
+    scene_dir = session.get("AVALON_SCENEDIR")
     if scene_dir:
         path = os.path.join(work_dir, scene_dir)
     else:
