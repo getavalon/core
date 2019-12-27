@@ -36,7 +36,7 @@ def reset_selection():
     """Deselect all selected nodes
     """
     for node in nuke.selectedNodes():
-        node["selected"] = False
+        node["selected"].setValue(False)
 
 
 def select_nodes(nodes):
