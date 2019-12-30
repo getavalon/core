@@ -120,6 +120,11 @@ def read(node: bpy.types.bpy_struct_meta_idprop):
     return data
 
 
+def get_selection() -> List[bpy.types.Object]:
+    """Return the selected objects from the current scene."""
+    return [obj for obj in bpy.context.scene.objects if obj.select_get()]
+
+
 @contextlib.contextmanager
 def maintained_selection():
     r"""Maintain selection during context
@@ -131,13 +136,13 @@ def maintained_selection():
         >>> # Selection restored
     """
 
-    previous_selection = bpy.context.selected_objects
+    previous_selection = get_selection()
     previous_active = bpy.context.view_layer.objects.active
     try:
         yield
     finally:
         # Clear the selection
-        for node in bpy.context.selected_objects:
+        for node in get_selection():
             node.select_set(state=False)
         if previous_selection:
             for node in previous_selection:

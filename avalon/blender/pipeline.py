@@ -429,7 +429,7 @@ class Creator(api.Creator):
         lib.imprint(collection, self.data)
 
         if (self.options or {}).get("useSelection"):
-            for obj in bpy.context.selected_objects:
+            for obj in lib.get_selection():
                 collection.objects.link(obj)
 
         return collection
