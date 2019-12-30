@@ -1,10 +1,12 @@
 """Standalone helper functions."""
 
 import contextlib
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Union
+
+import bpy
 
 from ..lib import logger
-from . import bpy, pipeline
+from . import pipeline
 
 
 def imprint(node: bpy.types.bpy_struct_meta_idprop, data: Dict):

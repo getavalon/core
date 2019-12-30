@@ -31,8 +31,6 @@ from .lib import (
     # unique_name,
 )
 
-from . import bpy
-
 
 __all__ = [
     "install",
@@ -57,5 +55,4 @@ __all__ = [
     "lsattrs",
     "read",
     # "unique_name",
-    "bpy",
 ]

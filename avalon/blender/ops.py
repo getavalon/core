@@ -8,12 +8,11 @@ from pprint import pformat
 from types import ModuleType
 from typing import Dict, List, Optional, Union
 
+import bpy
 import bpy.utils.previews
 
 import avalon.api as api
 from avalon.vendor.Qt import QtCore, QtWidgets
-
-from . import bpy
 
 preview_collections: Dict = dict()
 
@@ -89,8 +88,7 @@ class TestApp(QtWidgets.QDialog):
     def print_bpy_context(self):
         """Print `bpy.context` to the console and UI."""
 
-        context = bpy.context.copy()
-        context_string = pformat(context, indent=2)
+        context_string = pformat(bpy.context.copy(), indent=2)
         print(f"Context: {context_string}")
         self.label.setText('Context:')
         # Limit the text to 50 lines for display in the UI

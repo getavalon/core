@@ -5,13 +5,15 @@ import sys
 from types import ModuleType
 from typing import Callable, Dict, Iterator, List, Optional
 
+import bpy
+
 import pyblish.api
 import pyblish.util
 from avalon import api, schema
 
 from ..lib import logger
 from ..pipeline import AVALON_CONTAINER_ID
-from . import bpy, lib, ops
+from . import lib, ops
 
 self = sys.modules[__name__]
 self._events = dict()  # Registered Blender callbacks
@@ -45,6 +47,7 @@ def _on_load_post(*args):
 
 def _register_callbacks():
     """Register callbacks for certain events."""
+
     def _remove_handler(handlers: List, callback: Callable):
         """Remove the callback from the given handler list."""
 
@@ -283,13 +286,13 @@ def containerise(name: str,
     return container
 
 
-def containerise_existing(
-        container: bpy.types.Collection,
-        name: str,
-        namespace: str,
-        context: Dict,
-        loader: Optional[str] = None,
-        suffix: Optional[str] = "CON") -> bpy.types.Collection:
+def containerise_existing(container: bpy.types.Collection,
+                          name: str,
+                          namespace: str,
+                          context: Dict,
+                          loader: Optional[str] = None,
+                          suffix: Optional[str] = "CON"
+                          ) -> bpy.types.Collection:
     """Imprint or update container with metadata.
 
     Arguments:
@@ -419,6 +422,7 @@ def publish():
 
 class Creator(api.Creator):
     """Base class for Creator plug-ins."""
+
     def process(self):
         collection = bpy.data.collections.new(name=self.data["subset"])
         bpy.context.scene.collection.children.link(collection)

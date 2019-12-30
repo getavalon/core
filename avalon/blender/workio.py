@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import List, Optional
 
-from . import bpy
+import bpy
 
 
 def open_file(filepath: str) -> Optional[str]:
