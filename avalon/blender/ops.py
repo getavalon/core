@@ -134,6 +134,11 @@ class TestApp(QtWidgets.QDialog):
 class LaunchQtApp(bpy.types.Operator):
     """A Base class for opertors to launch a Qt app."""
 
+    # TODO (jasper): use `bpy.app.timers` instead of timed modal operator.
+    #       Figure out what is the best way to remove the timer when the app
+    #       is closed. Keep a reference to the window and check if it is
+    #       visible/open. If not return 0, so the timer will not run again.
+
     _app: Optional[QtWidgets.QApplication]
     _window: Optional[Union[QtWidgets.QDialog, ModuleType]]
     _timer: Optional[bpy.types.Timer]
