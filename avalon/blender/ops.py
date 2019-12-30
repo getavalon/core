@@ -11,8 +11,8 @@ from typing import Dict, List, Optional, Union
 import bpy
 import bpy.utils.previews
 
-import avalon.api as api
-from avalon.vendor.Qt import QtCore, QtWidgets
+from .. import api
+from ..vendor.Qt import QtCore, QtWidgets
 
 preview_collections: Dict = dict()
 
@@ -34,6 +34,7 @@ class TestApp(QtWidgets.QDialog):
     Is Blender still responsive when the app is visible?
     Is the Blender context available from within the app?
     """
+
     def __init__(self):
         super().__init__()
         self.init_ui()
