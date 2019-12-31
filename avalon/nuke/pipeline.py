@@ -10,6 +10,7 @@ from pyblish import api as pyblish
 
 from . import lib, command
 from .. import api
+from ..lib import find_module_in_config
 from ..vendor.Qt import QtWidgets
 from ..pipeline import AVALON_CONTAINER_ID
 
@@ -227,24 +228,13 @@ def install(config):
     _register_events()
 
     pyblish.register_host("nuke")
+    
     # Trigger install on the config's "nuke" package
-    config = find_host_config(config)
-
-    if hasattr(config, "install"):
-        config.install()
+    config_host = find_module_in_config(config, "nuke")
+    if hasattr(config_host, "install"):
+        config_host.install()
 
     log.info("config.nuke installed")
-
-
-def find_host_config(config):
-    try:
-        config = importlib.import_module(config.__name__ + ".nuke")
-    except ImportError as exc:
-        if str(exc) != "No module name {}".format(config.__name__ + ".nuke"):
-            raise
-        config = None
-
-    return config
 
 
 def get_main_window():
@@ -270,9 +260,9 @@ def uninstall(config):
     modifying the menu or registered families.
 
     """
-    config = find_host_config(config)
-    if hasattr(config, "uninstall"):
-        config.uninstall()
+    config_host = find_module_in_config(config, "nuke")
+    if hasattr(config_host, "uninstall"):
+        config_host.uninstall()
 
     _uninstall_menu()
 

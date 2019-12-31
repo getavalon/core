@@ -281,3 +281,23 @@ def modules_from_path(path):
         modules.append(module)
 
     return modules
+    
+    
+def find_module_in_config(config, module):
+    """Find and return submodule of the config.
+    
+    Args:
+        config (types.ModuleType): The config to search in.
+        module (str): The config's submodule to search.
+    
+    Returns:
+        types.ModuleType or None: The module, if found.
+        
+    """
+    config_name = config.__name__
+    module_name = "%s.%s" % (config_name, module)
+    try:
+        return importlib.import_module(module_name)
+    except ImportError as exc:
+        if str(exc) != "No module name {}".format(module_name):
+            log.warning("Config has no '%s' module." % module_name)

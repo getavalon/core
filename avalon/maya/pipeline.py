@@ -10,7 +10,7 @@ import maya.api.OpenMaya as om
 from pyblish import api as pyblish
 
 from . import lib, compat
-from ..lib import logger
+from ..lib import logger, find_module_in_config
 from .. import api, schema
 from ..tools import workfiles
 from ..vendor.Qt import QtCore, QtWidgets
@@ -57,10 +57,10 @@ def install(config):
     pyblish.register_host("mayabatch")
     pyblish.register_host("mayapy")
     pyblish.register_host("maya")
-
-    config = find_host_config(config)
-    if hasattr(config, "install"):
-        config.install()
+    
+    config_host = find_module_in_config(config, "maya")
+    if hasattr(config_host, "install"):
+        config_host.install()
 
 
 def _set_project():
@@ -84,17 +84,6 @@ def _set_project():
     cmds.workspace(workdir, openWorkspace=True)
 
 
-def find_host_config(config):
-    try:
-        config = importlib.import_module(config.__name__ + ".maya")
-    except ImportError as exc:
-        if str(exc) != "No module name {}".format(config.__name__ + ".maya"):
-            raise
-        config = None
-
-    return config
-
-
 def get_main_window():
     """Acquire Maya's main window"""
     if self._parent is None:
@@ -111,9 +100,9 @@ def uninstall(config):
     This function is called automatically on calling `api.uninstall()`.
 
     """
-    config = find_host_config(config)
-    if hasattr(config, "uninstall"):
-        config.uninstall()
+    config_host = find_module_in_config(config, "maya")
+    if hasattr(config_host, "uninstall"):
+        config_host.uninstall()
 
     _uninstall_menu()
 
@@ -517,8 +506,8 @@ def ls():
     container_names = _ls()
 
     has_metadata_collector = False
-    config = find_host_config(api.registered_config())
-    if hasattr(config, "collect_container_metadata"):
+    config_host = find_module_in_config(api.registered_config(), "maya")
+    if hasattr(config_host, "collect_container_metadata"):
         has_metadata_collector = True
 
     for container in sorted(container_names):
@@ -526,7 +515,7 @@ def ls():
 
         # Collect custom data if attribute is present
         if has_metadata_collector:
-            metadata = config.collect_container_metadata(container)
+            metadata = config_host.collect_container_metadata(container)
             data.update(metadata)
 
         yield data

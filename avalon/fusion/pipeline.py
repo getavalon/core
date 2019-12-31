@@ -6,6 +6,7 @@ from pyblish import api as pyblish
 from avalon import api as avalon
 
 from ..pipeline import AVALON_CONTAINER_ID
+from ..lib import find_module_in_config
 
 
 class CompLogHandler(logging.Handler):
@@ -23,30 +24,28 @@ def ls():
     assets on disk, it lists assets already loaded in Fusion; once loaded
     they are called 'containers'
 
+    Yields:
+        dict: container
+
     """
 
     comp = get_current_comp()
     tools = comp.GetToolList(False, "Loader").values()
+    
+    has_metadata_collector = False
+    config_host = find_module_in_config(api.registered_config(), "fusion")
+    if hasattr(config_host, "collect_container_metadata"):
+        has_metadata_collector = True
+    
     for tool in tools:
         container = parse_container(tool)
         if container:
-            # Collect custom data if attribute is present
-            config = find_host_config(avalon.registered_config())
-            if hasattr(config, "collect_container_metadata"):
-                metadata = config.collect_container_metadata(container)
+        
+            if has_metadata_collector:
+                metadata = config_host.collect_container_metadata(container)
                 container.update(metadata)
 
             yield container
-
-
-def find_host_config(config):
-    config_name = config.__name__
-    try:
-        config = importlib.import_module(config_name + ".fusion")
-    except ImportError:
-        pass
-
-    return config
 
 
 def install(config):
@@ -76,9 +75,26 @@ def install(config):
     logger.setLevel(logging.DEBUG)
 
     # Trigger install on the config's "fusion" package
-    config = find_host_config(config)
-    if hasattr(config, "install"):
-        config.install()
+    config_host = find_module_in_config(config, "fusion")
+    if hasattr(config_host, "install"):
+        config_host.install()
+        
+
+def uninstall(config):
+    """Uninstall Fusion-specific functionality of avalon-core.
+
+    This function is called automatically on calling `api.uninstall()`.
+
+    Args:
+        config: configuration module
+
+    """
+
+    config_host = find_module_in_config(config, "fusion")
+    if hasattr(config_host, "uninstall"):
+        config_host.uninstall()
+
+    pyblish.api.deregister_host("fusion")
 
 
 def imprint_container(tool,
