@@ -79,7 +79,8 @@ def install(host):
         host.install(config)
         
     # Optional config.host.install()
-    config_host = lib.find_module_in_config(config, host.__name__)
+    host_name = host.__name__.rsplit(".", 1)[-1]
+    config_host = lib.find_module_in_config(config, host_name)
     if hasattr(config_host, "install"):
         config_host.install()
 
@@ -112,7 +113,8 @@ def uninstall():
     host = registered_host()
         
     # Optional config.host.uninstall()
-    config_host = lib.find_module_in_config(config, host.__name__)
+    host_name = host.__name__.rsplit(".", 1)[-1]
+    config_host = lib.find_module_in_config(config, host_name)
     if hasattr(config_host, "uninstall"):
         config_host.uninstall()
     
