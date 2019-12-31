@@ -73,11 +73,6 @@ def install(config):
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
-
-    # Trigger install on the config's "fusion" package
-    config_host = find_module_in_config(config, "fusion")
-    if hasattr(config_host, "install"):
-        config_host.install()
         
 
 def uninstall(config):
@@ -89,10 +84,6 @@ def uninstall(config):
         config: configuration module
 
     """
-
-    config_host = find_module_in_config(config, "fusion")
-    if hasattr(config_host, "uninstall"):
-        config_host.uninstall()
 
     pyblish.api.deregister_host("fusion")
 

@@ -57,10 +57,6 @@ def install(config):
     pyblish.register_host("mayabatch")
     pyblish.register_host("mayapy")
     pyblish.register_host("maya")
-    
-    config_host = find_module_in_config(config, "maya")
-    if hasattr(config_host, "install"):
-        config_host.install()
 
 
 def _set_project():
@@ -100,9 +96,6 @@ def uninstall(config):
     This function is called automatically on calling `api.uninstall()`.
 
     """
-    config_host = find_module_in_config(config, "maya")
-    if hasattr(config_host, "uninstall"):
-        config_host.uninstall()
 
     _uninstall_menu()
 

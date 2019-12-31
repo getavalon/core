@@ -38,10 +38,6 @@ def install(config):
     pyblish.api.register_host("hpython")
 
     self._has_been_setup = True
-
-    config_host = find_module_in_config(config, "houdini")
-    if hasattr(config_host, "install"):
-        config_host.install()
         
 
 def uninstall(config):
@@ -53,10 +49,6 @@ def uninstall(config):
         config: configuration module
 
     """
-
-    config_host = find_module_in_config(config, "houdini")
-    if hasattr(config_host, "uninstall"):
-        config_host.uninstall()
 
     pyblish.api.deregister_host("hython")
     pyblish.api.deregister_host("hpython")
