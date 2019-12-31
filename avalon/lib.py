@@ -300,4 +300,4 @@ def find_module_in_config(config, module):
         return importlib.import_module(module_name)
     except ImportError as exc:
         if str(exc) != "No module name {}".format(module_name):
-            log.warning("Config has no '%s' module." % module_name)
+            log_.warning("Config has no '%s' module." % module_name)
