@@ -300,5 +300,6 @@ def find_submodule(module, submodule):
         return importlib.import_module(name)
     except ImportError as exc:
         if str(exc) != "No module name {}".format(name):
-            log_.warning("Could not find '%s' in module: %s" % (submodule,
-                                                                module))
+            log_.warning("Could not find '%s' in module: %s",
+                         submodule,
+                         module)
