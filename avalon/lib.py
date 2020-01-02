@@ -237,7 +237,7 @@ def modules_from_path(path):
     """Get python scripts as modules from a path.
 
     Arguments:
-        path (str): Path to python scrips.
+        path (str): Path to folder containing python scripts.
 
     Returns:
         List of modules.
@@ -276,7 +276,7 @@ def modules_from_path(path):
             sys.modules[mod_name] = module
 
         except Exception as err:
-            print("Skipped: \"%s\" (%s)", mod_name, err)
+            print("Skipped: \"{0}\" ({1})".format(mod_name, err))
             continue
 
         modules.append(module)
