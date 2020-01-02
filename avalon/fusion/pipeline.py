@@ -6,7 +6,7 @@ from pyblish import api as pyblish
 from avalon import api as avalon
 
 from ..pipeline import AVALON_CONTAINER_ID
-from ..lib import find_module_in_config
+from ..lib import find_submodule
 
 
 class CompLogHandler(logging.Handler):
@@ -33,7 +33,7 @@ def ls():
     tools = comp.GetToolList(False, "Loader").values()
     
     has_metadata_collector = False
-    config_host = find_module_in_config(api.registered_config(), "fusion")
+    config_host = find_submodule(api.registered_config(), "fusion")
     if hasattr(config_host, "collect_container_metadata"):
         has_metadata_collector = True
     

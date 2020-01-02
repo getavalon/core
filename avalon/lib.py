@@ -5,6 +5,7 @@ import sys
 import json
 import logging
 import datetime
+import importlib
 import subprocess
 import types
 
@@ -281,23 +282,23 @@ def modules_from_path(path):
         modules.append(module)
 
     return modules
-    
-    
-def find_module_in_config(config, module):
-    """Find and return submodule of the config.
-    
+
+
+def find_submodule(module, submodule):
+    """Find and return submodule of the module.
+
     Args:
-        config (types.ModuleType): The config to search in.
-        module (str): The config's submodule to search.
-    
+        module (types.ModuleType): The module to search in.
+        submodule (str): The submodule name to find.
+
     Returns:
         types.ModuleType or None: The module, if found.
-        
+
     """
-    config_name = config.__name__
-    module_name = "%s.%s" % (config_name, module)
+    name = "%s.%s" % (module.__name__, submodule)
     try:
-        return importlib.import_module(module_name)
+        return importlib.import_module(name)
     except ImportError as exc:
-        if str(exc) != "No module name {}".format(module_name):
-            log_.warning("Config has no '%s' module." % module_name)
+        if str(exc) != "No module name {}".format(name):
+            log_.warning("Could not find '%s' in module: %s" % (submodule,
+                                                                module))

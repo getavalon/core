@@ -77,10 +77,10 @@ def install(host):
     # Optional host install function
     if hasattr(host, "install"):
         host.install(config)
-        
+
     # Optional config.host.install()
     host_name = host.__name__.rsplit(".", 1)[-1]
-    config_host = lib.find_module_in_config(config, host_name)
+    config_host = lib.find_submodule(config, host_name)
     if hasattr(config_host, "install"):
         config_host.install()
 
@@ -111,13 +111,13 @@ def uninstall():
     """Undo all of what `install()` did"""
     config = registered_config()
     host = registered_host()
-        
+
     # Optional config.host.uninstall()
     host_name = host.__name__.rsplit(".", 1)[-1]
-    config_host = lib.find_module_in_config(config, host_name)
+    config_host = lib.find_submodule(config, host_name)
     if hasattr(config_host, "uninstall"):
         config_host.uninstall()
-    
+
     try:
         host.uninstall(config)
     except AttributeError:

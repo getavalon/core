@@ -28,8 +28,6 @@ def reload_pipeline():
 
     """
 
-    import importlib
-
     api.uninstall()
     _uninstall_menu()
 

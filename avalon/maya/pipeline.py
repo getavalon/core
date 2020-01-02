@@ -10,8 +10,8 @@ import maya.api.OpenMaya as om
 from pyblish import api as pyblish
 
 from . import lib, compat
-from ..lib import logger, find_module_in_config
-from .. import api, schema
+from ..lib import logger, find_submodule
+from .. import api
 from ..tools import workfiles
 from ..vendor.Qt import QtCore, QtWidgets
 
@@ -212,8 +212,6 @@ def reload_pipeline(*args):
 
     """
 
-    import importlib
-
     api.uninstall()
 
     for module in ("avalon.io",
@@ -254,13 +252,13 @@ def reload_pipeline(*args):
 
 
 def _uninstall_menu():
-    
+
     # In Maya 2020+ don't use the QApplication.instance()
     # during startup (userSetup.py) as it will return a
     # QtCore.QCoreApplication instance which does not have
     # the allWidgets method. As such, we call the staticmethod.
     all_widgets = QtWidgets.QApplication.allWidgets()
-    
+
     widgets = dict((w.objectName(), w) for w in all_widgets)
     menu = widgets.get(self._menu)
 
@@ -499,7 +497,7 @@ def ls():
     container_names = _ls()
 
     has_metadata_collector = False
-    config_host = find_module_in_config(api.registered_config(), "maya")
+    config_host = find_submodule(api.registered_config(), "maya")
     if hasattr(config_host, "collect_container_metadata"):
         has_metadata_collector = True
 

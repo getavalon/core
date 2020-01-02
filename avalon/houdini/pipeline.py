@@ -10,8 +10,8 @@ import hou
 
 # Local libraries
 from . import lib
-from ..lib import logger, find_module_in_config
-from avalon import api, schema
+from ..lib import logger, find_submodule
+from avalon import api
 
 from ..pipeline import AVALON_CONTAINER_ID
 
@@ -38,7 +38,7 @@ def install(config):
     pyblish.api.register_host("hpython")
 
     self._has_been_setup = True
-        
+
 
 def uninstall(config):
     """Uninstall Houdini-specific functionality of avalon-core.
@@ -68,8 +68,6 @@ def reload_pipeline(*args):
     CAUTION: This is primarily for development and debugging purposes.
 
     """
-
-    import importlib
 
     api.uninstall()
 
@@ -217,7 +215,7 @@ def ls():
         containers += lib.lsattr("id", identifier)
 
     has_metadata_collector = False
-    config_host = find_module_in_config(api.registered_config(), "houdini")
+    config_host = find_submodule(api.registered_config(), "houdini")
     if hasattr(config_host, "collect_container_metadata"):
         has_metadata_collector = True
 
