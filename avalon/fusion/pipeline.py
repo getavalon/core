@@ -2,9 +2,10 @@ import sys
 import contextlib
 import importlib
 import logging
-from pyblish import api as pyblish
-from avalon import api as avalon
 
+import pyblish.api
+
+from .. import api
 from ..pipeline import AVALON_CONTAINER_ID
 from ..lib import find_submodule
 
@@ -31,16 +32,16 @@ def ls():
 
     comp = get_current_comp()
     tools = comp.GetToolList(False, "Loader").values()
-    
+
     has_metadata_collector = False
     config_host = find_submodule(api.registered_config(), "fusion")
     if hasattr(config_host, "collect_container_metadata"):
         has_metadata_collector = True
-    
+
     for tool in tools:
         container = parse_container(tool)
         if container:
-        
+
             if has_metadata_collector:
                 metadata = config_host.collect_container_metadata(container)
                 container.update(metadata)
@@ -59,7 +60,7 @@ def install(config):
     # TODO: Set project
     # TODO: Install Fusion menu (this is done with config .fu script actually)
 
-    pyblish.register_host("fusion")
+    pyblish.api.register_host("fusion")
 
     # Remove all handlers associated with the root logger object, because
     # that one sometimes logs as "warnings" incorrectly.
@@ -73,7 +74,7 @@ def install(config):
     handler.setFormatter(formatter)
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
-        
+
 
 def uninstall(config):
     """Uninstall Fusion-specific functionality of avalon-core.
