@@ -11,7 +11,7 @@ import hou
 # Local libraries
 from . import lib
 from ..lib import logger, find_submodule
-from avalon import api
+from .. import api
 
 from ..pipeline import AVALON_CONTAINER_ID
 
