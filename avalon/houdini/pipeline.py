@@ -219,7 +219,7 @@ def ls():
     if hasattr(config_host, "collect_container_metadata"):
         has_metadata_collector = True
 
-    for container in sorted(container_names):
+    for container in sorted(containers):
         data = parse_container(container)
 
         # Collect custom data if attribute is present
