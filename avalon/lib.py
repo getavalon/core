@@ -295,7 +295,7 @@ def find_submodule(module, submodule):
         types.ModuleType or None: The module, if found.
 
     """
-    name = "%s.%s" % (module.__name__, submodule)
+    name = "{0}.{1}".format(module.__name__, submodule)
     try:
         return importlib.import_module(name)
     except ImportError as exc:
