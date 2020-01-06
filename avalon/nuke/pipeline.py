@@ -165,6 +165,11 @@ def parse_container(node):
     data["objectName"] = node["name"].value()
     # Store reference to the node object
     data["_node"] = node
+    # Get containerized nodes
+    if node.fullName() == "%s.%s" % (AVALON_CONTAINERS, node.name()):
+        data["_members"] = lib.lsattr("avalon:containerId",
+                                      value=data["avalonId"],
+                                      group=nuke.toNode(AVALON_CONTAINERS))
 
     return data
 
@@ -188,6 +193,10 @@ def update_container(node, keys=None):
     container = parse_container(node)
     if not container:
         raise TypeError("Not a valid container node.")
+
+    # Remove unprintable entries
+    container.pop("_node", None)
+    container.pop("_members", None)
 
     container.update(keys)
     node = lib.set_avalon_knob_data(node, container)
