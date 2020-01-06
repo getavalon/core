@@ -5,6 +5,7 @@ import re
 import logging
 from collections import OrderedDict
 
+from .. import io
 from ..vendor import six, clique
 
 log = logging.getLogger(__name__)
@@ -337,6 +338,58 @@ def lsattrs(attrs, type=None, group=None, recursive=False):
             else:
                 matches.add(node)
     return list(matches)
+
+
+def set_id(node, container_id=None):
+    """Set 'avalonId' to `node`
+
+    Args:
+        node (nuke.Node): Node that id to apply to
+        container_id (str, optional): `node` container's id
+
+    """
+    data = OrderedDict()
+    data["avalonId"] = str(io.ObjectId())
+    if container_id:
+        data["containerId"] = container_id
+
+    set_avalon_knob_data(node, data)
+
+    return data["avalonId"]
+
+
+def get_id(node, container_id=False):
+    """Get 'avalonId' of `node`
+
+    Args:
+        node (nuke.Node): Node that id to apply to
+        container_id (bool, optional): Whether change to get `node`
+            container's id instead of `node` avalonId. Default False.
+
+    """
+    knob = "containerId" if container_id else "avalonId"
+    id_knob = node.knobs().get("avalon:" + knob)
+    return id_knob.value() if id_knob else None
+
+
+def find_copies(source, group=None, recursive=True):
+    """Return nodes that has same 'avalonId' as `source`
+
+    Args:
+        source (nuke.Node): The node to find copies from
+        group (nuke.Node, optional): Find copies from `group`, default `root`
+        recursive (bool, optional): Whether to look into child groups,
+            default True.
+
+    """
+    copies = list()
+    source_id = get_id(source)
+    if source_id:
+        copies = lsattr("avalon:avalonId",
+                        type=source.Class(),
+                        group=group,
+                        recursive=recursive)
+    return copies
 
 
 def add_publish_knob(node):
