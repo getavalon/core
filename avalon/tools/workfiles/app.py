@@ -782,9 +782,6 @@ class Window(QtWidgets.QMainWindow):
         widgets["tasks"].setContentsMargins(0, 32, 0, 0)
 
         # Connect signals
-        widgets["tasks"].widgets["view"].doubleClicked.connect(
-            self.on_task_pressed
-        )
         widgets["assets"].current_changed.connect(self.on_asset_changed)
         widgets["assets"].silo_changed.connect(self.on_asset_changed)
         widgets["tasks"].task_changed.connect(self.on_task_changed)
@@ -844,29 +841,6 @@ class Window(QtWidgets.QMainWindow):
             self.widgets["tasks"].setEnabled(True)
 
         self.widgets["tasks"].set_asset(asset)
-
-    def on_task_pressed(self):
-
-        asset = self.widgets["assets"].get_active_asset_document()
-        if not asset:
-            log.warning("No asset selected.")
-            return
-
-        task_name = self.widgets["tasks"].get_current_task()
-        if not task_name:
-            log.warning("No task selected.")
-            return
-
-        changes = pipeline.compute_session_changes(session=api.Session,
-                                                   asset=asset,
-                                                   task=task_name)
-        if not changes:
-            # No need to update since we are already there.
-            return
-
-        api.update_current_task(task=task_name, asset=asset)
-
-        self.refresh()
 
     def _on_task_changed(self):
 
