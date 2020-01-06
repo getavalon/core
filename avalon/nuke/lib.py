@@ -286,6 +286,59 @@ def read(node):
     return data
 
 
+def lsattr(attr, value=None, type=None, group=None, recursive=False):
+    """Return nodes matching `key` and `value`
+
+    Arguments:
+        attr (str): Name of Node knob
+        value (object, optional): Value of attribute. If none
+            is provided, return all nodes with this attribute.
+        type (str, optional): Node class name
+        group (nuke.Node, optional): Listing nodes from `group`, default `root`
+        recursive (bool, optional): Whether to look into child groups.
+
+    Return:
+         list: matching nodes.
+
+    """
+    group = group or nuke.toNode("root")
+
+    if value is None:
+        args = (type, ) if type else ()
+        nodes = nuke.allNodes(*args, group=group, recurseGroups=recursive)
+        return [n for n in nodes if n.knob(attr)]
+    return lsattrs({attr: value}, type=type, group=group, recursive=recursive)
+
+
+def lsattrs(attrs, type=None, group=None, recursive=False):
+    """Return nodes with the given attribute(s).
+
+    Arguments:
+        attrs (dict): Name and value pairs of expected matches
+        type (str, optional): Node class name
+        group (nuke.Node, optional): Listing nodes from `group`, default `root`
+        recursive (bool, optional): Whether to look into child groups.
+
+    Return:
+         list: matching nodes.
+
+    """
+    matches = set()
+    args = (type, ) if type else ()
+    group = group or nuke.toNode("root")
+    nodes = nuke.allNodes(*args, group=group, recurseGroups=recursive)
+    for node in nodes:
+        for attr in attrs:
+            knob = node.knob(attr)
+            if not knob:
+                continue
+            elif knob.getValue() != attrs[attr]:
+                continue
+            else:
+                matches.add(node)
+    return list(matches)
+
+
 def add_publish_knob(node):
     """Add Publish knob to node
 
