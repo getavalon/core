@@ -18,6 +18,7 @@ log = logging.getLogger(__name__)
 self = sys.modules[__name__]
 self._parent = None  # Main Window cache
 
+AVALON_CONTAINERS = "AVALON_CONTAINERS"
 AVALON_CONFIG = os.environ["AVALON_CONFIG"]
 
 
@@ -55,28 +56,41 @@ def reload_pipeline():
     _register_events()
 
 
-def containerise(node,
-                 name,
+def containerise(name,
                  namespace,
+                 nodes,
                  context,
                  loader=None,
-                 data=None):
+                 data=None,
+                 suffix="CON"):
     """Bundle `node` into an assembly and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
     for loaded assets.
 
     Arguments:
-        node (nuke.Node): Nuke's node object to imprint as container
         name (str): Name of resulting assembly
         namespace (str): Namespace under which to host container
+        nodes (list): A list of `nuke.Node` object to containerise
         context (dict): Asset information
         loader (str, optional): Name of node used to produce this container.
+        data (dict, optional): Additional data to imprint.
+        suffix (str, optional): Suffix of container, defaults to `_CON`.
 
     Returns:
         node (nuke.Node): containerised nuke's node object
 
     """
+    from nukescripts import autoBackdrop
+
+    if isinstance(name, nuke.Node):
+        # For compatibling with old style args
+        #   containerise(node, name, namespace, context, ...)
+        _ = nodes
+        nodes = [name]
+        name = namespace
+        namespace = _
+
     data = OrderedDict(
         [
             ("schema", "avalon-core:container-2.0"),
@@ -84,15 +98,53 @@ def containerise(node,
             ("name", name),
             ("namespace", namespace),
             ("loader", str(loader)),
-            ("representation", context["representation"]["_id"]),
+            ("representation", str(context["representation"]["_id"])),
         ],
 
         **data or dict()
     )
+    container_color = data.pop("color", int("0x7A7A7AFF", 16))
+    container_name = "%s_%s_%s" % (namespace, name, suffix)
 
-    lib.set_avalon_knob_data(node, data)
+    lib.reset_selection()
+    lib.select_nodes(nodes)
 
-    return node
+    container = autoBackdrop()
+    container.setName(container_name)
+    container["label"].setValue(container_name)
+    container["tile_color"].setValue(container_color)
+    container["selected"].setValue(True)
+    # (NOTE) Backdrop may not fully cover if there's only one node, so we
+    #        expand backdrop a bit ot ensure that.
+    container["bdwidth"].setValue(container["bdwidth"].value() + 100)
+    container["bdheight"].setValue(container["bdheight"].value() + 100)
+    container["xpos"].setValue(container["xpos"].value() - 50)
+
+    lib.set_avalon_knob_data(container, data)
+
+    container_id = lib.set_id(container)
+    for node in nodes:
+        lib.set_id(node, container_id=container_id)
+
+    # Containerising
+
+    nuke.nodeCopy("_containerizing_")
+
+    main_container = nuke.toNode(AVALON_CONTAINERS)
+    if main_container is None:
+        main_container = nuke.createNode("Group")
+        main_container.setName(AVALON_CONTAINERS)
+        main_container["postage_stamp"].setValue(True)
+        main_container["note_font_size"].setValue(40)
+        main_container["tile_color"].setValue(int("0x283648FF", 16))
+        main_container["xpos"].setValue(-500)
+        main_container["ypos"].setValue(-500)
+
+    main_container.begin()
+    nuke.nodePaste("_containerizing_")
+    main_container.end()
+
+    return container
 
 
 def parse_container(node):
@@ -189,6 +241,24 @@ class Creator(api.Creator):
         return instance
 
 
+def _ls1():
+    """Yields all nodes for listing Avalon containers"""
+    for node in nuke.allNodes(recurseGroups=False):
+        yield node
+
+
+def _ls2():
+    """Yields nodes that has 'avalon:id' knob from AVALON_CONTAINERS"""
+    for node in nuke.allNodes("BackdropNode",
+                              group=nuke.toNode(AVALON_CONTAINERS)):
+        knob = node.fullName() + ".avalon:id"
+        if nuke.exists(knob) and nuke.knob(knob) == AVALON_CONTAINER_ID:
+            yield node
+
+
+_ls = _ls1 if os.getenv("AVALON_NUKE_CONTAINERS_AT_LARGE") else _ls2
+
+
 def ls():
     """List available containers.
 
@@ -199,16 +269,22 @@ def ls():
     See the `container.json` schema for details on how it should look,
     and the Maya equivalent, which is in `avalon.maya.pipeline`
     """
-    all_nodes = nuke.allNodes(recurseGroups=False)
+    config = find_host_config(api.registered_config())
+    has_metadata_collector = hasattr(config, "collect_container_metadata")
 
-    # TODO: add readgeo, readcamera, readimage
-    nodes = [n for n in all_nodes]
+    container_nodes = _ls()
 
-    for n in nodes:
-        log.debug("name: `{}`".format(n.name()))
-        container = parse_container(n)
-        if container:
-            yield container
+    for container in container_nodes:
+        data = parse_container(container)
+        if data is None:
+            continue
+
+        # Collect custom data if attribute is present
+        if has_metadata_collector:
+            metadata = config.collect_container_metadata(container)
+            data.update(metadata)
+
+        yield data
 
 
 def install(config):
