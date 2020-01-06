@@ -21,6 +21,8 @@ self._parent = None  # Main Window cache
 AVALON_CONTAINERS = "AVALON_CONTAINERS"
 AVALON_CONFIG = os.environ["AVALON_CONFIG"]
 
+USE_OLD_CONTAINER_STYLE = os.getenv("AVALON_NUKE_CONTAINERS_AT_LARGE")
+
 
 def reload_pipeline():
     """Attempt to reload pipeline at run-time.
@@ -103,6 +105,14 @@ def containerise(name,
 
         **data or dict()
     )
+
+    if USE_OLD_CONTAINER_STYLE:
+        node = nodes[0]
+        lib.set_avalon_knob_data(node, data)
+        return node
+
+    # New style
+
     container_color = data.pop("color", int("0x7A7A7AFF", 16))
     container_name = "%s_%s_%s" % (namespace, name, suffix)
 
@@ -257,7 +267,7 @@ def _ls2():
             yield node
 
 
-_ls = _ls1 if os.getenv("AVALON_NUKE_CONTAINERS_AT_LARGE") else _ls2
+_ls = _ls1 if USE_OLD_CONTAINER_STYLE else _ls2
 
 
 def ls():
