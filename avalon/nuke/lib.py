@@ -280,29 +280,25 @@ def set_avalon_knob_data(node, data=None):
         }
     """
     data = data or dict()
-    create = OrderedDict()
+
+    warn = Knobby("Text_Knob", "Warning! Do not change following data!")
+    divd = Knobby("Text_Knob", "")
+    knobs = OrderedDict([
+        (("warn", ""), warn),
+        (("divd", ""), divd),
+    ])
 
     editable = ["asset", "subset", "name", "namespace"]
 
     for key, value in data.items():
         if key in editable:
-            create[key] = value
+            knobs[key] = value
         else:
-            create[key] = Knobby("String_Knob",
-                                 str(value),
-                                 flags=[nuke.READ_ONLY])
+            knobs[key] = Knobby("String_Knob",
+                                str(value),
+                                flags=[nuke.READ_ONLY])
 
-    tab = OrderedDict()
-    warn = Knobby("Text_Knob", "Warning! Do not change following data!")
-    divd = Knobby("Text_Knob", "")
-    head = [
-        (("warn", ""), warn),
-        (("divd", ""), divd),
-    ]
-    tab["avalonDataGroup"] = OrderedDict(head + create.items())
-    create = tab
-
-    imprint(node, create, tab=AVALON_TAB)
+    imprint(node, knobs, tab=AVALON_TAB)
 
     return node
 
@@ -318,9 +314,7 @@ def get_avalon_knob_data(node):
         data (dict)
     """
     def compat_prefixed(knob_name):
-        if knob_name.startswith("avalon:avalonDataGroup:"):
-            return knob_name[len("avalon:avalonDataGroup:"):]
-        elif knob_name.startswith("avalon:"):
+        if knob_name.startswith("avalon:"):
             return knob_name[len("avalon:"):]
         elif knob_name.startswith("ak:"):
             return knob_name[len("ak:"):]
