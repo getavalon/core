@@ -2,7 +2,7 @@
 
 import os
 import sys
-from distutils.util import strtobool
+from functools import partial
 from pathlib import Path
 from types import ModuleType
 from typing import Dict, List, Optional, Union
@@ -13,84 +13,58 @@ import bpy.utils.previews
 from .. import api
 from ..vendor.Qt import QtWidgets
 
+PREVIEW_COLLECTIONS: Dict = dict()
 
-preview_collections: Dict = dict()
+# This seems like a good value to keep the Qt app responsive and doesn't slow
+# down Blender. At least on macOS I the interace of Blender gets very laggy if
+# you make it smaller.
+TIMER_INTERVAL: float = 0.01
 
 
-def _is_avalon_in_debug_mode() -> bool:
-    """Check if Avalon is in debug mode."""
+def _has_visible_windows(app: QtWidgets.QApplication) -> bool:
+    """Check if the Qt application has any visible top level windows."""
 
-    try:
-        # It says `strtobool` returns a bool, but it returns an int :/
-        return bool(strtobool(os.environ.get('AVALON_DEBUG', "False")))
-    except (ValueError, AttributeError):
-        # If it can't logically be converted to a bool, assume it's False.
-        return False
+    for window in app.topLevelWindows():
+        try:
+            if window.isVisible():
+                return True
+        except RuntimeError:
+            continue
+
+    return False
+
+
+def _process_app_events(app: QtWidgets.QApplication) -> Optional[float]:
+    """Process the events of the Qt app if the window is still visible.
+    If the app has any top level windows and at least one of them is visible
+    return the time after which this function should be run again. Else return
+    None, so the function is not run again and will be unregistered.
+    """
+
+    if _has_visible_windows(app):
+        app.processEvents()
+        return TIMER_INTERVAL
+
+    return None
 
 
 class LaunchQtApp(bpy.types.Operator):
     """A Base class for opertors to launch a Qt app."""
 
-    _app: Optional[QtWidgets.QApplication]
-    _window: Optional[Union[QtWidgets.QDialog, ModuleType]]
-    _timer: Optional[bpy.types.Timer]
+    _app: QtWidgets.QApplication
+    _window: Union[QtWidgets.QDialog, ModuleType]
     _show_args: Optional[List]
     _show_kwargs: Optional[Dict]
 
     def __init__(self):
+        from .. import style
         print(f"Initialising {self.bl_idname}...")
-        app_instance = QtWidgets.QApplication.instance()
-        if not app_instance:
-            from .. import style
-            app_instance = QtWidgets.QApplication(sys.argv)
-            app_instance.setStyleSheet(style.load_stylesheet())
-
-        self._app = app_instance
-
-    def _is_window_visible(self) -> bool:
-        """Check if the window of the app is visible.
-
-        If `self._window` is an instance of `QtWidgets.QDialog`, simply return
-        `self._window.isVisible()`. If `self._window` is a module check
-        if it has `self._window.app.window` and if so, return `isVisible()`
-        on that.
-        Else return False, because we don't know how to check if the
-        window is visible.
-        """
-
-        window: Optional[QtWidgets.QDialog] = None
-        if isinstance(self._window, QtWidgets.QDialog):
-            window = self._window
-        if isinstance(self._window, ModuleType):
-            try:
-                window = self._window.app.window
-            except AttributeError:
-                return False
-
-        try:
-            return window is not None and window.isVisible()
-        except (AttributeError, RuntimeError):
-            pass
-
-        return False
-
-    def modal(self, context, event):
-        """Run modal to keep Blender and the Qt UI responsive."""
-        if event.type == 'TIMER':
-            if self._is_window_visible():
-                # Process events if the window is visible
-                self._app.processEvents()
-            else:
-                # Stop the operator if the window is closed
-                self.cancel(context)
-                print(f"Stopping modal execution of '{self.bl_idname}'")
-                return {'FINISHED'}
-
-        return {'PASS_THROUGH'}
+        self._app = (QtWidgets.QApplication.instance()
+                     or QtWidgets.QApplication(sys.argv))
+        self._app.setStyleSheet(style.load_stylesheet())
 
     def execute(self, context):
         """Execute the operator.
-
         The child class must implement `execute()` where it only has to set
         `self._window` to the desired Qt window and then simply run
         `return super().execute(context)`.
@@ -110,17 +84,12 @@ class LaunchQtApp(bpy.types.Operator):
         args = getattr(self, "_show_args", list())
         kwargs = getattr(self, "_show_kwargs", dict())
         self._window.show(*args, **kwargs)
-
-        self._timer = context.window_manager.event_timer_add(
-            1/120, window=context.window
+        bpy.app.timers.register(
+            partial(_process_app_events, self._app),
+            persistent=True,
         )
-        context.window_manager.modal_handler_add(self)
 
-        return {'RUNNING_MODAL'}
-
-    def cancel(self, context):
-        """Remove the event timer when stopping the operator."""
-        context.window_manager.event_timer_remove(self._timer)
+        return {'FINISHED'}
 
 
 class LaunchContextManager(LaunchQtApp):
@@ -144,7 +113,6 @@ class LaunchCreator(LaunchQtApp):
     def execute(self, context):
         from ..tools import creator
         self._window = creator
-        # self._show_kwargs = {'debug': _is_avalon_in_debug_mode()}
         return super().execute(context)
 
 
@@ -161,7 +129,6 @@ class LaunchLoader(LaunchQtApp):
             self._window.app.window = None
         self._show_kwargs = {
             'use_context': True,
-            # 'debug': _is_avalon_in_debug_mode(),
         }
         return super().execute(context)
 
@@ -192,7 +159,6 @@ class LaunchManager(LaunchQtApp):
     def execute(self, context):
         from ..tools import cbsceneinventory
         self._window = cbsceneinventory
-        # self._show_kwargs = {'debug': _is_avalon_in_debug_mode()}
         return super().execute(context)
 
 
@@ -213,19 +179,6 @@ class LaunchWorkFiles(LaunchQtApp):
         return super().execute(context)
 
 
-class LaunchTestApp(LaunchQtApp):
-    """Launch a simple test app."""
-
-    bl_idname = "wm.avalon_test_app"
-    bl_label = "Test App..."
-
-    def execute(self, context):
-        from .. import style
-        self._window = TestApp()
-        self._window.setStyleSheet(style.load_stylesheet())
-        return super().execute(context)
-
-
 class TOPBAR_MT_avalon(bpy.types.Menu):
     """Avalon menu."""
 
@@ -237,7 +190,7 @@ class TOPBAR_MT_avalon(bpy.types.Menu):
 
         layout = self.layout
 
-        pcoll = preview_collections.get("avalon")
+        pcoll = PREVIEW_COLLECTIONS.get("avalon")
         if pcoll:
             pyblish_menu_icon = pcoll["pyblish_menu_icon"]
             pyblish_menu_icon_id = pyblish_menu_icon.icon_id
@@ -259,9 +212,6 @@ class TOPBAR_MT_avalon(bpy.types.Menu):
         layout.operator(LaunchManager.bl_idname, text="Manage...")
         layout.separator()
         layout.operator(LaunchWorkFiles.bl_idname, text="Work Files...")
-        if _is_avalon_in_debug_mode():
-            layout.separator()
-            layout.operator(LaunchTestApp.bl_idname, text="Test App...")
         # TODO (jasper): maybe add 'Reload Pipeline', 'Reset Frame Range' and
         #                'Reset Resolution'?
 
@@ -279,11 +229,8 @@ classes = [
     LaunchPublisher,
     LaunchManager,
     LaunchWorkFiles,
+    TOPBAR_MT_avalon,
 ]
-if _is_avalon_in_debug_mode():
-    # Enable the test app in debug mode
-    classes.append(LaunchTestApp)
-classes.append(TOPBAR_MT_avalon)
 
 
 def register():
@@ -292,7 +239,7 @@ def register():
     pcoll = bpy.utils.previews.new()
     pyblish_icon_file = Path(__file__).parent / "icons" / "pyblish-32x32.png"
     pcoll.load("pyblish_menu_icon", str(pyblish_icon_file.absolute()), 'IMAGE')
-    preview_collections["avalon"] = pcoll
+    PREVIEW_COLLECTIONS["avalon"] = pcoll
 
     for cls in classes:
         bpy.utils.register_class(cls)
@@ -302,7 +249,7 @@ def register():
 def unregister():
     """Unregister the operators and menu."""
 
-    pcoll = preview_collections.pop("avalon")
+    pcoll = PREVIEW_COLLECTIONS.pop("avalon")
     bpy.utils.previews.remove(pcoll)
     bpy.types.TOPBAR_MT_editor_menus.remove(draw_avalon_menu)
     for cls in reversed(classes):
