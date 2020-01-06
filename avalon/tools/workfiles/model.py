@@ -12,8 +12,7 @@ log = logging.getLogger(__name__)
 
 class FilesModel(TreeModel):
     """Model listing files with specified extensions in a root folder"""
-    Columns = ["filename",
-               "date"]
+    Columns = ["filename", "date"]
 
     FileNameRole = QtCore.Qt.UserRole + 2
     DateModifiedRole = QtCore.Qt.UserRole + 3

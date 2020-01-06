@@ -45,12 +45,10 @@ class NameWindow(QtWidgets.QDialog):
 
         # Set work file data for template formatting
         self.data = {
-            "project": io.find_one(
-                {"name": session["AVALON_PROJECT"], "type": "project"}
-            ),
-            "asset": io.find_one(
-                {"name": session["AVALON_ASSET"], "type": "asset"}
-            ),
+            "project": io.find_one({"name": session["AVALON_PROJECT"],
+                                    "type": "project"}),
+            "asset": io.find_one({"name": session["AVALON_ASSET"],
+                                  "type": "asset"}),
             "task": {
                 "name": session["AVALON_TASK"].lower(),
                 "label": session["AVALON_TASK"]

@@ -47,8 +47,10 @@ def work_root(session):
         with open_file(workspace_mel, "r") as f:
             for line in f:
                 if line.strip().startswith(scene_rule):
-                    remainder = line[len(scene_rule):]      # == "rule";
-                    scene_dir = remainder.split('"')[1]     # == rule
+                    # remainder == "rule";
+                    remainder = line[len(scene_rule):]
+                    # scene_dir == rule
+                    scene_dir = remainder.split('"')[1]
     else:
         # We can't query a workspace that does not exist
         # so we return similar to what we do in other hosts.
