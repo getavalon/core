@@ -169,7 +169,7 @@ def parse_container(node):
         dict: The container schema data for this container node.
 
     """
-    data = lib.read(node)
+    data = lib.get_avalon_knob_data(node)
 
     # Store the node's name
     data["objectName"] = node["name"].value()
