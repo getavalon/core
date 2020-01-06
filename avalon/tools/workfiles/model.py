@@ -55,7 +55,18 @@ class FilesModel(TreeModel):
             return
 
         if not os.path.exists(root):
-            log.error("Work root does not exist: %s" % root)
+            # Add Work Area does not exist placeholder
+            log.debug("Work Area does not exist: %s", root)
+            message = "Work Area does not exist. Use Save As to create it."
+            item = Item({
+                "filename": message,
+                "date": None,
+                "filepath": None,
+                "enabled": False,
+                "icon": qtawesome.icon("fa.times",
+                                       color=style.colors.mid)
+            })
+            self.add_child(item)
             self.endResetModel()
             return
 
@@ -88,8 +99,12 @@ class FilesModel(TreeModel):
 
         if role == QtCore.Qt.DecorationRole:
             # Add icon to filename column
+            item = index.internalPointer()
             if index.column() == 0:
-                return self._icons["file"]
+                if item["filepath"]:
+                    return self._icons["file"]
+                else:
+                    return item.get("icon", None)
         if role == self.FileNameRole:
             item = index.internalPointer()
             return item["filename"]

@@ -196,7 +196,7 @@ class NameWindow(QtWidgets.QDialog):
             self.widgets["versionValue"].setEnabled(False)
 
             # Find matching files
-            files = os.listdir(self.root)
+            files = os.listdir(self.root) if os.path.exists(self.root) else []
 
             # Fast match on extension
             extensions = self.host.file_extensions()
@@ -362,7 +362,7 @@ class TasksWidget(QtWidgets.QWidget):
             return index.data(QtCore.Qt.DisplayRole)
 
 
-class FilesWidget(QtWidgets.QStackedWidget):
+class FilesWidget(QtWidgets.QWidget):
     """A widget displaying files that allows to save and open files."""
     def __init__(self, parent=None):
         super(FilesWidget, self).__init__(parent=parent)
@@ -381,17 +381,11 @@ class FilesWidget(QtWidgets.QStackedWidget):
         # (setting parent doesn't work as it hides the message box)
         self._messagebox = None
 
-        pages = {
-            "home": QtWidgets.QWidget(),
-            "init": QtWidgets.QWidget()
-        }
-
         widgets = {
             "filter": QtWidgets.QLineEdit(),
             "list": QtWidgets.QTreeView(),
             "open": QtWidgets.QPushButton("Open"),
             "browse": QtWidgets.QPushButton("Browse"),
-            "create": QtWidgets.QPushButton("Create Work Area"),
             "save": QtWidgets.QPushButton("Save As")
         }
 
@@ -413,6 +407,7 @@ class FilesWidget(QtWidgets.QStackedWidget):
         widgets["list"].setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         # Date modified delegate
         widgets["list"].setItemDelegateForColumn(1, delegates["time"])
+        widgets["list"].setIndentation(3)   # smaller indentation
 
         # Default to a wider first filename column it is what we mostly care
         # about and the date modified is relatively small anyway.
@@ -431,24 +426,11 @@ class FilesWidget(QtWidgets.QStackedWidget):
         layout.addWidget(widgets["save"])
 
         # Build files widgets for home page
-        layout = QtWidgets.QVBoxLayout(pages["home"])
+        layout = QtWidgets.QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(widgets["filter"])
         layout.addWidget(widgets["list"])
         layout.addWidget(buttons)
-
-        # Initialize Work Area Page
-        layout = QtWidgets.QVBoxLayout(pages["init"])
-        layout.addStretch(1)
-        label = QtWidgets.QLabel("<b>Work area does not exist.</b>")
-        label.setAlignment(QtCore.Qt.AlignCenter)
-        layout.addWidget(label)
-        layout.addWidget(widgets["create"])
-        layout.addStretch(10)
-
-        # Add pages
-        self.addWidget(pages["home"])
-        self.addWidget(pages["init"])
 
         widgets["list"].doubleClicked.connect(self.on_open_pressed)
         widgets["list"].customContextMenuRequested.connect(
@@ -457,9 +439,7 @@ class FilesWidget(QtWidgets.QStackedWidget):
         widgets["open"].pressed.connect(self.on_open_pressed)
         widgets["browse"].pressed.connect(self.on_browse_pressed)
         widgets["save"].pressed.connect(self.on_save_as_pressed)
-        widgets["create"].pressed.connect(self.on_create_pressed)
 
-        self.pages = pages
         self.widgets = widgets
         self.delegates = delegates
 
@@ -474,11 +454,10 @@ class FilesWidget(QtWidgets.QStackedWidget):
             session = self._get_session()
             self.root = self.host.work_root(session)
 
-            if not os.path.exists(self.root):
-                self.setCurrentWidget(self.pages["init"])
-            else:
-                self.setCurrentWidget(self.pages["home"])
-                self.model.set_root(self.root)
+            exists = os.path.exists(self.root)
+            self.widgets["browse"].setEnabled(exists)
+            self.widgets["open"].setEnabled(exists)
+            self.model.set_root(self.root)
         else:
             self.model.set_root(None)
 
@@ -633,19 +612,32 @@ class FilesWidget(QtWidgets.QStackedWidget):
         self.open_file(work_file)
 
     def on_save_as_pressed(self):
-        work_file = self.get_filename()
 
+        work_file = self.get_filename()
         if not work_file:
             return
+
+        # Initialize work directory if it has not been initialized before
+        if not os.path.exists(self.root):
+            log.debug("Initializing Work Directory: %s", self.root)
+            self.initialize_work_directory()
+            if not os.path.exists(self.root):
+                # Failed to initialize Work Directory
+                log.error("Failed to initialize Work Directory: "
+                          "%s", self.root)
+                return
 
         file_path = os.path.join(self.root, work_file)
 
         self._enter_session()   # Make sure we are in the right session
         self.host.save_file(file_path)
+        self.set_asset_task(self._asset, self._task)
         self.refresh()
 
-    def on_create_pressed(self):
-        """On "Create Work Area" clicked.
+    def initialize_work_directory(self):
+        """Initialize Work Directory.
+
+        This is used when the Work Directory does not exist yet.
 
         This finds the current AVALON_APP_NAME and tries to triggers its
         `.toml` initialization step. Note that this will only be valid
