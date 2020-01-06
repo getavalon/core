@@ -107,7 +107,7 @@ def parse_container(node):
         dict: The container schema data for this container node.
 
     """
-    data = lib.read(node)
+    data = lib.get_avalon_knob_data(node)
 
     # (TODO) Remove key validation when `ls` has re-implemented.
     #

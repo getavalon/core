@@ -16,6 +16,8 @@ imprint = knobby.util.imprint
 read = knobby.util.read
 mold = knobby.util.mold
 
+AVALON_TAB = "avalon"
+
 
 @contextlib.contextmanager
 def maintained_selection():
@@ -72,11 +74,11 @@ def add_publish_knob(node):
         body = OrderedDict()
         body[("divd", "")] = Knobby("Text_Knob", "")
         body["publish"] = True
-        imprint(node, body)
+        imprint(node, body, tab=AVALON_TAB)
     return node
 
 
-def set_avalon_knob_data(node, data=None, prefix="avalon:"):
+def set_avalon_knob_data(node, data=None):
     """ Sets data into nodes's avalon knob
 
     Arguments:
@@ -97,47 +99,32 @@ def set_avalon_knob_data(node, data=None, prefix="avalon:"):
     data = data or dict()
     create = OrderedDict()
 
-    tab_name = "AvalonTab"
     editable = ["asset", "subset", "name", "namespace"]
 
-    existed_knobs = node.knobs()
-
     for key, value in data.items():
-        knob_name = prefix + key
-        gui_name = key
-
-        if knob_name in existed_knobs:
-            # Set value
-            node[knob_name].setValue(value)
+        if key in editable:
+            create[key] = value
         else:
-            # New knob
-            name = (knob_name, gui_name)  # Hide prefix on GUI
-            if key in editable:
-                create[name] = value
-            else:
-                create[name] = Knobby("String_Knob",
-                                      str(value),
-                                      flags=[nuke.READ_ONLY])
+            create[key] = Knobby("String_Knob",
+                                 str(value),
+                                 flags=[nuke.READ_ONLY])
 
-    if tab_name in existed_knobs:
-        tab_name = None
-    else:
-        tab = OrderedDict()
-        warn = Knobby("Text_Knob", "Warning! Do not change following data!")
-        divd = Knobby("Text_Knob", "")
-        head = [
-            (("warn", ""), warn),
-            (("divd", ""), divd),
-        ]
-        tab["avalonDataGroup"] = OrderedDict(head + create.items())
-        create = tab
+    tab = OrderedDict()
+    warn = Knobby("Text_Knob", "Warning! Do not change following data!")
+    divd = Knobby("Text_Knob", "")
+    head = [
+        (("warn", ""), warn),
+        (("divd", ""), divd),
+    ]
+    tab["avalonDataGroup"] = OrderedDict(head + create.items())
+    create = tab
 
-    imprint(node, create, tab=tab_name)
+    imprint(node, create, tab=AVALON_TAB)
 
     return node
 
 
-def get_avalon_knob_data(node, prefix="avalon:"):
+def get_avalon_knob_data(node):
     """ Get data from nodes's avalon knob
 
     Arguments:
@@ -147,12 +134,17 @@ def get_avalon_knob_data(node, prefix="avalon:"):
     Returns:
         data (dict)
     """
-    data = {
-        knob[len(prefix):]: node[knob].value()
-        for knob in node.knobs().keys()
-        if knob.startswith(prefix)
-    }
-    return data
+    def compat_prefixed(knob_name):
+        if knob_name.startswith("avalon:avalonDataGroup:"):
+            return knob_name[len("avalon:avalonDataGroup:"):]
+        elif knob_name.startswith("avalon:"):
+            return knob_name[len("avalon:"):]
+        elif knob_name.startswith("ak:"):
+            return knob_name[len("ak:"):]
+        else:
+            return None
+
+    return read(node, filter=compat_prefixed)
 
 
 def fix_data_for_node_create(data):
