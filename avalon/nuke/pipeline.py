@@ -161,14 +161,6 @@ def parse_container(node):
     """
     data = lib.read(node)
 
-    # (TODO) Remove key validation when `ls` has re-implemented.
-    #
-    # If not all required data return the empty container
-    required = ["schema", "id", "name",
-                "namespace", "loader", "representation"]
-    if not all(key in data for key in required):
-        return
-
     # Store the node's name
     data["objectName"] = node["name"].value()
     # Store reference to the node object
