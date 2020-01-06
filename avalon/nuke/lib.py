@@ -5,13 +5,21 @@ import re
 import logging
 from collections import OrderedDict
 
-from ..vendor import six
+from ..vendor import six, clique
 
 log = logging.getLogger(__name__)
 
 
 @contextlib.contextmanager
 def maintained_selection():
+    """Maintain selection during context
+
+    Example:
+        >>> with maintained_selection():
+        ...     node['selected'].setValue(True)
+        >>> print(node['selected'].value())
+        False
+    """
     previous_selection = nuke.selectedNodes()
     try:
         yield
@@ -22,6 +30,25 @@ def maintained_selection():
         # and select all previously selected nodes
         if previous_selection:
             [n['selected'].setValue(True) for n in previous_selection]
+
+
+def reset_selection():
+    """Deselect all selected nodes
+    """
+    for node in nuke.selectedNodes():
+        node["selected"] = False
+
+
+def select_nodes(nodes):
+    """Selects all inputed nodes
+
+    Arguments:
+        nodes (list): nuke nodes to be selected
+    """
+    assert isinstance(nodes, (list, tuple)), "nodes has to be list or tuple"
+
+    for node in nodes:
+        node["selected"].setValue(True)
 
 
 def imprint(node, data, tab=None):
@@ -357,20 +384,26 @@ def get_avalon_knob_data(node, prefix="avalon:"):
 
 
 def fix_data_for_node_create(data):
+    """Fixing data to be used for nuke knobs
+    """
     for k, v in data.items():
-
-        data[k] = str(v)
-
-        if "True" in v:
-            data[k] = True
-        if "False" in v:
-            data[k] = False
-        if "0x" in v:
+        if isinstance(v, six.text_type):
+            data[k] = str(v)
+        if str(v).startswith("0x"):
             data[k] = int(v, 16)
     return data
 
 
 def add_write_node(name, **kwarg):
+    """Adding nuke write node
+
+    Arguments:
+        name (str): nuke node name
+        kwarg (attrs): data for nuke knobs
+
+    Returns:
+        node (obj): nuke write node
+    """
     frame_range = kwarg.get("frame_range", None)
 
     w = nuke.createNode(
@@ -394,31 +427,30 @@ def add_write_node(name, **kwarg):
         w["first"].setValue(frame_range[0])
         w["last"].setValue(frame_range[1])
 
-    log.info(w)
     return w
 
 
 def get_node_path(path, padding=4):
     """Get filename for the Nuke write with padded number as '#'
 
-    >>> get_frame_path("test.exr")
-    ('test', 4, '.exr')
-
-    >>> get_frame_path("filename.#####.tif")
-    ('filename.', 5, '.tif')
-
-    >>> get_frame_path("foobar##.tif")
-    ('foobar', 2, '.tif')
-
-    >>> get_frame_path("foobar_%08d.tif")
-    ('foobar_', 8, '.tif')
-
-    Args:
+    Arguments:
         path (str): The path to render to.
 
     Returns:
         tuple: head, padding, tail (extension)
 
+    Examples:
+        >>> get_frame_path("test.exr")
+        ('test', 4, '.exr')
+
+        >>> get_frame_path("filename.#####.tif")
+        ('filename.', 5, '.tif')
+
+        >>> get_frame_path("foobar##.tif")
+        ('foobar', 2, '.tif')
+
+        >>> get_frame_path("foobar_%08d.tif")
+        ('foobar_', 8, '.tif')
     """
     filename, ext = os.path.splitext(path)
 
@@ -440,3 +472,38 @@ def get_node_path(path, padding=4):
             filename = filename.replace(match.group(1), '')
 
     return filename, padding, ext
+
+
+def ls_img_sequence(path):
+    """Listing all available coherent image sequence from path
+
+    Arguments:
+        path (str): A nuke's node object
+
+    Returns:
+        data (dict): with nuke formated path and frameranges
+    """
+    file = os.path.basename(path)
+    dir = os.path.dirname(path)
+    base, ext = os.path.splitext(file)
+    name, padding = os.path.splitext(base)
+
+    # populate list of files
+    files = [f for f in os.listdir(dir)
+             if name in f
+             if ext in f]
+
+    # create collection from list of files
+    collections, reminder = clique.assemble(files)
+
+    if len(collections) > 0:
+        head = collections[0].format("{head}")
+        padding = collections[0].format("{padding}") % 1
+        padding = "#" * len(padding)
+        tail = collections[0].format("{tail}")
+        file = head + padding + tail
+
+        return {"path": os.path.join(dir, file).replace("\\", "/"),
+                "frames": collections[0].format("[{ranges}]")}
+    else:
+        return False
