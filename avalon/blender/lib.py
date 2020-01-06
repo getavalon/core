@@ -94,8 +94,8 @@ def lsattrs(attrs: Dict) -> List:
 
     # For now return all objects, not filtered by scene/collection/view_layer.
     matches = set()
-    for coll in dir(bpy.context.blend_data):
-        nodes = getattr(bpy.context.blend_data, coll, None)
+    for coll in dir(bpy.data):
+        nodes = getattr(bpy.data, coll, None)
         if not isinstance(
             nodes, bpy.types.bpy_prop_collection,
         ):
