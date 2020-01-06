@@ -392,6 +392,83 @@ def find_copies(source, group=None, recursive=True):
     return copies
 
 
+@contextlib.contextmanager
+def sync_copies(nodes, force=False):
+    """Context manager for Syncing nodes' knobs
+
+    When updating subset by `Loader.update`, use this context to auto sync all
+    copies of the subset.
+
+    By default, only knobs that haven't been modified, compares to the original
+    one inside the "AVALON_CONTAINERS". But if `force` set to True, all knobs
+    will be updated.
+
+    Example:
+        ```
+        class Loader(avalon.api.Loader):
+
+            def update(self, container, representation):
+
+                with lib.sync_copies(nodes):
+                    # Update subset
+                    ...
+                # All copies of `nodes` updated
+
+                with lib.sync_copies([container_node], force=True):
+                    # Update container data
+                    ...
+                # All copies of `container_node` updated
+
+        ```
+
+    Args:
+        nodes (list): Nodes to sync
+        force (bool, optional): Whether to force updating all knobs
+
+    """
+    def is_knob_eq(knob_a, knob_b):
+        return knob_a.toScript() == knob_b.toScript()
+
+    def sync_knob(knob_a, knob_b):
+        script = knob_a.toScript()
+        knob_b.fromScript(script)
+
+    staged = dict()
+    origin = dict()
+
+    # Collect knobs for updating
+    for node in nodes:
+        targets = list()
+
+        sources = node.knobs()
+        origin[node] = sources
+
+        for copy in find_copies(node):
+            for name, knob in copy.knobs().items():
+                if name not in sources:
+                    continue
+                # Only update knob that hasn't been modified
+                if force or is_knob_eq(sources[name], knob):
+                    targets.append(knob.fullyQualifiedName())
+
+        if targets:
+            staged[node] = targets
+
+    try:
+        yield  # Update `nodes`
+
+    finally:
+        # Sync update result to all copies
+        for node, targets in staged.items():
+            updates = origin[node]
+
+            for knob in targets:
+                copied, knob = knob.rsplit(".", 1)
+                copied = nuke.toNode(copied)
+
+                sync_knob(updates[knob], copied[knob])
+
+
 def add_publish_knob(node):
     """Add Publish knob to node
 
