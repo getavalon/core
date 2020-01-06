@@ -1,13 +1,11 @@
 import os
 import logging
-from datetime import datetime
 
-from ... import io, style
+from ... import style
 from ...vendor.Qt import QtCore
 from ...vendor import qtawesome
 
 from ..models import TreeModel, Item
-from .. import lib
 
 log = logging.getLogger(__name__)
 

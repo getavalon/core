@@ -7,7 +7,6 @@ import logging
 import platform
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ...vendor import qtawesome
 from ... import style, io, api, pipeline
 
 from .. import lib as tools_lib
