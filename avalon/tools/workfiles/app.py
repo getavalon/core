@@ -263,65 +263,8 @@ class NameWindow(QtWidgets.QDialog):
             ok.setEnabled(True)
 
 
-class ContextBreadcrumb(QtWidgets.QWidget):
-    """Horizontal widget showing current avalon project, asset and task."""
-
-    def __init__(self, *args):
-        QtWidgets.QWidget.__init__(self, *args)
-
-        self.context = {}
-        self.widgets = {
-            "projectIcon": QtWidgets.QLabel(),
-            "assetIcon": QtWidgets.QLabel(),
-            "project": QtWidgets.QLabel(),
-            "asset": QtWidgets.QLabel(),
-            "task": QtWidgets.QLabel(),
-            "taskIcon": QtWidgets.QLabel(),
-        }
-
-        layout = QtWidgets.QHBoxLayout(self)
-        layout.addWidget(self.widgets["projectIcon"])
-        layout.addWidget(self.widgets["project"])
-        layout.addWidget(QtWidgets.QLabel(u"\u25B6"))
-        layout.addWidget(self.widgets["assetIcon"])
-        layout.addWidget(self.widgets["asset"])
-        layout.addWidget(QtWidgets.QLabel(u"\u25B6"))
-        layout.addWidget(self.widgets["taskIcon"])
-        layout.addWidget(self.widgets["task"])
-        layout.addStretch()
-
-        for name in ["project", "asset", "task"]:
-            self.widgets[name].setStyleSheet("QLabel{ font-size: 12pt; }")
-
-    def refresh(self):
-        self.set_session(api.Session)
-
-    def set_session(self, session):
-
-        self.context = {
-            "project": session["AVALON_PROJECT"],
-            "asset": session["AVALON_ASSET"],
-            "task": session["AVALON_TASK"]
-        }
-
-        # Refresh labels
-        for key, value in self.context.items():
-            self.widgets[key].setText(value)
-
-        # todo: match icons from database when supplied
-        icons = {
-            "projectIcon": "fa.map",
-            "assetIcon": "fa.plus-square",
-            "taskIcon": "fa.male"
-        }
-
-        for key, value in icons.items():
-            icon = qtawesome.icon(value,
-                                  color=style.colors.default).pixmap(18, 18)
-            self.widgets[key].setPixmap(icon)
-
-
 class TasksWidget(QtWidgets.QWidget):
+    """Widget showing active Tasks"""
 
     task_changed = QtCore.Signal()
 
@@ -342,7 +285,6 @@ class TasksWidget(QtWidgets.QWidget):
         view.setColumnHidden(1, True)
 
         selection = view.selectionModel()
-        #selection.selectionChanged.connect(self.selection_changed)
         selection.currentChanged.connect(self.task_changed)
 
         self.models = {
@@ -423,8 +365,8 @@ class TasksWidget(QtWidgets.QWidget):
             return index.data(QtCore.Qt.DisplayRole)
 
 
-class FilesWidget(QtWidgets.QWidget):
-    """A widget displaying files that allows to save"""
+class FilesWidget(QtWidgets.QStackedWidget):
+    """A widget displaying files that allows to save and open files."""
     def __init__(self, parent=None):
         super(FilesWidget, self).__init__(parent=parent)
 
@@ -442,12 +384,17 @@ class FilesWidget(QtWidgets.QWidget):
         # (setting parent doesn't work as it hides the message box)
         self._messagebox = None
 
+        pages = {
+            "home": QtWidgets.QWidget(),
+            "init": QtWidgets.QWidget()
+        }
+
         widgets = {
             "filter": QtWidgets.QLineEdit(),
             "list": QtWidgets.QTreeView(),
-            "duplicate": QtWidgets.QPushButton("Duplicate"),
             "open": QtWidgets.QPushButton("Open"),
             "browse": QtWidgets.QPushButton("Browse"),
+            "create": QtWidgets.QPushButton("Create Work Area"),
             "save": QtWidgets.QPushButton("Save As")
         }
 
@@ -477,6 +424,7 @@ class FilesWidget(QtWidgets.QWidget):
         widgets["filter"].textChanged.connect(self.proxy.setFilterFixedString)
         widgets["filter"].setPlaceholderText("Filter files..")
 
+        # Home Page
         # Build buttons widget for files widget
         buttons = QtWidgets.QWidget()
         layout = QtWidgets.QHBoxLayout(buttons)
@@ -485,22 +433,36 @@ class FilesWidget(QtWidgets.QWidget):
         layout.addWidget(widgets["browse"])
         layout.addWidget(widgets["save"])
 
-        # Build files widgets
-        layout = QtWidgets.QVBoxLayout(self)
+        # Build files widgets for home page
+        layout = QtWidgets.QVBoxLayout(pages["home"])
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(widgets["filter"])
         layout.addWidget(widgets["list"])
         layout.addWidget(buttons)
 
+        # Initialize Work Area Page
+        layout = QtWidgets.QVBoxLayout(pages["init"])
+        layout.addStretch(1)
+        label = QtWidgets.QLabel("<b>Work area does not exist.</b>")
+        label.setAlignment(QtCore.Qt.AlignCenter)
+        layout.addWidget(label)
+        layout.addWidget(widgets["create"])
+        layout.addStretch(10)
+
+        # Add pages
+        self.addWidget(pages["home"])
+        self.addWidget(pages["init"])
+
         widgets["list"].doubleClicked.connect(self.on_open_pressed)
         widgets["list"].customContextMenuRequested.connect(
             self.on_context_menu
         )
-        widgets["duplicate"].pressed.connect(self.on_duplicate_pressed)
         widgets["open"].pressed.connect(self.on_open_pressed)
         widgets["browse"].pressed.connect(self.on_browse_pressed)
         widgets["save"].pressed.connect(self.on_save_as_pressed)
+        widgets["create"].pressed.connect(self.on_create_pressed)
 
+        self.pages = pages
         self.widgets = widgets
         self.delegates = delegates
 
@@ -514,7 +476,12 @@ class FilesWidget(QtWidgets.QWidget):
         if self._asset and self._task:
             session = self._get_session()
             self.root = self.host.work_root(session)
-            self.model.set_root(self.root)
+
+            if not os.path.exists(self.root):
+                self.setCurrentWidget(self.pages["init"])
+            else:
+                self.setCurrentWidget(self.pages["home"])
+                self.model.set_root(self.root)
         else:
             self.model.set_root(None)
 
@@ -588,6 +555,10 @@ class FilesWidget(QtWidgets.QWidget):
         messagebox.setStandardButtons(
             messagebox.Yes | messagebox.No | messagebox.Cancel
         )
+
+        # Parenting the QMessageBox to the Widget seems to crash
+        # so we skip parenting and explicitly apply the stylesheet.
+        messagebox.setStyleSheet(style.load_stylesheet())
 
         result = messagebox.exec_()
 
@@ -676,6 +647,43 @@ class FilesWidget(QtWidgets.QWidget):
         self.host.save_file(file_path)
         self.refresh()
 
+    def on_create_pressed(self):
+        """On "Create Work Area" clicked.
+
+        This finds the current AVALON_APP_NAME and tries to triggers its
+        `.toml` initialization step. Note that this will only be valid
+        whenever `AVALON_APP_NAME` is actually set in the current session.
+
+        """
+
+        # Inputs (from the switched session and running app)
+        session = api.Session.copy()
+        changes = pipeline.compute_session_changes(session,
+                                                   asset=self._asset,
+                                                   task=self._task)
+        session.update(changes)
+
+        # Find the application definition
+        app_name = os.environ.get("AVALON_APP_NAME")
+        if not app_name:
+            log.error("No AVALON_APP_NAME session variable is set. "
+                      "Unable to initialize app Work Directory.")
+            return
+
+        app_definition = pipeline.lib.get_application(app_name)
+        App = type("app_%s" % app_name,
+                   (pipeline.Application,),
+                   {"config": app_definition.copy()})
+
+        # Initialize within the new session's environment
+        app = App()
+        env = app.environ(session)
+        app.initialize(env)
+
+        # Force a full to the asset as opposed to just self.refresh() so
+        # that it will actually check again whether the Work directory exists
+        self.set_asset_task(self._asset, self._task)
+
     def refresh(self):
         """Refresh listed files for current selection in the interface"""
         self.model.refresh()
@@ -745,7 +753,6 @@ class Window(QtWidgets.QMainWindow):
 
         widgets = {
             "pages": QtWidgets.QStackedWidget(),
-            "header": ContextBreadcrumb(),
             "body": QtWidgets.QWidget(),
             "assets": AssetWidget(silo_creatable=False),
             "tasks": TasksWidget(),
@@ -757,7 +764,6 @@ class Window(QtWidgets.QMainWindow):
 
         # Build home
         layout = QtWidgets.QVBoxLayout(pages["home"])
-        #layout.addWidget(widgets["header"])
         layout.addWidget(widgets["body"])
 
         # Build home - body
@@ -823,9 +829,6 @@ class Window(QtWidgets.QMainWindow):
 
         # Refresh asset widget
         self.widgets["assets"].refresh()
-
-        # Refresh breadcrumbs
-        #self.widgets["header"].set_session(session)
 
         self._on_task_changed()
 
