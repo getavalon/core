@@ -1,15 +1,15 @@
 import os
 import sys
 import importlib
-import contextlib
 import logging
 from collections import OrderedDict
+from __builtin__ import reload
 
 import nuke
 from pyblish import api as pyblish
 
-from . import lib
-from .. import api, io
+from . import lib, command
+from .. import api
 from ..vendor.Qt import QtWidgets
 from ..pipeline import AVALON_CONTAINER_ID
 
@@ -33,28 +33,25 @@ def reload_pipeline():
     api.uninstall()
     _uninstall_menu()
 
-    for module in ("avalon.io",
+    for module in ("avalon.api",
+                   "avalon.io",
                    "avalon.lib",
                    "avalon.pipeline",
-                   "avalon.nuke.pipeline",
-                   "avalon.nuke.lib",
-                   "avalon.tools.loader.app",
-                   "avalon.tools.creator.app",
-                   "avalon.tools.manager.app",
-
-                   "avalon.api",
                    "avalon.tools",
                    "avalon.nuke",
-                   "{}".format(AVALON_CONFIG),
-                   "{}.lib".format(AVALON_CONFIG)):
+                   "avalon.nuke.pipeline",
+                   "avalon.nuke.lib",
+                   "avalon.nuke.workio"
+                   ):
+
         log.info("Reloading module: {}...".format(module))
+
         module = importlib.import_module(module)
-        importlib.reload(module)
+        reload(module)
 
     import avalon.nuke
     api.install(avalon.nuke)
 
-    _install_menu()
     _register_events()
 
 
@@ -107,28 +104,25 @@ def parse_container(node):
         node (nuke.Node): Nuke's node object to read imprinted data
 
     Returns:
-        container (dict): imprinted container data
+        dict: The container schema data for this container node.
+
     """
-    data = lib.get_avalon_knob_data(node)
+    data = lib.read(node)
 
-    if not isinstance(data, dict):
-        return
-
+    # (TODO) Remove key validation when `ls` has re-implemented.
+    #
     # If not all required data return the empty container
     required = ["schema", "id", "name",
                 "namespace", "loader", "representation"]
-
     if not all(key in data for key in required):
         return
 
-    container = {key: data[key] for key in required}
-
     # Store the node's name
-    container["objectName"] = node["name"].value()
+    data["objectName"] = node["name"].value()
     # Store reference to the node object
-    container["_node"] = node
+    data["_node"] = node
 
-    return container
+    return data
 
 
 def update_container(node, keys=None):
@@ -158,19 +152,39 @@ def update_container(node, keys=None):
 
 
 class Creator(api.Creator):
+    """Creator class wrapper
+    """
+    node_color = "0xdfea5dff"
+
     def process(self):
-        nodes = nuke.allNodes()
+        from nukescripts import autoBackdrop
+
+        instance = None
 
         if (self.options or {}).get("useSelection"):
+
             nodes = nuke.selectedNodes()
+            if not nodes:
+                nuke.message("Please select nodes that you "
+                             "wish to add to a container")
+                return
 
-        nodes = [n for n in nodes
-                 if n["name"].value() in self.name] or None
+            elif len(nodes) == 1:
+                # only one node is selected
+                instance = nodes[0]
 
-        node = nodes[0]
-        lib.set_avalon_knob_data(node, self.data)
-        lib.add_publish_knob(node)
-        instance = node
+        if not instance:
+            # Not using selection or multiple nodes selected
+            bckd_node = autoBackdrop()
+            bckd_node["tile_color"].setValue(int(self.node_color, 16))
+            bckd_node["note_font_size"].setValue(24)
+            bckd_node["label"].setValue("[{}]".format(self.name))
+
+            instance = bckd_node
+
+        # add avalon knobs
+        lib.set_avalon_knob_data(instance, self.data)
+        lib.add_publish_knob(instance)
 
         return instance
 
@@ -185,13 +199,14 @@ def ls():
     See the `container.json` schema for details on how it should look,
     and the Maya equivalent, which is in `avalon.maya.pipeline`
     """
-    all_nodes = nuke.allNodes(recurseGroups=True)
+    all_nodes = nuke.allNodes(recurseGroups=False)
 
     # TODO: add readgeo, readcamera, readimage
-    reads = [n for n in all_nodes if n.Class() == 'Read']
+    nodes = [n for n in all_nodes]
 
-    for r in reads:
-        container = parse_container(r)
+    for n in nodes:
+        log.debug("name: `{}`".format(n.name()))
+        container = parse_container(n)
         if container:
             yield container
 
@@ -245,7 +260,7 @@ def get_main_window():
 
 
 def uninstall(config):
-    """Uninstall all tha was installed
+    """Uninstall all that was previously installed
 
     This is where you undo everything that was done in `install()`.
     That means, removing menus, deregistering families and  data
@@ -265,6 +280,8 @@ def uninstall(config):
 
 
 def _install_menu():
+    """Installing Avalon menu to Nuke
+    """
     from ..tools import (
         creator,
         publish,
@@ -305,73 +322,20 @@ def _install_menu():
                     )
 
     menu.addSeparator()
-    menu.addCommand("Reset Frame Range", reset_frame_range)
-    menu.addCommand("Reset Resolution", reset_resolution)
+    menu.addCommand("Reset Frame Range", command.reset_frame_range)
+    menu.addCommand("Reset Resolution", command.reset_resolution)
 
-    menu.addSeparator()
-    menu.addCommand("Reload Pipeline", reload_pipeline)
+    # add reload pipeline only in debug mode
+    if bool(os.getenv("NUKE_DEBUG")):
+        menu.addSeparator()
+        menu.addCommand("Reload Pipeline", reload_pipeline)
 
 
 def _uninstall_menu():
+    """Uninstalling Avalon menu to Nuke
+    """
     menubar = nuke.menu("Nuke")
     menubar.removeItem(api.Session["AVALON_LABEL"])
-
-
-def reset_frame_range():
-    """Set frame range to current asset"""
-
-    fps = float(api.Session.get("AVALON_FPS", 25))
-
-    nuke.root()["fps"].setValue(fps)
-    asset = api.Session["AVALON_ASSET"]
-    asset = io.find_one({"name": asset, "type": "asset"})
-
-    try:
-        edit_in = asset["data"]["fstart"]
-        edit_out = asset["data"]["fend"]
-    except KeyError:
-        log.warning(
-            "Frame range not set! No edit information found for "
-            "\"{0}\".".format(asset["name"])
-        )
-        return
-
-    nuke.root()["first_frame"].setValue(edit_in)
-    nuke.root()["last_frame"].setValue(edit_out)
-
-
-def reset_resolution():
-    """Set resolution to project resolution."""
-    project = io.find_one({"type": "project"})
-
-    try:
-        width = project["data"].get("resolution_width", 1920)
-        height = project["data"].get("resolution_height", 1080)
-    except KeyError:
-        print(
-            "No resolution information found for \"{0}\".".format(
-                project["name"]
-            )
-        )
-        return
-
-    current_width = nuke.root()["format"].value().width()
-    current_height = nuke.root()["format"].value().height()
-
-    if width != current_width or height != current_height:
-
-        fmt = None
-        for f in nuke.formats():
-            if f.width() == width and f.height() == height:
-                fmt = f.name()
-
-        if not fmt:
-            nuke.addFormat(
-                "{0} {1} {2}".format(int(width), int(height), project["name"])
-            )
-            fmt = project["name"]
-
-        nuke.root()["format"].setValue(fmt)
 
 
 def publish():
@@ -393,19 +357,8 @@ def _on_task_changed(*args):
     _install_menu()
 
 
-@contextlib.contextmanager
-def viewer_update_and_undo_stop():
-    """Lock viewer from updating and stop recording undo steps"""
-    try:
-        # nuke = getattr(sys.modules["__main__"], "nuke", None)
-        # lock all connections between nodes
-        # nuke.Root().knob('lock_connections').setValue(1)
-
-        # stop active viewer to update any change
-        nuke.activeViewer().stop()
-        nuke.Undo.disable()
-        yield
-    finally:
-        # nuke.Root().knob('lock_connections').setValue(0)
-        # nuke.activeViewer().start()
-        nuke.Undo.enable()
+# Backwards compatibility
+reset_frame_range_handles = command.reset_frame_range
+get_handles = command.get_handles
+reset_resolution = command.reset_resolution
+viewer_update_and_undo_stop = command.viewer_update_and_undo_stop

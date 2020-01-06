@@ -4,7 +4,7 @@ from . import lib
 
 from .models import AssetModel, RecursiveSortFilterProxyModel
 from .views import DeselectableTreeView
-from ..vendor import qtawesome
+from ..vendor import qtawesome, qargparse
 from ..vendor.Qt import QtWidgets, QtCore, QtGui
 
 from .. import style
@@ -322,3 +322,201 @@ def _list_project_silos():
         log.warning("Project '%s' has no active silos", project["name"])
 
     return list(sorted(silos))
+
+
+class OptionalMenu(QtWidgets.QMenu):
+    """A subclass of `QtWidgets.QMenu` to work with `OptionalAction`
+
+    This menu has reimplemented `mouseReleaseEvent`, `mouseMoveEvent` and
+    `leaveEvent` to provide better action hightlighting and triggering for
+    actions that were instances of `QtWidgets.QWidgetAction`.
+
+    """
+
+    def mouseReleaseEvent(self, event):
+        """Emit option clicked signal if mouse released on it"""
+        active = self.actionAt(event.pos())
+        if active and active.use_option:
+            option = active.widget.option
+            if option.is_hovered(event.globalPos()):
+                option.clicked.emit()
+        super(OptionalMenu, self).mouseReleaseEvent(event)
+
+    def mouseMoveEvent(self, event):
+        """Add highlight to active action"""
+        active = self.actionAt(event.pos())
+        for action in self.actions():
+            action.set_highlight(action is active, event.globalPos())
+        super(OptionalMenu, self).mouseMoveEvent(event)
+
+    def leaveEvent(self, event):
+        """Remove highlight from all actions"""
+        for action in self.actions():
+            action.set_highlight(False)
+        super(OptionalMenu, self).leaveEvent(event)
+
+
+class OptionalAction(QtWidgets.QWidgetAction):
+    """Menu action with option box
+
+    A menu action like Maya's menu item with option box, implemented by
+    subclassing `QtWidgets.QWidgetAction`.
+
+    """
+
+    def __init__(self, label, icon, use_option, parent):
+        super(OptionalAction, self).__init__(parent)
+        self.label = label
+        self.icon = icon
+        self.use_option = use_option
+        self.option_tip = ""
+        self.optioned = False
+
+    def createWidget(self, parent):
+        widget = OptionalActionWidget(self.label, parent)
+        self.widget = widget
+
+        if self.icon:
+            widget.setIcon(self.icon)
+
+        if self.use_option:
+            widget.option.clicked.connect(self.on_option)
+            widget.option.setToolTip(self.option_tip)
+        else:
+            widget.option.setVisible(False)
+
+        return widget
+
+    def set_option_tip(self, options):
+        sep = "\n\n"
+        mak = (lambda opt: opt["name"] + " :\n    " + opt["help"])
+        self.option_tip = sep.join(mak(opt) for opt in options)
+
+    def on_option(self):
+        self.optioned = True
+
+    def set_highlight(self, state, global_pos=None):
+        body = self.widget.body
+        option = self.widget.option
+
+        role = QtGui.QPalette.Highlight if state else QtGui.QPalette.Window
+        body.setBackgroundRole(role)
+        body.setAutoFillBackground(state)
+
+        if not self.use_option:
+            return
+
+        state = option.is_hovered(global_pos)
+        role = QtGui.QPalette.Highlight if state else QtGui.QPalette.Window
+        option.setBackgroundRole(role)
+        option.setAutoFillBackground(state)
+
+
+class OptionalActionWidget(QtWidgets.QWidget):
+    """Main widget class for `OptionalAction`"""
+
+    def __init__(self, label, parent=None):
+        super(OptionalActionWidget, self).__init__(parent)
+
+        body = QtWidgets.QWidget()
+        body.setStyleSheet("background: transparent;")
+
+        icon = QtWidgets.QLabel()
+        label = QtWidgets.QLabel(label)
+        option = OptionBox(body)
+
+        icon.setFixedSize(24, 16)
+        option.setFixedSize(30, 30)
+
+        layout = QtWidgets.QHBoxLayout(body)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(2)
+        layout.addWidget(icon)
+        layout.addWidget(label)
+        layout.addSpacing(6)
+
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(6, 1, 2, 1)
+        layout.setSpacing(0)
+        layout.addWidget(body)
+        layout.addWidget(option)
+
+        body.setMouseTracking(True)
+        self.setMouseTracking(True)
+        self.setFixedHeight(32)
+
+        self.icon = icon
+        self.option = option
+        self.body = body
+
+        # (NOTE) For removing ugly QLable shadow FX when highlighted in Nuke.
+        #   See https://stackoverflow.com/q/52838690/4145300
+        label.setStyle(QtWidgets.QStyleFactory.create("Plastique"))
+
+    def setIcon(self, icon):
+        pixmap = icon.pixmap(16, 16)
+        self.icon.setPixmap(pixmap)
+
+
+class OptionBox(QtWidgets.QWidget):
+    """Option box widget class for `OptionalActionWidget`"""
+
+    clicked = QtCore.Signal()
+
+    def __init__(self, parent):
+        super(OptionBox, self).__init__(parent)
+
+        label = QtWidgets.QLabel()
+
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addSpacing(8)
+        layout.addWidget(label)
+
+        icon = qtawesome.icon("fa.sticky-note-o", color="#c6c6c6")
+        pixmap = icon.pixmap(18, 18)
+        label.setPixmap(pixmap)
+
+        label.setMouseTracking(True)
+        self.setMouseTracking(True)
+        self.setStyleSheet("background: transparent;")
+
+    def is_hovered(self, global_pos):
+        if global_pos is None:
+            return False
+        pos = self.mapFromGlobal(global_pos)
+        return self.rect().contains(pos)
+
+
+class OptionDialog(QtWidgets.QDialog):
+    """Option dialog shown by option box"""
+
+    def __init__(self, parent=None):
+        super(OptionDialog, self).__init__(parent)
+        self.setModal(True)
+        self._options = dict()
+
+    def create(self, options):
+        parser = qargparse.QArgumentParser(arguments=options)
+
+        decision = QtWidgets.QWidget()
+        accept = QtWidgets.QPushButton("Accept")
+        cancel = QtWidgets.QPushButton("Cancel")
+
+        layout = QtWidgets.QHBoxLayout(decision)
+        layout.addWidget(accept)
+        layout.addWidget(cancel)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(parser)
+        layout.addWidget(decision)
+
+        accept.clicked.connect(self.accept)
+        cancel.clicked.connect(self.reject)
+        parser.changed.connect(self.on_changed)
+
+    def on_changed(self, argument):
+        self._options[argument["name"]] = argument.read()
+
+    def parse(self):
+        return self._options.copy()

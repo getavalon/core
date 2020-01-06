@@ -1,3 +1,5 @@
+import numbers
+
 from ..vendor.Qt import QtWidgets, QtCore
 from .. import io
 
@@ -16,7 +18,7 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         return "v{0:03d}".format(value)
 
     def displayText(self, value, locale):
-        assert isinstance(value, int), "Version is not `int`"
+        assert isinstance(value, numbers.Integral), "Version is not integer"
         return self._format_version(value)
 
     def createEditor(self, parent, option, index):
@@ -46,7 +48,7 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
 
         # Current value of the index
         value = index.data(QtCore.Qt.DisplayRole)
-        assert isinstance(value, int), "Version is not `int`"
+        assert isinstance(value, numbers.Integral), "Version is not integer"
 
         # Add all available versions to the editor
         item = index.data(TreeModel.ItemRole)
