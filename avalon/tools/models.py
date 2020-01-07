@@ -62,7 +62,7 @@ class TreeModel(QtCore.QAbstractItemModel):
                 item[key] = value
 
                 # passing `list()` for PyQt5 (see PYSIDE-462)
-                args = () if Qt.IsPySide or Qt.IsPyQt4 else ([], )
+                args = () if Qt.IsPySide or Qt.IsPyQt4 else ([],)
                 self.dataChanged.emit(index, index, *args)
 
                 # must return true if successful
@@ -444,6 +444,7 @@ class AssetModel(TreeModel):
 
 class RecursiveSortFilterProxyModel(QtCore.QSortFilterProxyModel):
     """Filters to the regex if any of the children matches allow parent"""
+
     def filterAcceptsRow(self, row, parent):
 
         regex = self.filterRegExp()
