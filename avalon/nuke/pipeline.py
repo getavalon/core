@@ -9,6 +9,7 @@ import nuke
 from pyblish import api as pyblish
 
 from . import lib, command
+from ..lib import find_submodule
 from .. import api
 from ..vendor.Qt import QtWidgets
 from ..pipeline import AVALON_CONTAINER_ID
@@ -278,8 +279,8 @@ def ls():
     See the `container.json` schema for details on how it should look,
     and the Maya equivalent, which is in `avalon.maya.pipeline`
     """
-    config = find_host_config(api.registered_config())
-    has_metadata_collector = hasattr(config, "collect_container_metadata")
+    config_host = find_submodule(api.registered_config(), "nuke")
+    has_metadata_collector = hasattr(config_host, "collect_container_metadata")
 
     container_nodes = _ls()
 
@@ -290,7 +291,7 @@ def ls():
 
         # Collect custom data if attribute is present
         if has_metadata_collector:
-            metadata = config.collect_container_metadata(container)
+            metadata = config_host.collect_container_metadata(container)
             data.update(metadata)
 
         yield data
