@@ -550,6 +550,7 @@ class ThumbnailWidget(QtWidgets.QLabel):
     def set_pixmap(self, pixmap=None):
         if not pixmap:
             pixmap = self.default_pix
+            self.current_thumb_id = None
 
         self.current_thumbnail = pixmap
 
