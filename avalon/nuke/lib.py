@@ -159,10 +159,10 @@ def find_copies(source, group=None, recursive=True):
     copies = list()
     source_id = get_id(source)
     if source_id:
-        copies = lsattr("avalon:avalonId",
-                        type=source.Class(),
-                        group=group,
-                        recursive=recursive)
+        copies = lsattrs({"avalon:avalonId": source_id},
+                         type=source.Class(),
+                         group=group,
+                         recursive=recursive)
     return copies
 
 
