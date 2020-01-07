@@ -63,6 +63,7 @@ def containerise(name,
                  context,
                  loader=None,
                  data=None,
+                 no_backdrop=True,
                  suffix="CON"):
     """Bundle `node` into an assembly and imprint it with metadata
 
@@ -76,6 +77,7 @@ def containerise(name,
         context (dict): Asset information
         loader (str, optional): Name of node used to produce this container.
         data (dict, optional): Additional data to imprint.
+        no_backdrop (bool, optional): No container(backdrop) node presented.
         suffix (str, optional): Suffix of container, defaults to `_CON`.
 
     Returns:
@@ -152,6 +154,9 @@ def containerise(name,
     main_container.begin()
     nuke.nodePaste("_containerizing_")
     main_container.end()
+
+    if no_backdrop:
+        nuke.delete(container)
 
     return container
 
