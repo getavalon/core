@@ -28,8 +28,6 @@ def reload_pipeline():
 
     """
 
-    import importlib
-
     api.uninstall()
     _uninstall_menu()
 
@@ -227,24 +225,8 @@ def install(config):
     _register_events()
 
     pyblish.register_host("nuke")
-    # Trigger install on the config's "nuke" package
-    config = find_host_config(config)
-
-    if hasattr(config, "install"):
-        config.install()
 
     log.info("config.nuke installed")
-
-
-def find_host_config(config):
-    try:
-        config = importlib.import_module(config.__name__ + ".nuke")
-    except ImportError as exc:
-        if str(exc) != "No module name {}".format(config.__name__ + ".nuke"):
-            raise
-        config = None
-
-    return config
 
 
 def get_main_window():
@@ -270,9 +252,6 @@ def uninstall(config):
     modifying the menu or registered families.
 
     """
-    config = find_host_config(config)
-    if hasattr(config, "uninstall"):
-        config.uninstall()
 
     _uninstall_menu()
 
