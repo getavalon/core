@@ -26,11 +26,11 @@ TYPE_KNOBS_CLOSE = -1
 TYPE_GROUP_CLOSE = -3
 
 TAB_PATTERN = re.compile(
-    "addUserKnob {20 "
-    "(?P<name>\\S+)"
-    "(| l (?P<label>\".*\"|\\S+))"
-    "(| n (?P<type>1|-[1-3]))"
-    "}"
+    'addUserKnob {20 '
+    '(?P<name>\\S+)'
+    '(| l (?P<label>".*"|\\S+))'
+    '(| n (?P<type>1|-[1-3]))'
+    '}'
 )
 
 
