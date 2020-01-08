@@ -169,16 +169,6 @@ def _discover_gui() -> Optional[Callable]:
     return None
 
 
-def teardown():
-    """Remove integration"""
-
-    if not self._has_been_setup:
-        return
-
-    self._has_been_setup = False
-    logger.info("pyblish: Integration torn down successfully")
-
-
 def add_to_avalon_container(container: bpy.types.Collection):
     """Add the container to the Avalon container."""
 
