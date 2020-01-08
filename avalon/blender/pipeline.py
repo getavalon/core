@@ -11,14 +11,13 @@ import pyblish.api
 import pyblish.util
 
 from .. import api, schema
-from ..lib import logger
+from ..lib import find_submodule, logger
 from ..pipeline import AVALON_CONTAINER_ID
 from . import lib, ops
 
 self = sys.modules[__name__]
 self._events = dict()  # Registered Blender callbacks
 self._parent = None  # Main window
-self._ignore_lock = False
 
 AVALON_CONTAINERS = "AVALON_CONTAINERS"
 AVALON_PROPERTY = 'avalon'
@@ -92,18 +91,6 @@ def _register_events():
     logger.info("Installed event callback for 'taskChanged'...")
 
 
-def find_host_config(config: ModuleType) -> Optional[ModuleType]:
-    """Find the config for the current host (Blender)."""
-
-    config_name = f"{config.__name__}.blender"
-    try:
-        return importlib.import_module(config_name)
-    except ImportError as exc:
-        if str(exc) != f"No module named '{config_name}'":
-            raise
-        return None
-
-
 def install(config: ModuleType):
     """Install Blender-specific functionality for Avalon.
 
@@ -118,10 +105,6 @@ def install(config: ModuleType):
 
     pyblish.api.register_host("blender")
 
-    host_config = find_host_config(config)
-    if hasattr(host_config, "install"):
-        host_config.install()
-
 
 def uninstall(config: ModuleType):
     """Uninstall Blender-specific functionality of avalon-core.
@@ -131,10 +114,6 @@ def uninstall(config: ModuleType):
     Args:
         config: configuration module
     """
-
-    host_config = find_host_config(config)
-    if hasattr(config, "uninstall"):
-        host_config.uninstall()
 
     if not IS_HEADLESS:
         ops.unregister()
@@ -364,13 +343,8 @@ def ls() -> Iterator:
 
     containers = _ls()
 
-    has_metadata_collector = False
-    config = find_host_config(api.registered_config())
-    if config is None:
-        logger.error("Could not find host config for Blender")
-        return tuple()
-    if hasattr(config, "collect_container_metadata"):
-        has_metadata_collector = True
+    config = find_submodule(api.registered_config(), "blender")
+    has_metadata_collector = hasattr(config, "collect_container_metadata")
 
     for container in containers:
         data = parse_container(container)
