@@ -78,7 +78,7 @@ class LaunchQtApp(bpy.types.Operator):
         """
 
         # Check if `self._window` is properly set
-        if getattr(self, "_window") is None:
+        if getattr(self, "_window", None) is None:
             raise AttributeError("`self._window` should be set.")
         if not isinstance(self._window, (QtWidgets.QDialog, ModuleType)):
             raise AttributeError(
