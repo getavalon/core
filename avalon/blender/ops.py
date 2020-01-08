@@ -46,6 +46,7 @@ def _process_app_events(app: QtWidgets.QApplication) -> Optional[float]:
         app.processEvents()
         return TIMER_INTERVAL
 
+    bpy.context.window_manager['is_avalon_qt_timer_running'] = False
     return None
 
 
@@ -86,10 +87,14 @@ class LaunchQtApp(bpy.types.Operator):
         args = getattr(self, "_show_args", list())
         kwargs = getattr(self, "_show_kwargs", dict())
         self._window.show(*args, **kwargs)
-        bpy.app.timers.register(
-            partial(_process_app_events, self._app),
-            persistent=True,
-        )
+
+        wm = bpy.context.window_manager
+        if not wm.get('is_avalon_qt_timer_running', False):
+            bpy.app.timers.register(
+                partial(_process_app_events, self._app),
+                persistent=True,
+            )
+            wm['is_avalon_qt_timer_running'] = True
 
         return {'FINISHED'}
 
