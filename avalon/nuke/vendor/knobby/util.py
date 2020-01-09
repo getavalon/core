@@ -1,7 +1,14 @@
+import sys
 import re
 import nuke
 
 from . import parser
+
+
+if sys.version_info[0] == 3:  # PY3
+    string_types = str,
+else:
+    string_types = __builtins__.basestring,
 
 
 def imprint(node, data, tab=None):
@@ -102,7 +109,7 @@ def create_knobs(data, tab):
         int: nuke.Int_Knob
         float: nuke.Double_Knob
         list: nuke.Enumeration_Knob
-        str: nuke.String_Knob
+        string_types: nuke.String_Knob
 
         dict: If it's a nested dict (all values are dict), will turn into
             A tabs group. Or just a knobs group.
@@ -151,7 +158,7 @@ def create_knobs(data, tab):
             knob = nuke.Int_Knob(name, nice)
             knob.setValue(value)
 
-        elif isinstance(value, str):
+        elif isinstance(value, string_types):
             knob = nuke.String_Knob(name, nice)
             knob.setValue(value)
 
