@@ -22,7 +22,7 @@ self._parent = None  # Main Window cache
 AVALON_CONTAINERS = "AVALON_CONTAINERS"
 AVALON_CONFIG = os.environ["AVALON_CONFIG"]
 
-USE_OLD_CONTAINER_STYLE = os.getenv("AVALON_NUKE_CONTAINERS_AT_LARGE")
+USE_OLD_CONTAINER = os.getenv("AVALON_NUKE_OLD_CONTAINER")
 
 
 def reload_pipeline():
@@ -107,7 +107,7 @@ def containerise(name,
         **data or dict()
     )
 
-    if USE_OLD_CONTAINER_STYLE:
+    if USE_OLD_CONTAINER:
         node = nodes[0]
         lib.set_avalon_knob_data(node, data)
         return node
@@ -271,7 +271,7 @@ def _ls2():
             yield node
 
 
-_ls = _ls1 if USE_OLD_CONTAINER_STYLE else _ls2
+_ls = _ls1 if USE_OLD_CONTAINER else _ls2
 
 
 def ls():
