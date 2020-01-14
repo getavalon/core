@@ -82,7 +82,6 @@ def install(host):
 
     register_host(host)
     register_config(config)
-
     config.install()
 
     self._is_installed = True
@@ -94,7 +93,6 @@ def find_config():
     log.info("Finding configuration for project..")
 
     config = Session["AVALON_CONFIG"]
-
     if not config:
         raise EnvironmentError("No configuration found in "
                                "the project nor environment")
@@ -902,7 +900,7 @@ def create(name, asset, family, options=None, data=None):
                 print("Running %s" % plugin)
                 instance = plugin.process()
         except Exception:
-            log.warning(traceback.format_exc())
+            traceback.print_exception(*sys.exc_info())
             continue
         plugins.append(plugin)
 
@@ -983,18 +981,23 @@ def update_current_task(task=None, asset=None, app=None):
     project = io.find_one({"type": "project"},
                           projection={"config.template.work": True})
     template = project["config"]["template"]["work"]
+
+    hierarchy = asset_document["data"].get("hierarchy")
+    if hierarchy is None:
+        parents = asset_document["data"].get("parents") or []
+        hierarchy = os.path.sep.join(parents) or ""
+
+    changed['AVALON_HIERARCHY'] = hierarchy
+
     _session = Session.copy()
     _session.update(changed)
+
     workdir = os.path.normpath(_format_work_template(template, _session))
 
     changed["AVALON_WORKDIR"] = workdir
 
     if not os.path.exists(workdir):
         os.makedirs(workdir)
-
-    parents = asset_document["data"].get("parents") or []
-    hierarchy = os.path.sep.join(parents) or ""
-    changed['AVALON_HIERARCHY'] = hierarchy
 
     # Update the full session in one go to avoid half updates
     Session.update(changed)

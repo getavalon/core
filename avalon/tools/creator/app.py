@@ -297,10 +297,13 @@ class Window(QtWidgets.QDialog):
         # Get the asset from the database which match with the name
         asset = io.find_one({"name": asset_name, "type": "asset"},
                             projection={"_id": 1})
-
+        plugin = None
         if asset:
             # Get plugin and family
             plugin = item.data(PluginRole)
+
+        # check if item has family attr
+        if plugin and hasattr(plugin, "family"):
             family = plugin.family.rsplit(".", 1)[-1]
             regex = "{}*".format(family)
             existed_subset_split = family
@@ -351,7 +354,7 @@ class Window(QtWidgets.QDialog):
             else:
                 result.setText("{}{}".format(
                     family,
-                    subset_name.capitalize()
+                    subset_name
                 ))
 
             # Indicate subset existence
