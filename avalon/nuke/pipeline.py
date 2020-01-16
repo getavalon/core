@@ -209,7 +209,7 @@ def ls():
             yield container
 
 
-def install(config):
+def install():
     """Install Nuke-specific functionality of avalon-core.
 
     This is where you install menus and register families, data
@@ -241,7 +241,7 @@ def get_main_window():
     return self._parent
 
 
-def uninstall(config):
+def uninstall():
     """Uninstall all that was previously installed
 
     This is where you undo everything that was done in `install()`.
