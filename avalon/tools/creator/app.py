@@ -569,22 +569,8 @@ def show(debug=False, parent=None):
         del(module.window)
 
     if debug:
-        from avalon import mock
-        for creator in mock.creators:
-            api.register_plugin(api.Creator, creator)
-
         import traceback
         sys.excepthook = lambda typ, val, tb: traceback.print_last()
-
-        io.install()
-
-        any_project = next(
-            project for project in io.projects()
-            if project.get("active", True) is not False
-        )
-
-        api.Session["AVALON_PROJECT"] = any_project["name"]
-        module.project = any_project["name"]
 
     with lib.application():
         window = Window(parent)

@@ -496,8 +496,8 @@ def show(root=None, debug=False, parent=None):
         raise OSError("Root set for Work Files app does not exist: %s" % root)
 
     if debug:
-        api.Session["AVALON_ASSET"] = "Mock"
-        api.Session["AVALON_TASK"] = "Testing"
+        import traceback
+        sys.excepthook = lambda typ, val, tb: traceback.print_last()
 
     with tools_lib.application():
         window = Window(root, parent=parent)

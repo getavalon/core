@@ -228,8 +228,9 @@ def show(root=None, debug=False, parent=None):
     except (RuntimeError, AttributeError):
         pass
 
-    if debug is True:
-        io.install()
+    if debug:
+        import traceback
+        sys.excepthook = lambda typ, val, tb: traceback.print_last()
 
     with tools_lib.application():
         window = Window(parent)

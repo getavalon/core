@@ -211,7 +211,7 @@ class App(QtWidgets.QDialog):
         self._assets.select_assets([assetname], expand=True)
 
 
-def show(parent=None):
+def show(parent=None, debug=False):
 
     from avalon import style
     from ...tools import lib
@@ -220,6 +220,10 @@ def show(parent=None):
         del module.window
     except (RuntimeError, AttributeError):
         pass
+
+    if debug:
+        import traceback
+        sys.excepthook = lambda typ, val, tb: traceback.print_last()
 
     with lib.application():
         window = App(parent)
