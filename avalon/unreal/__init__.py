@@ -22,15 +22,6 @@ from .pipeline import (
     lock_ignored,
 )
 
-from .workio import (
-    open_file,
-    save_file,
-    current_file,
-    has_unsaved_changes,
-    file_extensions,
-    work_root,
-)
-
 __all__ = [
     "install",
     "uninstall",
@@ -45,16 +36,5 @@ __all__ = [
     "lock",
     "unlock",
     "is_locked",
-    "lock_ignored",
-    # Workfiles API
-    "open_file",
-    "save_file",
-    "current_file",
-    "has_unsaved_changes",
-    "file_extensions",
-    "work_root",
+    "lock_ignored"
 ]
-
-# Backwards API compatibility
-open = open_file
-save = save_file
