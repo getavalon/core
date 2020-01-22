@@ -268,6 +268,7 @@ class Window(QtWidgets.QDialog):
         view.setTextElideMode(QtCore.Qt.ElideLeft)
         view.setSortingEnabled(True)
         view.setRootIsDecorated(False)
+        view.setAlternatingRowColors(True)
 
         model = WorkFileModel(view)
         view.setModel(model)
