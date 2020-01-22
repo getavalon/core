@@ -28,6 +28,42 @@ class WorkFileModel(TreeModel):
             index = self.createIndex(item, 0, self._root_item)
         return super(WorkFileModel, self).parent(index)
 
+    def sort(self, column, order):
+        # Use super of QAbstractItemModel because in PySide `parent` method
+        # does not return parent QObject but tries to find Item parent
+        parent = super(QtCore.QAbstractItemModel, self).parent()
+        selection = []
+        if parent and hasattr(parent, "selectionModel"):
+            selection_model = parent.selectionModel()
+            for row in selection_model.selectedRows():
+                selection.append(row.data(self.ItemRole))
+
+        self.beginResetModel()
+
+        key = self.Columns[column]
+        self._root_item.sort(key, order)
+
+        self.endResetModel()
+
+        if not parent or not selection:
+            return
+
+        item_selection = QtCore.QItemSelection()
+        for idx, item in enumerate(self._root_item.children()):
+            if item not in selection:
+                continue
+
+            index = self.createIndex(idx, 0, idx)
+            item_selection.append(QtCore.QItemSelectionRange(index))
+
+        selection_model.select(
+            item_selection,
+            (
+                QtCore.QItemSelectionModel.SelectCurrent |
+                QtCore.QItemSelectionModel.Rows
+            )
+        )
+
     def add_file(self, filename, modified=None):
         self.beginResetModel()
 
