@@ -1,5 +1,4 @@
 import os
-import sys
 import platform
 import json
 from distutils.dir_util import copy_tree

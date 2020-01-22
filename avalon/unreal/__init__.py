@@ -10,10 +10,6 @@ from .pipeline import (
     Creator,
     Loader,
     ls,
-    load,  # deprecated (old load api)
-    create,  # deprecated (old creator api)
-    remove,  # deprecated (old load api)
-    update,  # deprecated (old load api)
     publish,
     containerise,
     lock,
@@ -28,11 +24,8 @@ __all__ = [
     "Creator",
     "Loader",
     "ls",
-    "load",
-    "create",
-    "remove",
-    "update",
     "publish",
+    "containerise",
     "lock",
     "unlock",
     "is_locked",
