@@ -3,6 +3,17 @@ from ...vendor.Qt import QtCore
 from ..models import TreeModel, Item
 
 
+class WorkFileItem(Item):
+    def sort(self, key, order):
+        children = sorted(self.children(), key=lambda item: item[key])
+        if order == QtCore.Qt.DescendingOrder:
+            children = reversed(children)
+
+        self._children = list(children)
+        for child in self._children:
+            child.sort(key, order)
+
+
 class WorkFileModel(TreeModel):
     """A model listing the tasks combined for a list of assets"""
 
