@@ -8,7 +8,7 @@ from datetime import datetime
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import style, io, api
 
-from ..models import WorkFileModel
+from .model import WorkFileModel
 
 from .. import lib as tools_lib
 
