@@ -458,7 +458,7 @@ class OptionalActionWidget(QtWidgets.QWidget):
         self.icon.setPixmap(pixmap)
 
 
-class OptionBox(QtWidgets.QWidget):
+class OptionBox(QtWidgets.QLabel):
     """Option box widget class for `OptionalActionWidget`"""
 
     clicked = QtCore.Signal()
@@ -466,18 +466,18 @@ class OptionBox(QtWidgets.QWidget):
     def __init__(self, parent):
         super(OptionBox, self).__init__(parent)
 
-        label = QtWidgets.QLabel()
-
-        layout = QtWidgets.QHBoxLayout(self)
+        layout = self.layout()
+        if not layout:
+            layout = QtWidgets.QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.addSpacing(8)
-        layout.addWidget(label)
+        self.setLayout(layout)
+
+        self.setAlignment(QtCore.Qt.AlignCenter)
 
         icon = qtawesome.icon("fa.sticky-note-o", color="#c6c6c6")
         pixmap = icon.pixmap(18, 18)
-        label.setPixmap(pixmap)
+        self.setPixmap(pixmap)
 
-        label.setMouseTracking(True)
         self.setMouseTracking(True)
         self.setStyleSheet("background: transparent;")
 
