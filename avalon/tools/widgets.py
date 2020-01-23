@@ -342,20 +342,6 @@ class OptionalMenu(QtWidgets.QMenu):
                 option.clicked.emit()
         super(OptionalMenu, self).mouseReleaseEvent(event)
 
-    def mouseMoveEvent(self, event):
-        """Add highlight to active action"""
-        active = self.actionAt(event.pos())
-        for action in self.actions():
-            action.set_highlight(action is active, event.globalPos())
-        super(OptionalMenu, self).mouseMoveEvent(event)
-
-    def leaveEvent(self, event):
-        """Remove highlight from all actions"""
-        for action in self.actions():
-            action.set_highlight(False)
-        super(OptionalMenu, self).leaveEvent(event)
-
-
 class OptionalAction(QtWidgets.QWidgetAction):
     """Menu action with option box
 
@@ -373,7 +359,7 @@ class OptionalAction(QtWidgets.QWidgetAction):
         self.optioned = False
 
     def createWidget(self, parent):
-        widget = OptionalActionWidget(self.label, parent)
+        widget = OptionalActionWidget(self.label, self.use_option, parent)
         self.widget = widget
 
         if self.icon:
@@ -415,9 +401,10 @@ class OptionalAction(QtWidgets.QWidgetAction):
 class OptionalActionWidget(QtWidgets.QWidget):
     """Main widget class for `OptionalAction`"""
 
-    def __init__(self, label, parent=None):
+    def __init__(self, label, use_option, parent=None):
         super(OptionalActionWidget, self).__init__(parent)
 
+        self.use_option = use_option
         body = QtWidgets.QWidget()
         body.setStyleSheet("background: transparent;")
 
@@ -449,6 +436,7 @@ class OptionalActionWidget(QtWidgets.QWidget):
         self.option = option
         self.body = body
 
+        self.mouse_entered = False
         # (NOTE) For removing ugly QLable shadow FX when highlighted in Nuke.
         #   See https://stackoverflow.com/q/52838690/4145300
         label.setStyle(QtWidgets.QStyleFactory.create("Plastique"))
@@ -456,6 +444,59 @@ class OptionalActionWidget(QtWidgets.QWidget):
     def setIcon(self, icon):
         pixmap = icon.pixmap(16, 16)
         self.icon.setPixmap(pixmap)
+
+    def handle_mouse_move_event(self, event):
+        if event.type() == QtCore.QEvent.Type.MouseMove:
+            if self.mouse_entered:
+                body_hovered = True
+            else:
+                pos = self.body.mapFromGlobal(QtGui.QCursor.pos())
+                body_hovered = self.body.rect().contains(pos)
+
+            pos = self.option.mapFromGlobal(QtGui.QCursor.pos())
+            option_hovered = self.option.rect().contains(pos)
+
+        elif event.type() == QtCore.QEvent.Type.Enter:
+            body_hovered = True
+            if not self.use_option:
+                option_hovered = False
+            else:
+                pos = self.option.mapFromGlobal(QtGui.QCursor.pos())
+                option_hovered = self.option.rect().contains(pos)
+            self.mouse_entered = True
+
+        elif event.type() == QtCore.QEvent.Type.Leave:
+            body_hovered = False
+            option_hovered = False
+            self.mouse_entered = False
+
+        body_role = QtGui.QPalette.Window
+        option_role = QtGui.QPalette.Window
+
+        if option_hovered and self.use_option:
+            option_role = QtGui.QPalette.Highlight
+            body_role = QtGui.QPalette.Highlight
+        elif body_hovered:
+            body_role = QtGui.QPalette.Highlight
+
+        self.body.setBackgroundRole(body_role)
+        self.body.setAutoFillBackground(body_hovered)
+        if self.use_option:
+            self.option.setBackgroundRole(option_role)
+            self.option.setAutoFillBackground(option_hovered)
+
+    def enterEvent(self, event):
+        self.handle_mouse_move_event(event)
+        super(OptionalActionWidget, self).enterEvent(event)
+
+    def mouseMoveEvent(self, event):
+        self.handle_mouse_move_event(event)
+        super(OptionalActionWidget, self).mouseMoveEvent(event)
+
+    def leaveEvent(self, event):
+        """Remove highlight from all actions"""
+        self.handle_mouse_move_event(event)
+        super(OptionalActionWidget, self).leaveEvent(event)
 
 
 class OptionBox(QtWidgets.QLabel):
