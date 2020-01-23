@@ -422,6 +422,7 @@ class OptionalActionWidget(QtWidgets.QWidget):
         self.body = body
 
         self.mouse_entered = False
+        self.mouse_pressed = False
         # (NOTE) For removing ugly QLable shadow FX when highlighted in Nuke.
         #   See https://stackoverflow.com/q/52838690/4145300
         label.setStyle(QtWidgets.QStyleFactory.create("Plastique"))
@@ -429,6 +430,32 @@ class OptionalActionWidget(QtWidgets.QWidget):
     def setIcon(self, icon):
         pixmap = icon.pixmap(16, 16)
         self.icon.setPixmap(pixmap)
+
+    def mouseReleaseEvent(self, event):
+        """Emit option clicked signal if mouse released on it"""
+
+        if not self.mouse_pressed:
+            return
+
+        self.mouse_pressed = False
+
+        pos = self.body.mapFromGlobal(QtGui.QCursor.pos())
+        body_hovered = self.body.rect().contains(pos)
+
+        pos = self.option.mapFromGlobal(QtGui.QCursor.pos())
+        option_hovered = self.option.rect().contains(pos)
+
+        if not (option_hovered or body_hovered):
+            return
+
+        if option_hovered:
+            self.option.clicked.emit()
+
+        super(OptionalActionWidget, self).mouseReleaseEvent(event)
+
+    def mousePressEvent(self, event):
+        self.mouse_pressed = True
+        super(OptionalActionWidget, self).mousePressEvent(event)
 
     def handle_mouse_move_event(self, event):
         if event.type() == QtCore.QEvent.Type.MouseMove:
