@@ -324,24 +324,6 @@ def _list_project_silos():
     return list(sorted(silos))
 
 
-class OptionalMenu(QtWidgets.QMenu):
-    """A subclass of `QtWidgets.QMenu` to work with `OptionalAction`
-
-    This menu has reimplemented `mouseReleaseEvent`, `mouseMoveEvent` and
-    `leaveEvent` to provide better action hightlighting and triggering for
-    actions that were instances of `QtWidgets.QWidgetAction`.
-
-    """
-
-    def mouseReleaseEvent(self, event):
-        """Emit option clicked signal if mouse released on it"""
-        active = self.actionAt(event.pos())
-        if active and active.use_option:
-            option = active.widget.option
-            if option.is_hovered(event.globalPos()):
-                option.clicked.emit()
-        super(OptionalMenu, self).mouseReleaseEvent(event)
-
 class OptionalAction(QtWidgets.QWidgetAction):
     """Menu action with option box
 
