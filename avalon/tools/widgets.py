@@ -164,38 +164,6 @@ class AssetWidget(QtWidgets.QWidget):
             self.view.setCurrentIndex(index)
 
 
-class OptionalMenu(QtWidgets.QMenu):
-    """A subclass of `QtWidgets.QMenu` to work with `OptionalAction`
-
-    This menu has reimplemented `mouseReleaseEvent`, `mouseMoveEvent` and
-    `leaveEvent` to provide better action hightlighting and triggering for
-    actions that were instances of `QtWidgets.QWidgetAction`.
-
-    """
-
-    def mouseReleaseEvent(self, event):
-        """Emit option clicked signal if mouse released on it"""
-        active = self.actionAt(event.pos())
-        if active and active.use_option:
-            option = active.widget.option
-            if option.is_hovered(event.globalPos()):
-                option.clicked.emit()
-        super(OptionalMenu, self).mouseReleaseEvent(event)
-
-    def mouseMoveEvent(self, event):
-        """Add highlight to active action"""
-        active = self.actionAt(event.pos())
-        for action in self.actions():
-            action.set_highlight(action is active, event.globalPos())
-        super(OptionalMenu, self).mouseMoveEvent(event)
-
-    def leaveEvent(self, event):
-        """Remove highlight from all actions"""
-        for action in self.actions():
-            action.set_highlight(False)
-        super(OptionalMenu, self).leaveEvent(event)
-
-
 class OptionalAction(QtWidgets.QWidgetAction):
     """Menu action with option box
 
@@ -233,22 +201,6 @@ class OptionalAction(QtWidgets.QWidgetAction):
 
     def on_option(self):
         self.optioned = True
-
-    def set_highlight(self, state, global_pos=None):
-        body = self.widget.body
-        option = self.widget.option
-
-        role = QtGui.QPalette.Highlight if state else QtGui.QPalette.Window
-        body.setBackgroundRole(role)
-        body.setAutoFillBackground(state)
-
-        if not self.use_option:
-            return
-
-        state = option.is_hovered(global_pos)
-        role = QtGui.QPalette.Highlight if state else QtGui.QPalette.Window
-        option.setBackgroundRole(role)
-        option.setAutoFillBackground(state)
 
 
 class OptionalActionWidget(QtWidgets.QWidget):

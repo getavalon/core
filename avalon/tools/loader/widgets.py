@@ -11,7 +11,7 @@ from ... import pipeline
 
 from .. import lib as tools_lib
 from ..delegates import VersionDelegate
-from ..widgets import OptionalMenu, OptionalAction, OptionDialog
+from ..widgets import OptionalAction, OptionDialog
 
 from .model import (
     SubsetsModel,
@@ -234,7 +234,7 @@ class SubsetWidget(QtWidgets.QWidget):
 
                 loaders.append((repre, loader))
 
-        menu = OptionalMenu(self)
+        menu = QtWidgets.QMenu(self)
         if not loaders:
             # no loaders available
             submsg = "your selection."
