@@ -213,9 +213,8 @@ class OptionalAction(QtWidgets.QWidgetAction):
         self.optioned = False
 
     def createWidget(self, parent):
-        widget = OptionalActionWidget(self.label, parent)
+        widget = OptionalActionWidget(self.label, self.use_option, parent)
         self.widget = widget
-
         if self.icon:
             widget.setIcon(self.icon)
 
@@ -255,9 +254,10 @@ class OptionalAction(QtWidgets.QWidgetAction):
 class OptionalActionWidget(QtWidgets.QWidget):
     """Main widget class for `OptionalAction`"""
 
-    def __init__(self, label, parent=None):
+    def __init__(self, label, use_option, parent=None):
         super(OptionalActionWidget, self).__init__(parent)
 
+        self.use_option = use_option
         body = QtWidgets.QWidget()
         body.setStyleSheet("background: transparent;")
 
@@ -286,12 +286,94 @@ class OptionalActionWidget(QtWidgets.QWidget):
         self.setFixedHeight(32)
 
         self.icon = icon
+        self.label = label
         self.option = option
         self.body = body
 
+        self.mouse_entered = False
+        self.mouse_pressed = False
         # (NOTE) For removing ugly QLable shadow FX when highlighted in Nuke.
         #   See https://stackoverflow.com/q/52838690/4145300
         label.setStyle(QtWidgets.QStyleFactory.create("Plastique"))
+
+    def mouseReleaseEvent(self, event):
+        """Emit option clicked signal if mouse released on it"""
+
+        if not self.mouse_pressed:
+            return
+
+        self.mouse_pressed = False
+
+        pos = self.body.mapFromGlobal(QtGui.QCursor.pos())
+        body_under = self.body.rect().contains(pos)
+
+        pos = self.option.mapFromGlobal(QtGui.QCursor.pos())
+        option_under = self.option.rect().contains(pos)
+
+        if not (option_under or body_under):
+            return
+
+        if option_under:
+            self.option.clicked.emit()
+
+        super(OptionalActionWidget, self).mouseReleaseEvent(event)
+
+    def mousePressEvent(self, event):
+        self.mouse_pressed = True
+        super(OptionalActionWidget, self).mousePressEvent(event)
+
+    def handle_mouse_move_event(self, event):
+        if event.type() == QtCore.QEvent.Type.MouseMove:
+            if self.mouse_entered:
+                body_under = True
+            else:
+                pos = self.body.mapFromGlobal(QtGui.QCursor.pos())
+                body_under = self.body.rect().contains(pos)
+
+            pos = self.option.mapFromGlobal(QtGui.QCursor.pos())
+            option_under = self.option.rect().contains(pos)
+
+        elif event.type() == QtCore.QEvent.Type.Enter:
+            body_under = True
+            if not self.use_option:
+                option_under = False
+            else:
+                pos = self.option.mapFromGlobal(QtGui.QCursor.pos())
+                option_under = self.option.rect().contains(pos)
+            self.mouse_entered = True
+
+        elif event.type() == QtCore.QEvent.Type.Leave:
+            body_under = False
+            option_under = False
+            self.mouse_entered = False
+
+        body_role = QtGui.QPalette.Window
+        option_role = QtGui.QPalette.Window
+
+        if option_under and self.use_option:
+            option_role = QtGui.QPalette.Highlight
+            body_role = QtGui.QPalette.Highlight
+        elif body_under:
+            body_role = QtGui.QPalette.Highlight
+
+        self.body.setBackgroundRole(body_role)
+        self.body.setAutoFillBackground(body_under)
+        if self.use_option:
+            self.option.setBackgroundRole(option_role)
+            self.option.setAutoFillBackground(option_under)
+
+    def enterEvent(self, event):
+        self.handle_mouse_move_event(event)
+        super(OptionalActionWidget, self).enterEvent(event)
+
+    def mouseMoveEvent(self, event):
+        self.handle_mouse_move_event(event)
+        super(OptionalActionWidget, self).mouseMoveEvent(event)
+
+    def leaveEvent(self, event):
+        """Remove highlight from all actions"""
+        self.handle_mouse_move_event(event)
+        super(OptionalActionWidget, self).leaveEvent(event)
 
     def setIcon(self, icon):
         pixmap = icon.pixmap(16, 16)
