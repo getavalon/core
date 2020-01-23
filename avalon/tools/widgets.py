@@ -381,22 +381,6 @@ class OptionalAction(QtWidgets.QWidgetAction):
     def on_option(self):
         self.optioned = True
 
-    def set_highlight(self, state, global_pos=None):
-        body = self.widget.body
-        option = self.widget.option
-
-        role = QtGui.QPalette.Highlight if state else QtGui.QPalette.Window
-        body.setBackgroundRole(role)
-        body.setAutoFillBackground(state)
-
-        if not self.use_option:
-            return
-
-        state = option.is_hovered(global_pos)
-        role = QtGui.QPalette.Highlight if state else QtGui.QPalette.Window
-        option.setBackgroundRole(role)
-        option.setAutoFillBackground(state)
-
 
 class OptionalActionWidget(QtWidgets.QWidget):
     """Main widget class for `OptionalAction`"""
@@ -521,12 +505,6 @@ class OptionBox(QtWidgets.QLabel):
 
         self.setMouseTracking(True)
         self.setStyleSheet("background: transparent;")
-
-    def is_hovered(self, global_pos):
-        if global_pos is None:
-            return False
-        pos = self.mapFromGlobal(global_pos)
-        return self.rect().contains(pos)
 
 
 class OptionDialog(QtWidgets.QDialog):
