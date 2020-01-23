@@ -105,16 +105,16 @@ def parse_container(node, validate=True):
         node (obj): Nuke's node object to read imprinted data
 
     Returns:
-        dict: The container schema data for this container node.
+        container (dict): imprinted container data
     """
+    data = lib.get_avalon_knob_data(node)
+
     if validate and data and data.get("schema"):
         schema.validate(data)
 
     if not isinstance(data, dict):
         return
 
-    # (TODO) Remove key validation when `ls` has re-implemented.
-    #
     # If not all required data return the empty container
     required = ['schema', 'id', 'name',
                 'namespace', 'loader', 'representation']
@@ -122,13 +122,15 @@ def parse_container(node, validate=True):
     if not all(key in data for key in required):
         return
 
+    container = {key: data[key] for key in required}
+
     # Store the node's name
     container["objectName"] = node["name"].value()
 
     # Store reference to the node object
-    data["_node"] = node
+    container["_node"] = node
 
-    return data
+    return container
 
 
 def update_container(node, keys=dict()):
@@ -179,12 +181,7 @@ class Creator(api.Creator):
         from nukescripts import autoBackdrop
         nodes = list()
         if (self.options or {}).get("useSelection"):
-
             nodes = nuke.selectedNodes()
-            if not nodes:
-                nuke.message("Please select nodes that you "
-                             "wish to add to a container")
-                return
 
             if len(nodes) == 1:
                 # only one node is selected
@@ -257,17 +254,6 @@ def install(config):
     pyblish.register_host("nuke")
 
     log.info("{}.nuke installed".format(config.__name__))
-
-
-def find_host_config(config):
-    try:
-        config = importlib.import_module(config.__name__ + ".nuke")
-    except ImportError as exc:
-        if str(exc) != "No module named {}".format("nuke"):
-            raise
-        config = None
-
-    return config
 
 
 def uninstall(config):
