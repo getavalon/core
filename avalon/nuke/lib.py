@@ -386,3 +386,38 @@ def get_node_path(path, padding=4):
             filename = filename.replace(match.group(1), '')
 
     return filename, padding, ext
+
+
+def ls_img_sequence(path):
+    """Listing all available coherent image sequence from path
+
+    Arguments:
+        path (str): A nuke's node object
+
+    Returns:
+        data (dict): with nuke formated path and frameranges
+    """
+    file = os.path.basename(path)
+    dir = os.path.dirname(path)
+    base, ext = os.path.splitext(file)
+    name, padding = os.path.splitext(base)
+
+    # populate list of files
+    files = [f for f in os.listdir(dir)
+             if name in f
+             if ext in f]
+
+    # create collection from list of files
+    collections, reminder = clique.assemble(files)
+
+    if len(collections) > 0:
+        head = collections[0].format("{head}")
+        padding = collections[0].format("{padding}") % 1
+        padding = "#" * len(padding)
+        tail = collections[0].format("{tail}")
+        file = head + padding + tail
+
+        return {"path": os.path.join(dir, file).replace("\\", "/"),
+                "frames": collections[0].format("[{ranges}]")}
+    else:
+        return False
