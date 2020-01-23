@@ -1,6 +1,16 @@
 import sys
 
-# import unreal
+from ..pipeline import AVALON_CONTAINER_ID
+
+import unreal
+from ..tools import (
+    projectmanager,
+    creator,
+    loader,
+    publish as publisher,
+    sceneinventory
+)
+
 # from .. import api, schema
 
 # from ..lib import logger
@@ -36,11 +46,11 @@ def uninstall():
     pass
 
 
-class Creator():
+class Creator:
     pass
 
 
-class Loader():
+class Loader:
     pass
 
 
@@ -49,11 +59,32 @@ def ls():
 
 
 def publish():
-    pass
+    """Shorthand to publish from within host"""
+    import pyblish.util
+    return pyblish.util.publish()
 
 
-def containerise():
-    pass
+def containerise(asset, context, loader=None):
+
+    data = [
+        ("schema", "avalon-core:container-2.0"),
+        ("id", AVALON_CONTAINER_ID),
+        ("name", asset.rstrip("/").split("/")[-1]),
+        ("objectName", asset.rstrip("/").split("/")[-1]),
+        ("namespace", asset.rstrip("/").split("/")[:-1]),
+        ("loader", str(loader)),
+        ("representation", context["representation"]["_id"]),
+    ]
+    loaded_asset = unreal.EditorAssetLibrary.load_asset(asset)
+
+    for key, value in data:
+        if not value:
+            continue
+
+        unreal.EditorAssetLibrary.set_metadata_tag(loaded_asset, key, value)
+
+    with unreal.ScopedEditorTransaction("Avalon containerising"):
+        unreal.EditorAssetLibrary.save_asset(loaded_asset)
 
 
 def lock():
@@ -70,3 +101,23 @@ def is_locked():
 
 def lock_ignored():
     pass
+
+
+def show_creator():
+    creator.show()
+
+
+def show_loader():
+    loader.show(use_context=True)
+
+
+def show_publisher():
+    publisher.show()
+
+
+def show_manager():
+    sceneinventory.show()
+
+
+def show_project_manager():
+    projectmanager.show()

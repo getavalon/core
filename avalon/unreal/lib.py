@@ -98,18 +98,7 @@ def create_unreal_project(project_name, ue_version, dir):
     and enable this plugin.
     """
 
-    module = []
     if os.path.isdir(os.environ.get('AVALON_UNREAL_PLUGIN', '')):
-        module = [
-            {
-                "Name": "Avalon",
-                "Type": "Runtime",
-                "LoadingPhase": "Default",
-                "AdditionalDependencies": [
-                    "Engine"
-                ]
-            }
-        ]
         # copy plugin to correct path under project
         plugin_path = os.path.join(dir, 'Plugins', 'Avalon')
         os.makedirs(plugin_path, exist_ok=True)
@@ -120,11 +109,28 @@ def create_unreal_project(project_name, ue_version, dir):
         'EngineAssociation': ue_version,
         'Category': '',
         'Description': '',
-        'Modules': module,
+        'Modules': [
+            {
+                "Name": "Avalon",
+                "Type": "Runtime",
+                "LoadingPhase": "Default",
+                "AdditionalDependencies": [
+                    "Engine"
+                ]
+            }
+        ],
         "Plugins": [
             {
                 "Name": "PythonScriptPlugin",
                 "Enable": True
+            },
+            {
+                "Name": "EditorScriptingUtilities",
+                "Enabled": True
+            },
+            {
+                "Name": "Avalon",
+                "Enabled": True
             }
         ]
     }
