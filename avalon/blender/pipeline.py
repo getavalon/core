@@ -2,7 +2,6 @@
 
 import importlib
 import sys
-from types import ModuleType
 from typing import Callable, Dict, Iterator, List, Optional
 
 import bpy
