@@ -91,7 +91,7 @@ def _register_events():
     logger.info("Installed event callback for 'taskChanged'...")
 
 
-def install(config: ModuleType):
+def install():
     """Install Blender-specific functionality for Avalon.
 
     This function is called automatically on calling `api.install(blender)`.
@@ -106,13 +106,10 @@ def install(config: ModuleType):
     pyblish.api.register_host("blender")
 
 
-def uninstall(config: ModuleType):
+def uninstall():
     """Uninstall Blender-specific functionality of avalon-core.
 
     This function is called automatically on calling `api.uninstall()`.
-
-    Args:
-        config: configuration module
     """
 
     if not IS_HEADLESS:
