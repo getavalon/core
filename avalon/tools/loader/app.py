@@ -408,8 +408,8 @@ def show(debug=False, parent=None, use_context=False):
             module.window = None
 
     if debug:
-        import traceback
-        sys.excepthook = lambda typ, val, tb: traceback.print_last()
+        # Add code here that only runs when debugging is enabled.
+        pass
 
     with lib.application():
 

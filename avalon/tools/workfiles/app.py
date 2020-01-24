@@ -496,8 +496,8 @@ def show(root=None, debug=False, parent=None):
         raise OSError("Root set for Work Files app does not exist: %s" % root)
 
     if debug:
-        import traceback
-        sys.excepthook = lambda typ, val, tb: traceback.print_last()
+        # Add code here that only runs when debugging is enabled.
+        pass
 
     with tools_lib.application():
         window = Window(root, parent=parent)

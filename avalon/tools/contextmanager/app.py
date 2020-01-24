@@ -222,8 +222,8 @@ def show(parent=None, debug=False):
         pass
 
     if debug:
-        import traceback
-        sys.excepthook = lambda typ, val, tb: traceback.print_last()
+        # Add code here that only runs when debugging is enabled.
+        pass
 
     with lib.application():
         window = App(parent)
