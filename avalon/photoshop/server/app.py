@@ -1,18 +1,16 @@
+import os
 import subprocess
 
 from avalon import api, io
 from avalon.tools import publish
 import pyblish.api
 import avalon.photoshop
-
-from flask import Flask, render_template
-
-app = Flask(__name__)
+from avalon.vendor.bottle import route, template, run
 
 
-@app.route("/")
+@route("/")
 def index():
-    return render_template("index.html")
+    return template(os.path.join(os.path.dirname(__file__), "index.html"))
 
 
 def _show(module_name):
@@ -30,7 +28,7 @@ api.register_host(avalon.photoshop)
     subprocess.Popen(["python", "-c", cmd.format(module_name)])
 
 
-@app.route("/context_route")
+@route("/context_route")
 def context_route():
     _show("contextmanager")
 
@@ -38,7 +36,7 @@ def context_route():
     return "nothing"
 
 
-@app.route("/workfiles_route")
+@route("/workfiles_route")
 def workfiles_route():
     _show("workfiles")
 
@@ -46,7 +44,7 @@ def workfiles_route():
     return "nothing"
 
 
-@app.route("/creator_route")
+@route("/creator_route")
 def creator_route():
     _show("creator")
 
@@ -54,7 +52,7 @@ def creator_route():
     return "nothing"
 
 
-@app.route("/loader_route")
+@route("/loader_route")
 def loader_route():
     _show("loader")
 
@@ -62,7 +60,7 @@ def loader_route():
     return "nothing"
 
 
-@app.route("/publish_route")
+@route("/publish_route")
 def publish_route():
 
     guis = pyblish.api.registered_guis()
@@ -79,7 +77,7 @@ def publish_route():
     return "nothing"
 
 
-@app.route("/manage_route")
+@route("/manage_route")
 def manage_route():
     _show("sceneinventory")
 
@@ -88,4 +86,4 @@ def manage_route():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    run(host="localhost", port=5000)

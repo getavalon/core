@@ -55,6 +55,3 @@ class ExtendScriptError(Exception):
             msg += "\n {}\t{}".format(line+1, source[line])
         # previous line
         super(ExtendScriptError, self).__init__(msg)
-
-
-def start_server():
