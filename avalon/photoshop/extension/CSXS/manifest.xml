@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<ExtensionManifest ExtensionBundleId="com.avalon" ExtensionBundleVersion="1.0.0" Version="8.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <ExtensionList>
+    <Extension Id="com.avalon.panel" Version="1.0.0" />
+  </ExtensionList>
+  <ExecutionEnvironment>
+    <HostList>
+      <Host Name="PHSP" Version="20" />
+      <Host Name="PHXS" Version="20" />
+    </HostList>
+    <LocaleList>
+      <Locale Code="All" />
+    </LocaleList>
+    <RequiredRuntimeList>
+      <RequiredRuntime Name="CSXS" Version="9.0" />
+    </RequiredRuntimeList>
+  </ExecutionEnvironment>
+  <DispatchInfoList>
+    <Extension Id="com.avalon.panel">
+      <DispatchInfo>
+        <Resources>
+          <MainPath>./index.html</MainPath>
+          <CEFCommandLine>
+						<Parameter>--enable-nodejs</Parameter>
+					</CEFCommandLine>
+        </Resources>
+        <Lifecycle>
+					<AutoVisible>true</AutoVisible>
+				</Lifecycle>
+        <UI>
+          <Type>Panel</Type>
+          <Menu>Avalon</Menu>
+          <Geometry>
+            <Size>
+              <Width>150</Width>
+              <Height>100</Height>
+            </Size>
+            <MaxSize>
+              <Width>300</Width>
+              <Height>200</Height>
+            </MaxSize>
+          </Geometry>
+          <Icons>
+            <Icon Type="Normal">./icons/avalon-logo-48.png</Icon>
+          </Icons>
+        </UI>
+      </DispatchInfo>
+    </Extension>
+  </DispatchInfoList>
+</ExtensionManifest>

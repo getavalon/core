@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ExtensionList>
+	<Extension Id="com.avalon.panel">
+        <HostList>
+            <Host Name="PHSP" Port="7777"/>
+            <Host Name="PHXS" Port="7777"/>
+        </HostList>
+    </Extension>
+</ExtensionList>
