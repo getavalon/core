@@ -73,6 +73,17 @@
               });
             });
     </script>
+    <script type=text/javascript>
+            $(function() {
+              $("a#project-manager-button").bind("click", function() {
+                $.getJSON("/project_manager_route",
+                    function(data) {
+                  //do nothing
+                });
+                return false;
+              });
+            });
+    </script>
 </head>
 <body>
   <text>Context</text>
@@ -82,5 +93,6 @@
   <a href=# id=load-button><button>Load...</button></a>
   <a href=# id=publish-button><button>Publish...</button></a>
   <a href=# id=manage-button><button>Manage...</button></a>
+  <a href=# id=project-manager-button><button>Project Manager</button></a>
 </body>
 </html>
