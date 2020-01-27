@@ -2,7 +2,8 @@ import sys
 import logging
 
 from ... import api
-
+from avalon import style
+from ...tools import lib
 from ...vendor.Qt import QtWidgets, QtCore
 from ..widgets import AssetWidget
 from ..models import TasksModel
@@ -20,6 +21,7 @@ class App(QtWidgets.QDialog):
     def __init__(self, parent=None):
         QtWidgets.QDialog.__init__(self, parent)
 
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.resize(640, 360)
         project = api.Session["AVALON_PROJECT"]
         self.setWindowTitle("Context Manager 1.0 - {}".format(project))
@@ -211,19 +213,21 @@ class App(QtWidgets.QDialog):
         self._assets.select_assets([assetname], expand=True)
 
 
+def create_window(parent):
+    window = App(parent)
+    window.show()
+    window.setStyleSheet(style.load_stylesheet())
+    module.window = window
+
+
 def show(parent=None):
-
-    from avalon import style
-    from ...tools import lib
-    try:
-        module.window.close()
-        del module.window
-    except (RuntimeError, AttributeError):
-        pass
-
     with lib.application():
-        window = App(parent)
-        window.show()
-        window.setStyleSheet(style.load_stylesheet())
+        if lib.existing_app:
+            try:
+                module.window.raise_()
+            except (RuntimeError, AttributeError):
+                create_window(parent)
+        else:
+            create_window(parent)
 
-        module.window = window
+        module.window.activateWindow()

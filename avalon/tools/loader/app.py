@@ -22,6 +22,7 @@ class Window(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.setWindowTitle(
             "Asset Loader 2.1 - %s/%s" % (
                 api.registered_root(),
@@ -375,6 +376,13 @@ class SubsetGroupingDialog(QtWidgets.QDialog):
             self.close()
 
 
+def create_window(parent):
+    window = Window(parent)
+    window.show()
+    window.setStyleSheet(style.load_stylesheet())
+    module.window = window
+
+
 def show(debug=False, parent=None, use_context=False):
     """Display Loader GUI
 
@@ -386,49 +394,31 @@ def show(debug=False, parent=None, use_context=False):
 
     """
 
-    # Remember window
-    if module.window is not None:
-        try:
-            module.window.show()
-
-            # If the window is minimized then unminimize it.
-            if module.window.windowState() & QtCore.Qt.WindowMinimized:
-                module.window.setWindowState(QtCore.Qt.WindowActive)
-
-            # Raise and activate the window
-            module.window.raise_()             # for MacOS
-            module.window.activateWindow()     # for Windows
-            module.window.refresh()
-            return
-        except RuntimeError as e:
-            if not str(e).rstrip().endswith("already deleted."):
-                raise
-
-            # Garbage collected
-            module.window = None
-
     if debug:
         import traceback
         sys.excepthook = lambda typ, val, tb: traceback.print_last()
 
+    # TODO: Global state, remove these
+    lib.refresh_family_config_cache()
+    lib.refresh_group_config_cache()
+
     with lib.application():
-
-        # TODO: Global state, remove these
-        lib.refresh_family_config_cache()
-        lib.refresh_group_config_cache()
-
-        window = Window(parent)
-        window.show()
-        window.setStyleSheet(style.load_stylesheet())
+        if lib.existing_app:
+            try:
+                module.window.raise_()
+            except (RuntimeError, AttributeError):
+                create_window(parent)
+        else:
+            create_window(parent)
 
         if use_context:
             context = {"asset": api.Session["AVALON_ASSET"],
                        "silo": api.Session["AVALON_SILO"]}
-            window.set_context(context, refresh=True)
+            module.window.set_context(context, refresh=True)
         else:
-            window.refresh()
+            module.window.refresh()
 
-        module.window = window
+        module.window.activateWindow()
 
 
 def cli(args):

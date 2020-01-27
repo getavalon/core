@@ -118,6 +118,7 @@ class Window(QtWidgets.QDialog):
 
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         self.setWindowTitle("Instance Creator")
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
 
@@ -553,6 +554,13 @@ class FamilyDescriptionWidget(QtWidgets.QWidget):
         self.help.setText(help)
 
 
+def create_window(parent):
+    window = Window(parent)
+    window.show()
+    window.setStyleSheet(style.load_stylesheet())
+    module.window = window
+
+
 def show(debug=False, parent=None):
     """Display asset creator GUI
 
@@ -563,10 +571,6 @@ def show(debug=False, parent=None):
             to this QObject.
 
     """
-
-    if module.window:
-        module.window.close()
-        del(module.window)
 
     if debug:
         from avalon import mock
@@ -587,9 +591,12 @@ def show(debug=False, parent=None):
         module.project = any_project["name"]
 
     with lib.application():
-        window = Window(parent)
-        window.refresh()
-        window.show()
-        window.setStyleSheet(style.load_stylesheet())
+        if lib.existing_app:
+            try:
+                module.window.raise_()
+            except (RuntimeError, AttributeError):
+                create_window(parent)
+        else:
+            create_window(parent)
 
-        module.window = window
+        module.window.activateWindow()

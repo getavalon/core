@@ -10,6 +10,7 @@ from ..vendor.Qt import QtWidgets, QtCore, QtGui
 self = sys.modules[__name__]
 self._jobs = dict()
 self._path = os.path.dirname(__file__)
+self.existing_app = False
 
 
 def resource(*path):
@@ -27,6 +28,7 @@ def application():
         yield app
         app.exec_()
     else:
+        self.existing_app = True
         print("Using existing QApplication..")
         yield app
 

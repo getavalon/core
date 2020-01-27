@@ -211,6 +211,13 @@ class Window(QtWidgets.QDialog):
             self.echo("Silo changed to: {0}".format(silo))
 
 
+def create_window(parent):
+    window = Window(parent)
+    window.show()
+    window.setStyleSheet(style.load_stylesheet())
+    module.window = window
+
+
 def show(root=None, debug=False, parent=None):
     """Display Loader GUI
 
@@ -222,22 +229,19 @@ def show(root=None, debug=False, parent=None):
 
     """
 
-    try:
-        module.window.close()
-        del module.window
-    except (RuntimeError, AttributeError):
-        pass
-
     if debug is True:
         io.install()
 
     with tools_lib.application():
-        window = Window(parent)
-        window.show()
-        window.setStyleSheet(style.load_stylesheet())
-        window.refresh()
+        if tools_lib.existing_app:
+            try:
+                module.window.raise_()
+            except (RuntimeError, AttributeError):
+                create_window(parent)
+        else:
+            create_window(parent)
 
-        module.window = window
+        module.window.activateWindow()
 
 
 def cli(args):

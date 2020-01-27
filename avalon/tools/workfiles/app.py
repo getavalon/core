@@ -241,6 +241,7 @@ class Window(QtWidgets.QDialog):
         super(Window, self).__init__(parent)
         self.setWindowTitle("Work Files")
         self.setWindowFlags(QtCore.Qt.Window | QtCore.Qt.WindowCloseButtonHint)
+        self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
 
         self.root = root
 
@@ -458,12 +459,15 @@ class Window(QtWidgets.QDialog):
         self.close()
 
 
+def create_window(root, parent):
+    window = Window(root, parent=parent)
+    window.show()
+    window.setStyleSheet(style.load_stylesheet())
+    module.window = window
+
+
 def show(root=None, debug=False, parent=None):
     """Show Work Files GUI"""
-
-    if module.window:
-        module.window.close()
-        del(module.window)
 
     host = api.registered_host()
     if host is None:
@@ -500,8 +504,12 @@ def show(root=None, debug=False, parent=None):
         api.Session["AVALON_TASK"] = "Testing"
 
     with tools_lib.application():
-        window = Window(root, parent=parent)
-        window.show()
-        window.setStyleSheet(style.load_stylesheet())
+        if tools_lib.existing_app:
+            try:
+                module.window.raise_()
+            except (RuntimeError, AttributeError):
+                create_window(root, parent)
+        else:
+            create_window(root, parent)
 
-        module.window = window
+        module.window.activateWindow()
