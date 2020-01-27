@@ -2,6 +2,8 @@ import json
 
 import requests
 
+from .server import app
+
 
 PHOTOSHOP_URL = "http://127.0.0.1:3000"
 
@@ -55,3 +57,11 @@ class ExtendScriptError(Exception):
             msg += "\n {}\t{}".format(line+1, source[line])
         # previous line
         super(ExtendScriptError, self).__init__(msg)
+
+
+def start_server():
+    try:
+        app.start_server()
+    except:
+        import traceback
+        print(traceback.format_exc())
