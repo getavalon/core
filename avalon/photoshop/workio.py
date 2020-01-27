@@ -22,7 +22,10 @@ def has_unsaved_changes():
 
 
 def save_file(filepath):
-    lib.send_extendscript("app.activeDocument.SaveAs(\"{}\")".format(filepath))
+    lib.send_extendscript(
+        "var fileRef = new File(\"{}\");".format(filepath.replace("\\", "/")) +
+        "app.activeDocument.saveAs(fileRef);"
+    )
 
 
 def open_file(filepath):
