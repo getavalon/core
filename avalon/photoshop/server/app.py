@@ -1,77 +1,67 @@
-import os
+import importlib
 
-from avalon import api, photoshop
-from avalon.tools import (
-    contextmanager,
-    workfiles,
-    creator,
-    loader,
-    publish,
-    sceneinventory,
-    projectmanager
-)
 from avalon.vendor.bottle import route, template, run
-
-
-api.install(photoshop)
 
 
 @route("/")
 def index():
-    return template(os.path.join(os.path.dirname(__file__), "index.html"))
+    scripts_html = ""
+    buttons_html = ""
+    tools = {
+        "contextmanager": "context",
+        "workfiles": "workfiles",
+        "creator": "create...",
+        "loader": "load...",
+        "publish": "publish...",
+        "sceneinventory": "manage...",
+        "projectmanager": "project manager",
+    }
+    for name, label in tools.items():
+        scripts_html += """
+<script type=text/javascript>
+        $(function() {{
+          $("a#{name}-button").bind("click", function() {{
+            $.getJSON("/{name}_route",
+                function(data) {{
+              //do nothing
+            }});
+            return false;
+          }});
+        }});
+</script>
+""".format(name=name)
+        buttons_html += (
+            "<a href=# id={0}-button><button>{1}</button></a>".format(
+                name, label.title()
+            )
+        )
+
+    html = """
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+      button {{width: 100%;}}
+      body {{margin:0; padding:0; height: 100%;}}
+      html {{height: 100%;}}
+    </style>
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js">
+    </script>
+    {0}
+</head>
+<body>
+    {1}
+</body>
+</html>
+""".format(scripts_html, buttons_html)
+
+    return template(html)
 
 
-@route("/context_route")
-def context_route():
-    contextmanager.show()
-
-    # Required return statement.
-    return "nothing"
-
-
-@route("/workfiles_route")
-def workfiles_route():
-    workfiles.show()
-
-    # Required return statement.
-    return "nothing"
-
-
-@route("/creator_route")
-def creator_route():
-    creator.show()
-
-    # Required return statement.
-    return "nothing"
-
-
-@route("/loader_route")
-def loader_route():
-    loader.show()
-
-    # Required return statement.
-    return "nothing"
-
-
-@route("/publish_route")
-def publish_route():
-    publish.show()
-
-    # Required return statement.
-    return "nothing"
-
-
-@route("/manage_route")
-def manage_route():
-    sceneinventory.show()
-
-    # Required return statement.
-    return "nothing"
-
-
-@route("/project_manager_route")
-def project_manager_route():
-    projectmanager.show()
+@route("/<tool_name>_route")
+def tool_route(tool_name):
+    tool_module = importlib.import_module("avalon.tools." + tool_name)
+    tool_module.show()
 
     # Required return statement.
     return "nothing"
