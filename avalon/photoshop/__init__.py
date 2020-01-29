@@ -17,7 +17,7 @@ from .workio import (
     work_root,
 )
 
-from .lib import start_server
+from .lib import start_server, app
 
 __all__ = [
     "ls",
@@ -31,5 +31,6 @@ __all__ = [
     "work_root",
 
     # lib
-    "start_server"
+    "start_server",
+    "app"
 ]

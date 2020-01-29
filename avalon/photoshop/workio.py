@@ -1,13 +1,14 @@
 """Host API required Work Files tool"""
 import os
+
 from . import lib
 
 
-def _is_document_open():
-    if lib.send_extendscript("app.documents.length"):
-        return True
+def _active_document():
+    if len(lib.app.Documents) < 1:
+        return None
 
-    return False
+    return lib.app.ActiveDocument
 
 
 def file_extensions():
@@ -15,32 +16,25 @@ def file_extensions():
 
 
 def has_unsaved_changes():
-    if _is_document_open():
-        return not lib.send_extendscript("app.activeDocument.saved")
+    if _active_document():
+        return not _active_document().Saved
 
     return False
 
 
 def save_file(filepath):
-    lib.send_extendscript(
-        "var fileRef = new File(\"{}\");".format(filepath.replace("\\", "/")) +
-        "app.activeDocument.saveAs(fileRef);"
-    )
+    _active_document().SaveAs(filepath)
 
 
 def open_file(filepath):
-    lib.send_extendscript(
-        "var fileRef = new File(\"{}\");app.open(fileRef);".format(
-            filepath.replace("\\", "/")
-        )
-    )
+    lib.app.Open(filepath)
+
     return True
 
 
 def current_file():
-    if _is_document_open():
-        current_file = lib.send_extendscript("app.activeDocument.fullName")
-        return os.path.normpath(current_file).replace("\\", "/")
+    if _active_document():
+        return os.path.normpath(_active_document().FullName).replace("\\", "/")
 
 
 def work_root():

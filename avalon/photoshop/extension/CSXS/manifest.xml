@@ -20,9 +20,6 @@
       <DispatchInfo>
         <Resources>
           <MainPath>./index.html</MainPath>
-          <CEFCommandLine>
-						<Parameter>--enable-nodejs</Parameter>
-					</CEFCommandLine>
         </Resources>
         <Lifecycle>
 					<AutoVisible>true</AutoVisible>
