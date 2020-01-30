@@ -442,6 +442,8 @@ class OptionalActionWidget(QtWidgets.QWidget):
         layout.addWidget(option)
 
         body.setMouseTracking(True)
+        label.setMouseTracking(True)
+        option.setMouseTracking(True)
         self.setMouseTracking(True)
         self.setFixedHeight(32)
 
