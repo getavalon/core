@@ -1,3 +1,7 @@
+from .. import api
+from . import lib
+
+
 def ls():
     """Yields containers from active Maya scene
 
@@ -10,3 +14,21 @@ def ls():
 
     """
     pass
+
+
+class Creator(api.Creator):
+    def process(self):
+        selection = lib.get_selected_layers()
+
+        # Create group/layer relationship.
+        group = lib.app.ActiveDocument.LayerSets.Add()
+        group.Name = self.name
+
+        lib.imprint(group, self.data)
+
+        # Add selection to group.
+        if (self.options or {}).get("useSelection"):
+            for item in selection:
+                item.Move(group, lib.psPlaceAtEnd)
+
+        return group
