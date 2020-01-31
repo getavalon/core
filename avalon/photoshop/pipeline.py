@@ -17,13 +17,6 @@ def ls():
     pass
 
 
-def warning(text):
-    msg = Qt.QtWidgets.QMessageBox()
-    msg.setIcon(Qt.QtWidgets.QMessageBox.Warning)
-    msg.setText(text)
-    msg.exec_()
-
-
 class Creator(api.Creator):
     def process(self):
         # Photoshop can have multiple LayerSets with the same name, which does
@@ -31,7 +24,10 @@ class Creator(api.Creator):
         msg = "Instance with name \"{}\" already exists.".format(self.name)
         for layer in lib.get_all_layers():
             if self.name.lower() == layer.Name.lower():
-                warning(msg)
+                msg = Qt.QtWidgets.QMessageBox()
+                msg.setIcon(Qt.QtWidgets.QMessageBox.Warning)
+                msg.setText(msg)
+                msg.exec_()
                 return False
 
         # Store selection because adding a group will change selection.
