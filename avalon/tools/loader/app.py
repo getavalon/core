@@ -303,9 +303,9 @@ class Window(QtWidgets.QDialog):
                     continue
                 item = index.data(subsets.model.ItemRole)
                 if (
-                    item is None or
-                    item.get("isGroup") or
-                    item.get("isMerged")
+                    item is None
+                    or item.get("isGroup")
+                    or item.get("isMerged")
                 ):
                     continue
                 version_docs.append(item["version_document"])

@@ -424,8 +424,8 @@ class Window(QtWidgets.QDialog):
         if active and active in rows:
             item = active.data(subsets.model.ItemRole)
             if (
-                item is not None and
-                not (item.get("isGroup") or item.get("isMerged"))
+                item is not None
+                and not (item.get("isGroup") or item.get("isMerged"))
             ):
                 version_id = item["version_document"]["_id"]
 
@@ -436,9 +436,9 @@ class Window(QtWidgets.QDialog):
                     continue
                 item = index.data(subsets.model.ItemRole)
                 if (
-                    item is None or
-                    item.get("isGroup") or
-                    item.get("isMerged")
+                    item is None
+                    or item.get("isGroup")
+                    or item.get("isMerged")
                 ):
                     continue
                 version_docs.append(item["version_document"])

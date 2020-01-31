@@ -2,7 +2,6 @@ import os
 import datetime
 import pprint
 import inspect
-import collections
 
 from ...vendor import Qt
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
