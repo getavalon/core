@@ -282,7 +282,8 @@ def _install_menu():
         workfiles,
         loader,
         sceneinventory,
-        contextmanager
+        contextmanager,
+        libraryloader
     )
 
     # Create menu
@@ -309,6 +310,7 @@ def _install_menu():
     )
     menu.addCommand("Publish...", publish.show)
     menu.addCommand("Manage...", sceneinventory.show)
+    menu.addCommand("Library...", libraryloader.show)
 
     menu.addSeparator()
     menu.addCommand("Reset Frame Range", reset_frame_range_handles)
