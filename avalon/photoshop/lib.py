@@ -1,5 +1,6 @@
 import json
 import contextlib
+import functools
 
 from win32com.client import Dispatch
 
@@ -10,7 +11,12 @@ psDisplayNoDialogs = 3
 psPlaceAtEnd = 2
 
 # Convinience variable that later query whether the platform is Windows or Mac.
-app = Dispatch("Photoshop.Application")
+# This needs to be a partial function we can later call because when calling
+# Dispatch directly from a different thread will result first a
+# "CoInitialize has not been called.", which can be fixed with
+# pythoncom.CoInitialize() but secondly "The application called an interface
+# that was marshalled for a different thread".
+app = functools.partial(Dispatch, "Photoshop.Application")
 
 
 def start_server():
@@ -36,7 +42,7 @@ def imprint(layer, data):
     """
     layers_data = {}
     try:
-        layers_data = json.loads(app.ActiveDocument.Info.Headline)
+        layers_data = json.loads(app().ActiveDocument.Info.Headline)
     except json.decoder.JSONDecodeError:
         pass
 
@@ -45,7 +51,7 @@ def imprint(layer, data):
     else:
         layers_data[layer.id] = data
 
-    app.ActiveDocument.Info.Headline = json.dumps(layers_data, indent=4)
+    app().ActiveDocument.Info.Headline = json.dumps(layers_data, indent=4)
 
 
 def read(layer):
@@ -59,7 +65,7 @@ def read(layer):
     """
     layers_data = {}
     try:
-        layers_data = json.loads(app.ActiveDocument.Info.Headline)
+        layers_data = json.loads(app().ActiveDocument.Info.Headline)
     except json.decoder.JSONDecodeError:
         pass
 
@@ -80,20 +86,20 @@ def group_selected_layers():
     """Create a group and adds the selected layers."""
 
     ref = Dispatch("Photoshop.ActionReference")
-    ref.PutClass(app.StringIDToTypeID("layerSection"))
+    ref.PutClass(app().StringIDToTypeID("layerSection"))
 
     lref = Dispatch("Photoshop.ActionReference")
     lref.PutEnumerated(
-        app.CharIDToTypeID("Lyr "),
-        app.CharIDToTypeID("Ordn"),
-        app.CharIDToTypeID("Trgt")
+        app().CharIDToTypeID("Lyr "),
+        app().CharIDToTypeID("Ordn"),
+        app().CharIDToTypeID("Trgt")
     )
 
     desc = Dispatch("Photoshop.ActionDescriptor")
-    desc.PutReference(app.CharIDToTypeID("null"), ref)
-    desc.PutReference(app.CharIDToTypeID("From"), lref)
+    desc.PutReference(app().CharIDToTypeID("null"), ref)
+    desc.PutReference(app().CharIDToTypeID("From"), lref)
 
-    app.ExecuteAction(app.CharIDToTypeID("Mk  "), desc, psDisplayNoDialogs)
+    app().ExecuteAction(app().CharIDToTypeID("Mk  "), desc, psDisplayNoDialogs)
 
 
 def get_selected_layers():
@@ -104,15 +110,15 @@ def get_selected_layers():
     """
     group_selected_layers()
 
-    selection = [x for x in app.ActiveDocument.ActiveLayer.Layers]
+    selection = [x for x in app().ActiveDocument.ActiveLayer.Layers]
 
-    app.ExecuteAction(app.CharIDToTypeID("undo"), None, psDisplayNoDialogs)
+    app().ExecuteAction(app().CharIDToTypeID("undo"), None, psDisplayNoDialogs)
 
     return selection
 
 
 def get_layers_by_ids(ids):
-    return [x for x in app.ActiveDocument.Layers if x.id in ids]
+    return [x for x in app().ActiveDocument.Layers if x.id in ids]
 
 
 def get_layer_type(layer):
@@ -137,13 +143,13 @@ def select_layers(layers):
     """
     ref = Dispatch("Photoshop.ActionReference")
     for id in [x.id for x in layers]:
-        ref.PutIdentifier(app.CharIDToTypeID("Lyr "), id)
+        ref.PutIdentifier(app().CharIDToTypeID("Lyr "), id)
 
     desc = Dispatch("Photoshop.ActionDescriptor")
-    desc.PutReference(app.CharIDToTypeID("null"), ref)
-    desc.PutBoolean(app.CharIDToTypeID("MkVs"), False)
+    desc.PutReference(app().CharIDToTypeID("null"), ref)
+    desc.PutBoolean(app().CharIDToTypeID("MkVs"), False)
 
-    app.ExecuteAction(app.CharIDToTypeID("slct"), desc, psDisplayNoDialogs)
+    app().ExecuteAction(app().CharIDToTypeID("slct"), desc, psDisplayNoDialogs)
 
 
 def _recurse_layers(layers):
@@ -157,4 +163,6 @@ def _recurse_layers(layers):
 
 
 def get_all_layers():
-    return _recurse_layers([*app.ActiveDocument.Layers]).values()
+    """Get all layers recursively in the document."""
+
+    return _recurse_layers([*app().ActiveDocument.Layers]).values()

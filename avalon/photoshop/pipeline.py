@@ -2,6 +2,17 @@ from .. import api
 from . import lib
 from ..vendor import Qt
 
+import pyblish.api
+
+
+def install(config):
+    """Install Photoshop-specific functionality of avalon-core.
+
+    This function is called automatically on calling `api.install(photoshop)`.
+    """
+    print("Installing Avalon Photoshop...")
+    pyblish.api.register_host("photoshop")
+
 
 def ls():
     """Yields containers from active Photoshop document
@@ -34,7 +45,7 @@ class Creator(api.Creator):
         selection = lib.get_selected_layers()
 
         # Create group/layer relationship.
-        group = lib.app.ActiveDocument.LayerSets.Add()
+        group = lib.app().ActiveDocument.LayerSets.Add()
         group.Name = self.name
 
         lib.imprint(group, self.data)

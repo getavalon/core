@@ -5,10 +5,10 @@ from . import lib
 
 
 def _active_document():
-    if len(lib.app.Documents) < 1:
+    if len(lib.app().Documents) < 1:
         return None
 
-    return lib.app.ActiveDocument
+    return lib.app().ActiveDocument
 
 
 def file_extensions():

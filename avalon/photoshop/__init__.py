@@ -6,7 +6,8 @@ Anything that isn't defined here is INTERNAL and unreliable for external use.
 
 from .pipeline import (
     ls,
-    Creator
+    Creator,
+    install
 )
 
 from .workio import (
@@ -18,11 +19,12 @@ from .workio import (
     work_root,
 )
 
-from .lib import start_server, app, maintained_selection
+from .lib import start_server, app, maintained_selection, get_all_layers, read
 
 __all__ = [
     "ls",
     "Creator",
+    "install",
 
     # Workfiles
     "file_extensions",
@@ -35,5 +37,7 @@ __all__ = [
     # lib
     "start_server",
     "app",
-    "maintained_selection"
+    "maintained_selection",
+    "get_all_layers",
+    "read"
 ]
