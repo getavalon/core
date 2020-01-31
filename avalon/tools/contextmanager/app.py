@@ -227,3 +227,6 @@ def show(parent=None):
         window.setStyleSheet(style.load_stylesheet())
 
         module.window = window
+
+        # Pull window to the front.
+        module.window.activateWindow()

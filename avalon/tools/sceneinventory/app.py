@@ -939,3 +939,6 @@ def show(root=None, debug=False, parent=None):
         window.refresh()
 
         module.window = window
+
+        # Pull window to the front.
+        module.window.activateWindow()

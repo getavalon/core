@@ -430,6 +430,9 @@ def show(debug=False, parent=None, use_context=False):
 
         module.window = window
 
+        # Pull window to the front.
+        module.window.activateWindow()
+
 
 def cli(args):
 
