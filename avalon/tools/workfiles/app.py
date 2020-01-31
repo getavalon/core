@@ -3,9 +3,12 @@ import os
 import getpass
 import re
 import shutil
+from datetime import datetime
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import style, io, api
+
+from .model import WorkFileModel
 
 from .. import lib as tools_lib
 
@@ -260,8 +263,19 @@ class Window(QtWidgets.QDialog):
         separator.setFrameShadow(QtWidgets.QFrame.Plain)
         self.layout.addWidget(separator)
 
-        self.list = QtWidgets.QListWidget()
-        self.layout.addWidget(self.list)
+        # View
+        view = QtWidgets.QTreeView()
+        view.setTextElideMode(QtCore.Qt.ElideLeft)
+        view.setSortingEnabled(True)
+        view.setRootIsDecorated(False)
+        view.setAlternatingRowColors(True)
+
+        model = WorkFileModel(view)
+        view.setModel(model)
+
+        self.layout.addWidget(view)
+        self.view = view
+        self.model = model
 
         buttons_layout = QtWidgets.QHBoxLayout()
         self.duplicate_button = QtWidgets.QPushButton("Duplicate")
@@ -292,7 +306,7 @@ class Window(QtWidgets.QDialog):
 
         self.duplicate_button.pressed.connect(self.on_duplicate_pressed)
         self.open_button.pressed.connect(self.on_open_pressed)
-        self.list.doubleClicked.connect(self.on_open_pressed)
+        self.view.doubleClicked.connect(self.on_open_pressed)
         self.browse_button.pressed.connect(self.on_browse_pressed)
         self.save_as_button.pressed.connect(self.on_save_as_pressed)
 
@@ -302,7 +316,7 @@ class Window(QtWidgets.QDialog):
         self.open_button.setFocus()
 
         self.refresh()
-        self.resize(400, 550)
+        self.resize(550, 550)
 
     def get_name(self):
 
@@ -313,9 +327,11 @@ class Window(QtWidgets.QDialog):
         return self._name_window.get_result()
 
     def refresh(self):
-        self.list.clear()
+        self.model.clear()
 
-        modified = []
+        last_modified = None
+        last_modified_idx = None
+        parent_idx = QtCore.QModelIndex()
         extensions = set(self.host.file_extensions())
         for f in reversed(os.listdir(self.root)):
             path = os.path.join(self.root, f)
@@ -325,22 +341,41 @@ class Window(QtWidgets.QDialog):
             if extensions and os.path.splitext(f)[1] not in extensions:
                 continue
 
-            self.list.addItem(f)
-            modified.append(os.path.getmtime(path))
+            _modified = os.path.getmtime(path)
+            if not last_modified or last_modified < _modified:
+                last_modified = _modified
+                last_modified_idx = self.model.rowCount(parent_idx)
+
+            modified = (
+                datetime.fromtimestamp(_modified)
+                .strftime("%Y/%m/%d %H:%M:%S")
+            )
+            self.model.add_file(f, modified)
+
+        self.view.header().resizeSection(
+            0, self.view.sizeHintForColumn(0) + 40
+        )
+        self.view.sortByColumn(0, QtCore.Qt.DescendingOrder)
 
         # Select last modified file
-        if self.list.count():
-            item = self.list.item(modified.index(max(modified)))
-            item.setSelected(True)
-
+        if self.model.rowCount(parent_idx):
+            index = self.model.index(last_modified_idx, 0, parent_idx)
+            self.view.selectionModel().select(
+                index,
+                (
+                    QtCore.QItemSelectionModel.SelectCurrent |
+                    QtCore.QItemSelectionModel.Rows
+                )
+            )
             # Scroll list so item is visible
-            QtCore.QTimer.singleShot(100, lambda: self.list.scrollToItem(item))
+            self.view.scrollTo(
+                index,
+                QtWidgets.QAbstractItemView.EnsureVisible
+            )
 
             self.duplicate_button.setEnabled(True)
         else:
             self.duplicate_button.setEnabled(False)
-
-        self.list.setMinimumWidth(self.list.sizeHintForColumn(0) + 30)
 
     def save_changes_prompt(self):
         self._messagebox = QtWidgets.QMessageBox()
@@ -389,24 +424,35 @@ class Window(QtWidgets.QDialog):
         if not work_file:
             return
 
-        src = os.path.join(
-            self.root, self.list.selectedItems()[0].text()
-        )
-        dst = os.path.join(
-            self.root, work_file
-        )
-        shutil.copy(src, dst)
+        selection = self.view.selectionModel()
+        rows = selection.selectedRows(column=0)
+        for row_index in rows:
+            filename = row_index.data(self.model.FilenameRole)
+
+            src = os.path.join(
+                self.root, filename
+            )
+            dst = os.path.join(
+                self.root, work_file
+            )
+            shutil.copy(src, dst)
 
         self.refresh()
 
     def on_open_pressed(self):
+        selection = self.view.selectionModel()
+        rows = selection.selectedRows(column=0)
 
-        selection = self.list.selectedItems()
-        if not selection:
+        if len(rows) == 0:
             print("No file selected to open..")
             return
 
-        work_file = os.path.join(self.root, selection[0].text())
+        elif len(rows) > 1:
+            print("More than one file selected to open..")
+            return
+
+        filename = rows[0].data(self.model.FilenameRole)
+        work_file = os.path.join(self.root, filename)
 
         result = self.open(work_file)
         if result:
@@ -418,7 +464,7 @@ class Window(QtWidgets.QDialog):
         filter = "Work File (*{0})".format(filter)
         work_file = QtWidgets.QFileDialog.getOpenFileName(
             caption="Work Files",
-            dir=self.root,
+            directory=self.root,
             filter=filter
         )[0]
 

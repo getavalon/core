@@ -14,10 +14,17 @@ class TreeModel(QtCore.QAbstractItemModel):
 
     Columns = list()
     ItemRole = QtCore.Qt.UserRole + 1
+    item_class = None
 
     def __init__(self, parent=None):
         super(TreeModel, self).__init__(parent)
-        self._root_item = Item()
+        self._root_item = self.ItemClass()
+
+    @property
+    def ItemClass(self):
+        if self.item_class is not None:
+            return self.item_class
+        return Item
 
     def rowCount(self, parent):
         if parent.isValid():
@@ -129,7 +136,7 @@ class TreeModel(QtCore.QAbstractItemModel):
 
     def clear(self):
         self.beginResetModel()
-        self._root_item = Item()
+        self._root_item = self.ItemClass()
         self.endResetModel()
 
 
