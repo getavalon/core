@@ -81,9 +81,14 @@ def install(host):
     if hasattr(host, "install"):
         host.install(config)
 
+    # Optional config.host.install()
+    host_name = host.__name__.rsplit(".", 1)[-1]
+    config_host = lib.find_submodule(config, host_name)
+    if hasattr(config_host, "install"):
+        config_host.install()
+
     register_host(host)
     register_config(config)
-
     config.install()
 
     self._is_installed = True
@@ -95,7 +100,6 @@ def find_config():
     log.info("Finding configuration for project..")
 
     config = Session["AVALON_CONFIG"]
-
     if not config:
         raise EnvironmentError("No configuration found in "
                                "the project nor environment")
@@ -107,9 +111,16 @@ def find_config():
 def uninstall():
     """Undo all of what `install()` did"""
     config = registered_config()
+    host = registered_host()
+
+    # Optional config.host.uninstall()
+    host_name = host.__name__.rsplit(".", 1)[-1]
+    config_host = lib.find_submodule(config, host_name)
+    if hasattr(config_host, "uninstall"):
+        config_host.uninstall()
 
     try:
-        registered_host().uninstall(config)
+        host.uninstall(config)
     except AttributeError:
         pass
 
@@ -504,6 +515,10 @@ class TemplateResolver(ThumbnailResolver):
     priority = 90
 
     def process(self, thumbnail_entity, thumbnail_type):
+
+        if not os.environ.get("AVALON_THUMBNAIL_ROOT"):
+            return
+
         template = thumbnail_entity["data"].get("template")
         if not template:
             log.debug("Thumbnail entity does not have set template")
@@ -800,7 +815,10 @@ def _validate_signature(module, signatures):
 
         else:
             attr = getattr(module, member)
-            signature = inspect.getargspec(attr)[0]
+            if sys.version_info.major >= 3:
+                signature = inspect.getfullargspec(attr)[0]
+            else:
+                signature = inspect.getargspec(attr)[0]
             required_signature = signatures[member]
 
             assert isinstance(signature, list)
@@ -877,13 +895,7 @@ def default_host():
         return list()
 
     host.__dict__.update({
-        "ls": ls,
-        "open_file": lambda fname: None,
-        "save_file": lambda fname: None,
-        "current_file": lambda: os.path.expanduser("~/temp.txt"),
-        "has_unsaved_changes": lambda: False,
-        "work_root": lambda: os.path.expanduser("~/temp"),
-        "file_extensions": lambda: ["txt"],
+        "ls": ls
     })
 
     return host
@@ -918,7 +930,13 @@ def debug_host():
             yield container
 
     host.__dict__.update({
-        "ls": ls
+        "ls": ls,
+        "open_file": lambda fname: None,
+        "save_file": lambda fname: None,
+        "current_file": lambda: os.path.expanduser("~/temp.txt"),
+        "has_unsaved_changes": lambda: False,
+        "work_root": lambda: os.path.expanduser("~/temp"),
+        "file_extensions": lambda: ["txt"],
     })
 
     return host
@@ -971,8 +989,8 @@ def create(name, asset, family, options=None, data=None):
             with host.maintained_selection():
                 print("Running %s" % plugin)
                 instance = plugin.process()
-        except Exception as e:
-            log.warning(e)
+        except Exception:
+            log.warning(traceback.format_exc())
             continue
         plugins.append(plugin)
 
@@ -1048,16 +1066,22 @@ def update_current_task(task=None, asset=None, app=None):
                                       "type": "asset"})
         assert asset_document, "Asset must exist"
         changed["AVALON_SILO"] = asset_document.get("silo") or ""
-        parents = asset_document["data"]["parents"]
-        hierarchy = os.path.sep.join(parents) or ""
-        changed['AVALON_HIERARCHY'] = hierarchy
 
     # Compute work directory (with the temporary changed session so far)
     project = io.find_one({"type": "project"},
                           projection={"config.template.work": True})
     template = project["config"]["template"]["work"]
+
+    hierarchy = asset_document["data"].get("hierarchy")
+    if hierarchy is None:
+        parents = asset_document["data"].get("parents") or []
+        hierarchy = os.path.sep.join(parents) or ""
+
+    changed['AVALON_HIERARCHY'] = hierarchy
+
     _session = Session.copy()
     _session.update(changed)
+
     workdir = os.path.normpath(_format_work_template(template, _session))
 
     changed["AVALON_WORKDIR"] = workdir
@@ -1104,12 +1128,14 @@ def _format_work_template(template, session=None):
             "name": project.get("name", session["AVALON_PROJECT"]),
             "code": project["data"].get("code", ''),
         },
-        "silo": session.get("AVALON_SILO"),
-        "hierarchy": session['AVALON_HIERARCHY'],
         "asset": session["AVALON_ASSET"],
         "task": session["AVALON_TASK"],
         "app": session["AVALON_APP"],
-        "user": session.get("AVALON_USER", getpass.getuser())
+
+        # Optional
+        "silo": session.get("AVALON_SILO"),
+        "user": session.get("AVALON_USER", getpass.getuser()),
+        "hierarchy": session.get("AVALON_HIERARCHY"),
     })
 
 
@@ -1409,7 +1435,6 @@ def get_representation_path(representation):
             return None
 
         path = representation["data"]["path"]
-
         if os.path.exists(path):
             return os.path.normpath(path)
 

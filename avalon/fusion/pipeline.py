@@ -2,10 +2,12 @@ import sys
 import contextlib
 import importlib
 import logging
-from pyblish import api as pyblish
-from avalon import api as avalon
 
+import pyblish.api
+
+from .. import api
 from ..pipeline import AVALON_CONTAINER_ID
+from ..lib import find_submodule
 
 
 class CompLogHandler(logging.Handler):
@@ -23,30 +25,28 @@ def ls():
     assets on disk, it lists assets already loaded in Fusion; once loaded
     they are called 'containers'
 
+    Yields:
+        dict: container
+
     """
 
     comp = get_current_comp()
     tools = comp.GetToolList(False, "Loader").values()
+
+    has_metadata_collector = False
+    config_host = find_submodule(api.registered_config(), "fusion")
+    if hasattr(config_host, "collect_container_metadata"):
+        has_metadata_collector = True
+
     for tool in tools:
         container = parse_container(tool)
         if container:
-            # Collect custom data if attribute is present
-            config = find_host_config(avalon.registered_config())
-            if hasattr(config, "collect_container_metadata"):
-                metadata = config.collect_container_metadata(container)
+
+            if has_metadata_collector:
+                metadata = config_host.collect_container_metadata(container)
                 container.update(metadata)
 
             yield container
-
-
-def find_host_config(config):
-    config_name = config.__name__
-    try:
-        config = importlib.import_module(config_name + ".fusion")
-    except ImportError:
-        pass
-
-    return config
 
 
 def install(config):
@@ -60,7 +60,7 @@ def install(config):
     # TODO: Set project
     # TODO: Install Fusion menu (this is done with config .fu script actually)
 
-    pyblish.register_host("fusion")
+    pyblish.api.register_host("fusion")
 
     # Remove all handlers associated with the root logger object, because
     # that one sometimes logs as "warnings" incorrectly.
@@ -75,10 +75,18 @@ def install(config):
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
 
-    # Trigger install on the config's "fusion" package
-    config = find_host_config(config)
-    if hasattr(config, "install"):
-        config.install()
+
+def uninstall(config):
+    """Uninstall Fusion-specific functionality of avalon-core.
+
+    This function is called automatically on calling `api.uninstall()`.
+
+    Args:
+        config: configuration module
+
+    """
+
+    pyblish.api.deregister_host("fusion")
 
 
 def imprint_container(tool,

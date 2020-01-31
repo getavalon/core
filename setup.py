@@ -58,7 +58,7 @@ try:
         },
         classifiers=classifiers,
         install_requires=[
-            "pymongo>=3.4,<3.9",
+            "pymongo>=3.4,<4",
         ],
         python_requires=">2.7, <4",
     )

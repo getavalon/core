@@ -10,8 +10,8 @@ import hou
 
 # Local libraries
 from . import lib
-from ..lib import logger
-from avalon import api, schema
+from ..lib import logger, find_submodule
+from .. import api
 
 from ..pipeline import AVALON_CONTAINER_ID
 
@@ -39,10 +39,6 @@ def install(config):
 
     self._has_been_setup = True
 
-    config = find_host_config(config)
-    if hasattr(config, "install"):
-        config.install()
-
 
 def uninstall(config):
     """Uninstall Houdini-specific functionality of avalon-core.
@@ -54,25 +50,16 @@ def uninstall(config):
 
     """
 
-    config = find_host_config(config)
-    if hasattr(config, "uninstall"):
-        config.uninstall()
-
     pyblish.api.deregister_host("hython")
     pyblish.api.deregister_host("hpython")
     pyblish.api.deregister_host("houdini")
 
 
-def find_host_config(config):
-    config_name = config.__name__
-    try:
-        config = importlib.import_module(config_name + ".houdini")
-    except ImportError as exc:
-        if str(exc) != "No module name {}".format(config_name + ".houdini"):
-            raise
-        config = None
-
-    return config
+def get_main_window():
+    """Acquire Houdini's main window"""
+    if self._parent is None:
+        self._parent = hou.ui.mainQtWindow()
+    return self._parent
 
 
 def reload_pipeline(*args):
@@ -81,8 +68,6 @@ def reload_pipeline(*args):
     CAUTION: This is primarily for development and debugging purposes.
 
     """
-
-    import importlib
 
     api.uninstall()
 
@@ -116,7 +101,7 @@ def reload_pipeline(*args):
         module = importlib.import_module(module)
         reload(module)
 
-    self._parent = {hou.ui.mainQtWindow().objectName(): hou.ui.mainQtWindow()}
+    get_main_window()
 
     import avalon.houdini
     api.install(avalon.houdini)
@@ -201,12 +186,11 @@ def containerise(name,
     return container
 
 
-def parse_container(container, validate=True):
+def parse_container(container):
     """Return the container node's full container data.
 
     Args:
         container (hou.Node): A container node name.
-        validate(bool): turn the validation for the container on or off
 
     Returns:
         dict: The container schema data for this container node.
@@ -221,9 +205,6 @@ def parse_container(container, validate=True):
     data["objectName"] = container.path()
     data["node"] = container
 
-    if validate:
-        schema.validate(data)
-
     return data
 
 
@@ -233,13 +214,17 @@ def ls():
                        "pyblish.mindbender.container"):
         containers += lib.lsattr("id", identifier)
 
+    has_metadata_collector = False
+    config_host = find_submodule(api.registered_config(), "houdini")
+    if hasattr(config_host, "collect_container_metadata"):
+        has_metadata_collector = True
+
     for container in sorted(containers):
         data = parse_container(container)
 
         # Collect custom data if attribute is present
-        config = find_host_config(api.registered_config())
-        if hasattr(config, "collect_container_metadata"):
-            metadata = config.collect_container_metadata(container)
+        if has_metadata_collector:
+            metadata = config_host.collect_container_metadata(container)
             data.update(metadata)
 
         yield data
@@ -321,9 +306,7 @@ def on_file_event_callback(event):
 
 
 def on_houdini_initialize():
-
-    main_window = hou.qt.mainWindow()
-    self._parent = {main_window.objectName(): main_window}
+    get_main_window()
 
 
 def _register_callbacks():

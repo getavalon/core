@@ -66,11 +66,11 @@ class SubsetNameLineEdit(QtWidgets.QLineEdit):
         self.setToolTip("Only alphanumeric characters (A-Z a-z 0-9), "
                         "'_' and '.' are allowed.")
 
-        self._status_color = None
+        self._status_color = self.colors["empty"][0]
 
         anim = QtCore.QPropertyAnimation()
         anim.setTargetObject(self)
-        anim.setPropertyName("status_color")
+        anim.setPropertyName(b"status_color")
         anim.setEasingCurve(QtCore.QEasingCurve.InCubic)
         anim.setDuration(300)
         anim.setStartValue(QtGui.QColor("#C84747"))  # `Invalid` status color
@@ -297,10 +297,11 @@ class Window(QtWidgets.QDialog):
         # Get the asset from the database which match with the name
         asset = io.find_one({"name": asset_name, "type": "asset"},
                             projection={"_id": 1})
+        # Get plugin
+        plugin = item.data(PluginRole)
 
-        if asset:
-            # Get plugin and family
-            plugin = item.data(PluginRole)
+        if asset and plugin:
+            # Get family
             family = plugin.family.rsplit(".", 1)[-1]
             regex = "{}*".format(family)
             existed_subset_split = family
@@ -351,7 +352,7 @@ class Window(QtWidgets.QDialog):
             else:
                 result.setText("{}{}".format(
                     family,
-                    subset_name.capitalize()
+                    subset_name
                 ))
 
             # Indicate subset existence
@@ -367,7 +368,11 @@ class Window(QtWidgets.QDialog):
         else:
             self._build_menu([])
             item.setData(ExistsRole, False)
-            self.echo("Asset '%s' not found .." % asset_name)
+
+            if not plugin:
+                self.echo("No registered families ..")
+            else:
+                self.echo("Asset '%s' not found .." % asset_name)
 
         # Update the valid state
         valid = (
