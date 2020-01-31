@@ -144,3 +144,17 @@ def select_layers(layers):
     desc.PutBoolean(app.CharIDToTypeID("MkVs"), False)
 
     app.ExecuteAction(app.CharIDToTypeID("slct"), desc, psDisplayNoDialogs)
+
+
+def _recurse_layers(layers):
+    result = {}
+    for layer in layers:
+        result[layer.id] = layer
+        if get_layer_type(layer) == "LayerSet":
+            result.update(_recurse_layers([*layer.Layers]))
+
+    return result
+
+
+def get_all_layers():
+    return _recurse_layers([*app.ActiveDocument.Layers]).values()
