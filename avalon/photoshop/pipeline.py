@@ -41,18 +41,19 @@ class Creator(api.Creator):
                 msg.exec_()
                 return False
 
+        group = None
+
         # Store selection because adding a group will change selection.
-        selection = lib.get_selected_layers()
+        with lib.maintained_selection() as selection:
+            # Create group/layer relationship.
+            group = lib.app().ActiveDocument.LayerSets.Add()
+            group.Name = self.name
 
-        # Create group/layer relationship.
-        group = lib.app().ActiveDocument.LayerSets.Add()
-        group.Name = self.name
+            lib.imprint(group, self.data)
 
-        lib.imprint(group, self.data)
-
-        # Add selection to group.
-        if (self.options or {}).get("useSelection"):
-            for item in selection:
-                item.Move(group, com_objects.constants().psPlaceAtEnd)
+            # Add selection to group.
+            if (self.options or {}).get("useSelection"):
+                for item in selection:
+                    item.Move(group, com_objects.constants().psPlaceAtEnd)
 
         return group
