@@ -1,5 +1,5 @@
 from .. import api
-from . import lib
+from . import lib, com_objects
 from ..vendor import Qt
 
 import pyblish.api
@@ -53,6 +53,6 @@ class Creator(api.Creator):
         # Add selection to group.
         if (self.options or {}).get("useSelection"):
             for item in selection:
-                item.Move(group, lib.psPlaceAtEnd)
+                item.Move(group, com_objects.constants().psPlaceAtEnd)
 
         return group

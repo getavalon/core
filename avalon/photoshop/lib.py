@@ -4,11 +4,8 @@ import functools
 
 from win32com.client import Dispatch
 
-from . import server
+from . import server, com_objects
 
-
-psDisplayNoDialogs = 3
-psPlaceAtEnd = 2
 
 # Convinience variable that later query whether the platform is Windows or Mac.
 # This needs to be a partial function we can later call because when calling
@@ -99,7 +96,11 @@ def group_selected_layers():
     desc.PutReference(app().CharIDToTypeID("null"), ref)
     desc.PutReference(app().CharIDToTypeID("From"), lref)
 
-    app().ExecuteAction(app().CharIDToTypeID("Mk  "), desc, psDisplayNoDialogs)
+    app().ExecuteAction(
+        app().CharIDToTypeID("Mk  "),
+        desc,
+        com_objects.constants().psDisplayNoDialogs
+    )
 
 
 def get_selected_layers():
@@ -112,7 +113,11 @@ def get_selected_layers():
 
     selection = [x for x in app().ActiveDocument.ActiveLayer.Layers]
 
-    app().ExecuteAction(app().CharIDToTypeID("undo"), None, psDisplayNoDialogs)
+    app().ExecuteAction(
+        app().CharIDToTypeID("undo"),
+        None,
+        com_objects.constants().psDisplayNoDialogs
+    )
 
     return selection
 
@@ -149,7 +154,11 @@ def select_layers(layers):
     desc.PutReference(app().CharIDToTypeID("null"), ref)
     desc.PutBoolean(app().CharIDToTypeID("MkVs"), False)
 
-    app().ExecuteAction(app().CharIDToTypeID("slct"), desc, psDisplayNoDialogs)
+    app().ExecuteAction(
+        app().CharIDToTypeID("slct"),
+        desc,
+        com_objects.constants().psDisplayNoDialogs
+    )
 
 
 def _recurse_layers(layers):
