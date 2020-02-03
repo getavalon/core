@@ -27,7 +27,7 @@ def save_file(filepath):
 
 
 def open_file(filepath):
-    lib.app.Open(filepath)
+    lib.app().Open(filepath)
 
     return True
 
