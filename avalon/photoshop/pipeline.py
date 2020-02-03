@@ -41,8 +41,6 @@ class Creator(api.Creator):
                 msg.exec_()
                 return False
 
-        group = None
-
         # Store selection because adding a group will change selection.
         with lib.maintained_selection() as selection:
             # Create group/layer relationship.
