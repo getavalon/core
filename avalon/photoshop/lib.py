@@ -6,8 +6,8 @@ from win32com.client import Dispatch
 
 from . import server, com_objects
 
-
-# Convinience variable that later query whether the platform is Windows or Mac.
+# Convinience variable that could later query whether the platform is Windows
+# or Mac.
 # This needs to be a partial function we can later call because when calling
 # Dispatch directly from a different thread will result first a
 # "CoInitialize has not been called.", which can be fixed with
@@ -71,7 +71,7 @@ def read(layer):
 
 @contextlib.contextmanager
 def maintained_selection():
-    """Maintain selection during context"""
+    """Maintain selection during context."""
     selection = get_selected_layers()
     try:
         yield selection
