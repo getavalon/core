@@ -171,7 +171,12 @@ def _recurse_layers(layers):
     return result
 
 
-def get_all_layers():
-    """Get all layers recursively in the document."""
+def get_layers_in_layers(layers):
+    """Get all layers in layers."""
+    return list(_recurse_layers(layers).values())
 
-    return _recurse_layers([*app().ActiveDocument.Layers]).values()
+
+def get_layers_in_document(document=None):
+    """Get all layers recursively in a document."""
+    document = document or app().ActiveDocument
+    return list(_recurse_layers([*document.Layers]).values())

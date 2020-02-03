@@ -33,7 +33,7 @@ class Creator(api.Creator):
         # Photoshop can have multiple LayerSets with the same name, which does
         # not work with Avalon.
         msg = "Instance with name \"{}\" already exists.".format(self.name)
-        for layer in lib.get_all_layers():
+        for layer in lib.get_layers_in_document():
             if self.name.lower() == layer.Name.lower():
                 msg = Qt.QtWidgets.QMessageBox()
                 msg.setIcon(Qt.QtWidgets.QMessageBox.Warning)
