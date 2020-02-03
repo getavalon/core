@@ -79,6 +79,20 @@ def maintained_selection():
         select_layers(selection)
 
 
+@contextlib.contextmanager
+def maintained_visibility():
+    """Maintain visibility during context."""
+    visibility = {}
+    layers = get_layers_in_document(app().ActiveDocument)
+    for layer in layers:
+        visibility[layer.id] = layer.Visible
+    try:
+        yield
+    finally:
+        for layer in layers:
+            layer.Visible = visibility[layer.id]
+
+
 def group_selected_layers():
     """Create a group and adds the selected layers."""
 
