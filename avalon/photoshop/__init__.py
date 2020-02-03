@@ -19,7 +19,16 @@ from .workio import (
     work_root,
 )
 
-from .lib import start_server, app, maintained_selection, get_all_layers, read
+from .lib import (
+    start_server,
+    app,
+    maintained_selection,
+    maintained_visibility,
+    get_layers_in_document,
+    get_layers_in_layers,
+    read,
+    com_objects
+)
 
 __all__ = [
     "ls",
@@ -38,6 +47,9 @@ __all__ = [
     "start_server",
     "app",
     "maintained_selection",
-    "get_all_layers",
-    "read"
+    "maintained_visibility",
+    "get_layers_in_document",
+    "get_layers_in_layers",
+    "read",
+    "com_objects"
 ]
