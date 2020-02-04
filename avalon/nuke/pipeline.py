@@ -54,8 +54,6 @@ def reload_pipeline():
     import avalon.nuke
     api.install(avalon.nuke)
 
-    _register_events()
-
 
 def containerise(name,
                  namespace,
