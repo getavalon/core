@@ -27,9 +27,11 @@ from .lib import (
     maintained_visibility,
     get_layers_in_document,
     get_layers_in_layers,
+    imprint,
     read,
     com_objects,
-    import_as_smart_object
+    import_smart_object,
+    replace_smart_object
 )
 
 __all__ = [
@@ -54,7 +56,9 @@ __all__ = [
     "maintained_visibility",
     "get_layers_in_document",
     "get_layers_in_layers",
+    "imprint",
     "read",
     "com_objects",
-    "import_as_smart_object"
+    "import_smart_object",
+    "replace_smart_object"
 ]
