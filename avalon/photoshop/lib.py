@@ -43,10 +43,12 @@ def imprint(layer, data):
     except json.decoder.JSONDecodeError:
         pass
 
-    if layer.id in layers_data:
-        layers_data[layer.id].update(data)
+    # json.dumps writes integer values in a dictionary to string, so
+    # anticipating it here.
+    if str(layer.id) in layers_data:
+        layers_data[str(layer.id)].update(data)
     else:
-        layers_data[layer.id] = data
+        layers_data[str(layer.id)] = data
 
     app().ActiveDocument.Info.Headline = json.dumps(layers_data, indent=4)
 
