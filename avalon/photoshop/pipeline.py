@@ -25,7 +25,21 @@ def ls():
         dict: container
 
     """
-    pass
+    for layer in lib.get_layers_in_document():
+        data = lib.read(layer)
+
+        # Skip non-tagged layers.
+        if not data:
+            continue
+
+        # Filter to only containers.
+        if "container" not in data["id"]:
+            continue
+
+        # Append transient data
+        data["layer"] = layer
+
+        yield data
 
 
 class Creator(api.Creator):
@@ -59,7 +73,7 @@ class Creator(api.Creator):
 
 def containerise(name,
                  namespace,
-                 layer_id,
+                 layer,
                  context,
                  loader=None,
                  suffix="_CON"):
@@ -80,9 +94,7 @@ def containerise(name,
         container (str): Name of container assembly
 
     """
-
-    # Create proper container name
-    container = lib.get_layers_by_ids([layer_id])[0]
+    layer.Name = name + suffix
 
     data = {
         "schema": "avalon-core:container-2.0",
@@ -93,6 +105,6 @@ def containerise(name,
         "representation": str(context["representation"]["_id"]),
     }
 
-    lib.imprint(container, data)
+    lib.imprint(layer, data)
 
-    return container
+    return layer
