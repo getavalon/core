@@ -10,6 +10,7 @@ from ..vendor.Qt import QtWidgets, QtCore, QtGui
 self = sys.modules[__name__]
 self._jobs = dict()
 self._path = os.path.dirname(__file__)
+self.app = None
 
 
 def resource(*path):
@@ -19,16 +20,17 @@ def resource(*path):
 
 @contextlib.contextmanager
 def application():
-    app = QtWidgets.QApplication.instance()
+    self.app = QtWidgets.QApplication.instance()
 
-    if not app:
-        print("Starting new QApplication..")
-        app = QtWidgets.QApplication(sys.argv)
-        yield app
-        app.exec_()
-    else:
+    if self.app:
         print("Using existing QApplication..")
-        yield app
+        yield self.app
+    else:
+        print("Starting new QApplication..")
+        self.app = QtWidgets.QApplication(sys.argv)
+        yield self.app
+
+    self.app.exec_()
 
 
 def defer(delay, func):
