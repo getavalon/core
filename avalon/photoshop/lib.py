@@ -198,7 +198,7 @@ def get_layers_in_document(document=None):
     return list(_recurse_layers([*document.Layers]).values())
 
 
-def import_as_smart_object(path):
+def import_smart_object(path):
     desc1 = Dispatch("Photoshop.ActionDescriptor")
     desc1.PutPath(app().CharIDToTypeID("null"), path)
     desc1.PutEnumerated(
