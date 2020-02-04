@@ -358,21 +358,14 @@ def _install_menu():
         workfiles,
         loader,
         sceneinventory,
-        contextmanager
     )
 
     # Create menu
     menubar = nuke.menu("Nuke")
     menu = menubar.addMenu(api.Session["AVALON_LABEL"])
 
-    label = "{0}, {1}".format(
-        api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"]
-    )
-    context_menu = menu.addMenu(label)
-    context_menu.addCommand("Set Context",
-                            lambda: contextmanager.show(
-                                parent=get_main_window())
-                            )
+    _add_contextmanager_menu(menu)
+
     menu.addSeparator()
     menu.addCommand("Create...",
                     lambda: creator.show(parent=get_main_window()))
@@ -408,6 +401,27 @@ def _uninstall_menu():
     menubar.removeItem(api.Session["AVALON_LABEL"])
 
 
+def _add_contextmanager_menu(menu):
+    from ..tools import contextmanager
+
+    label = "{0}, {1}".format(
+        api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"]
+    )
+    context_menu = menu.addMenu(label, index=0)
+    context_menu.addCommand("Set Context",
+                            lambda: contextmanager.show(
+                                parent=get_main_window())
+                            )
+
+
+def _update_menu_task_label():
+    menubar = nuke.menu("Nuke")
+    menu = menubar.findItem(api.Session["AVALON_LABEL"])
+
+    menu.removeItem(menu.items()[0].name())  # Assume it is the first item
+    _add_contextmanager_menu(menu)
+
+
 def publish():
     """Shorthand to publish from within host"""
     import pyblish.util
@@ -423,8 +437,7 @@ def _register_events():
 def _on_task_changed(*args):
 
     # Update menu
-    _uninstall_menu()
-    _install_menu()
+    _update_menu_task_label()
 
 
 # Backwards compatibility
