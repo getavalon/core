@@ -20,6 +20,8 @@ def resource(*path):
 
 @contextlib.contextmanager
 def application():
+    # Storing QApplication to prevent garbage collection.
+    # See https://github.com/getavalon/core/issues/514
     self.app = QtWidgets.QApplication.instance()
 
     if self.app:
