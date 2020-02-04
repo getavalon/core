@@ -228,3 +228,17 @@ def import_smart_object(path):
     layer.MoveToBeginning(app().ActiveDocument)
 
     return layer
+
+
+def replace_smart_object(layer, path):
+    app().ActiveDocument.ActiveLayer = layer
+
+    desc = Dispatch("Photoshop.ActionDescriptor")
+    desc.PutPath(app().CharIDToTypeID("null"), path.replace("\\", "/"))
+    desc.PutInteger(app().CharIDToTypeID("PgNm"), 1)
+
+    app().ExecuteAction(
+        app().StringIDToTypeID("placedLayerReplaceContents"),
+        desc,
+        com_objects.constants().psDisplayNoDialogs
+    )
