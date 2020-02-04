@@ -194,3 +194,35 @@ def get_layers_in_document(document=None):
     """Get all layers recursively in a document."""
     document = document or app().ActiveDocument
     return list(_recurse_layers([*document.Layers]).values())
+
+
+def import_as_smart_object(path):
+    desc1 = Dispatch("Photoshop.ActionDescriptor")
+    desc1.PutPath(app().CharIDToTypeID("null"), path)
+    desc1.PutEnumerated(
+        app().CharIDToTypeID("FTcs"),
+        app().CharIDToTypeID("QCSt"),
+        app().CharIDToTypeID("Qcsa")
+    )
+
+    desc2 = Dispatch("Photoshop.ActionDescriptor")
+    desc2.PutUnitDouble(
+        app().CharIDToTypeID("Hrzn"), app().CharIDToTypeID("#Pxl"), 0.0
+    )
+    desc2.PutUnitDouble(
+        app().CharIDToTypeID("Vrtc"), app().CharIDToTypeID("#Pxl"), 0.0
+    )
+
+    desc1.PutObject(
+        app().CharIDToTypeID("Ofst"), app().CharIDToTypeID("Ofst"), desc2
+    )
+
+    app().ExecuteAction(
+        app().CharIDToTypeID("Plc "),
+        desc1,
+        com_objects.constants().psDisplayNoDialogs
+    )
+    layer = get_selected_layers()[0]
+    layer.MoveToBeginning(app().ActiveDocument)
+
+    return layer

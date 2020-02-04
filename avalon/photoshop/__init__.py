@@ -7,7 +7,8 @@ Anything that isn't defined here is INTERNAL and unreliable for external use.
 from .pipeline import (
     ls,
     Creator,
-    install
+    install,
+    containerise
 )
 
 from .workio import (
@@ -27,15 +28,18 @@ from .lib import (
     get_layers_in_document,
     get_layers_in_layers,
     read,
-    com_objects
+    com_objects,
+    import_as_smart_object
 )
 
 __all__ = [
+    # pipeline
     "ls",
     "Creator",
     "install",
+    "containerise",
 
-    # Workfiles
+    # workfiles
     "file_extensions",
     "has_unsaved_changes",
     "save_file",
@@ -51,5 +55,6 @@ __all__ = [
     "get_layers_in_document",
     "get_layers_in_layers",
     "read",
-    "com_objects"
+    "com_objects",
+    "import_as_smart_object"
 ]

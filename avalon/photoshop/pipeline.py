@@ -1,4 +1,4 @@
-from .. import api
+from .. import api, pipeline
 from . import lib, com_objects
 from ..vendor import Qt
 
@@ -55,3 +55,44 @@ class Creator(api.Creator):
                     item.Move(group, com_objects.constants().psPlaceAtEnd)
 
         return group
+
+
+def containerise(name,
+                 namespace,
+                 layer_id,
+                 context,
+                 loader=None,
+                 suffix="_CON"):
+    """Imprint layer with metadata
+
+    Containerisation enables a tracking of version, author and origin
+    for loaded assets.
+
+    Arguments:
+        name (str): Name of resulting assembly
+        namespace (str): Namespace under which to host container
+        layer_id (list): Id of layer to containerise
+        context (dict): Asset information
+        loader (str, optional): Name of loader used to produce this container.
+        suffix (str, optional): Suffix of container, defaults to `_CON`.
+
+    Returns:
+        container (str): Name of container assembly
+
+    """
+
+    # Create proper container name
+    container = lib.get_layers_by_ids([layer_id])[0]
+
+    data = {
+        "schema": "avalon-core:container-2.0",
+        "id": pipeline.AVALON_CONTAINER_ID,
+        "name": name,
+        "namespace": namespace,
+        "loader": str(loader),
+        "representation": str(context["representation"]["_id"]),
+    }
+
+    lib.imprint(container, data)
+
+    return container
