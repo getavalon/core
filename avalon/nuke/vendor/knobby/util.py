@@ -13,6 +13,12 @@ else:
     string_types = __builtin__.basestring
 
 
+def nice_naming(key):
+    """Convert camelCase name into UI Display Name"""
+    words = re.findall('[A-Z][^A-Z]*', key[0].upper() + key[1:])
+    return " ".join(words)
+
+
 def imprint(node, data, tab=None):
     """Store attributes with value on node
 
@@ -29,12 +35,13 @@ def imprint(node, data, tab=None):
 
     """
     tab = tab or "User"
+    nice = nice_naming(tab)
 
     existed_knobs = node.knobs()
     tab_existed = tab in existed_knobs
 
     def add_knobs(knobs, tab):
-        node.addKnob(nuke.Tab_Knob(tab))
+        node.addKnob(nuke.Tab_Knob(tab, nice))
         for knob in knobs:
             node.addKnob(knob)
 
@@ -124,11 +131,6 @@ def create_knobs(data, tab):
         list: A list of `nuke.Knob` objects
 
     """
-    def nice_naming(key):
-        """Convert camelCase name into UI Display Name"""
-        words = re.findall('[A-Z][^A-Z]*', key[0].upper() + key[1:])
-        return " ".join(words)
-
     # Turn key-value pairs into knobs
     knobs = list()
     prefix = tab + ":"
