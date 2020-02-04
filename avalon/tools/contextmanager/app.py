@@ -223,13 +223,6 @@ def show(parent=None):
 
     with lib.application():
         window = App(parent)
-
-        # Show ontop of all windows in standalone.
-        if window.parentWidget() is None:
-            window.setWindowFlags(
-                window.windowFlags() | QtCore.Qt.WindowStaysOnTopHint
-            )
-
         window.show()
         window.setStyleSheet(style.load_stylesheet())
 

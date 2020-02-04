@@ -589,13 +589,6 @@ def show(debug=False, parent=None):
     with lib.application():
         window = Window(parent)
         window.refresh()
-
-        # Show ontop of all windows in standalone.
-        if window.parentWidget() is None:
-            window.setWindowFlags(
-                window.windowFlags() | QtCore.Qt.WindowStaysOnTopHint
-            )
-
         window.show()
         window.setStyleSheet(style.load_stylesheet())
 
