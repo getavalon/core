@@ -418,6 +418,13 @@ def show(debug=False, parent=None, use_context=False):
         lib.refresh_group_config_cache()
 
         window = Window(parent)
+
+        # Show ontop of all windows in standalone.
+        if window.parentWidget() is None:
+            window.setWindowFlags(
+                window.windowFlags() | QtCore.Qt.WindowStaysOnTopHint
+            )
+
         window.show()
         window.setStyleSheet(style.load_stylesheet())
 
@@ -431,6 +438,7 @@ def show(debug=False, parent=None, use_context=False):
         module.window = window
 
         # Pull window to the front.
+        module.window.raise_()
         module.window.activateWindow()
 
 

@@ -501,10 +501,18 @@ def show(root=None, debug=False, parent=None):
 
     with tools_lib.application():
         window = Window(root, parent=parent)
+
+        # Show ontop of all windows in standalone.
+        if window.parentWidget() is None:
+            window.setWindowFlags(
+                window.windowFlags() | QtCore.Qt.WindowStaysOnTopHint
+            )
+
         window.show()
         window.setStyleSheet(style.load_stylesheet())
 
         module.window = window
 
         # Pull window to the front.
+        module.window.raise_()
         module.window.activateWindow()
