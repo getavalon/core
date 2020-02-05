@@ -32,11 +32,11 @@ python -c "import avalon.photoshop;avalon.photoshop.start_server()"
 
 The Photoshop extension can be found under `Window > Extensions > Avalon`. Once launched you should be presented with a panel like this:
 
-![Avalon Panel](panel.png "Avalon Panel")
+![Avalon Panel](panel.PNG "Avalon Panel")
 
 If the server is not running you will get a page failure:
 
-![Avalon Panel Failure](panel_failure.png "Avalon Panel Failure")
+![Avalon Panel Failure](panel_failure.PNG "Avalon Panel Failure")
 
 Start the server and hit `Refresh`.
 
