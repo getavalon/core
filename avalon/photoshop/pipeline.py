@@ -43,6 +43,12 @@ def ls():
 
 
 class Creator(api.Creator):
+    """Creator plugin to create instances in Photoshop
+
+    A LayerSet is created to support any number of layers in an instance. If
+    the selection is used, these layers will be added to the LayerSet.
+    """
+
     def process(self):
         # Photoshop can have multiple LayerSets with the same name, which does
         # not work with Avalon.
@@ -85,14 +91,13 @@ def containerise(name,
     Arguments:
         name (str): Name of resulting assembly
         namespace (str): Namespace under which to host container
-        layer_id (list): Id of layer to containerise
+        layer (COMObject): Layer to containerise
         context (dict): Asset information
         loader (str, optional): Name of loader used to produce this container.
         suffix (str, optional): Suffix of container, defaults to `_CON`.
 
     Returns:
         container (str): Name of container assembly
-
     """
     layer.Name = name + suffix
 

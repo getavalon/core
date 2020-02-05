@@ -165,6 +165,14 @@ def select_layers(layers):
 
 
 def _recurse_layers(layers):
+    """Recursively get layers in provided layers.
+
+    Args:
+        layers (list): List of COMObjects.
+
+    Returns:
+        List of COMObjects.
+    """
     result = {}
     for layer in layers:
         result[layer.id] = layer
@@ -180,12 +188,22 @@ def get_layers_in_layers(layers):
 
 
 def get_layers_in_document(document=None):
-    """Get all layers recursively in a document."""
+    """Get all layers in a document.
+
+    Args:
+        document (win32com.client.CDispatch): COMObject of the document. If
+            None is supplied the ActiveDocument is used.
+    """
     document = document or app().ActiveDocument
     return list(_recurse_layers([*document.Layers]).values())
 
 
 def import_smart_object(path):
+    """Import the file at `path` as a smart object to active document.
+
+    Args:
+        path (str): File path to import.
+    """
     desc1 = Dispatch("Photoshop.ActionDescriptor")
     desc1.PutPath(app().CharIDToTypeID("null"), path)
     desc1.PutEnumerated(
@@ -218,6 +236,12 @@ def import_smart_object(path):
 
 
 def replace_smart_object(layer, path):
+    """Replace the smart object `layer` with file at `path`
+
+    Args:
+        layer (win32com.client.CDispatch): COMObject of the layer.
+        path (str): File to import.
+    """
     app().ActiveDocument.ActiveLayer = layer
 
     desc = Dispatch("Photoshop.ActionDescriptor")
