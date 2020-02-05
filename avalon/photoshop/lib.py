@@ -143,20 +143,6 @@ def get_layers_by_ids(ids):
     return [x for x in app().ActiveDocument.Layers if x.id in ids]
 
 
-def get_layer_type(layer):
-    """Get layer type as string
-
-    Returns:
-        str
-    """
-
-    mapping = {
-        1: "ArtLayer",
-        2: "LayerSet"
-    }
-    return mapping[layer.LayerType]
-
-
 def select_layers(layers):
     """Selects multiple layers
 
@@ -182,7 +168,7 @@ def _recurse_layers(layers):
     result = {}
     for layer in layers:
         result[layer.id] = layer
-        if get_layer_type(layer) == "LayerSet":
+        if layer.LayerType == com_objects.constants().psLayerSet:
             result.update(_recurse_layers([*layer.Layers]))
 
     return result
