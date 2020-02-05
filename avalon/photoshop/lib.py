@@ -4,7 +4,8 @@ import functools
 
 from win32com.client import Dispatch
 
-from . import server, com_objects
+from . import com_objects
+from ..tools import html_server
 
 # Convinience variable that could later query whether the platform is Windows
 # or Mac.
@@ -21,7 +22,7 @@ def start_server():
     from avalon import api, photoshop
 
     api.install(photoshop)
-    server.app.start_server()
+    html_server.app.start_server(5000)
 
 
 def imprint(layer, data):

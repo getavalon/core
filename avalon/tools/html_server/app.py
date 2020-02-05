@@ -5,6 +5,8 @@ from avalon.vendor.bottle import route, template, run
 
 @route("/")
 def index():
+    """The entry point when accessing 'http://localhost:{port}'"""
+
     scripts_html = ""
     buttons_html = ""
     tools = {
@@ -60,6 +62,7 @@ def index():
 
 @route("/<tool_name>_route")
 def tool_route(tool_name):
+    """The address accessed when clicking on the buttons."""
     tool_module = importlib.import_module("avalon.tools." + tool_name)
     tool_module.show()
 
@@ -67,9 +70,6 @@ def tool_route(tool_name):
     return "nothing"
 
 
-def start_server():
-    run(host="localhost", port=5000)
-
-
-if __name__ == "__main__":
-    start_server()
+def start_server(port):
+    """Starts the Bottle server at 'http://localhost:{port}'"""
+    run(host="localhost", port=port)
