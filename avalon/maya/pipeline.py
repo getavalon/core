@@ -33,7 +33,7 @@ AVALON_CONTAINERS = ":AVALON_CONTAINERS"
 IS_HEADLESS = not hasattr(cmds, "about") or cmds.about(batch=True)
 
 
-def install(config):
+def install():
     """Install Maya-specific functionality of avalon-core.
 
     This function is called automatically on calling `api.install(maya)`.

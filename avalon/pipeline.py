@@ -52,11 +52,9 @@ class IncompatibleLoaderError(ValueError):
 
 def install(host):
     """Install `host` into the running Python session.
-
     Arguments:
         host (module): A Python module containing the Avalon
             avalon host-interface.
-
     """
 
     io.install()
@@ -79,16 +77,18 @@ def install(host):
 
     # Optional host install function
     if hasattr(host, "install"):
-        host.install(config)
+        host.install()
 
     # Optional config.host.install()
     host_name = host.__name__.rsplit(".", 1)[-1]
     config_host = lib.find_submodule(config, host_name)
-    if hasattr(config_host, "install"):
-        config_host.install()
+    if config_host != host:
+        if hasattr(config_host, "install"):
+            config_host.install()
 
     register_host(host)
     register_config(config)
+
     config.install()
 
     self._is_installed = True

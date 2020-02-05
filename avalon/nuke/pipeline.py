@@ -236,7 +236,7 @@ def ls():
             yield container
 
 
-def install(config):
+def install():
     """Install Nuke-specific functionality of avalon-core.
 
     This is where you install menus and register families, data
