@@ -468,8 +468,12 @@ def show(root=None, debug=False, parent=None):
             to this QObject.
 
     """
+
+    try:
         module.window.close()
-        del(module.window)
+        del module.window
+    except (RuntimeError, AttributeError):
+        pass
 
     host = api.registered_host()
     if host is None:

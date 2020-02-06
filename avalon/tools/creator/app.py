@@ -563,9 +563,11 @@ def show(debug=False, parent=None):
 
     """
 
-    if module.window:
+    try:
         module.window.close()
-        del(module.window)
+        del module.window
+    except (RuntimeError, AttributeError):
+        pass
 
     with lib.application():
         window = Window(parent)

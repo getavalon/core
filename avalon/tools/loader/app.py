@@ -385,26 +385,11 @@ def show(debug=False, parent=None, use_context=False):
 
     """
 
-    # Remember window
-    if module.window is not None:
-        try:
-            module.window.show()
-
-            # If the window is minimized then unminimize it.
-            if module.window.windowState() & QtCore.Qt.WindowMinimized:
-                module.window.setWindowState(QtCore.Qt.WindowActive)
-
-            # Raise and activate the window
-            module.window.raise_()             # for MacOS
-            module.window.activateWindow()     # for Windows
-            module.window.refresh()
-            return
-        except RuntimeError as e:
-            if not str(e).rstrip().endswith("already deleted."):
-                raise
-
-            # Garbage collected
-            module.window = None
+    try:
+        module.window.close()
+        del module.window
+    except (RuntimeError, AttributeError):
+        pass
 
     with lib.application():
 
