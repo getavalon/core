@@ -214,7 +214,7 @@ class App(QtWidgets.QDialog):
 
 
 def show(parent=None, debug=False):
-    """Display context manager GUI
+    """Display Context Manager GUI
 
     Arguments:
         parent (QtCore.QObject, optional): When provided parent the interface
