@@ -144,7 +144,7 @@ def _from_environment():
             # asset. It is computed by checking asset['data']['parents'] and
             # joining those together with `os.path.sep`.
             # E.g.: ['ep101', 'scn0010'] -> 'ep101/scn0010'.
-            ("AVALON_HIERARCHY", None)
+            ("AVALON_HIERARCHY", None),
 
             # Name of current Config
             # TODO(marcus): Establish a suitable default config
