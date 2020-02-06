@@ -915,8 +915,7 @@ def show(root=None, debug=False, parent=None):
     """Display Scene Inventory GUI
 
     Arguments:
-        debug (bool, optional): Run in debug-mode,
-            defaults to False
+        debug (bool, optional): Run in debug-mode, defaults to False
         parent (QtCore.QObject, optional): When provided parent the interface
             to this QObject.
 

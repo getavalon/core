@@ -459,9 +459,15 @@ class Window(QtWidgets.QDialog):
 
 
 def show(root=None, debug=False, parent=None):
-    """Show Work Files GUI"""
+    """Show Work Files GUI
 
-    if module.window:
+    Arguments:
+        root (str, optional): The root for the work files app
+        debug (bool, optional): Run in debug-mode, defaults to False
+        parent (QtCore.QObject, optional): When provided parent the interface
+            to this QObject.
+
+    """
         module.window.close()
         del(module.window)
 

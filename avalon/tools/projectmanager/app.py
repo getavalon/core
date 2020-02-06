@@ -215,8 +215,7 @@ def show(root=None, debug=False, parent=None):
     """Display Loader GUI
 
     Arguments:
-        debug (bool, optional): Run loader in debug-mode,
-            defaults to False
+        debug (bool, optional): Run loader in debug-mode, defaults to False
         parent (QtCore.QObject, optional): When provided parent the interface
             to this QObject.
 

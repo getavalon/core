@@ -379,8 +379,7 @@ def show(debug=False, parent=None, use_context=False):
     """Display Loader GUI
 
     Arguments:
-        debug (bool, optional): Run loader in debug-mode,
-            defaults to False
+        debug (bool, optional): Run loader in debug-mode, defaults to False
         parent (QtCore.QObject, optional): The Qt object to parent to.
         use_context (bool): Whether to apply the current context upon launch
 
