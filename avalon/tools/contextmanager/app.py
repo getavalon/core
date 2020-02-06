@@ -1,11 +1,13 @@
 import sys
 import logging
 
-from ... import api
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ..widgets import AssetWidget
 from ..models import TasksModel
+from ... import api, style
+
+from .. import lib
 
 module = sys.modules[__name__]
 module.window = None
@@ -213,8 +215,6 @@ class App(QtWidgets.QDialog):
 
 def show(parent=None, debug=False):
 
-    from avalon import style
-    from ...tools import lib
     try:
         module.window.close()
         del module.window
