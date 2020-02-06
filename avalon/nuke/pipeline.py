@@ -253,8 +253,6 @@ def install():
 
     pyblish.register_host("nuke")
 
-    log.info("{}.nuke installed".format(config.__name__))
-
 
 def uninstall(config):
     """Uninstall all that was previously installed
