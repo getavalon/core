@@ -221,10 +221,6 @@ def show(parent=None, debug=False):
     except (RuntimeError, AttributeError):
         pass
 
-    if debug:
-        # Add code here that only runs when debugging is enabled.
-        pass
-
     with lib.application():
         window = App(parent)
         window.show()

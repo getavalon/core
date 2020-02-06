@@ -407,10 +407,6 @@ def show(debug=False, parent=None, use_context=False):
             # Garbage collected
             module.window = None
 
-    if debug:
-        # Add code here that only runs when debugging is enabled.
-        pass
-
     with lib.application():
 
         # TODO: Global state, remove these

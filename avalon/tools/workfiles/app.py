@@ -495,10 +495,6 @@ def show(root=None, debug=False, parent=None):
     if not os.path.exists(root):
         raise OSError("Root set for Work Files app does not exist: %s" % root)
 
-    if debug:
-        # Add code here that only runs when debugging is enabled.
-        pass
-
     with tools_lib.application():
         window = Window(root, parent=parent)
         window.show()

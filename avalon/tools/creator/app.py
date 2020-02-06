@@ -568,10 +568,6 @@ def show(debug=False, parent=None):
         module.window.close()
         del(module.window)
 
-    if debug:
-        # Add code here that only runs when debugging is enabled.
-        pass
-
     with lib.application():
         window = Window(parent)
         window.refresh()
