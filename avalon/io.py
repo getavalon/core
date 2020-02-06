@@ -138,6 +138,14 @@ def _from_environment():
             # Optional path to scenes directory (see Work Files API)
             ("AVALON_SCENEDIR", None),
 
+            # Optional hierarchy for the current Asset. This can be referenced
+            # as `{hierarchy}` is your file templates.
+            # This will be (re-)computed when you switch the context to another
+            # asset. It is computed by checking asset['data']['parents'] and
+            # joining those together with `os.path.sep`.
+            # E.g.: ['ep101', 'scn0010'] -> 'ep101/scn0010'.
+            ("AVALON_HIERARCHY", None)
+
             # Name of current Config
             # TODO(marcus): Establish a suitable default config
             ("AVALON_CONFIG", "no_config"),
