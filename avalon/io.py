@@ -139,7 +139,7 @@ def _from_environment():
             ("AVALON_SCENEDIR", None),
 
             # Optional hierarchy for the current Asset. This can be referenced
-            # as `{hierarchy}` is your file templates.
+            # as `{hierarchy}` in your file templates.
             # This will be (re-)computed when you switch the context to another
             # asset. It is computed by checking asset['data']['parents'] and
             # joining those together with `os.path.sep`.
