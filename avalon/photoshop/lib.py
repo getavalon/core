@@ -128,7 +128,7 @@ def get_selected_layers():
     """
     group_selected_layers()
 
-    selection = [x for x in app().ActiveDocument.ActiveLayer.Layers]
+    selection = list(app().ActiveDocument.ActiveLayer.Layers)
 
     app().ExecuteAction(
         app().CharIDToTypeID("undo"),
@@ -177,7 +177,7 @@ def _recurse_layers(layers):
     for layer in layers:
         result[layer.id] = layer
         if layer.LayerType == com_objects.constants().psLayerSet:
-            result.update(_recurse_layers([x for x in layer.Layers]))
+            result.update(_recurse_layers(list(layer.Layers)))
 
     return result
 
@@ -195,7 +195,7 @@ def get_layers_in_document(document=None):
             None is supplied the ActiveDocument is used.
     """
     document = document or app().ActiveDocument
-    return list(_recurse_layers([x for x in document.Layers]).values())
+    return list(_recurse_layers(list(x for x in document.Layers)).values())
 
 
 def import_smart_object(path):
