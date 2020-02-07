@@ -1,20 +1,24 @@
 import json
 import contextlib
-import functools
 
 from win32com.client import Dispatch
 
 from . import com_objects
 from ..tools import html_server
 
-# Convenience variable that could later query whether the platform is Windows
-# or Mac.
-# This needs a partial function call because when calling Dispatch directly
-# from a different thread will result in "CoInitialize has not been called"
-# which can be fixed with pythoncom.CoInitialize(). However even then it will
-# still error with "The application called an interface that was marshalled
-# for a different thread"
-app = functools.partial(Dispatch, "Photoshop.Application")
+
+def app():
+    """Convenience function to get the Photoshop app.
+
+    This could later query whether the platform is Windows or Mac.
+
+    This needs to be a function call because when calling Dispatch directly
+    from a different thread will result in "CoInitialize has not been called"
+    which can be fixed with pythoncom.CoInitialize(). However even then it will
+    still error with "The application called an interface that was marshalled
+    for a different thread"
+    """
+    return Dispatch("Photoshop.Application")
 
 
 def start_server():
