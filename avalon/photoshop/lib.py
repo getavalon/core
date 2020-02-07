@@ -38,9 +38,11 @@ def imprint(layer, data):
         >>> data = {"str": "someting", "int": 1, "float": 0.32, "bool": True}
         >>> lib.imprint(layer, data)
     """
+    _app = app()
+
     layers_data = {}
     try:
-        layers_data = json.loads(app().ActiveDocument.Info.Headline)
+        layers_data = json.loads(_app.ActiveDocument.Info.Headline)
     except json.decoder.JSONDecodeError:
         pass
 
@@ -51,7 +53,7 @@ def imprint(layer, data):
     else:
         layers_data[str(layer.id)] = data
 
-    app().ActiveDocument.Info.Headline = json.dumps(layers_data, indent=4)
+    _app.ActiveDocument.Info.Headline = json.dumps(layers_data, indent=4)
 
 
 def read(layer):
@@ -99,22 +101,24 @@ def maintained_visibility():
 def group_selected_layers():
     """Create a group and adds the selected layers."""
 
+    _app = app()
+
     ref = Dispatch("Photoshop.ActionReference")
-    ref.PutClass(app().StringIDToTypeID("layerSection"))
+    ref.PutClass(_app.StringIDToTypeID("layerSection"))
 
     lref = Dispatch("Photoshop.ActionReference")
     lref.PutEnumerated(
-        app().CharIDToTypeID("Lyr "),
-        app().CharIDToTypeID("Ordn"),
-        app().CharIDToTypeID("Trgt")
+        _app.CharIDToTypeID("Lyr "),
+        _app.CharIDToTypeID("Ordn"),
+        _app.CharIDToTypeID("Trgt")
     )
 
     desc = Dispatch("Photoshop.ActionDescriptor")
-    desc.PutReference(app().CharIDToTypeID("null"), ref)
-    desc.PutReference(app().CharIDToTypeID("From"), lref)
+    desc.PutReference(_app.CharIDToTypeID("null"), ref)
+    desc.PutReference(_app.CharIDToTypeID("From"), lref)
 
-    app().ExecuteAction(
-        app().CharIDToTypeID("Mk  "),
+    _app.ExecuteAction(
+        _app.CharIDToTypeID("Mk  "),
         desc,
         com_objects.constants().psDisplayNoDialogs
     )
@@ -126,12 +130,14 @@ def get_selected_layers():
     Returns:
         list
     """
+    _app = app()
+
     group_selected_layers()
 
-    selection = list(app().ActiveDocument.ActiveLayer.Layers)
+    selection = list(_app.ActiveDocument.ActiveLayer.Layers)
 
-    app().ExecuteAction(
-        app().CharIDToTypeID("undo"),
+    _app.ExecuteAction(
+        _app.CharIDToTypeID("undo"),
         None,
         com_objects.constants().psDisplayNoDialogs
     )
@@ -149,16 +155,18 @@ def select_layers(layers):
     Args:
         layers (list): List of COMObjects.
     """
+    _app = app()
+
     ref = Dispatch("Photoshop.ActionReference")
     for id in [x.id for x in layers]:
-        ref.PutIdentifier(app().CharIDToTypeID("Lyr "), id)
+        ref.PutIdentifier(_app.CharIDToTypeID("Lyr "), id)
 
     desc = Dispatch("Photoshop.ActionDescriptor")
-    desc.PutReference(app().CharIDToTypeID("null"), ref)
-    desc.PutBoolean(app().CharIDToTypeID("MkVs"), False)
+    desc.PutReference(_app.CharIDToTypeID("null"), ref)
+    desc.PutBoolean(_app.CharIDToTypeID("MkVs"), False)
 
-    app().ExecuteAction(
-        app().CharIDToTypeID("slct"),
+    _app.ExecuteAction(
+        _app.CharIDToTypeID("slct"),
         desc,
         com_objects.constants().psDisplayNoDialogs
     )
@@ -204,33 +212,35 @@ def import_smart_object(path):
     Args:
         path (str): File path to import.
     """
+    _app = app()
+
     desc1 = Dispatch("Photoshop.ActionDescriptor")
-    desc1.PutPath(app().CharIDToTypeID("null"), path)
+    desc1.PutPath(_app.CharIDToTypeID("null"), path)
     desc1.PutEnumerated(
-        app().CharIDToTypeID("FTcs"),
-        app().CharIDToTypeID("QCSt"),
-        app().CharIDToTypeID("Qcsa")
+        _app.CharIDToTypeID("FTcs"),
+        _app.CharIDToTypeID("QCSt"),
+        _app.CharIDToTypeID("Qcsa")
     )
 
     desc2 = Dispatch("Photoshop.ActionDescriptor")
     desc2.PutUnitDouble(
-        app().CharIDToTypeID("Hrzn"), app().CharIDToTypeID("#Pxl"), 0.0
+        _app.CharIDToTypeID("Hrzn"), _app.CharIDToTypeID("#Pxl"), 0.0
     )
     desc2.PutUnitDouble(
-        app().CharIDToTypeID("Vrtc"), app().CharIDToTypeID("#Pxl"), 0.0
+        _app.CharIDToTypeID("Vrtc"), _app.CharIDToTypeID("#Pxl"), 0.0
     )
 
     desc1.PutObject(
-        app().CharIDToTypeID("Ofst"), app().CharIDToTypeID("Ofst"), desc2
+        _app.CharIDToTypeID("Ofst"), _app.CharIDToTypeID("Ofst"), desc2
     )
 
-    app().ExecuteAction(
-        app().CharIDToTypeID("Plc "),
+    _app.ExecuteAction(
+        _app.CharIDToTypeID("Plc "),
         desc1,
         com_objects.constants().psDisplayNoDialogs
     )
     layer = get_selected_layers()[0]
-    layer.MoveToBeginning(app().ActiveDocument)
+    layer.MoveToBeginning(_app.ActiveDocument)
 
     return layer
 
@@ -242,14 +252,16 @@ def replace_smart_object(layer, path):
         layer (win32com.client.CDispatch): COMObject of the layer.
         path (str): File to import.
     """
-    app().ActiveDocument.ActiveLayer = layer
+    _app = app()
+
+    _app.ActiveDocument.ActiveLayer = layer
 
     desc = Dispatch("Photoshop.ActionDescriptor")
-    desc.PutPath(app().CharIDToTypeID("null"), path.replace("\\", "/"))
-    desc.PutInteger(app().CharIDToTypeID("PgNm"), 1)
+    desc.PutPath(_app.CharIDToTypeID("null"), path.replace("\\", "/"))
+    desc.PutInteger(_app.CharIDToTypeID("PgNm"), 1)
 
-    app().ExecuteAction(
-        app().StringIDToTypeID("placedLayerReplaceContents"),
+    _app.ExecuteAction(
+        _app.StringIDToTypeID("placedLayerReplaceContents"),
         desc,
         com_objects.constants().psDisplayNoDialogs
     )
