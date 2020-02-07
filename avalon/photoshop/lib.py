@@ -7,13 +7,13 @@ from win32com.client import Dispatch
 from . import com_objects
 from ..tools import html_server
 
-# Convinience variable that could later query whether the platform is Windows
+# Convenience variable that could later query whether the platform is Windows
 # or Mac.
-# This needs to be a partial function we can later call because when calling
-# Dispatch directly from a different thread will result first a
-# "CoInitialize has not been called.", which can be fixed with
-# pythoncom.CoInitialize() but secondly "The application called an interface
-# that was marshalled for a different thread".
+# This needs a partial function call because when calling Dispatch directly
+# from a different thread will result in "CoInitialize has not been called"
+# which can be fixed with pythoncom.CoInitialize(). However even then it will
+# still error with "The application called an interface that was marshalled
+# for a different thread"
 app = functools.partial(Dispatch, "Photoshop.Application")
 
 

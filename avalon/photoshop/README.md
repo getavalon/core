@@ -10,7 +10,7 @@ pip install pywin32
 
 ## Setup
 
-The Photoshop integration requires to components to work; `extension` and `server`.
+The Photoshop integration requires two components to work; `extension` and `server`.
 
 ### Extension
 
