@@ -1,10 +1,20 @@
 import json
 import contextlib
 
-from win32com.client import Dispatch
-
 from . import com_objects
 from ..tools import html_server
+
+
+def Dispatch(application):
+    """Wrapped Dispatch function.
+
+    This could later query whether the platform is Windows or Mac.
+
+    Args:
+        application (str): Application to dispatch.
+    """
+    from win32com.client import Dispatch
+    return Dispatch(application)
 
 
 def app():
