@@ -29,7 +29,7 @@ from .lib import (
     get_layers_in_layers,
     imprint,
     read,
-    com_objects,
+    get_com_objects,
     import_smart_object,
     replace_smart_object
 )
@@ -58,7 +58,7 @@ __all__ = [
     "get_layers_in_layers",
     "imprint",
     "read",
-    "com_objects",
+    "get_com_objects",
     "import_smart_object",
     "replace_smart_object"
 ]

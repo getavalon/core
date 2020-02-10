@@ -1,8 +1,16 @@
 import json
 import contextlib
 
-from . import com_objects
 from ..tools import html_server
+
+
+def get_com_objects():
+    """Wrapped com objects.
+
+    This could later query whether the platform is Windows or Mac.
+    """
+    from . import com_objects
+    return com_objects
 
 
 def Dispatch(application):
@@ -145,7 +153,7 @@ def group_selected_layers():
     _app.ExecuteAction(
         _app.CharIDToTypeID("Mk  "),
         desc,
-        com_objects.constants().psDisplayNoDialogs
+        get_com_objects().constants().psDisplayNoDialogs
     )
 
 
@@ -164,7 +172,7 @@ def get_selected_layers():
     _app.ExecuteAction(
         _app.CharIDToTypeID("undo"),
         None,
-        com_objects.constants().psDisplayNoDialogs
+        get_com_objects().constants().psDisplayNoDialogs
     )
 
     return selection
@@ -193,7 +201,7 @@ def select_layers(layers):
     _app.ExecuteAction(
         _app.CharIDToTypeID("slct"),
         desc,
-        com_objects.constants().psDisplayNoDialogs
+        get_com_objects().constants().psDisplayNoDialogs
     )
 
 
@@ -209,7 +217,7 @@ def _recurse_layers(layers):
     result = {}
     for layer in layers:
         result[layer.id] = layer
-        if layer.LayerType == com_objects.constants().psLayerSet:
+        if layer.LayerType == get_com_objects().constants().psLayerSet:
             result.update(_recurse_layers(list(layer.Layers)))
 
     return result
@@ -262,7 +270,7 @@ def import_smart_object(path):
     _app.ExecuteAction(
         _app.CharIDToTypeID("Plc "),
         desc1,
-        com_objects.constants().psDisplayNoDialogs
+        get_com_objects().constants().psDisplayNoDialogs
     )
     layer = get_selected_layers()[0]
     layer.MoveToBeginning(_app.ActiveDocument)
@@ -288,5 +296,5 @@ def replace_smart_object(layer, path):
     _app.ExecuteAction(
         _app.StringIDToTypeID("placedLayerReplaceContents"),
         desc,
-        com_objects.constants().psDisplayNoDialogs
+        get_com_objects().constants().psDisplayNoDialogs
     )
