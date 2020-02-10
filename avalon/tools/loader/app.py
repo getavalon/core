@@ -8,7 +8,9 @@ from ..models import AssetModel
 from ..widgets import AssetWidget
 from .. import lib
 
-from .widgets import SubsetWidget, VersionWidget, FamilyListWidget
+from .widgets import (
+    SubsetWidget, VersionWidget, FamilyListWidget, ThumbnailWidget
+)
 
 module = sys.modules[__name__]
 module.window = None
@@ -41,6 +43,13 @@ class Window(QtWidgets.QDialog):
         families = FamilyListWidget()
         subsets = SubsetWidget(parent=self)
         version = VersionWidget()
+        thumbnail = ThumbnailWidget()
+
+        thumb_ver_body = QtWidgets.QWidget()
+        thumb_ver_layout = QtWidgets.QVBoxLayout(thumb_ver_body)
+        thumb_ver_layout.setContentsMargins(0, 0, 0, 0)
+        thumb_ver_layout.addWidget(thumbnail)
+        thumb_ver_layout.addWidget(version)
 
         # Create splitter to show / hide family filters
         asset_filter_splitter = QtWidgets.QSplitter()
@@ -55,11 +64,8 @@ class Window(QtWidgets.QDialog):
         split = QtWidgets.QSplitter()
         split.addWidget(asset_filter_splitter)
         split.addWidget(subsets)
-        split.addWidget(version)
+        split.addWidget(thumb_ver_body)
         split.setSizes([180, 950, 200])
-
-        # Remove QSplitter border
-        split.setStyleSheet("QSplitter { border: 0px; }")
 
         container_layout.addWidget(split)
 
@@ -79,7 +85,10 @@ class Window(QtWidgets.QDialog):
         layout.addWidget(footer)
 
         self.data = {
-            "widgets": {"families": families},
+            "widgets": {
+                "families": families,
+                "thumbnail": thumbnail
+            },
             "model": {
                 "assets": assets,
                 "subsets": subsets,
@@ -211,6 +220,7 @@ class Window(QtWidgets.QDialog):
 
         # Clear the version information on asset change
         self.data["model"]["version"].set_version(None)
+        self.data["widgets"]["thumbnail"].set_thumbnail(asset_docs)
 
         self.data["state"]["context"]["assets"] = asset_names
         self.data["state"]["context"]["assetIds"] = asset_ids
@@ -273,19 +283,35 @@ class Window(QtWidgets.QDialog):
 
         # Active must be in the selected rows otherwise we
         # assume it's not actually an "active" current index.
-        version = None
+        version_docs = None
+        version_id = None
         active = selection.currentIndex()
+        rows = selection.selectedRows(column=active.column())
         if active:
-            rows = selection.selectedRows(column=active.column())
             if active in rows:
                 item = active.data(subsets.model.ItemRole)
                 if (
                     item is not None and
                     not (item.get("isGroup") or item.get("isMerged"))
                 ):
-                    version = item["version_document"]["_id"]
+                    version_id = item["version_document"]["_id"]
 
-        self.data["model"]["version"].set_version(version)
+        if rows:
+            version_docs = []
+            for index in rows:
+                if not index or not index.isValid():
+                    continue
+                item = index.data(subsets.model.ItemRole)
+                if (
+                    item is None
+                    or item.get("isGroup")
+                    or item.get("isMerged")
+                ):
+                    continue
+                version_docs.append(item["version_document"])
+
+        self.data["model"]["version"].set_version(version_id)
+        self.data["widgets"]["thumbnail"].set_thumbnail(version_docs)
 
     def _set_context(self, context, refresh=True):
         """Set the selection in the interface using a context.

@@ -1,9 +1,10 @@
+import os
 import datetime
 import pprint
 import inspect
 
 from ...vendor import Qt
-from ...vendor.Qt import QtWidgets, QtCore, QtCompat
+from ...vendor.Qt import QtWidgets, QtCore, QtGui
 from ...vendor import qtawesome
 from ... import io
 from ... import api
@@ -11,6 +12,7 @@ from ... import pipeline
 
 from .. import lib as tools_lib
 from ..delegates import VersionDelegate
+from ..widgets import OptionalAction, OptionDialog
 
 from .model import (
     SubsetsModel,
@@ -236,14 +238,19 @@ class SubsetWidget(QtWidgets.QWidget):
         menu = QtWidgets.QMenu(self)
         if not loaders:
             # no loaders available
+            submsg = "your selection."
             if one_item_selected:
-                self.echo("No compatible loaders available for this version.")
-                return
+                submsg = "this version."
 
-            self.echo("No compatible loaders available for your selection.")
-            action = QtWidgets.QAction(
-                "*No compatible loaders for your selection", menu
+            msg = "No compatible loaders for {}".format(submsg)
+            self.echo(msg)
+
+            icon = qtawesome.icon(
+                "fa.exclamation",
+                color=QtGui.QColor(255, 51, 0)
             )
+
+            action = OptionalAction(("*" + msg), icon, False, menu)
             menu.addAction(action)
 
         else:
@@ -263,15 +270,6 @@ class SubsetWidget(QtWidgets.QWidget):
                 # Add the representation as suffix
                 label = "{0} ({1})".format(label, representation['name'])
 
-                action = QtWidgets.QAction(label, menu)
-                action.setData((representation, loader))
-
-                # Add tooltip and statustip from Loader docstring
-                tip = inspect.getdoc(loader)
-                if tip:
-                    action.setToolTip(tip)
-                    action.setStatusTip(tip)
-
                 # Support font-awesome icons using the `.icon` and `.color`
                 # attributes on plug-ins.
                 icon = getattr(loader, "icon", None)
@@ -279,10 +277,26 @@ class SubsetWidget(QtWidgets.QWidget):
                     try:
                         key = "fa.{0}".format(icon)
                         color = getattr(loader, "color", "white")
-                        action.setIcon(qtawesome.icon(key, color=color))
+                        icon = qtawesome.icon(key, color=color)
                     except Exception as e:
                         print("Unable to set icon for loader "
                               "{}: {}".format(loader, e))
+                        icon = None
+
+                # Optional action
+                use_option = one_item_selected and hasattr(loader, "options")
+                action = OptionalAction(label, icon, use_option, menu)
+                if use_option:
+                    # Add option box tip
+                    action.set_option_tip(loader.options)
+
+                action.setData((representation, loader))
+
+                # Add tooltip and statustip from Loader docstring
+                tip = inspect.getdoc(loader)
+                if tip:
+                    action.setToolTip(tip)
+                    action.setStatusTip(tip)
 
                 menu.addAction(action)
 
@@ -295,22 +309,22 @@ class SubsetWidget(QtWidgets.QWidget):
         # Find the representation name and loader to trigger
         action_representation, loader = action.data()
         representation_name = action_representation["name"]  # extension
+        options = None
+
+        # Pop option dialog
+        if getattr(action, "optioned", False):
+            dialog = OptionDialog(self)
+            dialog.setWindowTitle(action.label + " Options")
+            dialog.create(loader.options)
+
+            if not dialog.exec_():
+                return
+
+            # Get option
+            options = dialog.parse()
 
         # Run the loader for all selected indices, for those that have the
         # same representation available
-        selection = self.view.selectionModel()
-        rows = selection.selectedRows(column=0)
-
-        # Ensure active point index is also used as first column so we can
-        # correctly push it to the end in the rows list.
-        point_index = point_index.sibling(point_index.row(), 0)
-
-        # Ensure point index is run first.
-        try:
-            rows.remove(point_index)
-        except ValueError:
-            pass
-        rows.insert(0, point_index)
 
         # Trigger
         for item in items:
@@ -327,7 +341,10 @@ class SubsetWidget(QtWidgets.QWidget):
                 continue
 
             try:
-                api.load(Loader=loader, representation=representation)
+                api.load(Loader=loader,
+                         representation=representation,
+                         options=options)
+
             except pipeline.IncompatibleLoaderError as exc:
                 self.echo(exc)
                 continue
@@ -508,6 +525,106 @@ class VersionTextEdit(QtWidgets.QTextEdit):
         clipboard.setText(raw_text)
 
 
+class ThumbnailWidget(QtWidgets.QLabel):
+
+    aspect_ratio = (16, 9)
+    max_width = 300
+
+    def __init__(self, dbcon=None, parent=None):
+        super(ThumbnailWidget, self).__init__(parent)
+        if dbcon is None:
+            dbcon = io
+        self.dbcon = dbcon
+
+        self.current_thumb_id = None
+        self.current_thumbnail = None
+
+        self.setAlignment(QtCore.Qt.AlignCenter)
+
+        # TODO get res path much better way
+        loader_path = os.path.dirname(os.path.abspath(__file__))
+        avalon_path = os.path.dirname(os.path.dirname(loader_path))
+        default_pix_path = os.path.join(
+            os.path.dirname(avalon_path),
+            "res", "tools", "images", "default_thumbnail.png"
+        )
+        self.default_pix = QtGui.QPixmap(default_pix_path)
+
+    def height(self):
+        width = self.width()
+        asp_w, asp_h = self.aspect_ratio
+
+        return (width / asp_w) * asp_h
+
+    def width(self):
+        width = super(ThumbnailWidget, self).width()
+        if width > self.max_width:
+            width = self.max_width
+        return width
+
+    def set_pixmap(self, pixmap=None):
+        if not pixmap:
+            pixmap = self.default_pix
+            self.current_thumb_id = None
+
+        self.current_thumbnail = pixmap
+
+        pixmap = self.scale_pixmap(pixmap)
+        self.setPixmap(pixmap)
+
+    def resizeEvent(self, event):
+        if not self.current_thumbnail:
+            return
+        cur_pix = self.scale_pixmap(self.current_thumbnail)
+        self.setPixmap(cur_pix)
+
+    def scale_pixmap(self, pixmap):
+        return pixmap.scaled(
+            self.width(), self.height(), QtCore.Qt.KeepAspectRatio
+        )
+
+    def set_thumbnail(self, entity=None):
+        if not entity:
+            self.set_pixmap()
+            return
+
+        if isinstance(entity, (list, tuple)):
+            if len(entity) == 1:
+                entity = entity[0]
+            else:
+                self.set_pixmap()
+                return
+
+        thumbnail_id = entity.get("data", {}).get("thumbnail_id")
+        if thumbnail_id == self.current_thumb_id:
+            if self.current_thumbnail is None:
+                self.set_pixmap()
+            return
+
+        self.current_thumb_id = thumbnail_id
+        if not thumbnail_id:
+            self.set_pixmap()
+            return
+
+        thumbnail_ent = self.dbcon.find_one(
+            {"type": "thumbnail", "_id": thumbnail_id}
+        )
+        if not thumbnail_ent:
+            return
+
+        thumbnail_bin = pipeline.get_thumbnail_binary(
+            thumbnail_ent, "thumbnail", self.dbcon
+        )
+        if not thumbnail_bin:
+            self.set_pixmap()
+            return
+
+        thumbnail = QtGui.QPixmap()
+        thumbnail.loadFromData(thumbnail_bin)
+
+        self.set_pixmap(thumbnail)
+
+
 class VersionWidget(QtWidgets.QWidget):
     """A Widget that display information about a specific version"""
     def __init__(self, parent=None):
@@ -515,9 +632,10 @@ class VersionWidget(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout(self)
 
-        label = QtWidgets.QLabel("Version")
+        label = QtWidgets.QLabel("Version", self)
         data = VersionTextEdit()
         data.setReadOnly(True)
+
         layout.addWidget(label)
         layout.addWidget(data)
 

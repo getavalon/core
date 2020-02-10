@@ -371,9 +371,10 @@ class VersionWidget(loader_widgets.VersionWidget):
         self.dbcon = dbcon
         layout = QtWidgets.QVBoxLayout(self)
 
-        label = QtWidgets.QLabel("Version")
+        label = QtWidgets.QLabel("Version", self)
         data = VersionTextEdit(dbcon=self.dbcon, parent=self)
         data.setReadOnly(True)
+
         layout.addWidget(label)
         layout.addWidget(data)
 

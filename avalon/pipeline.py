@@ -6,6 +6,7 @@ import re
 import json
 import errno
 import types
+import copy
 import shutil
 import getpass
 import logging
@@ -51,11 +52,9 @@ class IncompatibleLoaderError(ValueError):
 
 def install(host):
     """Install `host` into the running Python session.
-
     Arguments:
         host (module): A Python module containing the Avalon
             avalon host-interface.
-
     """
 
     io.install()
@@ -78,10 +77,18 @@ def install(host):
 
     # Optional host install function
     if hasattr(host, "install"):
-        host.install(config)
+        host.install()
+
+    # Optional config.host.install()
+    host_name = host.__name__.rsplit(".", 1)[-1]
+    config_host = lib.find_submodule(config, host_name)
+    if config_host != host:
+        if hasattr(config_host, "install"):
+            config_host.install()
 
     register_host(host)
     register_config(config)
+
     config.install()
 
     self._is_installed = True
@@ -104,9 +111,16 @@ def find_config():
 def uninstall():
     """Undo all of what `install()` did"""
     config = registered_config()
+    host = registered_host()
+
+    # Optional config.host.uninstall()
+    host_name = host.__name__.rsplit(".", 1)[-1]
+    config_host = lib.find_submodule(config, host_name)
+    if hasattr(config_host, "uninstall"):
+        config_host.uninstall()
 
     try:
-        registered_host().uninstall(config)
+        host.uninstall(config)
     except AttributeError:
         pass
 
@@ -474,6 +488,81 @@ class Application(Action):
                 "ask your developer.")
 
 
+@lib.log
+class ThumbnailResolver(object):
+    """Determine how to get data from thumbnail entity.
+
+    "priority" - determines the order of processing in `get_thumbnail_binary`,
+        lower number is processed earlier.
+    "thumbnail_types" - it is expected that thumbnails will be used in more
+        more than one level, there is only ["thumbnail"] type at the moment
+        of creating this docstring but it is expected to add "ico" and "full"
+        in future.
+    """
+
+    priority = 100
+    thumbnail_types = ["*"]
+
+    def __init__(self, dbcon):
+        self.dbcon = dbcon
+
+    def process(self, thumbnail_entity, thumbnail_type):
+        pass
+
+
+class TemplateResolver(ThumbnailResolver):
+
+    priority = 90
+
+    def process(self, thumbnail_entity, thumbnail_type):
+
+        if not os.environ.get("AVALON_THUMBNAIL_ROOT"):
+            return
+
+        template = thumbnail_entity["data"].get("template")
+        if not template:
+            log.debug("Thumbnail entity does not have set template")
+            return
+
+        project = self.dbcon.find_one({"type": "project"})
+
+        template_data = copy.deepcopy(
+            thumbnail_entity["data"].get("template_data") or {}
+        )
+        template_data.update({
+            "_id": str(thumbnail_entity["_id"]),
+            "thumbnail_type": thumbnail_type,
+            "thumbnail_root": os.environ.get("AVALON_THUMBNAIL_ROOT"),
+            "project": {
+                "name": project["name"],
+                "code": project["data"].get("code")
+            }
+        })
+
+        try:
+            filepath = os.path.normpath(template.format(**template_data))
+        except KeyError:
+            log.warning((
+                "Missing template data keys for template <{0}> || Data: {1}"
+            ).format(template, str(template_data)))
+            return
+
+        if not os.path.exists(filepath):
+            log.warning("File does not exist \"{0}\"".format(filepath))
+            return
+
+        with open(filepath, "rb") as _file:
+            content = _file.read()
+
+        return content
+
+
+class BinaryThumbnail(ThumbnailResolver):
+
+    def process(self, thumbnail_entity, thumbnail_type):
+        return thumbnail_entity["data"].get("binary_data")
+
+
 def discover(superclass):
     """Find and return subclasses of `superclass`"""
 
@@ -621,6 +710,10 @@ def register_plugin(superclass, obj):
 
     if obj not in _registered_plugins[superclass]:
         _registered_plugins[superclass].append(obj)
+
+
+register_plugin(ThumbnailResolver, BinaryThumbnail)
+register_plugin(ThumbnailResolver, TemplateResolver)
 
 
 def register_plugin_path(superclass, path):
@@ -1373,6 +1466,39 @@ def get_representation_path(representation):
         path_from_config() or
         path_from_data()
     )
+
+
+def get_thumbnail_binary(thumbnail_entity, thumbnail_type, dbcon=None):
+    if not thumbnail_entity:
+        return
+
+    resolvers = discover(ThumbnailResolver)
+    resolvers = sorted(resolvers, key=lambda cls: cls.priority)
+    if dbcon is None:
+        dbcon = io
+
+    for Resolver in resolvers:
+        available_types = Resolver.thumbnail_types
+        if (
+            thumbnail_type not in available_types
+            and "*" not in available_types
+            and (
+                isinstance(available_types, (list, tuple))
+                and len(available_types) == 0
+            )
+        ):
+            continue
+        try:
+            instance = Resolver(dbcon)
+            result = instance.process(thumbnail_entity, thumbnail_type)
+            if result:
+                return result
+
+        except Exception:
+            log.warning("Resolver {0} failed durring process.".format(
+                Resolver.__class__.__name__
+            ))
+            traceback.print_exception(*sys.exc_info())
 
 
 def is_compatible_loader(Loader, context):
