@@ -53,12 +53,6 @@ def imprint(layer, data):
     Arguments:
         layer (win32com.client.CDispatch): COMObject of the layer.
         data (dict): Dictionary of key/value pairs.
-
-    Example:
-        >>> from avalon.photoshop import lib
-        >>> layer = app.ActiveDocument.ArtLayers.Add()
-        >>> data = {"str": "someting", "int": 1, "float": 0.32, "bool": True}
-        >>> lib.imprint(layer, data)
     """
     _app = app()
 
