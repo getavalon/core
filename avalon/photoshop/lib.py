@@ -67,7 +67,18 @@ def imprint(layer, data):
     else:
         layers_data[str(layer.id)] = data
 
-    _app.ActiveDocument.Info.Headline = json.dumps(layers_data, indent=4)
+    # Ensure only valid ids are stored.
+    layer_ids = []
+    for layer in get_layers_in_document():
+        layer_ids.append(layer.id)
+
+    cleaned_data = {}
+    for id in layers_data:
+        if int(id) in layer_ids:
+            cleaned_data[id] = layers_data[id]
+
+    # Write date to FileInfo headline.
+    _app.ActiveDocument.Info.Headline = json.dumps(cleaned_data, indent=4)
 
 
 def read(layer):
