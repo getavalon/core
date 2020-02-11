@@ -23,6 +23,7 @@ from .workio import (
 from .lib import (
     start_server,
     app,
+    Dispatch,
     maintained_selection,
     maintained_visibility,
     get_layers_in_document,
@@ -52,6 +53,7 @@ __all__ = [
     # lib
     "start_server",
     "app",
+    "Dispatch",
     "maintained_selection",
     "maintained_visibility",
     "get_layers_in_document",
