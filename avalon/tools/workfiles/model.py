@@ -17,6 +17,7 @@ class FilesModel(TreeModel):
     FileNameRole = QtCore.Qt.UserRole + 2
     DateModifiedRole = QtCore.Qt.UserRole + 3
     FilePathRole = QtCore.Qt.UserRole + 4
+    IsEnabled = QtCore.Qt.UserRole + 5
 
     def __init__(self, file_extensions, parent=None):
         super(FilesModel, self).__init__(parent=parent)
@@ -114,6 +115,9 @@ class FilesModel(TreeModel):
         if role == self.FilePathRole:
             item = index.internalPointer()
             return item["filepath"]
+        if role == self.IsEnabled:
+            item = index.internalPointer()
+            return item.get("enabled", True)
 
         return super(FilesModel, self).data(index, role)
 

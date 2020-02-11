@@ -688,6 +688,10 @@ class FilesWidget(QtWidgets.QWidget):
         if not index.isValid():
             return
 
+        is_enabled = index.data(FilesModel.IsEnabled)
+        if not is_enabled:
+            return
+
         menu = QtWidgets.QMenu(self)
 
         # Duplicate
