@@ -224,7 +224,15 @@ def _recurse_layers(layers):
 
 
 def get_layers_in_layers(layers):
-    """Get all layers in layers."""
+    """Get all layers in layers.
+
+    Args:
+        layers (list of COMObjects): layers to get layers within. Typically
+            LayerSets.
+
+    Return:
+        list: Top-down recursive list of layers.
+    """
     return list(_recurse_layers(layers).values())
 
 
@@ -234,6 +242,9 @@ def get_layers_in_document(document=None):
     Args:
         document (win32com.client.CDispatch): COMObject of the document. If
             None is supplied the ActiveDocument is used.
+
+    Return:
+        list: Top-down recursive list of layers.
     """
     document = document or app().ActiveDocument
     return list(_recurse_layers(list(x for x in document.Layers)).values())
@@ -244,6 +255,9 @@ def import_smart_object(path):
 
     Args:
         path (str): File path to import.
+
+    Return:
+        COMObject: Smart object layer.
     """
     _app = app()
 
