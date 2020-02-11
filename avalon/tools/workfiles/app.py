@@ -15,6 +15,7 @@ from ..models import TasksModel
 from ..delegates import PrettyTimeDelegate
 
 from .model import FilesModel
+from .view import FilesView
 
 log = logging.getLogger(__name__)
 
@@ -383,7 +384,7 @@ class FilesWidget(QtWidgets.QWidget):
 
         widgets = {
             "filter": QtWidgets.QLineEdit(),
-            "list": QtWidgets.QTreeView(),
+            "list": FilesView(),
             "open": QtWidgets.QPushButton("Open"),
             "browse": QtWidgets.QPushButton("Browse"),
             "save": QtWidgets.QPushButton("Save As")
@@ -432,7 +433,7 @@ class FilesWidget(QtWidgets.QWidget):
         layout.addWidget(widgets["list"])
         layout.addWidget(buttons)
 
-        widgets["list"].doubleClicked.connect(self.on_open_pressed)
+        widgets["list"].doubleClickedLeft.connect(self.on_open_pressed)
         widgets["list"].customContextMenuRequested.connect(
             self.on_context_menu
         )
@@ -686,6 +687,10 @@ class FilesWidget(QtWidgets.QWidget):
         view = self.widgets["list"]
         index = view.indexAt(point)
         if not index.isValid():
+            return
+
+        is_enabled = index.data(FilesModel.IsEnabled)
+        if not is_enabled:
             return
 
         menu = QtWidgets.QMenu(self)

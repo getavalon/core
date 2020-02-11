@@ -128,8 +128,7 @@ def _install_menu():
         creator,
         loader,
         publish,
-        sceneinventory,
-        contextmanager
+        sceneinventory
     )
 
     from . import interactive
@@ -141,21 +140,6 @@ def _install_menu():
                   label=api.Session["AVALON_LABEL"],
                   tearOff=True,
                   parent="MayaWindow")
-
-        # Create context menu
-        context_label = "{}, {}".format(api.Session["AVALON_ASSET"],
-                                        api.Session["AVALON_TASK"])
-        context_menu = cmds.menuItem("currentContext",
-                                     label=context_label,
-                                     parent=self._menu,
-                                     subMenu=True)
-
-        cmds.menuItem("setCurrentContext",
-                      label="Edit Context..",
-                      parent=context_menu,
-                      command=lambda *args: contextmanager.show(
-                          parent=self._parent
-                      ))
 
         cmds.setParent("..", menu=True)
 
@@ -272,13 +256,13 @@ def reload_pipeline(*args):
 
 
 def _uninstall_menu():
-    
+
     # In Maya 2020+ don't use the QApplication.instance()
     # during startup (userSetup.py) as it will return a
     # QtCore.QCoreApplication instance which does not have
     # the allWidgets method. As such, we call the staticmethod.
     all_widgets = QtWidgets.QApplication.allWidgets()
-    
+
     widgets = dict((w.objectName(), w) for w in all_widgets)
     menu = widgets.get(self._menu)
 
