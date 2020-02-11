@@ -273,6 +273,13 @@ def _install_menu():
     # Create menu
     menubar = nuke.menu("Nuke")
     menu = menubar.addMenu(api.Session["AVALON_LABEL"])
+
+    label = "{0}, {1}".format(
+        api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"]
+    )
+    context_action = menu.addCommand(label)
+    context_action.setEnabled(False)
+
     menu.addCommand("Create...",
                     lambda: creator.show(parent=get_main_window()))
     menu.addCommand("Load...",
