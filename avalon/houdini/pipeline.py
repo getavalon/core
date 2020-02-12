@@ -24,7 +24,7 @@ AVALON_CONTAINERS = "/obj/AVALON_CONTAINERS"
 IS_HEADLESS = not hasattr(hou, "ui")
 
 
-def install(config):
+def install():
     """Setup integration
     Register plug-ins and integrate into the host
 
@@ -40,14 +40,10 @@ def install(config):
     self._has_been_setup = True
 
 
-def uninstall(config):
+def uninstall():
     """Uninstall Houdini-specific functionality of avalon-core.
 
     This function is called automatically on calling `api.uninstall()`.
-
-    Args:
-        config: configuration module
-
     """
 
     pyblish.api.deregister_host("hython")

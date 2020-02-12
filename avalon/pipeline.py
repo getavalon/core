@@ -76,7 +76,7 @@ def install(host):
 
     # Optional host install function
     if hasattr(host, "install"):
-        host.install(config)
+        host.install()
 
     # Optional config.host.install()
     host_name = host.__name__.rsplit(".", 1)[-1]
@@ -119,7 +119,7 @@ def uninstall():
         config_host.uninstall()
 
     try:
-        host.uninstall(config)
+        host.uninstall()
     except AttributeError:
         pass
 
