@@ -5,7 +5,7 @@ from ..vendor import Qt
 import pyblish.api
 
 
-def install(config):
+def install():
     """Install Photoshop-specific functionality of avalon-core.
 
     This function is called automatically on calling `api.install(photoshop)`.
