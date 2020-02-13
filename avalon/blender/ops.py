@@ -10,8 +10,15 @@ from typing import Dict, List, Optional, Union
 import bpy
 import bpy.utils.previews
 
+from ..tools.contextmanager.app import App as contextmanager_window
+from ..tools.creator.app import Window as creator_window
+from ..tools.loader.app import Window as loader_window
+from ..tools.workfiles.app import Window as workfiles_window
+from ..tools.sceneinventory.app import Window as sceneinventory_window
+from ..tools import publish
+
 from .. import api
-from ..vendor.Qt import QtWidgets
+from ..vendor.Qt import QtWidgets, QtCore
 
 PREVIEW_COLLECTIONS: Dict = dict()
 
@@ -21,13 +28,49 @@ PREVIEW_COLLECTIONS: Dict = dict()
 TIMER_INTERVAL: float = 0.01
 
 
+class BlenderApplication(QtWidgets.QApplication):
+    _instance = None
+    blender_windows = {}
+
+    def __init__(self, *args, **kwargs):
+        super(BlenderApplication, self).__init__(*args, **kwargs)
+        self.setQuitOnLastWindowClosed(False)
+
+        from .. import style
+        self.setStyleSheet(style.load_stylesheet())
+        self.lastWindowClosed.connect(self.__class__.reset)
+
+    @classmethod
+    def get_app(cls):
+        if cls._instance is None:
+            cls._instance = cls(sys.argv)
+        return cls._instance
+
+    @classmethod
+    def reset(cls):
+        cls._instance = None
+
+    @classmethod
+    def store_window(cls, identifier, window):
+        current_window = cls.get_window(identifier)
+        cls.blender_windows[identifier] = window
+        if current_window:
+            current_window.close()
+            # current_window.deleteLater()
+
+    @classmethod
+    def get_window(cls, identifier):
+        return cls.blender_windows.get(identifier)
+
+
 def _has_visible_windows(app: QtWidgets.QApplication) -> bool:
     """Check if the Qt application has any visible top level windows."""
-
-    for window in app.topLevelWindows():
+    is_visible = False
+    for window in BlenderApplication.blender_windows.values():
         try:
             if window.isVisible():
-                return True
+                is_visible = True
+                break
         except RuntimeError:
             continue
 
@@ -41,8 +84,7 @@ def _process_app_events(app: QtWidgets.QApplication) -> Optional[float]:
     return the time after which this function should be run again. Else return
     None, so the function is not run again and will be unregistered.
     """
-
-    if _has_visible_windows(app):
+    if app._instance and _has_visible_windows(app):
         app.processEvents()
         return TIMER_INTERVAL
 
@@ -54,16 +96,18 @@ class LaunchQtApp(bpy.types.Operator):
     """A Base class for opertors to launch a Qt app."""
 
     _app: QtWidgets.QApplication
-    _window: Union[QtWidgets.QDialog, ModuleType]
-    _show_args: Optional[List]
-    _show_kwargs: Optional[Dict]
+    _window = Union[QtWidgets.QDialog, ModuleType]
+    _window_class: QtWidgets.QDialog = None
+    _init_args: Optional[List] = list()
+    _init_kwargs: Optional[Dict] = dict()
+    bl_idname: str = None
 
     def __init__(self):
         from .. import style
+        if self.bl_idname is None:
+            raise NotImplementedError("Attribute `bl_idname` must be set!")
         print(f"Initialising {self.bl_idname}...")
-        self._app = (QtWidgets.QApplication.instance()
-                     or QtWidgets.QApplication(sys.argv))
-        self._app.setStyleSheet(style.load_stylesheet())
+        self._app = BlenderApplication.get_app()
 
     def execute(self, context):
         """Execute the operator.
@@ -77,16 +121,48 @@ class LaunchQtApp(bpy.types.Operator):
         dictionary.
         """
 
-        # Check if `self._window` is properly set
-        if getattr(self, "_window", None) is None:
-            raise AttributeError("`self._window` should be set.")
+        if self._window_class is None:
+            if self._window is None:
+                raise AttributeError("`self._window` is not set.")
+
+        else:
+            window = self._app.get_window(self.bl_idname)
+            if window is None:
+                window = self._window_class(
+                    *self._init_args, **self._init_kwargs
+                )
+                self._app.store_window(self.bl_idname, window)
+            self._window = window
+
         if not isinstance(self._window, (QtWidgets.QDialog, ModuleType)):
             raise AttributeError(
-                "`self._window` should be a `QDialog or module`.")
+                "`window` should be a `QDialog or module`. Got: {}".format(
+                    str(type(window))
+                )
+            )
 
-        args = getattr(self, "_show_args", list())
-        kwargs = getattr(self, "_show_kwargs", dict())
-        self._window.show(*args, **kwargs)
+        self.before_window_show()
+
+        if isinstance(self._window, ModuleType):
+            self._window.show()
+            window = None
+            if hasattr(self._window, "window"):
+                window = self._window.window
+            elif hasattr(self._window, "_window"):
+                window = self._window.window
+
+            if window:
+                self._app.store_window(self.bl_idname, window)
+
+        else:
+            origin_flags = self._window.windowFlags()
+            on_top_flags = origin_flags | QtCore.Qt.WindowStaysOnTopHint
+            self._window.setWindowFlags(on_top_flags)
+            self._window.show()
+
+            if on_top_flags != origin_flags:
+                self._window.setWindowFlags(origin_flags)
+                self._window.show()
 
         wm = bpy.context.window_manager
         if not wm.get('is_avalon_qt_timer_running', False):
@@ -98,17 +174,16 @@ class LaunchQtApp(bpy.types.Operator):
 
         return {'FINISHED'}
 
+    def before_window_show(self):
+        return
+
 
 class LaunchContextManager(LaunchQtApp):
     """Launch Avalon Context Manager."""
 
     bl_idname = "wm.avalon_contextmanager"
     bl_label = "Set Avalon Context..."
-
-    def execute(self, context):
-        from ..tools import contextmanager
-        self._window = contextmanager
-        return super().execute(context)
+    _window_class = contextmanager_window
 
 
 class LaunchCreator(LaunchQtApp):
@@ -116,11 +191,10 @@ class LaunchCreator(LaunchQtApp):
 
     bl_idname = "wm.avalon_creator"
     bl_label = "Create..."
+    _window_class = creator_window
 
-    def execute(self, context):
-        from ..tools import creator
-        self._window = creator
-        return super().execute(context)
+    def before_window_show(self):
+        self._window.refresh()
 
 
 class LaunchLoader(LaunchQtApp):
@@ -128,16 +202,13 @@ class LaunchLoader(LaunchQtApp):
 
     bl_idname = "wm.avalon_loader"
     bl_label = "Load..."
+    _window_class = loader_window
 
-    def execute(self, context):
-        from ..tools import loader
-        self._window = loader
-        if self._window.app.window is not None:
-            self._window.app.window = None
-        self._show_kwargs = {
-            'use_context': True,
-        }
-        return super().execute(context)
+    def before_window_show(self):
+        self._window.set_context(
+            {"asset": api.Session["AVALON_ASSET"]},
+            refresh=True
+        )
 
 
 class LaunchPublisher(LaunchQtApp):
@@ -147,14 +218,9 @@ class LaunchPublisher(LaunchQtApp):
     bl_label = "Publish..."
 
     def execute(self, context):
-        from ..tools import publish
         publish_show = publish._discover_gui()
-        if publish_show.__module__ == 'pyblish_qml':
-            # When using Pyblish QML we don't have to do anything special
-            publish.show()
-            return {'FINISHED'}
-        self._window = publish
-        return super().execute(context)
+        publish.show()
+        return {'FINISHED'}
 
 
 class LaunchManager(LaunchQtApp):
@@ -162,11 +228,10 @@ class LaunchManager(LaunchQtApp):
 
     bl_idname = "wm.avalon_manager"
     bl_label = "Manage..."
+    _window_class = sceneinventory_window
 
-    def execute(self, context):
-        from ..tools import cbsceneinventory
-        self._window = cbsceneinventory
-        return super().execute(context)
+    def before_window_show(self):
+        self._window.refresh()
 
 
 class LaunchWorkFiles(LaunchQtApp):
@@ -174,17 +239,23 @@ class LaunchWorkFiles(LaunchQtApp):
 
     bl_idname = "wm.avalon_workfiles"
     bl_label = "Work Files..."
+    _window_class = workfiles_window
 
     def execute(self, context):
-        from ..tools import workfiles
-        root = str(
-            Path(
+        self._init_kwargs = {
+            "root": str(Path(
                 os.environ.get("AVALON_WORKDIR", ""),
                 os.environ.get("AVALON_SCENEDIR", ""),
             ))
-        self._window = workfiles
-        self._show_kwargs = {"root": root}
+        }
         return super().execute(context)
+
+    def before_window_show(self):
+        self._window.root = str(Path(
+            os.environ.get("AVALON_WORKDIR", ""),
+            os.environ.get("AVALON_SCENEDIR", ""),
+        ))
+        self._window.refresh()
 
 
 class TOPBAR_MT_avalon(bpy.types.Menu):
