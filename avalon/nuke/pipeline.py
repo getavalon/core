@@ -280,6 +280,7 @@ def _install_menu():
     context_action = menu.addCommand(label)
     context_action.setEnabled(False)
 
+    menu.addSeparator()
     menu.addCommand("Create...",
                     lambda: creator.show(parent=get_main_window()))
     menu.addCommand("Load...",
