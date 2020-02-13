@@ -8,7 +8,6 @@
 from avalon import api
 return "%s - %s" % (api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"])
 ]]></labelExpression>
-                <scriptCode><![CDATA[return None]]></scriptCode>
             </scriptItem>
             <separatorItem/>
             <scriptItem id="avalon_create">
