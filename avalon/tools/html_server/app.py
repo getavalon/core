@@ -1,6 +1,9 @@
 import importlib
+from wsgiref.simple_server import make_server
 
-from avalon.vendor.bottle import route, template, run
+from avalon.vendor.bottle import route, template, run, WSGIRefServer
+from threading import Thread
+
 
 
 @route("/")
@@ -70,6 +73,17 @@ def tool_route(tool_name):
     return "nothing"
 
 
+class thread_server(WSGIRefServer):
+    def run(self, app):
+        self.server = make_server(self.host, self.port, app)
+        self.server.serve_forever()
+
+    def shutdown(self):
+        self.server.shutdown()
+
+
 def start_server(port):
     """Starts the Bottle server at 'http://localhost:{port}'"""
-    run(host="localhost", port=port)
+    server = thread_server(host="localhost", port=port)
+    Thread(target=run, kwargs={"server": server}).start()
+    return server

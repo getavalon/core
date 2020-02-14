@@ -1,5 +1,7 @@
 import json
 import contextlib
+import subprocess
+import threading
 
 from ..tools import html_server
 
@@ -39,12 +41,20 @@ def app():
     return Dispatch("Photoshop.Application")
 
 
-def start_server():
-    """Starts the web server that will be hosted in the Photoshop extension"""
+def launch(application):
+    """Starts the web server that will be hosted in the Photoshop extension.
+    """
     from avalon import api, photoshop
 
     api.install(photoshop)
-    html_server.app.start_server(5000)
+
+    # Launch Photoshop and the html server.
+    process = subprocess.Popen(application, stdout=subprocess.PIPE)
+    server = html_server.app.start_server(5000)
+
+    # Wait on Photoshop to close before closing the html server.
+    process.wait()
+    server.shutdown()
 
 
 def imprint(layer, data):

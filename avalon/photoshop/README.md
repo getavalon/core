@@ -22,10 +22,18 @@ ExManCmd /install {path to avalon-core}\avalon\photoshop\extension.zxp
 
 ### Server
 
-Have the server running:
+The easiest way to get the server and Photoshop launch is with:
 
 ```
-python -c "import avalon.photoshop;avalon.photoshop.start_server()"
+python -c ^"import avalon.photoshop;avalon.photoshop.launch(""C:\Program Files\Adobe\Adobe Photoshop 2020\Photoshop.exe"")^"
+```
+
+`avalon.photoshop.launch` launches the application and server, and also closes the server when Photoshop exists.
+
+You can also run the server separately with:
+
+```
+python -c "from avalon.tools import html_server;html_server.app.start_server(5000)"
 ```
 
 ## Usage
