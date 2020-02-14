@@ -5,7 +5,6 @@ from avalon.vendor.bottle import route, template, run, WSGIRefServer
 from threading import Thread
 
 
-
 @route("/")
 def index():
     """The entry point when accessing 'http://localhost:{port}'"""

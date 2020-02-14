@@ -1,7 +1,6 @@
 import json
 import contextlib
 import subprocess
-import threading
 
 from ..tools import html_server
 
