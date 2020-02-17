@@ -110,8 +110,7 @@ def _install_menu():
         creator,
         loader,
         publish,
-        sceneinventory,
-        contextmanager
+        sceneinventory
     )
 
     from . import interactive
@@ -125,19 +124,17 @@ def _install_menu():
                   parent="MayaWindow")
 
         # Create context menu
-        context_label = "{}, {}".format(api.Session["AVALON_ASSET"],
-                                        api.Session["AVALON_TASK"])
-        context_menu = cmds.menuItem("currentContext",
-                                     label=context_label,
-                                     parent=self._menu,
-                                     subMenu=True)
+        context_label = "{}, {}".format(
+            api.Session["AVALON_ASSET"],
+            api.Session["AVALON_TASK"]
+        )
 
-        cmds.menuItem("setCurrentContext",
-                      label="Edit Context..",
-                      parent=context_menu,
-                      command=lambda *args: contextmanager.show(
-                          parent=self._parent
-                      ))
+        cmds.menuItem(
+            "currentContext",
+            label=context_label,
+            parent=self._menu,
+            enable=False
+        )
 
         cmds.setParent("..", menu=True)
 

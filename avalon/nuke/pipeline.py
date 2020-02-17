@@ -266,8 +266,7 @@ def _install_menu():
         publish,
         workfiles,
         loader,
-        sceneinventory,
-        contextmanager
+        sceneinventory
     )
 
     # Create menu
@@ -277,11 +276,9 @@ def _install_menu():
     label = "{0}, {1}".format(
         api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"]
     )
-    context_menu = menu.addMenu(label)
-    context_menu.addCommand("Set Context",
-                            lambda: contextmanager.show(
-                                parent=get_main_window())
-                            )
+    context_action = menu.addCommand(label)
+    context_action.setEnabled(False)
+
     menu.addSeparator()
     menu.addCommand("Create...",
                     lambda: creator.show(parent=get_main_window()))
