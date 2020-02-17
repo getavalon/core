@@ -505,14 +505,6 @@ QPlainTextEdit
     border: 1px solid #3A3939;
 }
 
-QHeaderView::section
-{
-    background-color: #3A3939;
-    color: silver;
-    padding-left: 4px;
-    border: 1px solid #6c6c6c;
-}
-
 QSizeGrip {
     image: url(:/qss_icons/rc/sizegrip.png);
     width: 12px;
