@@ -27,12 +27,13 @@ def application():
     if self.app:
         print("Using existing QApplication..")
         yield self.app
+        if os.environ.get("AVALON_QTAPPLICATION_EXEC", False):
+            self.app.exec_()
     else:
         print("Starting new QApplication..")
         self.app = QtWidgets.QApplication(sys.argv)
         yield self.app
-
-    self.app.exec_()
+        self.app.exec_()
 
 
 def defer(delay, func):
