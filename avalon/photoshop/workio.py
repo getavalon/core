@@ -37,6 +37,5 @@ def current_file():
         return os.path.normpath(_active_document().FullName).replace("\\", "/")
 
 
-def work_root():
-    from avalon import Session
-    return os.path.normpath(Session["AVALON_WORKDIR"]).replace("\\", "/")
+def work_root(session):
+    return os.path.normpath(session["AVALON_WORKDIR"]).replace("\\", "/")
