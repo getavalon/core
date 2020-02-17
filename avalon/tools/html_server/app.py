@@ -1,8 +1,13 @@
 import importlib
 from wsgiref.simple_server import make_server
+import sys
 
 from avalon.vendor.bottle import route, template, run, WSGIRefServer
 from threading import Thread
+from ...vendor.Qt import QtWidgets
+
+self = sys.modules[__name__]
+self.app = None
 
 
 @route("/")
@@ -65,8 +70,17 @@ def index():
 @route("/<tool_name>_route")
 def tool_route(tool_name):
     """The address accessed when clicking on the buttons."""
+    # Need to have an existing QApplication.
+    app = QtWidgets.QApplication.instance()
+    if not app:
+        app = QtWidgets.QApplication(sys.argv)
+
+    # Import and show tool.
     tool_module = importlib.import_module("avalon.tools." + tool_name)
     tool_module.show()
+
+    # QApplication needs to always execute.
+    app.exec_()
 
     # Required return statement.
     return "nothing"
