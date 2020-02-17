@@ -228,7 +228,7 @@ def launch(executable, args=None, environment=None, cwd=None):
         if IS_WIN32:
             kwargs["creationflags"] = CREATE_NO_WINDOW
 
-    popen = subprocess.Popen(**kwargs)
+    popen = subprocess.run(**kwargs)
 
     return popen
 
