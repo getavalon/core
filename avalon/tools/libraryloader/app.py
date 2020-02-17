@@ -444,7 +444,15 @@ class Window(QtWidgets.QDialog):
                 version_docs.append(item["version_document"])
 
         self.data["widgets"]["version"].set_version(version_id)
-        self.data["widgets"]["thumbnail"].set_thumbnail(version_docs)
+
+        thumbnail_docs = version_docs
+        if not thumbnail_docs:
+            assets_widget = self.data["widgets"]["assets"]
+            asset_docs = assets_widget.get_selected_assets()
+            if len(asset_docs) > 0:
+                thumbnail_docs = asset_docs
+
+        self.data["widgets"]["thumbnail"].set_thumbnail(thumbnail_docs)
 
     def _set_context(self, context, refresh=True):
         """Set the selection in the interface using a context.
