@@ -138,6 +138,7 @@ class Window(QtWidgets.QDialog):
 
         families.active_changed.connect(subsets.set_family_filters)
         assets.selection_changed.connect(self.on_assetschanged)
+        assets.view.clicked.connect(self.on_assetview_click)
         assets.refreshButton.clicked.connect(self.on_refresh_clicked)
         subsets.active_changed.connect(self.on_subsetschanged)
         subsets.version_changed.connect(self.on_versionschanged)
@@ -151,6 +152,12 @@ class Window(QtWidgets.QDialog):
 
         # Defaults
         self.resize(1330, 700)
+
+    def on_assetview_click(self, *args):
+        subsets_widget = self.data["widgets"]["subsets"]
+        selection_model = subsets_widget.view.selectionModel()
+        if selection_model.selectedIndexes():
+            selection_model.clearSelection()
 
     def on_refresh_clicked(self):
         assets_widget = self.data["widgets"]["assets"]
