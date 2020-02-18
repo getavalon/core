@@ -14,25 +14,7 @@ from .. import io, api
 
 def reset_frame_range():
     """Set frame range to current asset"""
-    shot = api.Session["AVALON_ASSET"]
-    shot = io.find_one({"name": shot, "type": "asset"})
-
-    try:
-
-        frame_start = shot["data"].get(
-            "frameStart",
-            # backwards compatibility
-            shot["data"].get("edit_in")
-        )
-        frame_end = shot["data"].get(
-            "frameEnd",
-            # backwards compatibility
-            shot["data"].get("edit_out")
-        )
-    except KeyError:
-        cmds.warning("No edit information found for %s" % shot["name"])
-        return
-
+    # Set FPS first
     fps = {15: 'game',
            24: 'film',
            25: 'pal',
@@ -51,6 +33,32 @@ def reset_frame_range():
            }.get(float(api.Session.get("AVALON_FPS", 25)), "pal")
 
     cmds.currentUnit(time=fps)
+
+    # Set frame start/end
+    asset_name = api.Session["AVALON_ASSET"]
+    asset = io.find_one({"name": asset_name, "type": "asset"})
+
+    frame_start = asset["data"].get(
+        "frameStart",
+        # backwards compatibility
+        asset["data"].get("edit_in")
+    )
+    frame_end = asset["data"].get(
+        "frameEnd",
+        # backwards compatibility
+        asset["data"].get("edit_out")
+    )
+
+    if frame_start is None or frame_end is None:
+        cmds.warning("No edit information found for %s" % asset_name)
+        return
+
+    handles = int(asset["data"].get("handles", 0))
+    handle_start = int(asset["data"].get("handleStart", handles))
+    handle_end = int(asset["data"].get("handleEnd", handles))
+
+    frame_start -= handle_start
+    frame_end += handle_end
 
     cmds.playbackOptions(minTime=frame_start)
     cmds.playbackOptions(maxTime=frame_end)
