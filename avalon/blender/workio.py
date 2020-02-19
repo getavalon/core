@@ -8,6 +8,7 @@ import bpy
 
 def open_file(filepath: str) -> Optional[str]:
     """Open the scene file in Blender."""
+
     preferences = bpy.context.preferences
     load_ui = preferences.filepaths.use_load_ui
     use_scripts = preferences.filepaths.use_scripts_auto_execute
@@ -24,6 +25,7 @@ def open_file(filepath: str) -> Optional[str]:
 
 def save_file(filepath: str, copy: bool = False) -> Optional[str]:
     """Save the open scene file."""
+
     preferences = bpy.context.preferences
     compress = preferences.filepaths.use_file_compression
     relative_remap = preferences.filepaths.use_relative_paths
@@ -41,6 +43,7 @@ def save_file(filepath: str, copy: bool = False) -> Optional[str]:
 
 def current_file() -> Optional[str]:
     """Return the path of the open scene file."""
+
     current_filepath = bpy.data.filepath
     if Path(current_filepath).is_file():
         return current_filepath
@@ -49,18 +52,23 @@ def current_file() -> Optional[str]:
 
 def has_unsaved_changes() -> bool:
     """Does the open scene file have unsaved changes?"""
+
     return bpy.data.is_dirty
 
 
 def file_extensions() -> List[str]:
     """Return the supported file extensions for Blender scene files."""
+
     return [".blend"]
 
 
-def work_root(session) -> str:
+def work_root() -> str:
     """Return the default root to browse for work files."""
-    work_dir = session["AVALON_WORKDIR"]
-    scene_dir = session.get("AVALON_SCENEDIR")
+
+    from .. import api
+
+    work_dir = api.Session["AVALON_WORKDIR"]
+    scene_dir = api.Session.get("AVALON_SCENEDIR")
     if scene_dir:
         return str(Path(work_dir, scene_dir))
     return work_dir

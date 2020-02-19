@@ -36,6 +36,7 @@ def _has_visible_windows(app: QtWidgets.QApplication) -> bool:
 
 def _process_app_events(app: QtWidgets.QApplication) -> Optional[float]:
     """Process the events of the Qt app if the window is still visible.
+
     If the app has any top level windows and at least one of them is visible
     return the time after which this function should be run again. Else return
     None, so the function is not run again and will be unregistered.
@@ -45,6 +46,7 @@ def _process_app_events(app: QtWidgets.QApplication) -> Optional[float]:
         app.processEvents()
         return TIMER_INTERVAL
 
+    bpy.context.window_manager['is_avalon_qt_timer_running'] = False
     return None
 
 
@@ -65,6 +67,7 @@ class LaunchQtApp(bpy.types.Operator):
 
     def execute(self, context):
         """Execute the operator.
+
         The child class must implement `execute()` where it only has to set
         `self._window` to the desired Qt window and then simply run
         `return super().execute(context)`.
@@ -75,7 +78,7 @@ class LaunchQtApp(bpy.types.Operator):
         """
 
         # Check if `self._window` is properly set
-        if getattr(self, "_window") is None:
+        if getattr(self, "_window", None) is None:
             raise AttributeError("`self._window` should be set.")
         if not isinstance(self._window, (QtWidgets.QDialog, ModuleType)):
             raise AttributeError(
@@ -84,10 +87,14 @@ class LaunchQtApp(bpy.types.Operator):
         args = getattr(self, "_show_args", list())
         kwargs = getattr(self, "_show_kwargs", dict())
         self._window.show(*args, **kwargs)
-        bpy.app.timers.register(
-            partial(_process_app_events, self._app),
-            persistent=True,
-        )
+
+        wm = bpy.context.window_manager
+        if not wm.get('is_avalon_qt_timer_running', False):
+            bpy.app.timers.register(
+                partial(_process_app_events, self._app),
+                persistent=True,
+            )
+            wm['is_avalon_qt_timer_running'] = True
 
         return {'FINISHED'}
 

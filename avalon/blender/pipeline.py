@@ -2,8 +2,6 @@
 
 import importlib
 import sys
-import traceback
-from types import ModuleType
 from typing import Callable, Dict, Iterator, List, Optional
 
 import bpy
@@ -12,14 +10,13 @@ import pyblish.api
 import pyblish.util
 
 from .. import api, schema
-from ..lib import logger
+from ..lib import find_submodule, logger
 from ..pipeline import AVALON_CONTAINER_ID
 from . import lib, ops
 
 self = sys.modules[__name__]
 self._events = dict()  # Registered Blender callbacks
 self._parent = None  # Main window
-self._ignore_lock = False
 
 AVALON_CONTAINERS = "AVALON_CONTAINERS"
 AVALON_PROPERTY = 'avalon'
@@ -48,7 +45,6 @@ def _on_load_post(*args):
 
 def _register_callbacks():
     """Register callbacks for certain events."""
-
     def _remove_handler(handlers: List, callback: Callable):
         """Remove the callback from the given handler list."""
 
@@ -94,26 +90,11 @@ def _register_events():
     logger.info("Installed event callback for 'taskChanged'...")
 
 
-def find_host_config(config: ModuleType) -> Optional[ModuleType]:
-    """Find the config for the current host (Blender)."""
-
-    config_name = f"{config.__name__}.blender"
-    try:
-        return importlib.import_module(config_name)
-    except ImportError as exc:
-        if str(exc) != f"No module named '{config_name}'":
-            raise
-        return None
-
-
-def install(config: ModuleType):
+def install():
     """Install Blender-specific functionality for Avalon.
 
     This function is called automatically on calling `api.install(blender)`.
     """
-
-    # Override excepthook to not crash blender on exception
-    sys.excepthook = lambda *exc_info: traceback.print_exception(*exc_info)
 
     _register_callbacks()
     _register_events()
@@ -123,23 +104,12 @@ def install(config: ModuleType):
 
     pyblish.api.register_host("blender")
 
-    host_config = find_host_config(config)
-    if hasattr(host_config, "install"):
-        host_config.install()
 
-
-def uninstall(config: ModuleType):
+def uninstall():
     """Uninstall Blender-specific functionality of avalon-core.
 
     This function is called automatically on calling `api.uninstall()`.
-
-    Args:
-        config: configuration module
     """
-
-    host_config = find_host_config(config)
-    if hasattr(config, "uninstall"):
-        host_config.uninstall()
 
     if not IS_HEADLESS:
         ops.unregister()
@@ -193,16 +163,6 @@ def _discover_gui() -> Optional[Callable]:
             return gui
 
     return None
-
-
-def teardown():
-    """Remove integration"""
-
-    if not self._has_been_setup:
-        return
-
-    self._has_been_setup = False
-    logger.info("pyblish: Integration torn down successfully")
 
 
 def add_to_avalon_container(container: bpy.types.Collection):
@@ -290,13 +250,13 @@ def containerise(name: str,
     return container
 
 
-def containerise_existing(container: bpy.types.Collection,
-                          name: str,
-                          namespace: str,
-                          context: Dict,
-                          loader: Optional[str] = None,
-                          suffix: Optional[str] = "CON"
-                          ) -> bpy.types.Collection:
+def containerise_existing(
+        container: bpy.types.Collection,
+        name: str,
+        namespace: str,
+        context: Dict,
+        loader: Optional[str] = None,
+        suffix: Optional[str] = "CON") -> bpy.types.Collection:
     """Imprint or update container with metadata.
 
     Arguments:
@@ -369,13 +329,8 @@ def ls() -> Iterator:
 
     containers = _ls()
 
-    has_metadata_collector = False
-    config = find_host_config(api.registered_config())
-    if config is None:
-        logger.error("Could not find host config for Blender")
-        return tuple()
-    if hasattr(config, "collect_container_metadata"):
-        has_metadata_collector = True
+    config = find_submodule(api.registered_config(), "blender")
+    has_metadata_collector = hasattr(config, "collect_container_metadata")
 
     for container in containers:
         data = parse_container(container)
@@ -426,14 +381,13 @@ def publish():
 
 class Creator(api.Creator):
     """Base class for Creator plug-ins."""
-
     def process(self):
         collection = bpy.data.collections.new(name=self.data["subset"])
         bpy.context.scene.collection.children.link(collection)
         lib.imprint(collection, self.data)
 
         if (self.options or {}).get("useSelection"):
-            for obj in bpy.context.selected_objects:
+            for obj in lib.get_selection():
                 collection.objects.link(obj)
 
         return collection
