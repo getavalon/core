@@ -120,7 +120,7 @@ def uninstall():
         config_host.uninstall()
 
     try:
-        host.uninstall(config)
+        host.uninstall()
     except AttributeError:
         pass
 
@@ -1039,6 +1039,81 @@ def get_representation_context(representation):
     return context
 
 
+def compute_session_changes(session, task=None, asset=None, app=None):
+    """Compute the changes for a Session object on asset, task or app switch
+
+    This does *NOT* update the Session object, but returns the changes
+    required for a valid update of the Session.
+
+    Args:
+        session (dict): The initial session to compute changes to.
+            This is required for computing the full Work Directory, as that
+            also depends on the values that haven't changed.
+        task (str, Optional): Name of task to switch to.
+        asset (str or dict, Optional): Name of asset to switch to.
+            You can also directly provide the Asset dictionary as returned
+            from the database to avoid an additional query. (optimization)
+        app (str, Optional): Name of app to switch to.
+
+    Returns:
+        dict: The required changes in the Session dictionary.
+
+    """
+
+    changes = dict()
+
+    # If no changes, return directly
+    if not any([task, asset, app]):
+        return changes
+
+    # Get asset document and asset
+    asset_document = None
+    if asset:
+        if isinstance(asset, dict):
+            # Assume asset database document
+            asset_document = asset
+            asset = asset["name"]
+        else:
+            # Assume asset name
+            asset_document = io.find_one({"name": asset,
+                                          "type": "asset"})
+            assert asset_document, "Asset must exist"
+
+    # Detect any changes compared session
+    mapping = {
+        "AVALON_ASSET": asset,
+        "AVALON_TASK": task,
+        "AVALON_APP": app,
+    }
+    changes = {key: value for key, value in mapping.items()
+               if value and value != session.get(key)}
+    if not changes:
+        return changes
+
+    # Update silo and hierarchy when asset changed
+    if "AVALON_ASSET" in changes:
+
+        # Update silo
+        changes["AVALON_SILO"] = asset_document["silo"]
+
+        # Update hierarchy
+        parents = asset_document['data'].get('parents', [])
+        hierarchy = ""
+        if len(parents) > 0:
+            hierarchy = os.path.sep.join(parents)
+        changes['AVALON_HIERARCHY'] = hierarchy
+
+    # Compute work directory (with the temporary changed session so far)
+    project = io.find_one({"type": "project"},
+                          projection={"config.template.work": True})
+    template = project["config"]["template"]["work"]
+    _session = session.copy()
+    _session.update(changes)
+    changes["AVALON_WORKDIR"] = _format_work_template(template, _session)
+
+    return changes
+
+
 def update_current_task(task=None, asset=None, app=None):
     """Update active Session to a new task work area.
 
@@ -1054,54 +1129,21 @@ def update_current_task(task=None, asset=None, app=None):
 
     """
 
-    mapping = {
-        "AVALON_ASSET": asset,
-        "AVALON_TASK": task,
-        "AVALON_APP": app,
-    }
-    changed = {key: value for key, value in mapping.items() if value}
-    if not changed:
-        return
-
-    # Update silo when asset changed
-    if "AVALON_ASSET" in changed:
-        asset_document = io.find_one({"name": changed["AVALON_ASSET"],
-                                      "type": "asset"})
-        assert asset_document, "Asset must exist"
-        changed["AVALON_SILO"] = asset_document.get("silo") or ""
-
-    # Compute work directory (with the temporary changed session so far)
-    project = io.find_one({"type": "project"},
-                          projection={"config.template.work": True})
-    template = project["config"]["template"]["work"]
-
-    hierarchy = asset_document["data"].get("hierarchy")
-    if hierarchy is None:
-        parents = asset_document["data"].get("parents") or []
-        hierarchy = os.path.sep.join(parents) or ""
-
-    changed['AVALON_HIERARCHY'] = hierarchy
-
-    _session = Session.copy()
-    _session.update(changed)
-
-    workdir = os.path.normpath(_format_work_template(template, _session))
-
-    changed["AVALON_WORKDIR"] = workdir
-
-    if not os.path.exists(workdir):
-        os.makedirs(workdir)
+    changes = compute_session_changes(Session,
+                                      task=task,
+                                      asset=asset,
+                                      app=app)
 
     # Update the full session in one go to avoid half updates
-    Session.update(changed)
+    Session.update(changes)
 
     # Update the environment
-    os.environ.update(changed)
+    os.environ.update(changes)
 
     # Emit session change
-    emit("taskChanged", changed.copy())
+    emit("taskChanged", changes.copy())
 
-    return changed
+    return changes
 
 
 def _format_work_template(template, session=None):

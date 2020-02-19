@@ -94,6 +94,11 @@ class AssetWidget(QtWidgets.QWidget):
         current = self.view.currentIndex()
         return current.data(self.model.ItemRole)
 
+    def get_active_asset_document(self):
+        """Return the asset id the current asset."""
+        current = self.view.currentIndex()
+        return current.data(self.model.DocumentRole)
+
     def get_active_index(self):
         return self.view.currentIndex()
 
@@ -234,6 +239,8 @@ class OptionalActionWidget(QtWidgets.QWidget):
         layout.addWidget(option)
 
         body.setMouseTracking(True)
+        label.setMouseTracking(True)
+        option.setMouseTracking(True)
         self.setMouseTracking(True)
         self.setFixedHeight(32)
 
@@ -340,19 +347,12 @@ class OptionBox(QtWidgets.QLabel):
     def __init__(self, parent):
         super(OptionBox, self).__init__(parent)
 
-        layout = self.layout()
-        if not layout:
-            layout = QtWidgets.QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        self.setLayout(layout)
-
         self.setAlignment(QtCore.Qt.AlignCenter)
 
         icon = qtawesome.icon("fa.sticky-note-o", color="#c6c6c6")
         pixmap = icon.pixmap(18, 18)
         self.setPixmap(pixmap)
 
-        self.setMouseTracking(True)
         self.setStyleSheet("background: transparent;")
 
 

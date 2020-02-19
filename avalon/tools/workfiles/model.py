@@ -1,98 +1,134 @@
+import os
+import logging
+
+from ... import style
 from ...vendor.Qt import QtCore
+from ...vendor import qtawesome
 
 from ..models import TreeModel, Item
 
-
-class WorkFileItem(Item):
-    def sort(self, key, order):
-        children = sorted(self.children(), key=lambda item: item[key])
-        if order == QtCore.Qt.DescendingOrder:
-            children = reversed(children)
-
-        self._children = list(children)
-        for child in self._children:
-            child.sort(key, order)
+log = logging.getLogger(__name__)
 
 
-class WorkFileModel(TreeModel):
-    """A model listing the tasks combined for a list of assets"""
+class FilesModel(TreeModel):
+    """Model listing files with specified extensions in a root folder"""
+    Columns = ["filename", "date"]
 
-    Columns = ["Filename", "Modified"]
-    FilenameRole = QtCore.Qt.UserRole + 2
-    ModifiedRole = QtCore.Qt.UserRole + 3
-    item_class = WorkFileItem
+    FileNameRole = QtCore.Qt.UserRole + 2
+    DateModifiedRole = QtCore.Qt.UserRole + 3
+    FilePathRole = QtCore.Qt.UserRole + 4
+    IsEnabled = QtCore.Qt.UserRole + 5
 
-    def parent(self, index):
-        item = index.internalPointer()
-        if isinstance(item, int):
-            index = self.createIndex(item, 0, self._root_item)
-        return super(WorkFileModel, self).parent(index)
+    def __init__(self, file_extensions, parent=None):
+        super(FilesModel, self).__init__(parent=parent)
 
-    def sort(self, column, order):
-        # Use super of QAbstractItemModel because in PySide `parent` method
-        # does not return parent QObject but tries to find Item parent
-        parent = super(QtCore.QAbstractItemModel, self).parent()
-        selection = []
-        if parent and hasattr(parent, "selectionModel"):
-            selection_model = parent.selectionModel()
-            for row in selection_model.selectedRows():
-                selection.append(row.data(self.ItemRole))
+        self._root = None
+        self._file_extensions = file_extensions
+        self._icons = {"file": qtawesome.icon("fa.file-o",
+                                              color=style.colors.default)}
 
+    def set_root(self, root):
+        self._root = root
+        self.refresh()
+
+    def _add_empty(self):
+
+        item = Item()
+        item.update({
+            # Put a display message in 'filename'
+            "filename": "No files found.",
+            # Not-selectable
+            "enabled": False,
+            "filepath": None
+        })
+
+        self.add_child(item)
+
+    def refresh(self):
+
+        self.clear()
         self.beginResetModel()
 
-        key = self.Columns[column]
-        self._root_item.sort(key, order)
+        root = self._root
 
-        self.endResetModel()
-
-        if not parent or not selection:
+        if not root:
+            self.endResetModel()
             return
 
-        item_selection = QtCore.QItemSelection()
-        for idx, item in enumerate(self._root_item.children()):
-            if item not in selection:
+        if not os.path.exists(root):
+            # Add Work Area does not exist placeholder
+            log.debug("Work Area does not exist: %s", root)
+            message = "Work Area does not exist. Use Save As to create it."
+            item = Item({
+                "filename": message,
+                "date": None,
+                "filepath": None,
+                "enabled": False,
+                "icon": qtawesome.icon("fa.times",
+                                       color=style.colors.mid)
+            })
+            self.add_child(item)
+            self.endResetModel()
+            return
+
+        extensions = self._file_extensions
+
+        for f in os.listdir(root):
+            path = os.path.join(root, f)
+            if os.path.isdir(path):
                 continue
 
-            index = self.createIndex(idx, 0, idx)
-            item_selection.append(QtCore.QItemSelectionRange(index))
+            if extensions and os.path.splitext(f)[1] not in extensions:
+                continue
 
-        selection_model.select(
-            item_selection,
-            (
-                QtCore.QItemSelectionModel.SelectCurrent |
-                QtCore.QItemSelectionModel.Rows
-            )
-        )
+            modified = os.path.getmtime(path)
 
-    def add_file(self, filename, modified=None):
-        self.beginResetModel()
+            item = Item({
+                "filename": f,
+                "date": modified,
+                "filepath": path
+            })
 
-        if not modified:
-            modified = "< unknown >"
-
-        item = self.ItemClass({
-            "Filename": filename,
-            "Modified": modified
-        })
-        self.add_child(item)
+            self.add_child(item)
 
         self.endResetModel()
 
     def data(self, index, role):
-        if role in [QtCore.Qt.DisplayRole, QtCore.Qt.EditRole]:
+
+        if not index.isValid():
+            return
+
+        if role == QtCore.Qt.DecorationRole:
+            # Add icon to filename column
+            item = index.internalPointer()
             if index.column() == 0:
-                role = self.FilenameRole
-            elif index.column() == 1:
-                role = self.ModifiedRole
+                if item["filepath"]:
+                    return self._icons["file"]
+                else:
+                    return item.get("icon", None)
+        if role == self.FileNameRole:
+            item = index.internalPointer()
+            return item["filename"]
+        if role == self.DateModifiedRole:
+            item = index.internalPointer()
+            return item["date"]
+        if role == self.FilePathRole:
+            item = index.internalPointer()
+            return item["filepath"]
+        if role == self.IsEnabled:
+            item = index.internalPointer()
+            return item.get("enabled", True)
 
-        item = super(WorkFileModel, self).data(index, self.ItemRole)
-        if role == self.ItemRole:
-            return item
+        return super(FilesModel, self).data(index, role)
 
-        elif role == self.FilenameRole:
-            return item["Filename"]
+    def headerData(self, section, orientation, role):
 
-        elif role == self.ModifiedRole:
-            return item["Modified"]
+        # Show nice labels in the header
+        if role == QtCore.Qt.DisplayRole and \
+                orientation == QtCore.Qt.Horizontal:
+            if section == 0:
+                return "Name"
+            elif section == 1:
+                return "Date modified"
 
-        return super(WorkFileModel, self).data(index, role)
+        return super(FilesModel, self).headerData(section, orientation, role)
