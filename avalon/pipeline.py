@@ -1094,7 +1094,7 @@ def compute_session_changes(session, task=None, asset=None, app=None):
     if "AVALON_ASSET" in changes:
 
         # Update silo
-        changes["AVALON_SILO"] = asset_document["silo"]
+        changes["AVALON_SILO"] = asset_document.get("silo") or ""
 
         # Update hierarchy
         parents = asset_document['data'].get('parents', [])
