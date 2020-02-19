@@ -9,8 +9,6 @@ import platform
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import style, io, api, pipeline
 
-from .model import WorkFileModel
-
 from .. import lib as tools_lib
 from ..widgets import AssetWidget
 from ..models import TasksModel
@@ -591,8 +589,6 @@ class FilesWidget(QtWidgets.QWidget):
         return index.data(model.FilePathRole)
 
     def on_open_pressed(self):
-        selection = self.view.selectionModel()
-        rows = selection.selectedRows(column=0)
 
         path = self._get_selected_filepath()
         if not path:
@@ -607,7 +603,7 @@ class FilesWidget(QtWidgets.QWidget):
         filter = "Work File (*{0})".format(filter)
         work_file = QtWidgets.QFileDialog.getOpenFileName(
             caption="Work Files",
-            directory=self.root,
+            dir=self.root,
             filter=filter
         )[0]
 
@@ -752,7 +748,7 @@ class Window(QtWidgets.QMainWindow):
         widgets = {
             "pages": QtWidgets.QStackedWidget(),
             "body": QtWidgets.QWidget(),
-            "assets": AssetWidget(silo_creatable=False),
+            "assets": AssetWidget(),
             "tasks": TasksWidget(),
             "files": FilesWidget()
         }
@@ -781,7 +777,6 @@ class Window(QtWidgets.QMainWindow):
 
         # Connect signals
         widgets["assets"].current_changed.connect(self.on_asset_changed)
-        widgets["assets"].silo_changed.connect(self.on_asset_changed)
         widgets["tasks"].task_changed.connect(self.on_task_changed)
 
         self.widgets = widgets
@@ -803,13 +798,10 @@ class Window(QtWidgets.QMainWindow):
 
         if "asset" in context:
             asset = context["asset"]
-            asset_document = io.find_one({"name": asset,
-                                          "type": "asset"})
-
-            # Set silo
-            silo = asset_document.get("silo")
-            if self.widgets["assets"].get_current_silo() != silo:
-                self.widgets["assets"].set_silo(silo)
+            asset_document = io.find_one({
+                "name": asset,
+                "type": "asset"
+            })
 
             # Select the asset
             self.widgets["assets"].select_assets([asset], expand=True)
@@ -828,7 +820,7 @@ class Window(QtWidgets.QMainWindow):
         self._on_task_changed()
 
     def _on_asset_changed(self):
-        asset = self.widgets["assets"].get_active_asset()
+        asset = self.widgets["assets"].get_selected_assets() or None
 
         if not asset:
             # Force disable the other widgets if no
@@ -836,13 +828,16 @@ class Window(QtWidgets.QMainWindow):
             self.widgets["tasks"].setEnabled(False)
             self.widgets["files"].setEnabled(False)
         else:
+            asset = asset[0]
             self.widgets["tasks"].setEnabled(True)
 
-        self.widgets["tasks"].set_asset(asset)
+        self.widgets["tasks"].set_asset(asset["_id"])
 
     def _on_task_changed(self):
 
-        asset = self.widgets["assets"].get_active_asset_document()
+        asset = self.widgets["assets"].get_selected_assets() or None
+        if asset is not None:
+            asset = asset[0]
         task = self.widgets["tasks"].get_current_task()
 
         self.widgets["tasks"].setEnabled(bool(asset))

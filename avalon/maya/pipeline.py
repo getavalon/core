@@ -110,7 +110,8 @@ def _install_menu():
         creator,
         loader,
         publish,
-        sceneinventory
+        sceneinventory,
+        libraryloader
     )
 
     from . import interactive
@@ -128,7 +129,6 @@ def _install_menu():
             api.Session["AVALON_ASSET"],
             api.Session["AVALON_TASK"]
         )
-
         cmds.menuItem(
             "currentContext",
             label=context_label,

@@ -234,16 +234,15 @@ class TasksModel(TreeModel):
             assets = asset_entities
         else:
             # prepare filter query
-            or_query = [{"_id": asset_id} for asset_id in asset_ids]
-            _filter = {"type": "asset", "$or": or_query}
+            _filter = {"type": "asset", "_id": {"$in": asset_ids}}
 
             # find assets in db by query
-            assets = [asset for asset in io.find_one(_filter)]
+            assets = [asset for asset in io.find(_filter)]
             db_assets_ids = [asset["_id"] for asset in assets]
 
             # check if all assets were found
             not_found = [
-                str(a_id) for a_id in assets_ids if a_id not in db_assets_ids
+                str(a_id) for a_id in asset_ids if a_id not in db_assets_ids
             ]
 
             assert not not_found, "Assets not found by id: {0}".format(

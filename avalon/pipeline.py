@@ -1129,10 +1129,9 @@ def update_current_task(task=None, asset=None, app=None):
 
     """
 
-    changes = compute_session_changes(Session,
-                                      task=task,
-                                      asset=asset,
-                                      app=app)
+    changes = compute_session_changes(
+        Session, task=task, asset=asset, app=app
+    )
 
     # Update the full session in one go to avoid half updates
     Session.update(changes)

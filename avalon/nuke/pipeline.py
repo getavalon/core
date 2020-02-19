@@ -279,7 +279,8 @@ def _install_menu():
         publish,
         workfiles,
         loader,
-        sceneinventory
+        sceneinventory,
+        libraryloader
     )
 
     # Create menu
