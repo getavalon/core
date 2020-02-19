@@ -294,17 +294,6 @@ def _install_menu():
     context_action.setEnabled(False)
 
     menu.addSeparator()
-    menu.addCommand("Create...",
-                    lambda: creator.show(parent=get_main_window()))
-    menu.addCommand("Load...",
-                    lambda: loader.show(parent=get_main_window(),
-                                        use_context=True))
-    menu.addCommand("Publish...",
-                    lambda: publish.show(parent=get_main_window()))
-    menu.addCommand("Manage...",
-                    lambda: sceneinventory.show(parent=get_main_window()))
-
-    menu.addSeparator()
     menu.addCommand("Work Files...",
                     lambda: workfiles.show(
                         os.environ["AVALON_WORKDIR"]
