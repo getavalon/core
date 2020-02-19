@@ -369,7 +369,7 @@ class View(QtWidgets.QTreeView):
         for version in versions:
             label = "v{0:03d}".format(version["name"])
             labels.append(label)
-            versions_by_label[label] = version
+            versions_by_label[label] = version["name"]
 
         label, state = QtWidgets.QInputDialog.getItem(self,
                                                       "Set version..",
@@ -382,7 +382,7 @@ class View(QtWidgets.QTreeView):
             return
 
         if label:
-            version = versions_by_label[label]["name"]
+            version = versions_by_label[label]
             for item in items:
                 api.update(item, version)
             # refresh model when done

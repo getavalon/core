@@ -82,9 +82,11 @@ class SubsetsModel(TreeModel):
         if index.column() == self.Columns.index("version"):
             item = index.internalPointer()
             parent = item["_id"]
-            version = io.find_one({"name": value,
-                                   "type": "version",
-                                   "parent": parent})
+            version = io.find_one({
+                "name": value,
+                "type": "version",
+                "parent": parent
+            })
             self.set_version(index, version)
 
         return super(SubsetsModel, self).setData(index, value, role)

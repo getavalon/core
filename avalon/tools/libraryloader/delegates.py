@@ -1,10 +1,9 @@
-import time
-from datetime import datetime
 import logging
 
-from ...vendor.Qt import QtWidgets, QtCore
+from ...vendor.Qt import QtCore
 from ..models import TreeModel
 from .. import delegates as tools_delegates
+from .. import lib
 
 log = logging.getLogger(__name__)
 
@@ -25,22 +24,52 @@ class VersionDelegate(tools_delegates.VersionDelegate):
 
         # Current value of the index
         value = index.data(QtCore.Qt.DisplayRole)
-        assert isinstance(value, int), "Version is not `int`"
 
         # Add all available versions to the editor
         item = index.data(TreeModel.ItemRole)
         parent_id = item["version_document"]["parent"]
-        versions = self.dbcon.find(
+        versions = list(self.dbcon.find(
             {"type": "version", "parent": parent_id},
             sort=[("name", 1)]
-        )
-        index = 0
+        ))
+
+        master_version = self.dbcon.find_one({
+            "type": "master_version",
+            "parent": parent_id
+        })
+        doc_for_master_version = None
+
+        index = None
         for i, version in enumerate(versions):
-            label = self._format_version(version["name"])
+            if (
+                master_version and
+                doc_for_master_version is None and
+                master_version["version_id"] == version["_id"]
+            ):
+                doc_for_master_version = version
+
+            label = lib.format_version(version["name"])
             editor.addItem(label, userData=version)
 
             if version["name"] == value:
                 index = i
+
+        if master_version and doc_for_master_version:
+            label = lib.format_version(
+                doc_for_master_version["name"], True
+            )
+            if label == value:
+                index = len(versions)
+            master_version["data"] = doc_for_master_version["data"]
+            master_version["name"] = lib.MasterVersionType(
+                doc_for_master_version["name"]
+            )
+            editor.addItem(label, userData=master_version)
+
+        if index is None:
+            index = len(versions)
+            if not (master_version and doc_for_master_version):
+                index -= 1
 
         editor.setCurrentIndex(index)  # Will trigger index-change signal
         self.first_run = False

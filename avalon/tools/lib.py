@@ -1,6 +1,7 @@
 import os
 import sys
 import contextlib
+import numbers
 
 from .. import io, api, style
 from ..vendor import qtawesome
@@ -10,6 +11,33 @@ from ..vendor.Qt import QtWidgets, QtCore, QtGui
 self = sys.modules[__name__]
 self._jobs = dict()
 self._path = os.path.dirname(__file__)
+
+
+class MasterVersionType(object):
+    def __init__(self, version):
+        assert isinstance(version, numbers.Integral), (
+            "Version is not integer. \"{}\" {}".format(
+                version, str(type(version))
+            )
+        )
+        self.version = version
+
+    def __str__(self):
+        return str(self.version)
+
+    def __int__(self):
+        return int(self.version)
+
+    def __format__(self, format_spec):
+        return self.version.__format__(format_spec)
+
+
+def format_version(value, master_version=False):
+    """Formats integer to displayable version name"""
+    label = "v{0:03d}".format(value)
+    if not master_version:
+        return label
+    return "<{}>".format(label)
 
 
 def resource(*path):

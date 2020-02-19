@@ -2,7 +2,7 @@ import numbers
 
 from ..vendor.Qt import QtWidgets, QtCore
 from .. import io
-
+from . import lib
 from .models import TreeModel
 
 try:
@@ -18,13 +18,13 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
     first_run = False
     lock = False
 
-    def _format_version(self, value):
-        """Formats integer to displayable version name"""
-        return "v{0:03d}".format(value)
-
     def displayText(self, value, locale):
-        assert isinstance(value, numbers.Integral), "Version is not integer"
-        return self._format_version(value)
+        if isinstance(value, lib.MasterVersionType):
+            return lib.format_version(value, True)
+        assert isinstance(value, numbers.Integral), (
+            "Version is not integer. \"{}\" {}".format(value, str(type(value)))
+        )
+        return lib.format_version(value)
 
     def createEditor(self, parent, option, index):
         item = index.data(TreeModel.ItemRole)
@@ -52,21 +52,52 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         editor.clear()
 
         # Current value of the index
+        item = index.data(TreeModel.ItemRole)
         value = index.data(QtCore.Qt.DisplayRole)
-        assert isinstance(value, numbers.Integral), "Version is not integer"
+        if item["version_document"]["type"] == "version":
+            assert isinstance(value, numbers.Integral), (
+                "Version is not integer"
+            )
 
         # Add all available versions to the editor
-        item = index.data(TreeModel.ItemRole)
         parent_id = item["version_document"]["parent"]
-        versions = io.find({"type": "version", "parent": parent_id},
-                           sort=[("name", 1)])
+        versions = io.find(
+            {
+                "type": "version",
+                "parent": parent_id
+            },
+            sort=[("name", 1)]
+        )
+
+        master_version = io.find({
+            "type": "master_version",
+            "parent": parent_id
+        })
+        doc_for_master_version = None
+
         index = 0
         for i, version in enumerate(versions):
-            label = self._format_version(version["name"])
+            if (
+                master_version and
+                doc_for_master_version is None and
+                version["_id"] == master_version["version_id"]
+            ):
+                doc_for_master_version = version
+
+            label = lib.format_version(version["name"])
             editor.addItem(label, userData=version)
 
             if version["name"] == value:
                 index = i
+
+        if master_version and doc_for_master_version:
+            version_name = doc_for_master_version["name"]
+
+            master_version["name"] = version_name
+            print("setEditorData", version_name)
+            label = lib.format_version(version_name, True)
+
+            editor.addItem(label, userData=master_version)
 
         editor.setCurrentIndex(index)  # Will trigger index-change signal
         self.first_run = False
@@ -75,4 +106,5 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
     def setModelData(self, editor, model, index):
         """Apply the integer version back in the model"""
         version = editor.itemData(editor.currentIndex())
-        model.setData(index, version["name"])
+        value = version["name"]
+        model.setData(index, value)
