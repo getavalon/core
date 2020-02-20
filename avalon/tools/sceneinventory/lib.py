@@ -56,6 +56,7 @@ def switch_item(container,
                            "parent": subset["_id"]},
                           sort=[("name", -1)])
 
+    # TODO add master version
     assert version, "Could not find a version for {}.{}".format(
         asset_name, subset_name
     )

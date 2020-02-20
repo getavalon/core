@@ -234,6 +234,13 @@ class InventoryModel(TreeModel):
                 not_found_ids.append(repre_id)
                 continue
 
+            elif version["type"] == "master_version":
+                _version = io.find_one({
+                    "_id": version["version_id"]
+                })
+                version["name"] = tools_lib.MasterVersionType(_version["name"])
+                version["data"] = _version["data"]
+
             subset = io.find_one({"_id": version["parent"]})
             if not subset:
                 not_found["subset"].append(group_items)

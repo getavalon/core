@@ -349,35 +349,69 @@ class View(QtWidgets.QTreeView):
         # Get available versions for active representation
         representation_id = io.ObjectId(active["representation"])
         representation = io.find_one({"_id": representation_id})
-        version = io.find_one({"_id": representation["parent"]})
+        version = io.find_one({
+            "_id": representation["parent"]
+        })
 
-        versions = io.find({"parent": version["parent"]},
-                           sort=[("name", 1)])
-        versions = list(versions)
+        versions = list(io.find(
+            {
+                "parent": version["parent"],
+                "type": "version"
+            },
+            sort=[("name", 1)]
+        ))
 
-        current_version = active["version"]
+        master_version = io.find_one({
+            "parent": version["parent"],
+            "type": "master_version"
+        })
+        if master_version:
+            _version_id = master_version["version_id"]
+            for _version in versions:
+                if _version["_id"] != _version_id:
+                    continue
+
+                master_version["name"] = tools_lib.MasterVersionType(
+                    _version["name"]
+                )
+                master_version["data"] = _version["data"]
+                break
 
         # Get index among the listed versions
-        index = len(versions) - 1
-        for i, version in enumerate(versions):
-            if version["name"] == current_version:
-                index = i
-                break
+        current_item = None
+        current_version = active["version"]
+        if isinstance(current_version, tools_lib.MasterVersionType):
+            current_item = master_version
+        else:
+            for version in versions:
+                if version["name"] == current_version:
+                    current_item = version
+                    break
 
         versions_by_label = dict()
         labels = []
-        for version in versions:
-            label = "v{0:03d}".format(version["name"])
+        all_versions = [master_version]
+        all_versions.extend(reversed(versions))
+
+        if current_item:
+            index = all_versions.index(current_item)
+        else:
+            index = 0
+
+        for version in all_versions:
+            is_master = version["type"] == "master_version"
+            label = tools_lib.format_version(version["name"], is_master)
             labels.append(label)
             versions_by_label[label] = version["name"]
 
-        label, state = QtWidgets.QInputDialog.getItem(self,
-                                                      "Set version..",
-                                                      "Set version number "
-                                                      "to",
-                                                      labels,
-                                                      current=index,
-                                                      editable=False)
+        label, state = QtWidgets.QInputDialog.getItem(
+            self,
+            "Set version..",
+            "Set version number to",
+            labels,
+            current=index,
+            editable=False
+        )
         if not state:
             return
 
