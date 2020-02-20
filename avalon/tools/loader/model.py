@@ -82,11 +82,24 @@ class SubsetsModel(TreeModel):
         if index.column() == self.Columns.index("version"):
             item = index.internalPointer()
             parent = item["_id"]
-            version = io.find_one({
-                "name": value,
-                "type": "version",
-                "parent": parent
-            })
+            if isinstance(value, lib.MasterVersionType):
+                version = io.find_one({
+                    "type": "master_version",
+                    "parent": parent
+                })
+                _version = io.find_one({
+                    "_id": version["version_id"],
+                    "type": "version"
+                })
+                version["data"] = _version["data"]
+                version["name"] = _version["name"]
+
+            else:
+                version = io.find_one({
+                    "name": value,
+                    "type": "version",
+                    "parent": parent
+                })
             self.set_version(index, version)
 
         return super(SubsetsModel, self).setData(index, value, role)
@@ -193,6 +206,21 @@ class SubsetsModel(TreeModel):
         # Collect last versions
         last_versions = {}
         for subset in filtered_subsets:
+            master_version = io.find_one({
+                "type": "master_version",
+                "parent": subset["_id"]
+            })
+            if master_version:
+                _version = io.find_one({
+                    "_id": master_version["version_id"]
+                })
+                master_version["data"] = _version["data"]
+                master_version["name"] = lib.MasterVersionType(
+                    _version["name"]
+                )
+                last_versions[subset["_id"]] = master_version
+                continue
+
             last_version = io.find_one({
                 "type": "version",
                 "parent": subset["_id"]
@@ -226,7 +254,7 @@ class SubsetsModel(TreeModel):
         row = 0
         group_items = dict()
 
-         # When only one asset is selected
+        # When only one asset is selected
         if process_only_single_asset:
             if self._grouping:
                 # Generate subset group items
@@ -290,7 +318,7 @@ class SubsetsModel(TreeModel):
 
             for subset_name, per_asset_data in multi_asset_subsets.items():
                 subset_color = self.merged_subset_colors[
-                    subset_counter%color_count
+                    subset_counter % color_count
                 ]
                 inverse_order = total - subset_counter
 
@@ -407,9 +435,9 @@ class SubsetsModel(TreeModel):
                 order = item["inverseOrder"]
             else:
                 prefix = "0"
-                order = str(
-                    super(SubsetsModel, self).data(index, QtCore.Qt.DisplayRole)
-                )
+                order = str(super(SubsetsModel, self).data(
+                    index, QtCore.Qt.DisplayRole
+                ))
             return prefix + order
 
         if role == self.SortAscendingRole:
@@ -420,9 +448,9 @@ class SubsetsModel(TreeModel):
                 order = item["order"]
             else:
                 prefix = "1"
-                order = str(
-                    super(SubsetsModel, self).data(index, QtCore.Qt.DisplayRole)
-                )
+                order = str(super(SubsetsModel, self).data(
+                    index, QtCore.Qt.DisplayRole
+                ))
             return prefix + order
 
         return super(SubsetsModel, self).data(index, role)
