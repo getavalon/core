@@ -30,6 +30,15 @@ class InventoryModel(TreeModel):
 
         self._hierarchy_view = False
 
+    def outdated(self, item):
+        value = item.get("version")
+        if isinstance(value, MasterVersionType):
+            return False
+
+        if item.get("version") == item.get("highest_version"):
+            return False
+        return True
+
     def data(self, index, role):
 
         if not index.isValid():
@@ -48,17 +57,16 @@ class InventoryModel(TreeModel):
             # Set the text color to the OUTDATED_COLOR when the
             # collected version is not the same as the highest version
             key = self.Columns[index.column()]
-            outdated = (lambda n: n.get("version") != n.get("highest_version"))
             if key == "version":  # version
                 if item.get("isGroupNode"):  # group-item
-                    if outdated(item):
+                    if self.outdated(item):
                         return self.OUTDATED_COLOR
 
                     if self._hierarchy_view:
                         # If current group is not outdated, check if any
                         # outdated children.
                         for _node in lib.walk_hierarchy(item):
-                            if outdated(_node):
+                            if self.outdated(_node):
                                 return self.CHILD_OUTDATED_COLOR
                 else:
 
@@ -66,7 +74,7 @@ class InventoryModel(TreeModel):
                         # Although this is not a group item, we still need
                         # to distinguish which one contain outdated child.
                         for _node in lib.walk_hierarchy(item):
-                            if outdated(_node):
+                            if self.outdated(_node):
                                 return self.CHILD_OUTDATED_COLOR.darker(150)
 
                     return self.GRAYOUT_COLOR
