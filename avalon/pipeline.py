@@ -1254,11 +1254,18 @@ def update(container, version=-1):
             "parent": subset["_id"]
         }, sort=[("name", -1)])
     else:
-        new_version = io.find_one({
-            "type": "version",
-            "parent": subset["_id"],
-            "name": version,
-        })
+        if isinstance(version, lib.MasterVersionType):
+            version_query = {
+                "parent": subset["_id"],
+                "type": "master_version"
+            }
+        else:
+            version_query = {
+                "parent": subset["_id"],
+                "type": "version",
+                "name": version
+            }
+        new_version = io.find_one(version_query)
 
     assert new_version is not None, "This is a bug"
 

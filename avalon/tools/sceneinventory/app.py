@@ -8,6 +8,7 @@ import re
 from ...vendor.Qt import QtWidgets, QtCore
 from ...vendor import qtawesome
 from ... import io, api, style
+from ...lib import MasterVersionType
 
 from .. import lib as tools_lib
 from ..delegates import VersionDelegate
@@ -371,7 +372,7 @@ class View(QtWidgets.QTreeView):
                 if _version["_id"] != _version_id:
                     continue
 
-                master_version["name"] = tools_lib.MasterVersionType(
+                master_version["name"] = MasterVersionType(
                     _version["name"]
                 )
                 master_version["data"] = _version["data"]
@@ -380,7 +381,7 @@ class View(QtWidgets.QTreeView):
         # Get index among the listed versions
         current_item = None
         current_version = active["version"]
-        if isinstance(current_version, tools_lib.MasterVersionType):
+        if isinstance(current_version, MasterVersionType):
             current_item = master_version
         else:
             for version in versions:

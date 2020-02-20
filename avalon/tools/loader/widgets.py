@@ -9,6 +9,7 @@ from ...vendor import qtawesome
 from ... import io
 from ... import api
 from ... import pipeline
+from ...lib import MasterVersionType
 
 from .. import lib as tools_lib
 from ..delegates import VersionDelegate
@@ -452,7 +453,7 @@ class VersionTextEdit(QtWidgets.QTextEdit):
                 "type": "version"
             })
             version_doc["data"] = _version_doc["data"]
-            version_doc["name"] = tools_lib.MasterVersionType(
+            version_doc["name"] = MasterVersionType(
                 _version_doc["name"]
             )
 

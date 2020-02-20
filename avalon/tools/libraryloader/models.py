@@ -5,7 +5,7 @@ from .. import models as tools_models
 from ..loader import model as loader_models
 from ..models import TreeModel, Item
 from . import lib
-from ..lib import MasterVersionType
+from ...lib import MasterVersionType
 from ... import style
 
 from ...vendor import qtawesome

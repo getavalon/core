@@ -7,6 +7,7 @@ from ...vendor.Qt import QtWidgets, QtCore
 from ... import style, api, pipeline
 from . import lib
 from .. import lib as tools_lib
+from ...lib import MasterVersionType
 
 from .. import widgets as tools_widgets
 from ..loader import widgets as loader_widgets
@@ -422,7 +423,7 @@ class VersionTextEdit(loader_widgets.VersionTextEdit):
                 "type": "version"
             })
             version_doc["data"] = _version_doc["data"]
-            version_doc["name"] = tools_lib.MasterVersionType(
+            version_doc["name"] = MasterVersionType(
                 _version_doc["name"]
             )
 

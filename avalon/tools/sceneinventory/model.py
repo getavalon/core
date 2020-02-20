@@ -7,6 +7,7 @@ from ...vendor.Qt import QtCore, QtGui
 from ...vendor import qtawesome
 
 from .. import lib as tools_lib
+from ...lib import MasterVersionType
 from ..models import TreeModel, Item
 
 from . import lib
@@ -238,7 +239,7 @@ class InventoryModel(TreeModel):
                 _version = io.find_one({
                     "_id": version["version_id"]
                 })
-                version["name"] = tools_lib.MasterVersionType(_version["name"])
+                version["name"] = MasterVersionType(_version["name"])
                 version["data"] = _version["data"]
 
             subset = io.find_one({"_id": version["parent"]})

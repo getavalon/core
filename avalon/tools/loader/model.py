@@ -4,6 +4,7 @@ from ...vendor import qtawesome
 
 from ..models import TreeModel, Item
 from .. import lib
+from ...lib import MasterVersionType
 
 
 def is_filtering_recursible():
@@ -82,7 +83,7 @@ class SubsetsModel(TreeModel):
         if index.column() == self.Columns.index("version"):
             item = index.internalPointer()
             parent = item["_id"]
-            if isinstance(value, lib.MasterVersionType):
+            if isinstance(value, MasterVersionType):
                 version = io.find_one({
                     "type": "master_version",
                     "parent": parent
@@ -215,7 +216,7 @@ class SubsetsModel(TreeModel):
                     "_id": master_version["version_id"]
                 })
                 master_version["data"] = _version["data"]
-                master_version["name"] = lib.MasterVersionType(
+                master_version["name"] = MasterVersionType(
                     _version["name"]
                 )
                 last_versions[subset["_id"]] = master_version

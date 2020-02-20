@@ -5,6 +5,7 @@ from ...vendor.Qt import QtCore, QtGui
 from ..models import TreeModel
 from .. import delegates as tools_delegates
 from .. import lib
+from ...lib import MasterVersionType
 
 log = logging.getLogger(__name__)
 
@@ -65,10 +66,10 @@ class VersionDelegate(tools_delegates.VersionDelegate):
         if master_version and doc_for_master_version:
             version_name = doc_for_master_version["name"]
             label = lib.format_version(version_name, True)
-            if isinstance(value, lib.MasterVersionType):
+            if isinstance(value, MasterVersionType):
                 index = len(versions)
             master_version["data"] = doc_for_master_version["data"]
-            master_version["name"] = lib.MasterVersionType(version_name)
+            master_version["name"] = MasterVersionType(version_name)
 
             item = QtGui.QStandardItem(label)
             item.setBackground(QtGui.QColor(60, 60, 60))
