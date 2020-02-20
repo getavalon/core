@@ -1,6 +1,7 @@
 import logging
+import numbers
 
-from ...vendor.Qt import QtCore
+from ...vendor.Qt import QtCore, QtGui
 from ..models import TreeModel
 from .. import delegates as tools_delegates
 from .. import lib
@@ -22,11 +23,15 @@ class VersionDelegate(tools_delegates.VersionDelegate):
 
         editor.clear()
 
+        item = index.data(TreeModel.ItemRole)
         # Current value of the index
         value = index.data(QtCore.Qt.DisplayRole)
+        if item["version_document"]["type"] != "master_version":
+            assert isinstance(value, numbers.Integral), (
+                "Version is not integer"
+            )
 
         # Add all available versions to the editor
-        item = index.data(TreeModel.ItemRole)
         parent_id = item["version_document"]["parent"]
         versions = list(self.dbcon.find(
             {"type": "version", "parent": parent_id},
@@ -39,8 +44,9 @@ class VersionDelegate(tools_delegates.VersionDelegate):
         })
         doc_for_master_version = None
 
-        index = None
-        for i, version in enumerate(versions):
+        selected = None
+        items = []
+        for idx, version in enumerate(versions):
             if (
                 master_version and
                 doc_for_master_version is None and
@@ -49,27 +55,33 @@ class VersionDelegate(tools_delegates.VersionDelegate):
                 doc_for_master_version = version
 
             label = lib.format_version(version["name"])
-            editor.addItem(label, userData=version)
+            item = QtGui.QStandardItem(label)
+            item.setData(version, QtCore.Qt.UserRole)
+            items.append(item)
 
             if version["name"] == value:
-                index = i
+                selected = item
 
         if master_version and doc_for_master_version:
-            label = lib.format_version(
-                doc_for_master_version["name"], True
-            )
-            if label == value:
+            version_name = doc_for_master_version["name"]
+            label = lib.format_version(version_name, True)
+            if isinstance(value, lib.MasterVersionType):
                 index = len(versions)
             master_version["data"] = doc_for_master_version["data"]
-            master_version["name"] = lib.MasterVersionType(
-                doc_for_master_version["name"]
-            )
-            editor.addItem(label, userData=master_version)
+            master_version["name"] = lib.MasterVersionType(version_name)
 
-        if index is None:
-            index = len(versions)
-            if not (master_version and doc_for_master_version):
-                index -= 1
+            item = QtGui.QStandardItem(label)
+            item.setBackground(QtGui.QColor(60, 60, 60))
+            item.setData(master_version, QtCore.Qt.UserRole)
+            items.append(item)
+
+        items = list(reversed(items))
+        for item in items:
+            editor.model().appendRow(item)
+
+        index = 0
+        if selected:
+            index = items.index(selected)
 
         editor.setCurrentIndex(index)  # Will trigger index-change signal
         self.first_run = False
