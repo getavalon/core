@@ -55,7 +55,10 @@ class Loader:
 
 
 def ls():
-    pass
+    avalon_assets = unreal.EditorAssetLibrary.list_asset_by_tag_value(
+        'schema', "avalon-core:container-2.0")
+
+    return avalon_assets
 
 
 def publish():
@@ -88,6 +91,7 @@ def containerise(asset, context, loader=None):
 
 
 def lock():
+
     pass
 
 

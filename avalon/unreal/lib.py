@@ -1,7 +1,8 @@
 import os
 import platform
 import json
-from distutils.dir_util import copy_tree
+from distutils import dir_util
+import subprocess
 
 
 def get_engine_versions():
@@ -17,8 +18,8 @@ def get_engine_versions():
         root, dirs, files = next(os.walk(os.environ["UNREAL_ENGINE_LOCATION"]))
 
         for dir in dirs:
-            if dir.startswith('UE_'):
-                ver = dir.split('_')[1]
+            if dir.startswith("UE_"):
+                ver = dir.split("_")[1]
                 engine_locations[ver] = os.path.join(root, dir)
     except KeyError:
         # environment variable not set
@@ -27,18 +28,18 @@ def get_engine_versions():
         # specified directory doesn't exists
         pass
 
-    # if we've got something, break autodetection process
+    # if we've got something, terminate autodetection process
     if engine_locations:
         return engine_locations
 
     # else kick in platform specific detection
-    if platform.system().lower() == 'windows':
+    if platform.system().lower() == "windows":
         return _win_get_engine_versions()
-    elif platform.system().lower() == 'linux':
+    elif platform.system().lower() == "linux":
         # on linux, there is no installation and getting Unreal Engine involves
         # git clone. So we'll probably depend on `UNREAL_ENGINE_LOCATION`.
         pass
-    elif platform.system().lower() == 'darwin':
+    elif platform.system().lower() == "darwin":
         return _darwin_get_engine_version()
 
     return {}
@@ -52,8 +53,11 @@ def _win_get_engine_versions():
     are marked with `"AppName" = "UE_X.XX"`` like `UE_4.24`
     """
     install_json_path = os.path.join(
-        os.environ.get('PROGRAMDATA'),
-        'Epic', 'UnrealEngineLauncher', 'LauncherInstalled.dat')
+        os.environ.get("PROGRAMDATA"),
+        "Epic",
+        "UnrealEngineLauncher",
+        "LauncherInstalled.dat",
+    )
 
     return _parse_launcher_locations(install_json_path)
 
@@ -63,9 +67,13 @@ def _darwin_get_engine_version():
     It works the same as on Windows, just JSON file location is different.
     """
     install_json_path = os.path.join(
-        os.environ.get('HOME'),
-        'Library', 'Application Support', 'Epic',
-        'UnrealEngineLauncher', 'LauncherInstalled.dat')
+        os.environ.get("HOME"),
+        "Library",
+        "Application Support",
+        "Epic",
+        "UnrealEngineLauncher",
+        "LauncherInstalled.dat",
+    )
 
     return _parse_launcher_locations(install_json_path)
 
@@ -73,17 +81,19 @@ def _darwin_get_engine_version():
 def _parse_launcher_locations(install_json_path):
     engine_locations = {}
     if os.path.isfile(install_json_path):
-        with open(install_json_path, 'r') as ilf:
+        with open(install_json_path, "r") as ilf:
             try:
                 install_data = json.load(ilf)
             except json.JSONDecodeError:
-                raise Exception('Invalid `LauncherInstalled.dat file. `'
-                                'Cannot determine Unreal Engine location.')
+                raise Exception(
+                    "Invalid `LauncherInstalled.dat file. `"
+                    "Cannot determine Unreal Engine location."
+                )
 
-        for installation in install_data.get('installationList', []):
-            if installation.get('AppName').startswith('UE_'):
-                ver = installation.get('AppName').split('_')[1]
-                engine_locations[ver] = installation.get('InstallLocation')
+        for installation in install_data.get("InstallationList", []):
+            if installation.get("AppName").startswith("UE_"):
+                ver = installation.get("AppName").split("_")[1]
+                engine_locations[ver] = installation.get("InstallLocation")
 
     return engine_locations
 
@@ -98,43 +108,198 @@ def create_unreal_project(project_name, ue_version, dir):
     and enable this plugin.
     """
 
-    if os.path.isdir(os.environ.get('AVALON_UNREAL_PLUGIN', '')):
+    if os.path.isdir(os.environ.get("AVALON_UNREAL_PLUGIN", "")):
         # copy plugin to correct path under project
-        plugin_path = os.path.join(dir, 'Plugins', 'Avalon')
-        os.makedirs(plugin_path, exist_ok=True)
-        copy_tree(os.environ.get('AVALON_UNREAL_PLUGIN'), plugin_path)
+        plugin_path = os.path.join(dir, "Plugins", "Avalon")
+        if not os.path.isdir(plugin_path):
+            os.makedirs(plugin_path, exist_ok=True)
+            dir_util._path_created = {}
+            dir_util.copy_tree(os.environ.get("AVALON_UNREAL_PLUGIN"),
+                               plugin_path)
 
     data = {
-        'FileVersion': 3,
-        'EngineAssociation': ue_version,
-        'Category': '',
-        'Description': '',
-        'Modules': [
+        "FileVersion": 3,
+        "EngineAssociation": ue_version,
+        "Category": "",
+        "Description": "",
+        "Modules": [
             {
-                "Name": "Avalon",
+                "Name": project_name,
                 "Type": "Runtime",
                 "LoadingPhase": "Default",
-                "AdditionalDependencies": [
-                    "Engine"
-                ]
+                "AdditionalDependencies": ["Engine"],
             }
         ],
         "Plugins": [
-            {
-                "Name": "PythonScriptPlugin",
-                "Enable": True
-            },
-            {
-                "Name": "EditorScriptingUtilities",
-                "Enabled": True
-            },
-            {
-                "Name": "Avalon",
-                "Enabled": True
-            }
-        ]
+            {"Name": "PythonScriptPlugin", "Enabled": True},
+            {"Name": "EditorScriptingUtilities", "Enabled": True},
+            {"Name": "Avalon", "Enabled": True},
+        ],
     }
 
     project_file = os.path.join(dir, "{}.uproject".format(project_name))
-    with open(project_file, mode='w') as pf:
-        json.dump(data, pf)
+    with open(project_file, mode="w") as pf:
+        json.dump(data, pf, indent=4)
+
+
+def prepare_project(project_file: str, engine_path: str):
+    """
+    This function will add source files needed for project to be
+    rebuild along with the avalon integration plugin.
+
+    There seems not to be automated way to do it from command line.
+    But there might be way to create at least those target and build files
+    by some generator. This needs more research as manually writing
+    those files is rather hackish. :skull_and_crossbones:
+
+    :param project_file: path to .uproject file
+    :type project_file: str
+    :param engine_path: path to unreal engine associated with project
+    :type engine_path: str
+    """
+
+    project_name = os.path.splitext(os.path.basename(project_file))[0]
+    project_dir = os.path.dirname(project_file)
+    targets_dir = os.path.join(project_dir, "Source")
+    sources_dir = os.path.join(targets_dir, project_name)
+
+    os.makedirs(sources_dir, exist_ok=True)
+    os.makedirs(os.path.join(project_dir, "Content"), exist_ok=True)
+
+    module_target = '''
+using UnrealBuildTool;
+using System.Collections.Generic;
+
+public class {0}Target : TargetRules
+{{
+    public {0}Target( TargetInfo Target) : base(Target)
+    {{
+        Type = TargetType.Game;
+        ExtraModuleNames.AddRange( new string[] {{ "{0}" }} );
+    }}
+}}
+'''.format(project_name)
+
+    editor_module_target = '''
+using UnrealBuildTool;
+using System.Collections.Generic;
+
+public class {0}EditorTarget : TargetRules
+{{
+    public {0}EditorTarget( TargetInfo Target) : base(Target)
+    {{
+        Type = TargetType.Editor;
+
+        ExtraModuleNames.AddRange( new string[] {{ "{0}" }} );
+    }}
+}}
+'''.format(project_name)
+
+    module_build = '''
+using UnrealBuildTool;
+public class {0} : ModuleRules
+{{
+    public {0}(ReadOnlyTargetRules Target) : base(Target)
+    {{
+        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+        PublicDependencyModuleNames.AddRange(new string[] {{ "Core",
+            "CoreUObject", "Engine", "InputCore" }});
+        PrivateDependencyModuleNames.AddRange(new string[] {{  }});
+    }}
+}}
+'''.format(project_name)
+
+    module_cpp = '''
+#include "{0}.h"
+#include "Modules/ModuleManager.h"
+
+IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, {0}, "{0}" );
+'''.format(project_name)
+
+    module_header = '''
+#pragma once
+#include "CoreMinimal.h"
+'''
+
+    game_mode_cpp = '''
+#include "{0}GameModeBase.h"
+'''.format(project_name)
+
+    game_mode_h = '''
+#pragma once
+
+#include "CoreMinimal.h"
+#include "GameFramework/GameModeBase.h"
+#include "{0}GameModeBase.generated.h"
+
+UCLASS()
+class {1}_API A{0}GameModeBase : public AGameModeBase
+{{
+    GENERATED_BODY()
+}};
+'''.format(project_name, project_name.upper())
+
+    with open(os.path.join(
+            targets_dir, f"{project_name}.Target.cs"), mode="w") as f:
+        f.write(module_target)
+
+    with open(os.path.join(
+            targets_dir, f"{project_name}Editor.Target.cs"), mode="w") as f:
+        f.write(editor_module_target)
+
+    with open(os.path.join(
+            sources_dir, f"{project_name}.Build.cs"), mode="w") as f:
+        f.write(module_build)
+
+    with open(os.path.join(
+            sources_dir, f"{project_name}.cpp"), mode="w") as f:
+        f.write(module_cpp)
+
+    with open(os.path.join(
+            sources_dir, f"{project_name}.h"), mode="w") as f:
+        f.write(module_header)
+
+    with open(os.path.join(
+            sources_dir, f"{project_name}GameModeBase.cpp"), mode="w") as f:
+        f.write(game_mode_cpp)
+
+    with open(os.path.join(
+            sources_dir, f"{project_name}GameModeBase.h"), mode="w") as f:
+        f.write(game_mode_h)
+
+    if platform.system().lower() == "windows":
+        u_build_tool = (f"{engine_path}/Engine/Binaries/DotNET/"
+                        "UnrealBuildTool.exe")
+        u_header_tool = (f"{engine_path}/Engine/Binaries/Win64/"
+                         f"UnrealHeaderTool.exe")
+    elif platform.system().lower() == "linux":
+        # WARNING: there is no UnrealBuildTool on linux?
+        u_build_tool = ""
+        u_header_tool = ""
+    elif platform.system().lower() == "darwin":
+        # WARNING: there is no UnrealBuildTool on Mac?
+        u_build_tool = ""
+        u_header_tool = ""
+
+    u_build_tool = u_build_tool.replace("\\", "/")
+    u_header_tool = u_header_tool.replace("\\", "/")
+
+    command1 = [u_build_tool, "-projectfiles", f"-project={project_file}",
+                "-progress"]
+
+    subprocess.run(command1)
+
+    command2 = [u_build_tool, f"-ModuleWithSuffix={project_name},3555"
+                "Win64", "Development", "-TargetType=Editor"
+                f'-Project="{project_file}"', f'"{project_file}"'
+                "-IgnoreJunk"]
+
+    subprocess.run(command2)
+
+    uhtmanifest = os.path.join(os.path.dirname(project_file),
+                               f"{project_name}.uhtmanifest")
+
+    command3 = [u_header_tool, f'"{project_file}"', f'"{uhtmanifest}"',
+                "-Unattended", "-WarningsAsErrors", "-installed"]
+
+    subprocess.run(command3)
