@@ -74,7 +74,6 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
             "type": "master_version",
             "parent": parent_id
         })
-        doc_for_master_version = None
 
         doc_for_master_version = None
 
@@ -116,9 +115,10 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
 
         index = 0
         if selected:
-            index = items.index(selected)
+            index = selected.row()
 
-        editor.setCurrentIndex(index)  # Will trigger index-change signal
+        # Will trigger index-change signal
+        editor.setCurrentIndex(index)
         self.first_run = False
         self.lock = True
 

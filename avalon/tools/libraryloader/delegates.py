@@ -82,8 +82,9 @@ class VersionDelegate(tools_delegates.VersionDelegate):
 
         index = 0
         if selected:
-            index = items.index(selected)
+            index = selected.row()
 
-        editor.setCurrentIndex(index)  # Will trigger index-change signal
+        # Will trigger index-change signal
+        editor.setCurrentIndex(index)
         self.first_run = False
         self.lock = True
