@@ -49,7 +49,7 @@ def ls():
             yield container
 
 
-def install(config):
+def install():
     """Install Fusion-specific functionality of avalon-core.
 
     This function is called automatically on calling `api.install(fusion)`.
@@ -76,14 +76,10 @@ def install(config):
     logger.setLevel(logging.DEBUG)
 
 
-def uninstall(config):
+def uninstall():
     """Uninstall Fusion-specific functionality of avalon-core.
 
     This function is called automatically on calling `api.uninstall()`.
-
-    Args:
-        config: configuration module
-
     """
 
     pyblish.api.deregister_host("fusion")

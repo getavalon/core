@@ -270,7 +270,9 @@ class TasksModel(TreeModel):
         # it is listing the tasks for
         if role == QtCore.Qt.DisplayRole:
             if orientation == QtCore.Qt.Horizontal:
-                if section == 1:  # count column
+                if section == 0:
+                    return "Tasks"
+                elif section == 1:  # count column
                     return "count ({0})".format(self._num_assets)
 
         return super(TasksModel, self).headerData(section, orientation, role)
