@@ -58,37 +58,131 @@ class View(QtWidgets.QTreeView):
         self.data_changed.emit()
         self.setStyleSheet("QTreeView {}")
 
-    def build_item_menu(self, items):
-        """Create menu for the selected items"""
+    def build_item_menu_for_selection(self, items, menu):
+        if not items:
+            return
 
-        menu = QtWidgets.QMenu(self)
+        repre_ids = []
+        for item in items:
+            item_id = io.ObjectId(item["representation"])
+            if item_id not in repre_ids:
+                repre_ids.append(item_id)
 
-        # update to latest version
-        def _on_update_to_latest(items):
-            for item in items:
-                api.update(item, -1)
-            self.data_changed.emit()
+        repre_entities = io.find({
+            "type": "representation",
+            "_id": {"$in": repre_ids}
+        })
 
-        update_icon = qtawesome.icon("fa.angle-double-up", color=DEFAULT_COLOR)
-        updatetolatest_action = QtWidgets.QAction(update_icon,
-                                                  "Update to latest",
-                                                  menu)
-        updatetolatest_action.triggered.connect(
-            lambda: _on_update_to_latest(items))
+        parent_ids = []
+        for repre in repre_entities:
+            parent_id = repre["parent"]
+            if parent_id not in parent_ids:
+                parent_ids.append(parent_id)
+
+        loaded_versions = io.find({
+            "_id": {"$in": parent_ids},
+            "type": {"$in": ["version", "master_version"]}
+        })
+
+        loaded_master_versions = []
+        versions_by_parent_id = collections.defaultdict(list)
+        version_parents = []
+        for version in loaded_versions:
+            if version["type"] == "master_version":
+                loaded_master_versions.append(version)
+            else:
+                parent_id = version["parent"]
+                versions_by_parent_id[parent_id].append(version)
+                if parent_id not in version_parents:
+                    version_parents.append(parent_id)
+
+        all_versions = io.find({
+            "type": {"$in": ["master_version", "version"]},
+            "parent": {"$in": version_parents}
+        })
+        master_versions = []
+        versions = []
+        for version in all_versions:
+            if version["type"] == "master_version":
+                master_versions.append(version)
+            else:
+                versions.append(version)
+
+        has_loaded_master_versions = len(loaded_master_versions) > 0
+        has_available_master_version = len(master_versions) > 0
+        has_outdated = False
+
+        for version in versions:
+            parent_id = version["parent"]
+            current_versions = versions_by_parent_id[parent_id]
+            for current_version in current_versions:
+                if current_version["name"] < version["name"]:
+                    has_outdated = True
+                    break
+
+            if has_outdated:
+                break
+
+        updatetolatest_action = None
+        if has_outdated or has_loaded_master_versions:
+            # update to latest version
+            def _on_update_to_latest(items):
+                for item in items:
+                    api.update(item, -1)
+                self.data_changed.emit()
+
+            update_icon = qtawesome.icon(
+                "fa.angle-double-up",
+                color=DEFAULT_COLOR
+            )
+            updatetolatest_action = QtWidgets.QAction(
+                update_icon,
+                "Update to latest",
+                menu
+            )
+            updatetolatest_action.triggered.connect(
+                lambda: _on_update_to_latest(items)
+            )
+
+        change_to_master = None
+        if has_available_master_version:
+            # change to master version
+            def _on_update_to_master(items):
+                for item in items:
+                    api.update(item, MasterVersionType(-1))
+                self.data_changed.emit()
+
+            # TODO change icon
+            change_icon = qtawesome.icon(
+                "fa.asterisk",
+                color="#00b359"
+            )
+            change_to_master = QtWidgets.QAction(
+                change_icon,
+                "Change to Master",
+                menu
+            )
+            change_to_master.triggered.connect(
+                lambda: _on_update_to_master(items)
+            )
 
         # set version
         set_version_icon = qtawesome.icon("fa.hashtag", color=DEFAULT_COLOR)
-        set_version_action = QtWidgets.QAction(set_version_icon,
-                                               "Set version",
-                                               menu)
+        set_version_action = QtWidgets.QAction(
+            set_version_icon,
+            "Set version",
+            menu
+        )
         set_version_action.triggered.connect(
             lambda: self.show_version_dialog(items))
 
         # switch asset
         switch_asset_icon = qtawesome.icon("fa.sitemap", color=DEFAULT_COLOR)
-        switch_asset_action = QtWidgets.QAction(switch_asset_icon,
-                                                "Switch Asset",
-                                                menu)
+        switch_asset_action = QtWidgets.QAction(
+            switch_asset_icon,
+            "Switch Asset",
+            menu
+        )
         switch_asset_action.triggered.connect(
             lambda: self.show_switch_dialog(items))
 
@@ -98,22 +192,31 @@ class View(QtWidgets.QTreeView):
         remove_action.triggered.connect(
             lambda: self.show_remove_warning_dialog(items))
 
-        # go back to flat view
-        if self._hierarchy_view:
-            back_to_flat_icon = qtawesome.icon("fa.list", color=DEFAULT_COLOR)
-            back_to_flat_action = QtWidgets.QAction(back_to_flat_icon,
-                                                    "Back to Full-View",
-                                                    menu)
-            back_to_flat_action.triggered.connect(self.leave_hierarchy)
+        # add the actions
+        if updatetolatest_action:
+            menu.addAction(updatetolatest_action)
 
-        # send items to hierarchy view
-        enter_hierarchy_icon = qtawesome.icon("fa.indent", color="#d8d8d8")
-        enter_hierarchy_action = QtWidgets.QAction(enter_hierarchy_icon,
-                                                   "Cherry-Pick (Hierarchy)",
-                                                   menu)
-        enter_hierarchy_action.triggered.connect(
-            lambda: self.enter_hierarchy(items))
+        if change_to_master:
+            menu.addAction(change_to_master)
 
+        menu.addAction(set_version_action)
+        menu.addAction(switch_asset_action)
+
+        menu.addSeparator()
+
+        menu.addAction(remove_action)
+
+        menu.addSeparator()
+
+    def build_item_menu(self, items):
+        """Create menu for the selected items"""
+
+        menu = QtWidgets.QMenu(self)
+
+        # add the actions
+        self.build_item_menu_for_selection(items, menu)
+
+        # These two actions should be able to work without selection
         # expand all items
         expandall_action = QtWidgets.QAction(menu, text="Expand all items")
         expandall_action.triggered.connect(self.expandAll)
@@ -122,20 +225,6 @@ class View(QtWidgets.QTreeView):
         collapse_action = QtWidgets.QAction(menu, text="Collapse all items")
         collapse_action.triggered.connect(self.collapseAll)
 
-        # add the actions
-        has_selection = len(items)
-
-        if has_selection:
-            menu.addAction(updatetolatest_action)
-            menu.addAction(set_version_action)
-            menu.addAction(switch_asset_action)
-
-            menu.addSeparator()
-            menu.addAction(remove_action)
-
-            menu.addSeparator()
-
-        # These two actions should be able to work without selection
         menu.addAction(expandall_action)
         menu.addAction(collapse_action)
 
@@ -154,7 +243,27 @@ class View(QtWidgets.QTreeView):
 
             menu.addMenu(submenu)
 
-        if has_selection:
+        # go back to flat view
+        if self._hierarchy_view:
+            back_to_flat_icon = qtawesome.icon("fa.list", color=DEFAULT_COLOR)
+            back_to_flat_action = QtWidgets.QAction(
+                back_to_flat_icon,
+                "Back to Full-View",
+                menu
+            )
+            back_to_flat_action.triggered.connect(self.leave_hierarchy)
+
+        # send items to hierarchy view
+        enter_hierarchy_icon = qtawesome.icon("fa.indent", color="#d8d8d8")
+        enter_hierarchy_action = QtWidgets.QAction(
+            enter_hierarchy_icon,
+            "Cherry-Pick (Hierarchy)",
+            menu
+        )
+        enter_hierarchy_action.triggered.connect(
+            lambda: self.enter_hierarchy(items))
+
+        if items:
             menu.addAction(enter_hierarchy_action)
 
         if self._hierarchy_view:
@@ -389,9 +498,9 @@ class View(QtWidgets.QTreeView):
                     current_item = version
                     break
 
-        versions_by_label = dict()
-        labels = []
-        all_versions = [master_version]
+        all_versions = []
+        if master_version:
+            all_versions.append(master_version)
         all_versions.extend(reversed(versions))
 
         if current_item:
@@ -399,6 +508,8 @@ class View(QtWidgets.QTreeView):
         else:
             index = 0
 
+        versions_by_label = dict()
+        labels = []
         for version in all_versions:
             is_master = version["type"] == "master_version"
             label = tools_lib.format_version(version["name"], is_master)
