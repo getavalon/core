@@ -47,7 +47,7 @@ class VersionDelegate(tools_delegates.VersionDelegate):
 
         selected = None
         items = []
-        for idx, version in enumerate(versions):
+        for version in versions:
             if (
                 master_version and
                 doc_for_master_version is None and
