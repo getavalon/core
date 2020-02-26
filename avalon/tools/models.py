@@ -232,12 +232,12 @@ class TasksModel(TreeModel):
         assets = list()
         if asset_entities is not None:
             assets = asset_entities
-        else:
+        elif asset_ids:
             # prepare filter query
             _filter = {"type": "asset", "_id": {"$in": asset_ids}}
 
             # find assets in db by query
-            assets = [asset for asset in io.find(_filter)]
+            assets = list(io.find(_filter))
             db_assets_ids = [asset["_id"] for asset in assets]
 
             # check if all assets were found

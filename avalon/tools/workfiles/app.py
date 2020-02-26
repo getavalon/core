@@ -298,9 +298,8 @@ class TasksWidget(QtWidgets.QWidget):
 
         self._last_selected_task = None
 
-    def set_asset(self, asset_id):
-
-        if asset_id is None:
+    def set_asset(self, asset):
+        if asset is None:
             # Asset deselected
             return
 
@@ -311,7 +310,7 @@ class TasksWidget(QtWidgets.QWidget):
         if current:
             self._last_selected_task = current
 
-        self.models["tasks"].set_assets([asset_id])
+        self.models["tasks"].set_assets(asset_entities=[asset])
 
         if self._last_selected_task:
             self.select_task(self._last_selected_task)
@@ -810,7 +809,7 @@ class Window(QtWidgets.QMainWindow):
             self.widgets["assets"].select_assets([asset], expand=True)
 
             # Force a refresh on Tasks?
-            self.widgets["tasks"].set_asset(asset_id=asset_document["_id"])
+            self.widgets["tasks"].set_asset(asset_document)
 
         if "task" in context:
             self.widgets["tasks"].select_task(context["task"])
@@ -834,7 +833,7 @@ class Window(QtWidgets.QMainWindow):
             asset = asset[0]
             self.widgets["tasks"].setEnabled(True)
 
-        self.widgets["tasks"].set_asset(asset["_id"])
+        self.widgets["tasks"].set_asset(asset)
 
     def _on_task_changed(self):
 
