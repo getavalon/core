@@ -168,19 +168,29 @@ class Window(QtWidgets.QDialog):
 
         t1 = time.time()
 
-        asset_item = assets_model.get_active_index()
-        if asset_item is None or not asset_item.isValid():
-            return
+        asset_item = assets_model.get_active_asset()
+        if asset_item is None:
+            document_id = None
+            document_name = None
+            document_silo = None
+        elif asset_item["type"] == "silo":
+            document_id = None
+            document_name = None
+            document_silo = asset_item["name"]
+        else:
+            document = asset_item["_document"]
+            document_id = document["_id"]
+            document_name = document["name"]
+            document_silo = document.get("silo")
 
-        document = asset_item.data(DocumentRole)
-        subsets_model.set_asset(document["_id"])
+        subsets_model.set_asset(document_id)
 
         # Clear the version information on asset change
         self.data["model"]["version"].set_version(None)
 
-        self.data["state"]["context"]["asset"] = document["name"]
-        self.data["state"]["context"]["assetId"] = document["_id"]
-        self.data["state"]["context"]["silo"] = document.get("silo")
+        self.data["state"]["context"]["asset"] = document_name
+        self.data["state"]["context"]["assetId"] = document_id
+        self.data["state"]["context"]["silo"] = document_silo
         self.echo("Duration: %.3fs" % (time.time() - t1))
 
     def _versionschanged(self):
