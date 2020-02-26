@@ -295,11 +295,12 @@ class TasksWidget(QtWidgets.QWidget):
 
         self._last_selected_task = None
 
-    def set_asset(self, asset_id):
+    def set_asset(self, asset):
 
-        if asset_id is None:
+        assets = []
+        if asset is not None:
             # Asset deselected
-            return
+            assets.append(asset)
 
         # Try and preserve the last selected task and reselect it
         # after switching assets. If there's no currently selected
@@ -308,7 +309,7 @@ class TasksWidget(QtWidgets.QWidget):
         if current:
             self._last_selected_task = current
 
-        self.models["tasks"].set_assets([asset_id])
+        self.models["tasks"].set_assets(asset_entities=assets)
 
         if self._last_selected_task:
             self.select_task(self._last_selected_task)
@@ -748,7 +749,7 @@ class Window(QtWidgets.QMainWindow):
         widgets = {
             "pages": QtWidgets.QStackedWidget(),
             "body": QtWidgets.QWidget(),
-            "assets": AssetWidget(silo_creatable=False),
+            "assets": AssetWidget(parent=self),
             "tasks": TasksWidget(),
             "files": FilesWidget()
         }
@@ -777,7 +778,6 @@ class Window(QtWidgets.QMainWindow):
 
         # Connect signals
         widgets["assets"].current_changed.connect(self.on_asset_changed)
-        widgets["assets"].silo_changed.connect(self.on_asset_changed)
         widgets["tasks"].task_changed.connect(self.on_task_changed)
 
         self.widgets = widgets
@@ -799,19 +799,16 @@ class Window(QtWidgets.QMainWindow):
 
         if "asset" in context:
             asset = context["asset"]
-            asset_document = io.find_one({"name": asset,
-                                          "type": "asset"})
-
-            # Set silo
-            silo = asset_document.get("silo")
-            if self.widgets["assets"].get_current_silo() != silo:
-                self.widgets["assets"].set_silo(silo)
+            asset_document = io.find_one({
+                "name": asset,
+                "type": "asset"
+            })
 
             # Select the asset
             self.widgets["assets"].select_assets([asset], expand=True)
 
             # Force a refresh on Tasks?
-            self.widgets["tasks"].set_asset(asset_id=asset_document["_id"])
+            self.widgets["tasks"].set_asset(asset_document)
 
         if "task" in context:
             self.widgets["tasks"].select_task(context["task"])
@@ -824,7 +821,7 @@ class Window(QtWidgets.QMainWindow):
         self._on_task_changed()
 
     def _on_asset_changed(self):
-        asset = self.widgets["assets"].get_active_asset()
+        asset = self.widgets["assets"].get_active_asset_document()
 
         if not asset:
             # Force disable the other widgets if no

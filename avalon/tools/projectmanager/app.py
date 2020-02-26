@@ -118,9 +118,7 @@ class Window(QtWidgets.QDialog):
 
         # Get parent asset (active index in selection)
         model = self.data["model"]["assets"]
-        parent_id = model.get_active_asset()
-
-        parent = model.get_active_asset()
+        parent = model.get_active_asset_document()
 
         if parent and parent["type"] == "silo":
             parent_id = None
