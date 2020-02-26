@@ -99,18 +99,6 @@ class LaunchQtApp(bpy.types.Operator):
         return {'FINISHED'}
 
 
-class LaunchContextManager(LaunchQtApp):
-    """Launch Avalon Context Manager."""
-
-    bl_idname = "wm.avalon_contextmanager"
-    bl_label = "Set Avalon Context..."
-
-    def execute(self, context):
-        from ..tools import contextmanager
-        self._window = contextmanager
-        return super().execute(context)
-
-
 class LaunchCreator(LaunchQtApp):
     """Launch Avalon Creator."""
 
@@ -207,7 +195,11 @@ class TOPBAR_MT_avalon(bpy.types.Menu):
         asset = api.Session['AVALON_ASSET']
         task = api.Session['AVALON_TASK']
         context_label = f"{asset}, {task}"
-        layout.operator(LaunchContextManager.bl_idname, text=context_label)
+        context_label_item = layout.row()
+        context_label_item.operator(
+            LaunchWorkFiles.bl_idname, text=context_label
+        )
+        context_label_item.enabled = False
         layout.separator()
         layout.operator(LaunchCreator.bl_idname, text="Create...")
         layout.operator(LaunchLoader.bl_idname, text="Load...")
@@ -230,7 +222,6 @@ def draw_avalon_menu(self, context):
 
 
 classes = [
-    LaunchContextManager,
     LaunchCreator,
     LaunchLoader,
     LaunchPublisher,

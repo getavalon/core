@@ -62,13 +62,11 @@ def file_extensions() -> List[str]:
     return [".blend"]
 
 
-def work_root() -> str:
+def work_root(session: dict) -> str:
     """Return the default root to browse for work files."""
 
-    from .. import api
-
-    work_dir = api.Session["AVALON_WORKDIR"]
-    scene_dir = api.Session.get("AVALON_SCENEDIR")
+    work_dir = session["AVALON_WORKDIR"]
+    scene_dir = session.get("AVALON_SCENEDIR")
     if scene_dir:
         return str(Path(work_dir, scene_dir))
     return work_dir
