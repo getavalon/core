@@ -3,23 +3,21 @@ import datetime
 import pprint
 import inspect
 
-from ...vendor import Qt
-from ...vendor.Qt import QtWidgets, QtCore, QtGui
+from ...vendor.Qt import QtWidgets, QtCore, QtGui, QtCompat
 from ...vendor import qtawesome
 from ... import io
 from ... import api
 from ... import pipeline
 
 from .. import lib as tools_lib
-from ..delegates import VersionDelegate
-from ..widgets import OptionalAction, OptionDialog
+from ..delegates import VersionDelegate, PrettyTimeDelegate
+from ..widgets import OptionalMenu, OptionalAction, OptionDialog
 
 from .model import (
     SubsetsModel,
     SubsetFilterProxyModel,
     FamiliesFilterProxyModel,
 )
-from .delegates import PrettyTimeDelegate
 
 
 class SubsetWidget(QtWidgets.QWidget):
@@ -103,10 +101,9 @@ class SubsetWidget(QtWidgets.QWidget):
 
         header = self.view.header()
         # Enforce the columns to fit the data (purely cosmetic)
-        if Qt.__binding__ in ("PySide2", "PyQt5"):
-            header.setSectionResizeMode(QtWidgets.QHeaderView.ResizeToContents)
-        else:
-            header.setResizeMode(QtWidgets.QHeaderView.ResizeToContents)
+        QtCompat.setSectionResizeMode(
+            header, QtWidgets.QHeaderView.ResizeToContents
+        )
 
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.active_changed)
@@ -235,7 +232,7 @@ class SubsetWidget(QtWidgets.QWidget):
 
                 loaders.append((repre, loader))
 
-        menu = QtWidgets.QMenu(self)
+        menu = OptionalMenu(self)
         if not loaders:
             # no loaders available
             submsg = "your selection."

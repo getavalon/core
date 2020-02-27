@@ -254,7 +254,7 @@ def install():
     pyblish.register_host("nuke")
 
 
-def uninstall(config):
+def uninstall():
     """Uninstall all that was previously installed
 
     This is where you undo everything that was done in `install()`.
@@ -280,10 +280,17 @@ def _install_menu():
         workfiles,
         loader,
         sceneinventory,
-        contextmanager,
         libraryloader
     )
+    from ..vendor.Qt import QtWidgets
 
+    main_window = None
+    for widget in QtWidgets.QApplication.topLevelWidgets():
+        if widget.isWindow():
+            if widget.parentWidget() is None:
+                if widget.windowTitle() != '':
+                    main_window = widget
+                    break
     # Create menu
     menubar = nuke.menu("Nuke")
     menu = menubar.addMenu(api.Session["AVALON_LABEL"])
@@ -291,8 +298,8 @@ def _install_menu():
     label = "{0}, {1}".format(
         api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"]
     )
-    context_menu = menu.addMenu(label)
-    context_menu.addCommand("Set Context", contextmanager.show)
+    context_action = menu.addCommand(label)
+    context_action.setEnabled(False)
 
     menu.addSeparator()
     menu.addCommand("Work Files...",
@@ -306,7 +313,10 @@ def _install_menu():
         "Load...", command=lambda *args:
         loader.show(use_context=True)
     )
-    menu.addCommand("Publish...", publish.show)
+    menu.addCommand(
+        "Publish...",
+        lambda *args: publish.show(parent=main_window)
+    )
     menu.addCommand("Manage...", sceneinventory.show)
     menu.addCommand("Library...", libraryloader.show)
 
