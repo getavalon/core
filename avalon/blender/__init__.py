@@ -28,6 +28,7 @@ from .lib import (
     lsattrs,
     read,
     maintained_selection,
+    get_selection,
     # unique_name,
 )
 
@@ -54,5 +55,6 @@ __all__ = [
     "lsattr",
     "lsattrs",
     "read",
+    "get_selection",
     # "unique_name",
 ]

@@ -424,6 +424,8 @@ class Window(QtWidgets.QDialog):
         asset = self.data["Asset"]
         asset.setText(api.Session["AVALON_ASSET"])
 
+        listing.clear()
+
         has_families = False
 
         creators = api.discover(api.Creator)
