@@ -10,7 +10,6 @@ from typing import Dict, List, Optional, Union
 import bpy
 import bpy.utils.previews
 
-from ..tools.contextmanager.app import App as contextmanager_window
 from ..tools.creator.app import Window as creator_window
 from ..tools.loader.app import Window as loader_window
 from ..tools.workfiles.app import Window as workfiles_window
@@ -134,7 +133,10 @@ class LaunchQtApp(bpy.types.Operator):
                 self._app.store_window(self.bl_idname, window)
             self._window = window
 
-        if not isinstance(self._window, (QtWidgets.QDialog, ModuleType)):
+        if not isinstance(
+            self._window,
+            (QtWidgets.QMainWindow, QtWidgets.QDialog, ModuleType)
+        ):
             raise AttributeError(
                 "`window` should be a `QDialog or module`. Got: {}".format(
                     str(type(window))
@@ -234,13 +236,13 @@ class LaunchWorkFiles(LaunchQtApp):
     _window_class = workfiles_window
 
     def execute(self, context):
-        self._init_kwargs = {
-            "root": str(Path(
-                os.environ.get("AVALON_WORKDIR", ""),
-                os.environ.get("AVALON_SCENEDIR", ""),
-            ))
-        }
-        return super().execute(context)
+        result = super().execute(context)
+        self._window.set_context({
+            "asset": api.Session["AVALON_ASSET"],
+            "silo": api.Session["AVALON_SILO"],
+            "task": api.Session["AVALON_TASK"]
+        })
+        return result
 
     def before_window_show(self):
         self._window.root = str(Path(
