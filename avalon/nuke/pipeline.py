@@ -282,7 +282,15 @@ def _install_menu():
         sceneinventory,
         libraryloader
     )
+    from ..vendor.Qt import QtWidgets
 
+    main_window = None
+    for widget in QtWidgets.QApplication.topLevelWidgets():
+        if widget.isWindow():
+            if widget.parentWidget() is None:
+                if widget.windowTitle() != '':
+                    main_window = widget
+                    break
     # Create menu
     menubar = nuke.menu("Nuke")
     menu = menubar.addMenu(api.Session["AVALON_LABEL"])
@@ -305,7 +313,10 @@ def _install_menu():
         "Load...", command=lambda *args:
         loader.show(use_context=True)
     )
-    menu.addCommand("Publish...", publish.show)
+    menu.addCommand(
+        "Publish...",
+        lambda *args: publish.show(parent=main_window)
+    )
     menu.addCommand("Manage...", sceneinventory.show)
     menu.addCommand("Library...", libraryloader.show)
 
