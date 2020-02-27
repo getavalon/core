@@ -178,19 +178,6 @@ class LaunchQtApp(bpy.types.Operator):
         return
 
 
-        wm = bpy.context.window_manager
-        if not wm.get('is_avalon_qt_timer_running', False):
-            bpy.app.timers.register(
-                partial(_process_app_events, self._app),
-                persistent=True,
-            )
-            wm['is_avalon_qt_timer_running'] = True
-
-    bl_idname = "wm.avalon_contextmanager"
-    bl_label = "Set Avalon Context..."
-    _window_class = contextmanager_window
-
-
 class LaunchCreator(LaunchQtApp):
     """Launch Avalon Creator."""
 
