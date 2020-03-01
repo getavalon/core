@@ -21,7 +21,7 @@ self._menu = "avalonue4"  # Unique name of menu
 AVALON_CONTAINERS = "AvalonContainers"
 
 
-def install(config):
+def install():
 
     # self._menu = api.Session["AVALON_LABEL"] + "menu"
     _register_callbacks()
