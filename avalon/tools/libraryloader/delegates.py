@@ -35,12 +35,19 @@ class VersionDelegate(tools_delegates.VersionDelegate):
             sort=[("name", 1)]
         )
         index = 0
-        for i, version in enumerate(versions):
+        enum_index = 0
+        for version in versions:
+            version_tags = version["data"].get("tags") or []
+            if "deleted" in version_tags:
+                continue
+
             label = self._format_version(version["name"])
             editor.addItem(label, userData=version)
 
             if version["name"] == value:
-                index = i
+                index = enum_index
+
+            enum_index += 1
 
         editor.setCurrentIndex(index)  # Will trigger index-change signal
         self.first_run = False
