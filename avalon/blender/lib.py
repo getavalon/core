@@ -4,12 +4,9 @@ import contextlib
 from typing import Dict, List, Union
 
 import bpy
+
 from ..lib import logger
 from . import pipeline
-
-
-def get_selection():
-    return [obj for obj in bpy.context.scene.objects if obj.select_get()]
 
 
 def imprint(node: bpy.types.bpy_struct_meta_idprop, data: Dict):
@@ -53,10 +50,8 @@ def imprint(node: bpy.types.bpy_struct_meta_idprop, data: Dict):
     pipeline.metadata_update(node, imprint_data)
 
 
-def lsattr(
-    attr: str,
-    value: Union[str, int, bool, List, Dict, None] = None
-) -> List:
+def lsattr(attr: str,
+           value: Union[str, int, bool, List, Dict, None] = None) -> List:
     r"""Return nodes matching `attr` and `value`
 
     Arguments:
@@ -95,24 +90,19 @@ def lsattrs(attrs: Dict) -> List:
     # For now return all objects, not filtered by scene/collection/view_layer.
     matches = set()
     for coll in dir(bpy.data):
-        nodes = getattr(bpy.data, coll, None)
         if not isinstance(
-            nodes, bpy.types.bpy_prop_collection,
+                getattr(bpy.data, coll),
+                bpy.types.bpy_prop_collection,
         ):
             continue
-        for node in nodes:
+        for node in getattr(bpy.data, coll):
             for attr, value in attrs.items():
                 avalon_prop = node.get(pipeline.AVALON_PROPERTY)
                 if not avalon_prop:
                     continue
-
-                avalon_prop_val = avalon_prop.get(attr)
-                if not avalon_prop_val:
-                    continue
-
-                if value is None or avalon_prop_val == value:
+                if (avalon_prop.get(attr)
+                        and (value is None or avalon_prop.get(attr) == value)):
                     matches.add(node)
-
     return list(matches)
 
 
@@ -130,6 +120,11 @@ def read(node: bpy.types.bpy_struct_meta_idprop):
     return data
 
 
+def get_selection() -> List[bpy.types.Object]:
+    """Return the selected objects from the current scene."""
+    return [obj for obj in bpy.context.scene.objects if obj.select_get()]
+
+
 @contextlib.contextmanager
 def maintained_selection():
     r"""Maintain selection during context
@@ -140,6 +135,7 @@ def maintained_selection():
         ...     bpy.ops.object.select_all(action='DESELECT')
         >>> # Selection restored
     """
+
     previous_selection = get_selection()
     previous_active = bpy.context.view_layer.objects.active
     try:
