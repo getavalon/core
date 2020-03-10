@@ -788,6 +788,16 @@ class Window(QtWidgets.QMainWindow):
 
         self.resize(900, 600)
 
+    def keyPressEvent(self, event):
+        """Custom keyPressEvent.
+
+        Override keyPressEvent to do nothing so that Maya's panels won't
+        take focus when pressing "SHIFT" whilst mouse is over viewport or
+        outliner. This way users don't accidently perform Maya commands
+        whilst trying to name an instance.
+
+        """
+
     def on_task_changed(self):
         # Since we query the disk give it slightly more delay
         tools_lib.schedule(self._on_task_changed, 100, channel="mongo")
