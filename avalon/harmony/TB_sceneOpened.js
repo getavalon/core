@@ -1,0 +1,217 @@
+function Client()
+{
+  var self = this;
+  self.socket = new QTcpSocket(this);
+  self.received = "";
+
+  self.log_debug = function(data)
+  {
+      message = typeof(data.message) != "undefined" ? data.message : data;
+      MessageLog.trace("(DEBUG): " + message.toString());
+  }
+
+
+  self.log_info = function(data)
+  {
+      message = typeof(data.message) != "undefined" ? data.message : data;
+      MessageLog.trace("(INFO): " + message.toString());
+  }
+
+
+  self.log_warning = function(data)
+  {
+      message = typeof(data.message) != "undefined" ? data.message : data;
+      MessageLog.trace("(WARNING): " + message.toString());
+  }
+
+
+  self.log_error = function(data)
+  {
+      message = typeof(data.message) != "undefined" ? data.message : data;
+      MessageLog.trace("(ERROR): " + message.toString());
+  }
+
+  self.process_request = function(request)
+  {
+    var result = null;
+
+    if (request["function"] != null)
+    {
+      try
+      {
+        var func = eval(request["function"]);
+
+        if (request["args"] == null)
+        {
+          var result = func();
+        }else
+        {
+          var result = func(request["args"]);
+        }
+      }
+
+      catch (error)
+      {
+        var result = "Error processing request.\nRequest:\n" + JSON.stringify(request) + "\nError:\n" + error;
+      }
+    }
+
+    return result;
+  }
+
+  self.on_ready_read = function()
+  {
+    self.log_debug("Receiving data...");
+    data = self.socket.readAll()
+
+    if (data.size() != 0)
+    {
+      for ( var i = 0; i < data.size(); ++i)
+      {
+        self.received = self.received.concat(String.fromCharCode(data.at(i)));
+      }
+    }
+
+    self.log_debug("Received: " + self.received);
+
+    request = JSON.parse(self.received);
+    self.log_debug("Request: " + JSON.stringify(request));
+
+    request.result = self.process_request(request);
+
+    if (!request["reply"])
+    {
+      request.reply = true;
+      self._send(JSON.stringify(request));
+      self.received = "";
+    }
+  }
+
+  self.on_connected = function()
+  {
+    self.log_debug("Connected to server.");
+    self.socket.readyRead.connect(self.on_ready_read);
+  }
+
+  self._send = function(message)
+  {
+    self.log_debug("Sending: " + message);
+
+    var data = new QByteArray();
+    outstr = new QDataStream(data, QIODevice.WriteOnly);
+    outstr.writeInt(0);
+    data.append("UTF-8");
+    outstr.device().seek(0);
+    outstr.writeInt(data.size() - 4);
+    var codec = QTextCodec.codecForUtfText(data);
+    self.socket.write(codec.fromUnicode(message));
+  }
+
+  self.send = function(message)
+  {
+    self._send(message)
+
+    while (true)
+    {
+      try
+      {
+        JSON.parse(self.received);
+        break;
+      }
+      catch(err)
+      {
+        self.socket.waitForReadyRead(5000);
+      }
+    }
+
+    self.received = "";
+  }
+
+  self.on_disconnected = function()
+  {
+    self.socket.close();
+  }
+
+  self.disconnect = function()
+  {
+    self.socket.close()
+  }
+
+  self.socket.connected.connect(self.on_connected);
+  self.socket.disconnected.connect(self.on_disconnected);
+}
+
+function start()
+{
+  var self = this;
+  var host = "127.0.0.1";
+  var port = parseInt(System.getenv("AVALON_HARMONY_PORT"));
+
+  // Attach the client to the QApplication to preserve.
+  var app = QCoreApplication.instance();
+  app.avalon_client = new Client();
+  app.avalon_client.socket.connectToHost(host, port);
+
+  var menu_bar = QApplication.activeWindow().menuBar();
+  var menu = menu_bar.addMenu("Avalon");
+
+  self.on_creator = function()
+  {
+    app.avalon_client.send(
+        JSON.stringify(
+          {"module": "avalon.tools.creator", "method": "show"}
+        )
+    );
+  }
+  var action = menu.addAction("Create...");
+  action.triggered.connect(self.on_creator)
+
+  self.on_workfiles = function()
+  {
+    app.avalon_client.send(
+        JSON.stringify(
+          {"module": "avalon.tools.workfiles", "method": "show"}
+        )
+    );
+  }
+  var action = menu.addAction("Workfiles");
+  action.triggered.connect(self.on_workfiles)
+
+  self.on_load = function()
+  {
+    app.avalon_client.send(
+        JSON.stringify(
+          {"module": "avalon.tools.loader", "method": "show"}
+        )
+    );
+  }
+  var action = menu.addAction("Load...");
+  action.triggered.connect(self.on_load)
+
+  self.on_publish = function()
+  {
+    app.avalon_client.send(
+        JSON.stringify(
+          {"module": "avalon.tools.publish", "method": "show"}
+        )
+    );
+  }
+  var action = menu.addAction("Publish...");
+  action.triggered.connect(self.on_publish)
+
+  self.on_manage = function()
+  {
+    app.avalon_client.send(
+        JSON.stringify(
+          {"module": "avalon.tools.sceneinventory", "method": "show"}
+        )
+    );
+  }
+  var action = menu.addAction("Manage...");
+  action.triggered.connect(self.on_manage)
+}
+
+function TB_sceneOpened()
+{
+  start();
+}
