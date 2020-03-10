@@ -436,13 +436,13 @@ class Window(QtWidgets.QDialog):
 
         subset_name = result.text()
         asset = asset.text()
-        family = item.data(FamilyRole)
+        Plugin = item.data(PluginRole)
         use_selection = self.data["Use Selection Checkbox"].isChecked()
 
         try:
             api.create(subset_name,
                        asset,
-                       family,
+                       Plugin,
                        options={"useSelection": use_selection})
 
         except NameError as e:

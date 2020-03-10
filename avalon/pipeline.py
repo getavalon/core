@@ -878,12 +878,13 @@ def create(name, asset, family, options=None, data=None):
 
     host = registered_host()
 
-    plugins = list()
-    for Plugin in discover(Creator):
-        has_family = family == Plugin.family
+    if isinstance(family, str):
+        Plugins = [P for P in discover(Creator) if family == P.family]
+    else:
+        Plugins = [family]
 
-        if not has_family:
-            continue
+    plugins = list()
+    for Plugin in Plugins:
 
         Plugin.log.info(
             "Creating '%s' with '%s'" % (name, Plugin.__name__)
