@@ -12,16 +12,14 @@ from .pipeline import (
     ls,
     publish,
     containerise,
-    lock,
-    unlock,
-    is_locked,
-    lock_ignored,
     show_creator,
     show_loader,
     show_publisher,
     show_manager,
-    show_project_manager
+    show_project_manager,
 )
+
+from .lib import maintained_selection
 
 __all__ = [
     "install",
@@ -31,13 +29,10 @@ __all__ = [
     "ls",
     "publish",
     "containerise",
-    "lock",
-    "unlock",
-    "is_locked",
-    "lock_ignored",
     "show_creator",
     "show_loader",
     "show_publisher",
     "show_manager",
-    "show_project_manager"
+    "show_project_manager",
+    "maintained_selection",
 ]
