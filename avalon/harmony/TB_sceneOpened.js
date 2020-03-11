@@ -149,8 +149,12 @@ function start()
 
   // Attach the client to the QApplication to preserve.
   var app = QCoreApplication.instance();
-  app.avalon_client = new Client();
-  app.avalon_client.socket.connectToHost(host, port);
+
+  if (app.avalon_client == null)
+  {
+    app.avalon_client = new Client();
+    app.avalon_client.socket.connectToHost(host, port);
+  }
 
   var menu_bar = QApplication.activeWindow().menuBar();
   var menu = menu_bar.addMenu("Avalon");
