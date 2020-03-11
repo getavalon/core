@@ -103,6 +103,9 @@ class Server(object):
         self.connection.sendall(message.encode("utf-8"))
 
     def send(self, message):
+        if isinstance(message, dict):
+            message = json.dumps(message)
+
         self._send(message)
 
         while True:
