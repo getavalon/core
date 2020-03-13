@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import contextlib
 import unreal
 
@@ -87,6 +89,62 @@ def move_assets_to_path(root, name, assets):
     return name
 
 
+def create_avalon_container(container, path):
+    """
+    Helper function to create Avalon Asset Container class on given path.
+    This Avalon Asset Class helps to mark given path as Avalon Container
+    and enable asset version control on it.
+
+    Args:
+        name (str): Asset Container name
+        path (str): Path where to create Asset Container. This path should
+            point into container folder
+
+    Returns:
+        :class:`unreal.Object`: instance of created asset
+
+    Example:
+
+        AvalonHelpers().create_avalon_container(
+            "/Game/modelingFooCharacter_CON",
+            "modelingFooCharacter_CON"
+        )
+
+    """
+    factory = unreal.AssetContainerFactory()
+    tools = unreal.AssetToolsHelpers().get_asset_tools()
+
+    asset = tools.create_asset(container, path, None, factory)
+    return asset
+
+
+def create_publish_instance(instance, path):
+    """
+    Helper function to create Avalon Publish Instance  on given path.
+    This behaves similary as :func:`create_avalon_container`.
+
+    Args:
+        path (str): Path where to create Avalon Publish Instance.
+            This path should point into container folder
+        name (str): Avalon Publish Instance name
+
+    Returns:
+        :class:`unreal.Object`: instance of created asset
+
+    Example:
+
+        AvalonHelpers().create_publish_instance(
+            "/Game/modelingFooCharacter_INST",
+            "modelingFooCharacter_INST"
+        )
+
+    """
+    factory = unreal.AssetContainerFactory()
+    tools = unreal.AssetToolsHelpers().get_asset_tools()
+    asset = tools.create_asset(instance, path, None, factory)
+    return asset
+
+
 class AvalonUnrealException(Exception):
     pass
 
@@ -104,7 +162,7 @@ class AvalonHelpers(unreal.AvalonLib):
     """
 
     @unreal.ufunction(params=[str, unreal.LinearColor, bool])
-    def set_folder_color(self, path, color):
+    def set_folder_color(self, path, color, force=False):
         """
         This method sets color on folder in Content Browser. Unfortunately
         there is no way to refresh Content Browser so new color isn't applied
@@ -130,58 +188,3 @@ class AvalonHelpers(unreal.AvalonLib):
 
         """
         self.c_set_folder_color(path, color, False)
-
-    @unreal.ufunction(ret=unreal.AssetContainer, params=[str, str])
-    def create_avalon_container(self, path, name):
-        """
-        Helper function to create Avalon Asset Container class on given path.
-        This Avalon Asset Class helps to mark given path as Avalon Container
-        and enable asset version control on it.
-
-        Args:
-            path (str): Path where to create Asset Container. This path should
-                point into container folder
-            name (str): Asset Container name
-
-        Returns:
-            :class:`unreal.Object`: instance of created asset
-
-        Example:
-
-            AvalonHelpers().create_avalon_container(
-                "/Game/modelingFooCharacter_CON",
-                "modelingFooCharacter_CON"
-            )
-
-        """
-        factory = unreal.AssetContainerFactory()
-        tools = unreal.AssetToolsHelpers().get_asset_tools()
-        asset = tools.create_asset(name, path, None, factory)
-        return asset
-
-    @unreal.ufunction(ret=unreal.AvalonPublishInstance, params=[str, str])
-    def create_publish_instance(self, path, name):
-        """
-        Helper function to create Avalon Publish Instance  on given path.
-        This behaves similary as :func:`create_avalon_container`.
-
-        Args:
-            path (str): Path where to create Avalon Publish Instance.
-                This path should point into container folder
-            name (str): Avalon Publish Instance name
-
-        Returns:
-            :class:`unreal.Object`: instance of created asset
-
-        Example:
-
-            AvalonHelpers().create_publish_instance(
-                "/Game/modelingFooCharacter_INST",
-                "modelingFooCharacter_INST"
-            )
-
-        """
-        factory = unreal.AssetContainerFactory()
-        tools = unreal.AssetToolsHelpers().get_asset_tools()
-        asset = tools.create_asset(name, path, None, factory)
-        return asset

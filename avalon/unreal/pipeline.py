@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import sys
 import pyblish.api
 from ..pipeline import AVALON_CONTAINER_ID
@@ -12,7 +13,11 @@ from ..tools import (
 )
 
 from .. import api
-from .lib import AvalonHelpers, move_assets_to_path
+from .lib import (
+    move_assets_to_path,
+    create_avalon_container,
+    create_publish_instance,
+)
 
 # from ..lib import logger
 
@@ -65,9 +70,7 @@ class Creator(api.Creator):
                     "/Game", self.name, asset_paths
                 )
 
-            instance = AvalonHelpers.create_publish_instance(
-                "/Game", self.name
-            )
+            instance = create_publish_instance("/Game", self.name)
             imprint(instance, self.data)
 
         return instance
@@ -78,6 +81,8 @@ class Loader(api.Loader):
 
 
 def ls():
+    # This needs to have `id registered is project setting for Asset Registry?
+    # Is there way to do it with Python? :skull:
     avalon_containers = unreal.EditorAssetLibrary.list_asset_by_tag_value(
         "id", AVALON_CONTAINER_ID
     )
@@ -124,13 +129,12 @@ def containerise(name, namespace, nodes, context, loader=None, suffix="_CON"):
     """
     # 1 - create directory for container
     root = "/Game"
-    container_name = "{}_{}_{}".format(namespace, name, suffix)
+    container_name = "{}{}".format(name, suffix)
     new_name = move_assets_to_path(root, container_name, nodes)
 
     # 2 - create Asset Container there
-    container = AvalonHelpers.create_avalon_container(
-        "{}/{}/{}".format(root, new_name, container_name), container_name
-    )
+    path = "{}/{}".format(root, new_name)
+    create_avalon_container(container=container_name, path=path)
 
     data = {
         "schema": "avalon-core:container-2.0",
@@ -141,19 +145,25 @@ def containerise(name, namespace, nodes, context, loader=None, suffix="_CON"):
         "representation": context["representation"]["_id"],
     }
 
-    imprint(container, data)
+    imprint("{}/{}".format(path, container_name), data)
+    return path
 
 
 def imprint(node, data):
     loaded_asset = unreal.EditorAssetLibrary.load_asset(node)
     for key, value in data.items():
+        # Support values evaluated at imprint
         if callable(value):
-            # Support values evaluated at imprint
             value = value()
-        unreal.EditorAssetLibrary.set_metadata_tag(loaded_asset, key, value)
+        # Unreal doesn't support NoneType in metadata values
+        if value is None:
+            value = ""
+        unreal.EditorAssetLibrary.set_metadata_tag(
+            loaded_asset, key, str(value)
+        )
 
     with unreal.ScopedEditorTransaction("Avalon containerising"):
-        unreal.EditorAssetLibrary.save_asset(loaded_asset)
+        unreal.EditorAssetLibrary.save_asset(node)
 
 
 def show_creator():
