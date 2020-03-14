@@ -48,6 +48,10 @@ class VersionDelegate(tools_delegates.VersionDelegate):
         selected = None
         items = []
         for version in versions:
+            version_tags = version["data"].get("tags") or []
+            if "deleted" in version_tags:
+                continue
+
             if (
                 master_version and
                 doc_for_master_version is None and
