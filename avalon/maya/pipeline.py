@@ -90,7 +90,7 @@ def get_main_window():
     return self._parent
 
 
-def uninstall(config):
+def uninstall():
     """Uninstall Maya-specific functionality of avalon-core.
 
     This function is called automatically on calling `api.uninstall()`.
@@ -111,8 +111,7 @@ def _install_menu():
         loader,
         publish,
         sceneinventory,
-        libraryloader,
-        contextmanager
+        libraryloader
     )
 
     from . import interactive
@@ -126,19 +125,16 @@ def _install_menu():
                   parent="MayaWindow")
 
         # Create context menu
-        context_label = "{}, {}".format(api.Session["AVALON_ASSET"],
-                                        api.Session["AVALON_TASK"])
-        context_menu = cmds.menuItem("currentContext",
-                                     label=context_label,
-                                     parent=self._menu,
-                                     subMenu=True)
-
-        cmds.menuItem("setCurrentContext",
-                      label="Edit Context..",
-                      parent=context_menu,
-                      command=lambda *args: contextmanager.show(
-                          parent=self._parent
-                      ))
+        context_label = "{}, {}".format(
+            api.Session["AVALON_ASSET"],
+            api.Session["AVALON_TASK"]
+        )
+        cmds.menuItem(
+            "currentContext",
+            label=context_label,
+            parent=self._menu,
+            enable=False
+        )
 
         cmds.setParent("..", menu=True)
 

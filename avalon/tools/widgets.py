@@ -94,6 +94,11 @@ class AssetWidget(QtWidgets.QWidget):
         current = self.view.currentIndex()
         return current.data(self.model.ItemRole)
 
+    def get_active_asset_document(self):
+        """Return the asset id the current asset."""
+        current = self.view.currentIndex()
+        return current.data(self.model.DocumentRole)
+
     def get_active_index(self):
         return self.view.currentIndex()
 
@@ -164,6 +169,38 @@ class AssetWidget(QtWidgets.QWidget):
             self.view.setCurrentIndex(index)
 
 
+class OptionalMenu(QtWidgets.QMenu):
+    """A subclass of `QtWidgets.QMenu` to work with `OptionalAction`
+
+    This menu has reimplemented `mouseReleaseEvent`, `mouseMoveEvent` and
+    `leaveEvent` to provide better action hightlighting and triggering for
+    actions that were instances of `QtWidgets.QWidgetAction`.
+
+    """
+
+    def mouseReleaseEvent(self, event):
+        """Emit option clicked signal if mouse released on it"""
+        active = self.actionAt(event.pos())
+        if active and active.use_option:
+            option = active.widget.option
+            if option.is_hovered(event.globalPos()):
+                option.clicked.emit()
+        super(OptionalMenu, self).mouseReleaseEvent(event)
+
+    def mouseMoveEvent(self, event):
+        """Add highlight to active action"""
+        active = self.actionAt(event.pos())
+        for action in self.actions():
+            action.set_highlight(action is active, event.globalPos())
+        super(OptionalMenu, self).mouseMoveEvent(event)
+
+    def leaveEvent(self, event):
+        """Remove highlight from all actions"""
+        for action in self.actions():
+            action.set_highlight(False)
+        super(OptionalMenu, self).leaveEvent(event)
+
+
 class OptionalAction(QtWidgets.QWidgetAction):
     """Menu action with option box
 
@@ -181,8 +218,9 @@ class OptionalAction(QtWidgets.QWidgetAction):
         self.optioned = False
 
     def createWidget(self, parent):
-        widget = OptionalActionWidget(self.label, self.use_option, parent)
+        widget = OptionalActionWidget(self.label, parent)
         self.widget = widget
+
         if self.icon:
             widget.setIcon(self.icon)
 
@@ -202,14 +240,29 @@ class OptionalAction(QtWidgets.QWidgetAction):
     def on_option(self):
         self.optioned = True
 
+    def set_highlight(self, state, global_pos=None):
+        body = self.widget.body
+        option = self.widget.option
+
+        role = QtGui.QPalette.Highlight if state else QtGui.QPalette.Window
+        body.setBackgroundRole(role)
+        body.setAutoFillBackground(state)
+
+        if not self.use_option:
+            return
+
+        state = option.is_hovered(global_pos)
+        role = QtGui.QPalette.Highlight if state else QtGui.QPalette.Window
+        option.setBackgroundRole(role)
+        option.setAutoFillBackground(state)
+
 
 class OptionalActionWidget(QtWidgets.QWidget):
     """Main widget class for `OptionalAction`"""
 
-    def __init__(self, label, use_option, parent=None):
+    def __init__(self, label, parent=None):
         super(OptionalActionWidget, self).__init__(parent)
 
-        self.use_option = use_option
         body = QtWidgets.QWidget()
         body.setStyleSheet("background: transparent;")
 
@@ -234,6 +287,8 @@ class OptionalActionWidget(QtWidgets.QWidget):
         layout.addWidget(option)
 
         body.setMouseTracking(True)
+        label.setMouseTracking(True)
+        option.setMouseTracking(True)
         self.setMouseTracking(True)
         self.setFixedHeight(32)
 
@@ -242,90 +297,9 @@ class OptionalActionWidget(QtWidgets.QWidget):
         self.option = option
         self.body = body
 
-        self.mouse_entered = False
-        self.mouse_pressed = False
         # (NOTE) For removing ugly QLable shadow FX when highlighted in Nuke.
         #   See https://stackoverflow.com/q/52838690/4145300
         label.setStyle(QtWidgets.QStyleFactory.create("Plastique"))
-
-    def mouseReleaseEvent(self, event):
-        """Emit option clicked signal if mouse released on it"""
-
-        if not self.mouse_pressed:
-            return
-
-        self.mouse_pressed = False
-
-        pos = self.body.mapFromGlobal(QtGui.QCursor.pos())
-        body_under = self.body.rect().contains(pos)
-
-        pos = self.option.mapFromGlobal(QtGui.QCursor.pos())
-        option_under = self.option.rect().contains(pos)
-
-        if not (option_under or body_under):
-            return
-
-        if option_under:
-            self.option.clicked.emit()
-
-        super(OptionalActionWidget, self).mouseReleaseEvent(event)
-
-    def mousePressEvent(self, event):
-        self.mouse_pressed = True
-        super(OptionalActionWidget, self).mousePressEvent(event)
-
-    def handle_mouse_move_event(self, event):
-        if event.type() == QtCore.QEvent.Type.MouseMove:
-            if self.mouse_entered:
-                body_under = True
-            else:
-                pos = self.body.mapFromGlobal(QtGui.QCursor.pos())
-                body_under = self.body.rect().contains(pos)
-
-            pos = self.option.mapFromGlobal(QtGui.QCursor.pos())
-            option_under = self.option.rect().contains(pos)
-
-        elif event.type() == QtCore.QEvent.Type.Enter:
-            body_under = True
-            if not self.use_option:
-                option_under = False
-            else:
-                pos = self.option.mapFromGlobal(QtGui.QCursor.pos())
-                option_under = self.option.rect().contains(pos)
-            self.mouse_entered = True
-
-        elif event.type() == QtCore.QEvent.Type.Leave:
-            body_under = False
-            option_under = False
-            self.mouse_entered = False
-
-        body_role = QtGui.QPalette.Window
-        option_role = QtGui.QPalette.Window
-
-        if option_under and self.use_option:
-            option_role = QtGui.QPalette.Highlight
-            body_role = QtGui.QPalette.Highlight
-        elif body_under:
-            body_role = QtGui.QPalette.Highlight
-
-        self.body.setBackgroundRole(body_role)
-        self.body.setAutoFillBackground(body_under)
-        if self.use_option:
-            self.option.setBackgroundRole(option_role)
-            self.option.setAutoFillBackground(option_under)
-
-    def enterEvent(self, event):
-        self.handle_mouse_move_event(event)
-        super(OptionalActionWidget, self).enterEvent(event)
-
-    def mouseMoveEvent(self, event):
-        self.handle_mouse_move_event(event)
-        super(OptionalActionWidget, self).mouseMoveEvent(event)
-
-    def leaveEvent(self, event):
-        """Remove highlight from all actions"""
-        self.handle_mouse_move_event(event)
-        super(OptionalActionWidget, self).leaveEvent(event)
 
     def setIcon(self, icon):
         pixmap = icon.pixmap(16, 16)
@@ -340,20 +314,19 @@ class OptionBox(QtWidgets.QLabel):
     def __init__(self, parent):
         super(OptionBox, self).__init__(parent)
 
-        layout = self.layout()
-        if not layout:
-            layout = QtWidgets.QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        self.setLayout(layout)
-
         self.setAlignment(QtCore.Qt.AlignCenter)
 
         icon = qtawesome.icon("fa.sticky-note-o", color="#c6c6c6")
         pixmap = icon.pixmap(18, 18)
         self.setPixmap(pixmap)
 
-        self.setMouseTracking(True)
         self.setStyleSheet("background: transparent;")
+
+    def is_hovered(self, global_pos):
+        if global_pos is None:
+            return False
+        pos = self.mapFromGlobal(global_pos)
+        return self.rect().contains(pos)
 
 
 class OptionDialog(QtWidgets.QDialog):

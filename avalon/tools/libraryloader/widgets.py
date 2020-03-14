@@ -16,7 +16,8 @@ from .models import AssetModel, SubsetsModel, FamiliesFilterProxyModel
 from ..models import RecursiveSortFilterProxyModel
 from ..loader.model import SubsetFilterProxyModel
 from .delegates import VersionDelegate
-from ..loader.delegates import PrettyTimeDelegate, AssetDelegate
+from ..delegates import PrettyTimeDelegate
+from ..loader.delegates import AssetDelegate
 from .. views import AssetsView
 
 log = logging.getLogger(__name__)
