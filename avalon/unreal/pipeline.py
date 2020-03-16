@@ -173,7 +173,7 @@ def containerise(name, namespace, nodes, context, loader=None, suffix="_CON"):
     return path
 
 
-def instantiate(root, name, data, assets=[], suffix="_INS"):
+def instantiate(root, name, data, assets=None, suffix="_INS"):
     """
     Bundles *nodes* into *container* marking it with metadata as publishable
     instance. If assets are provided, they are moved to new path where
