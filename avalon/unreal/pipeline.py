@@ -14,12 +14,13 @@ from ..tools import (
 
 from .. import api
 from .lib import (
+    create_folder,
     move_assets_to_path,
     create_avalon_container,
     create_publish_instance,
+    cast_map_to_str_dict,
 )
 
-# from ..lib import logger
 
 self = sys.modules[__name__]
 self._menu = "avalonue4"  # Unique name of menu
@@ -81,20 +82,41 @@ class Loader(api.Loader):
 
 
 def ls():
-    # This needs to have `id registered is project setting for Asset Registry?
-    # Is there way to do it with Python? :skull:
-    avalon_containers = unreal.EditorAssetLibrary.list_asset_by_tag_value(
-        "id", AVALON_CONTAINER_ID
-    )
+    """
+    List all containers found in *Content Manager* of Unreal and return
+    metadata from them. Adding `objectName` to set.
+    """
+    ar = unreal.AssetRegistryHelpers.get_asset_registry()
+    avalon_containers = ar.get_assets_by_class("AssetContainer", True)
 
-    for asset in avalon_containers:
+    # get_asset_by_class returns AssetData. To get all metadata we need to
+    # load asset. get_tag_values() work only on metadata registered in
+    # Asset Registy Project settings (and there is no way to set it with
+    # python short of editing ini configuration file).
+    for asset_data in avalon_containers:
+        asset = asset_data.get_asset()
         data = unreal.EditorAssetLibrary.get_metadata_tag_values(asset)
+        data["objectName"] = asset_data.asset_name
+        data = cast_map_to_str_dict(data)
 
         yield data
 
 
 def parse_container(container):
-    data = unreal.EditorAssetLibrary.get_metadata_tag_values(container)
+    """
+    To get data from container, AssetContainer must be loaded.
+
+    Args:
+        container(str): path to container
+
+    Returns:
+        dict: metadata stored on container
+    """
+    asset = unreal.EditorAssetLibrary.load_asset(container)
+    data = unreal.EditorAssetLibrary.get_metadata_tag_values(asset)
+    data["objectName"] = asset.get_name()
+    data = cast_map_to_str_dict(data)
+
     return data
 
 
@@ -136,6 +158,8 @@ def containerise(name, namespace, nodes, context, loader=None, suffix="_CON"):
     path = "{}/{}".format(root, new_name)
     create_avalon_container(container=container_name, path=path)
 
+    namespace = path
+
     data = {
         "schema": "avalon-core:container-2.0",
         "id": AVALON_CONTAINER_ID,
@@ -144,9 +168,40 @@ def containerise(name, namespace, nodes, context, loader=None, suffix="_CON"):
         "loader": str(loader),
         "representation": context["representation"]["_id"],
     }
-
+    # 3 - imprint data
     imprint("{}/{}".format(path, container_name), data)
     return path
+
+
+def instantiate(root, name, data, assets=[], suffix="_INS"):
+    """
+    Bundles *nodes* into *container* marking it with metadata as publishable
+    instance. If assets are provided, they are moved to new path where
+    `AvalonPublishInstance` class asset is created and imprinted with metadata.
+
+    This can then be collected for publishing by Pyblish for example.
+
+    Args:
+        root (str): root path where to create instance container
+        name (str): name of the container
+        data (dict): data to imprint on container
+        assets (list of str): list of asset paths to include in publish
+                              instance
+        suffix (str): suffix string to append to instance name
+    """
+    container_name = "{}{}".format(name, suffix)
+
+    # if we specify assets, create new folder and move them there. If not,
+    # just create empty folder
+    if assets:
+        new_name = move_assets_to_path(root, container_name, assets)
+    else:
+        new_name = create_folder(root, name)
+
+    path = "{}/{}".format(root, new_name)
+    create_publish_instance(instance=container_name, path=path)
+
+    imprint("{}/{}".format(path, container_name), data)
 
 
 def imprint(node, data):

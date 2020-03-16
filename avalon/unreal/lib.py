@@ -80,6 +80,7 @@ def move_assets_to_path(root, name, assets):
     eal = unreal.EditorAssetLibrary
     name = create_folder(root, name)
 
+    unreal.log(assets)
     for asset in assets:
         loaded = eal.load_asset(asset)
         eal.rename_asset(
@@ -139,10 +140,19 @@ def create_publish_instance(instance, path):
         )
 
     """
-    factory = unreal.AssetContainerFactory()
+    factory = unreal.AvalonPublishInstanceFactory()
     tools = unreal.AssetToolsHelpers().get_asset_tools()
     asset = tools.create_asset(instance, path, None, factory)
     return asset
+
+
+def cast_map_to_str_dict(map):
+    """
+    Helper function to cast Unreal Map object to plain old python
+    dict. This will also cast values and keys to str. Useful for
+    metadata dicts.
+    """
+    return {str(key): str(value) for (key, value) in map.items()}
 
 
 class AvalonUnrealException(Exception):

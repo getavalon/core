@@ -17,6 +17,7 @@ from .pipeline import (
     show_publisher,
     show_manager,
     show_project_manager,
+    instantiate,
 )
 
 from .lib import maintained_selection
@@ -35,4 +36,5 @@ __all__ = [
     "show_manager",
     "show_project_manager",
     "maintained_selection",
+    "instantiate",
 ]
