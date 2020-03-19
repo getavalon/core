@@ -47,7 +47,7 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
             )
 
             painter.save()
-
+            rect = style.subElementRect(style.SE_ItemViewItemText, option)
             text = self.displayText(
                 index.data(QtCore.Qt.DisplayRole), option
             )
@@ -55,7 +55,7 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
             pen.setColor(fg_color)
             painter.setPen(pen)
             painter.drawText(
-                option.rect,
+                rect,
                 option.displayAlignment,
                 text
             )
