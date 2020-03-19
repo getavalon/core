@@ -28,40 +28,37 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         return lib.format_version(value)
 
     def paint(self, painter, option, index):
-        bg_color = index.data(QtCore.Qt.BackgroundRole)
-        if bg_color:
-            if isinstance(bg_color, QtGui.QBrush):
-                bg_color = bg_color.color()
-            elif isinstance(bg_color, QtGui.QColor):
+        fg_color = index.data(QtCore.Qt.ForegroundRole)
+        if fg_color:
+            if isinstance(fg_color, QtGui.QBrush):
+                fg_color = fg_color.color()
+            elif isinstance(fg_color, QtGui.QColor):
                 pass
             else:
-                bg_color = None
+                fg_color = None
 
-        if bg_color:
+        if fg_color:
             if option.widget:
                 style = option.widget.style()
             else:
                 style = QtWidgets.QApplication.style()
-            rect = style.subElementRect(style.SE_ItemViewItemText, option)
+            style.drawControl(
+                style.CE_ItemViewItem, option, painter, option.widget
+            )
+
             painter.save()
-            font_height = painter.fontMetrics().height()
-            if option.displayAlignment & QtCore.Qt.AlignTop:
-                pass
 
-            elif option.displayAlignment & QtCore.Qt.AlignBottom:
-                diff = option.rect.height() - font_height
-                rect.setY(diff)
-
-            elif option.displayAlignment & QtCore.Qt.AlignVCenter:
-                diff = option.rect.height() - font_height
-                rect.setY(diff / 2)
-
-            rect.setHeight(font_height)
-            painter.setPen(QtGui.QPen(QtCore.Qt.NoPen))
-            painter.setBrush(QtGui.QBrush(bg_color))
-            painter.drawRoundedRect(rect, 5, 5)
+            text = self.displayText(
+                index.data(QtCore.Qt.DisplayRole), option
+            )
+            pen = painter.pen()
+            pen.setColor(fg_color)
+            painter.setPen(pen)
+            painter.drawText(option.rect, QtCore.Qt.AlignVCenter, text)
 
             painter.restore()
+
+            return
 
         super(VersionDelegate, self).paint(painter, option, index)
 

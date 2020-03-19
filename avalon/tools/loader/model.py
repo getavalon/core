@@ -59,7 +59,7 @@ class SubsetsModel(TreeModel):
         (247, 99, 12), # Orange
     ]
     not_last_master_brush = QtGui.QBrush(QtGui.QColor(250, 0, 0))
-    
+
     def __init__(self, grouping=True, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
         self._asset_ids = None
@@ -479,7 +479,7 @@ class SubsetsModel(TreeModel):
                 item = index.internalPointer()
                 return item.get("familyIcon", None)
 
-        elif role == QtCore.Qt.BackgroundRole:
+        elif role == QtCore.Qt.ForegroundRole:
             item = index.internalPointer()
             version_doc = item.get("version_document")
             if version_doc and version_doc.get("type") == "master_version":
