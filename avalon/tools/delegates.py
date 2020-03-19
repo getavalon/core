@@ -54,7 +54,11 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
             pen = painter.pen()
             pen.setColor(fg_color)
             painter.setPen(pen)
-            painter.drawText(option.rect, QtCore.Qt.AlignVCenter, text)
+            painter.drawText(
+                option.rect,
+                option.displayAlignment,
+                text
+            )
 
             painter.restore()
 

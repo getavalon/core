@@ -58,7 +58,7 @@ class SubsetsModel(TreeModel):
         (0, 204, 106), # Dark Green
         (247, 99, 12), # Orange
     ]
-    not_last_master_brush = QtGui.QBrush(QtGui.QColor(250, 0, 0))
+    not_last_master_brush = QtGui.QBrush(QtGui.QColor(254, 121, 121))
 
     def __init__(self, grouping=True, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
