@@ -42,20 +42,27 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
                 style = option.widget.style()
             else:
                 style = QtWidgets.QApplication.style()
+
             style.drawControl(
                 style.CE_ItemViewItem, option, painter, option.widget
             )
 
             painter.save()
-            rect = style.subElementRect(style.SE_ItemViewItemText, option)
+
             text = self.displayText(
-                index.data(QtCore.Qt.DisplayRole), option
+                index.data(QtCore.Qt.DisplayRole), option.locale
             )
             pen = painter.pen()
             pen.setColor(fg_color)
             painter.setPen(pen)
+
+            text_rect = style.subElementRect(style.SE_ItemViewItemText, option)
+            text_margin = style.proxy().pixelMetric(
+                style.PM_FocusFrameHMargin, option, option.widget
+            ) + 1
+
             painter.drawText(
-                rect,
+                text_rect.adjusted(text_margin, 0, - text_margin, 0),
                 option.displayAlignment,
                 text
             )
