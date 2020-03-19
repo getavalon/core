@@ -431,27 +431,6 @@ class SubsetsModel(TreeModel):
         if not index.isValid():
             return
 
-        if role == QtCore.Qt.DisplayRole:
-            if index.column() == self.Columns.index("family"):
-                # Show familyLabel instead of family
-                item = index.internalPointer()
-                return item.get("familyLabel", None)
-
-        if role == QtCore.Qt.DecorationRole:
-
-            # Add icon to subset column
-            if index.column() == self.Columns.index("subset"):
-                item = index.internalPointer()
-                if item.get("isGroup") or item.get("isMerged"):
-                    return item["icon"]
-                else:
-                    return self._icons["subset"]
-
-            # Add icon to family column
-            if index.column() == self.Columns.index("family"):
-                item = index.internalPointer()
-                return item.get("familyIcon", None)
-
         if role == self.SortDescendingRole:
             item = index.internalPointer()
             if item.get("isGroup") or item.get("isMerged"):
@@ -477,6 +456,27 @@ class SubsetsModel(TreeModel):
                     index, QtCore.Qt.DisplayRole
                 ))
             return prefix + order
+
+        if role == QtCore.Qt.DisplayRole:
+            if index.column() == self.Columns.index("family"):
+                # Show familyLabel instead of family
+                item = index.internalPointer()
+                return item.get("familyLabel", None)
+
+        elif role == QtCore.Qt.DecorationRole:
+
+            # Add icon to subset column
+            if index.column() == self.Columns.index("subset"):
+                item = index.internalPointer()
+                if item.get("isGroup") or item.get("isMerged"):
+                    return item["icon"]
+                else:
+                    return self._icons["subset"]
+
+            # Add icon to family column
+            if index.column() == self.Columns.index("family"):
+                item = index.internalPointer()
+                return item.get("familyIcon", None)
 
         return super(SubsetsModel, self).data(index, role)
 
