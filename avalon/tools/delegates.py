@@ -108,7 +108,6 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
             master_version["name"] = MasterVersionType(version_name)
 
             item = QtGui.QStandardItem(label)
-            item.setBackground(QtGui.QColor(60, 60, 60))
             item.setData(master_version, QtCore.Qt.UserRole)
             items.append(item)
 
