@@ -27,6 +27,44 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         )
         return lib.format_version(value)
 
+    def paint(self, painter, option, index):
+        bg_color = index.data(QtCore.Qt.BackgroundRole)
+        if bg_color:
+            if isinstance(bg_color, QtGui.QBrush):
+                bg_color = bg_color.color()
+            elif isinstance(bg_color, QtGui.QColor):
+                pass
+            else:
+                bg_color = None
+
+        if bg_color:
+            if option.widget:
+                style = option.widget.style()
+            else:
+                style = QtWidgets.QApplication.style()
+            rect = style.subElementRect(style.SE_ItemViewItemText, option)
+            painter.save()
+            font_height = painter.fontMetrics().height()
+            if option.displayAlignment & QtCore.Qt.AlignTop:
+                pass
+
+            elif option.displayAlignment & QtCore.Qt.AlignBottom:
+                diff = option.rect.height() - font_height
+                rect.setY(diff)
+
+            elif option.displayAlignment & QtCore.Qt.AlignVCenter:
+                diff = option.rect.height() - font_height
+                rect.setY(diff / 2)
+
+            rect.setHeight(font_height)
+            painter.setPen(QtGui.QPen(QtCore.Qt.NoPen))
+            painter.setBrush(QtGui.QBrush(bg_color))
+            painter.drawRoundedRect(rect, 5, 5)
+
+            painter.restore()
+
+        super(VersionDelegate, self).paint(painter, option, index)
+
     def createEditor(self, parent, option, index):
         item = index.data(TreeModel.ItemRole)
         if item.get("isGroup") or item.get("isMerged"):
