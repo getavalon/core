@@ -1,5 +1,5 @@
 from ... import io, style
-from ...vendor.Qt import QtCore
+from ...vendor.Qt import QtCore, QtGui
 from ...vendor import qtawesome
 
 from ..models import TreeModel, Item
@@ -58,7 +58,8 @@ class SubsetsModel(TreeModel):
         (0, 204, 106), # Dark Green
         (247, 99, 12), # Orange
     ]
-
+    not_last_master_brush = QtGui.QBrush(QtGui.QColor(250, 0, 0))
+    
     def __init__(self, grouping=True, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
         self._asset_ids = None
@@ -477,6 +478,13 @@ class SubsetsModel(TreeModel):
             if index.column() == self.Columns.index("family"):
                 item = index.internalPointer()
                 return item.get("familyIcon", None)
+
+        elif role == QtCore.Qt.BackgroundRole:
+            item = index.internalPointer()
+            version_doc = item.get("version_document")
+            if version_doc and version_doc.get("type") == "master_version":
+                if not version_doc["is_from_latest"]:
+                    return self.not_last_master_brush
 
         return super(SubsetsModel, self).data(index, role)
 
