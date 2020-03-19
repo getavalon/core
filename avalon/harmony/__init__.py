@@ -13,6 +13,16 @@ from .lib import (
     launch
 )
 
+from .workio import (
+    open_file,
+    save_file,
+    current_file,
+    has_unsaved_changes,
+    file_extensions,
+    work_root
+)
+
+
 __all__ = [
     # pipeline
     "ls",
@@ -20,4 +30,12 @@ __all__ = [
 
     # lib
     "launch"
+
+    # Workfiles API
+    "open_file",
+    "save_file",
+    "current_file",
+    "has_unsaved_changes",
+    "file_extensions",
+    "work_root",
 ]

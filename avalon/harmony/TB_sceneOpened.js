@@ -83,8 +83,9 @@ function Client()
     {
       request.reply = true;
       self._send(JSON.stringify(request));
-      self.received = "";
     }
+
+    self.received = "";
   }
 
   self.on_connected = function()
@@ -107,11 +108,12 @@ function Client()
     self.socket.write(codec.fromUnicode(message));
   }
 
-  self.send = function(message)
+  self.send = function(request)
   {
-    self._send(message)
+    self._send(JSON.stringify(request));
+    var wait = request["reply"] == null || request["reply"];
 
-    while (true)
+    while (wait)
     {
       try
       {
@@ -162,9 +164,12 @@ function start()
   self.on_creator = function()
   {
     app.avalon_client.send(
-        JSON.stringify(
-          {"module": "avalon.tools.creator", "method": "show"}
-        )
+      {
+        "module": "avalon.harmony.lib",
+        "method": "show",
+        "args": ["avalon.tools.creator"],
+        "reply": false
+      }
     );
   }
   var action = menu.addAction("Create...");
@@ -173,9 +178,12 @@ function start()
   self.on_workfiles = function()
   {
     app.avalon_client.send(
-        JSON.stringify(
-          {"module": "avalon.tools.workfiles", "method": "show"}
-        )
+      {
+        "module": "avalon.harmony.lib",
+        "method": "show",
+        "args": ["avalon.tools.workfiles"],
+        "reply": false
+      }
     );
   }
   var action = menu.addAction("Workfiles");
@@ -184,9 +192,12 @@ function start()
   self.on_load = function()
   {
     app.avalon_client.send(
-        JSON.stringify(
-          {"module": "avalon.tools.loader", "method": "show"}
-        )
+        {
+          "module": "avalon.harmony.lib",
+          "method": "show",
+          "args": ["avalon.tools.loader"],
+          "reply": false
+        }
     );
   }
   var action = menu.addAction("Load...");
@@ -195,9 +206,12 @@ function start()
   self.on_publish = function()
   {
     app.avalon_client.send(
-        JSON.stringify(
-          {"module": "avalon.tools.publish", "method": "show"}
-        )
+        {
+          "module": "avalon.harmony.lib",
+          "method": "show",
+          "args": ["avalon.tools.publish"],
+          "reply": false
+        }
     );
   }
   var action = menu.addAction("Publish...");
@@ -206,9 +220,12 @@ function start()
   self.on_manage = function()
   {
     app.avalon_client.send(
-        JSON.stringify(
-          {"module": "avalon.tools.sceneinventory", "method": "show"}
-        )
+        {
+          "module": "avalon.harmony.lib",
+          "method": "show",
+          "args": ["avalon.tools.sceneinventory"],
+          "reply": false
+        }
     );
   }
   var action = menu.addAction("Manage...");
