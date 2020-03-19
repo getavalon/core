@@ -250,7 +250,12 @@ class View(QtWidgets.QTreeView):
             name = node.get("objectName")
             if name in object_names:
                 self.scrollTo(item)  # Ensure item is visible
-                selection_model.select(item, select_mode)
+                # Select entire row
+                for i in range(model.columnCount()):
+                    column = item.sibling(item.row(), i)
+                    if column.isValid():
+                        selection_model.select(column, select_mode)
+
                 object_names.remove(name)
 
             if len(object_names) == 0:
