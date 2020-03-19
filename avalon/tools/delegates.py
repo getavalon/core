@@ -124,9 +124,9 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
                 continue
 
             if (
-                master_version and
-                doc_for_master_version is None and
-                master_version["version_id"] == version["_id"]
+                master_version
+                and doc_for_master_version is None
+                and master_version["version_id"] == version["_id"]
             ):
                 doc_for_master_version = version
 
