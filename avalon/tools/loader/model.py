@@ -84,16 +84,33 @@ class SubsetsModel(TreeModel):
             item = index.internalPointer()
             parent = item["_id"]
             if isinstance(value, MasterVersionType):
-                version = io.find_one({
-                    "type": "master_version",
+                versions = list(io.find({
+                    "type": {"$in": ["version", "master_version"]},
                     "parent": parent
-                })
-                _version = io.find_one({
-                    "_id": version["version_id"],
-                    "type": "version"
-                })
+                }, sort=[("name", -1)]))
+
+                version = None
+                last_version = None
+                for __version in versions:
+                    if __version["type"] == "master_version":
+                        version = __version
+                    elif last_version is None:
+                        last_version = __version
+
+                    if version is not None and last_version is not None:
+                        break
+
+                _version = None
+                for __version in versions:
+                    if __version["_id"] == version["version_id"]:
+                        _version = __version
+                        break
+
                 version["data"] = _version["data"]
                 version["name"] = _version["name"]
+                version["is_from_latest"] = (
+                    last_version["_id"] == _version["_id"]
+                )
 
             else:
                 version = io.find_one({
@@ -207,6 +224,11 @@ class SubsetsModel(TreeModel):
         # Collect last versions
         last_versions = {}
         for subset in filtered_subsets:
+            last_version = io.find_one({
+                "type": "version",
+                "parent": subset["_id"]
+            }, sort=[("name", -1)])
+
             master_version = io.find_one({
                 "type": "master_version",
                 "parent": subset["_id"]
@@ -219,13 +241,15 @@ class SubsetsModel(TreeModel):
                 master_version["name"] = MasterVersionType(
                     _version["name"]
                 )
+                # Add information if master version is from latest version
+                is_from_latest = True
+                if last_version:
+                    is_from_latest = last_version["_id"] == _version["_id"]
+                master_version["is_from_latest"] = is_from_latest
+
                 last_versions[subset["_id"]] = master_version
                 continue
 
-            last_version = io.find_one({
-                "type": "version",
-                "parent": subset["_id"]
-            }, sort=[("name", -1)])
             # No published version for the subset
             last_versions[subset["_id"]] = last_version
 
