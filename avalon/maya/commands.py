@@ -68,6 +68,9 @@ def reset_frame_range():
     cmds.playbackOptions(maxTime=frame_end)
     cmds.currentTime(frame_start)
 
+    cmds.setAttr("defaultRenderGlobals.startFrame", frame_start)
+    cmds.setAttr("defaultRenderGlobals.endFrame", frame_end)
+
 
 def reset_resolution():
     project = io.find_one({"type": "project"})
