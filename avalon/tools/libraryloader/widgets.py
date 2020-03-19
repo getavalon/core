@@ -52,12 +52,6 @@ class SubsetWidget(loader_widgets.SubsetWidget):
         view = QtWidgets.QTreeView()
         view.setObjectName("SubsetView")
         view.setIndentation(20)
-        view.setStyleSheet("""
-            QTreeView::item{
-                padding: 5px 1px;
-                border: 0px;
-            }
-        """)
         view.setAllColumnsShowFocus(True)
 
         # Set view delegates
