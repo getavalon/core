@@ -48,24 +48,11 @@ class Server(object):
             module = importlib.import_module(request["module"])
             method = getattr(module, request["method"])
 
-            wait = request.get("reply") is None or request["reply"]
-
             args = request.get("args", [])
             kwargs = request.get("kwargs", {})
             partial_method = functools.partial(method, *args, **kwargs)
 
             lib.execute_in_main_thread(partial_method)
-            """
-            if wait:
-                method(*args, **kwargs)
-            else:
-                args.insert(0, method)
-                process = multiprocessing.Process(
-                    target=wrapped_method, args=args, kwargs=kwargs
-                )
-                process.start()
-            """
-            #method(*args, **kwargs)
         except Exception:
             self.log.error(traceback.format_exc())
 
@@ -147,16 +134,3 @@ class Server(object):
         self.received = ""
 
         return result
-
-
-if __name__ == "__main__":
-    import threading
-    import logging
-
-    logging.getLogger().addHandler(logging.StreamHandler())
-
-    # Launch Avalon server.
-    server = Server(8081)
-    thread = threading.Thread(target=server.start)
-    thread.deamon = True
-    thread.start()
