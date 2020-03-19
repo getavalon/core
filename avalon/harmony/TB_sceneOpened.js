@@ -108,10 +108,9 @@ function Client()
     self.socket.write(codec.fromUnicode(message));
   }
 
-  self.send = function(request)
+  self.send = function(request, wait)
   {
     self._send(JSON.stringify(request));
-    var wait = request["reply"] == null || request["reply"];
 
     while (wait)
     {
@@ -167,9 +166,9 @@ function start()
       {
         "module": "avalon.harmony.lib",
         "method": "show",
-        "args": ["avalon.tools.creator"],
-        "reply": false
-      }
+        "args": ["avalon.tools.creator"]
+      },
+      false
     );
   }
   var action = menu.addAction("Create...");
@@ -181,9 +180,9 @@ function start()
       {
         "module": "avalon.harmony.lib",
         "method": "show",
-        "args": ["avalon.tools.workfiles"],
-        "reply": false
-      }
+        "args": ["avalon.tools.workfiles"]
+      },
+      false
     );
   }
   var action = menu.addAction("Workfiles");
@@ -195,9 +194,9 @@ function start()
         {
           "module": "avalon.harmony.lib",
           "method": "show",
-          "args": ["avalon.tools.loader"],
-          "reply": false
-        }
+          "args": ["avalon.tools.loader"]
+        },
+        false
     );
   }
   var action = menu.addAction("Load...");
@@ -209,9 +208,9 @@ function start()
         {
           "module": "avalon.harmony.lib",
           "method": "show",
-          "args": ["avalon.tools.publish"],
-          "reply": false
-        }
+          "args": ["avalon.tools.publish"]
+        },
+        false
     );
   }
   var action = menu.addAction("Publish...");
@@ -223,9 +222,9 @@ function start()
         {
           "module": "avalon.harmony.lib",
           "method": "show",
-          "args": ["avalon.tools.sceneinventory"],
-          "reply": false
-        }
+          "args": ["avalon.tools.sceneinventory"]
+        },
+        false
     );
   }
   var action = menu.addAction("Manage...");
