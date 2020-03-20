@@ -399,10 +399,9 @@ class AssetModel(TreeModel):
         # Group the assets by their visual parent's id
         assets_by_parent = collections.defaultdict(list)
         for asset in db_assets:
-            parent_id = (
-                asset.get("data", {}).get("visualParent") or
-                asset.get("silo")
-            )
+            parent_id = asset.get("data", {}).get("visualParent")
+            if parent_id is None and silos is not None:
+                parent_id = asset.get("silo")
             assets_by_parent[parent_id].append(asset)
 
         # Build the hierarchical tree items recursively
