@@ -34,6 +34,9 @@ class SubsetsModel(TreeModel):
 
     def __init__(self, grouping=True, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
+        self.columns_index = dict(
+            (key, idx) for idx, key in enumerate(self.Columns)
+        )
         self._asset_id = None
         self._sorter = None
         self._grouping = grouping
@@ -53,7 +56,7 @@ class SubsetsModel(TreeModel):
 
         # Trigger additional edit when `version` column changed
         # because it also updates the information in other columns
-        if index.column() == self.Columns.index("version"):
+        if index.column() == self.columns_index["version"]:
             item = index.internalPointer()
             parent = item["_id"]
             version = io.find_one({"name": value,
@@ -209,7 +212,7 @@ class SubsetsModel(TreeModel):
             return
 
         if role == QtCore.Qt.DisplayRole:
-            if index.column() == self.Columns.index("family"):
+            if index.column() == self.columns_index["family"]:
                 # Show familyLabel instead of family
                 item = index.internalPointer()
                 return item.get("familyLabel", None)
@@ -217,7 +220,7 @@ class SubsetsModel(TreeModel):
         if role == QtCore.Qt.DecorationRole:
 
             # Add icon to subset column
-            if index.column() == self.Columns.index("subset"):
+            if index.column() == self.columns_index["subset"]:
                 item = index.internalPointer()
                 if item.get("isGroup"):
                     return item["icon"]
@@ -225,7 +228,7 @@ class SubsetsModel(TreeModel):
                     return self._icons["subset"]
 
             # Add icon to family column
-            if index.column() == self.Columns.index("family"):
+            if index.column() == self.columns_index["family"]:
                 item = index.internalPointer()
                 return item.get("familyIcon", None)
 
@@ -261,7 +264,7 @@ class SubsetsModel(TreeModel):
         flags = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
         # Make the version column editable
-        if index.column() == self.Columns.index("version"):  # version column
+        if index.column() == self.columns_index["version"]:
             flags |= QtCore.Qt.ItemIsEditable
 
         return flags
