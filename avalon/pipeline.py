@@ -1362,7 +1362,7 @@ def switch(container, representation):
 
 def format_template_with_optional_keys(data, template):
     # Remove optional missing keys
-    pattern = re.compile(r"<.*?>")
+    pattern = re.compile(r"(<.*?[^{0]*>)[^0-9]*?")
     invalid_optionals = []
     for group in pattern.findall(template):
         try:
