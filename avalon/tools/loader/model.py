@@ -19,7 +19,6 @@ def is_filtering_recursible():
 class SubsetsModel(TreeModel):
     Columns = [
         "subset",
-        "asset",
         "family",
         "version",
         "time",
