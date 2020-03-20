@@ -213,25 +213,28 @@ class TasksModel(TreeModel):
                                       color=style.colors.default)
                 self._icons[task["name"]] = icon
 
-    def set_assets(self, asset_ids=[], asset_entities=None):
+    def set_assets(self, asset_docs):
         """Set assets to track by their database id
 
         Arguments:
-            asset_ids (list): List of asset ids.
-            asset_entities (list): List of asset entities from MongoDB.
+            asset_docs (list): List of asset documents from MongoDB.
 
         """
 
-        assets = list()
-        if asset_entities is not None:
-            assets = asset_entities
-        elif asset_ids:
+        # Backwards compatibility if anyone use this model in his tools
+        asset_ids = None
+        for doc in asset_docs:
+            if isinstance(doc, io.ObjectId):
+                asset_ids = asset_docs
+            break
+
+        if asset_ids:
             # prepare filter query
             _filter = {"type": "asset", "_id": {"$in": asset_ids}}
 
             # find assets in db by query
-            assets = list(io.find(_filter))
-            db_assets_ids = [asset["_id"] for asset in assets]
+            asset_docs = list(io.find(_filter))
+            db_assets_ids = [asset["_id"] for asset in asset_docs]
 
             # check if all assets were found
             not_found = [
@@ -242,11 +245,11 @@ class TasksModel(TreeModel):
                 ", ".join(not_found)
             )
 
-        self._num_assets = len(assets)
+        self._num_assets = len(asset_docs)
 
         tasks = collections.Counter()
-        for asset in assets:
-            asset_tasks = asset.get("data", {}).get("tasks", [])
+        for asset_doc in asset_docs:
+            asset_tasks = asset_doc.get("data", {}).get("tasks", [])
             tasks.update(asset_tasks)
 
         self.clear()
