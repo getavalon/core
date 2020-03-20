@@ -152,7 +152,7 @@ class AssetWidget(QtWidgets.QWidget):
                 continue
 
             # Remove processed asset
-            assets.discard(assets.index(value))
+            assets.discard(value)
 
             selection_model.select(index, mode)
             if expand:
