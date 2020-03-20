@@ -127,13 +127,12 @@ class AssetWidget(QtWidgets.QWidget):
         It is assumed that each value in `assets` is found only once.
         On multiple matches only the first found will be selected.
         """
-        # TODO: Instead of individual selection optimize for many assets
 
         if not isinstance(assets, (tuple, list)):
             assets = [assets]
 
         # convert to list - tuple cant be modified
-        assets = list(assets)
+        assets = set(assets)
 
         # Clear selection
         selection_model = self.view.selectionModel()
@@ -153,7 +152,7 @@ class AssetWidget(QtWidgets.QWidget):
                 continue
 
             # Remove processed asset
-            assets.pop(assets.index(value))
+            assets.discard(assets.index(value))
 
             selection_model.select(index, mode)
             if expand:
