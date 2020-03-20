@@ -297,10 +297,7 @@ class TasksWidget(QtWidgets.QWidget):
 
     def set_asset(self, asset):
 
-        assets = []
-        if asset is not None:
-            # Asset deselected
-            assets.append(asset)
+        assets = [asset] if asset else []
 
         # Try and preserve the last selected task and reselect it
         # after switching assets. If there's no currently selected

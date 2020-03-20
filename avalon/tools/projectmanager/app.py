@@ -158,7 +158,9 @@ class Window(QtWidgets.QDialog):
                 _silo = parent["name"]
             else:
                 _parent_id = parent["_id"] if parent else None
-                _silo = parent.get("_document", {}).get("silo") if parent else None
+                _silo = None
+                if parent:
+                    _silo = parent.get("_document", {}).get("silo")
 
             dialog.set_parent(_parent_id)
             dialog.set_silo(_silo)

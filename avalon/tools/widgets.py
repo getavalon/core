@@ -88,12 +88,12 @@ class AssetWidget(QtWidgets.QWidget):
         self._refresh_model()
 
     def get_active_asset(self):
-        """Return the asset id the current asset."""
+        """Return the asset item of the current selection."""
         current = self.view.currentIndex()
         return current.data(self.model.ItemRole)
 
     def get_active_asset_document(self):
-        """Return the asset id the current asset."""
+        """Return the asset document of the current selection."""
         current = self.view.currentIndex()
         return current.data(self.model.DocumentRole)
 
@@ -122,11 +122,10 @@ class AssetWidget(QtWidgets.QWidget):
             None
 
         Default `key` is "name" in that case `assets` should contain single
-        asset name or list of asset names. (It is good idea to use "_id" key
-        instead of name in that case `assets` must contain `ObjectId` object/s)
-        It is expected that each value in `assets` will be found only once.
-        If the filters according to the `key` and `assets` correspond to
-        the more asset, only the first found will be selected.
+        asset name or list of asset names. It is recommended to use "_id" key
+        instead of name. In that case `assets` must contain `ObjectId` objects.
+        It is assumed that each value in `assets` is found only once.
+        On multiple matches only the first found will be selected.
         """
         # TODO: Instead of individual selection optimize for many assets
 
