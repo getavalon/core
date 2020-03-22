@@ -306,7 +306,7 @@ class TasksWidget(QtWidgets.QWidget):
         if current:
             self._last_selected_task = current
 
-        self.models["tasks"].set_assets(asset_entities=assets)
+        self.models["tasks"].set_assets(assets)
 
         if self._last_selected_task:
             self.select_task(self._last_selected_task)
