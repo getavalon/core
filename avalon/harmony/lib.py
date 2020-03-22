@@ -6,6 +6,8 @@ import zipfile
 import sys
 import importlib
 import queue
+import shutil
+import logging
 
 from .server import Server
 from ..vendor.Qt import QtWidgets
@@ -15,6 +17,11 @@ self.server = None
 self.pid = None
 self.application_path = None
 self.callback_queue = None
+self.workfile_path = None
+
+# Setup logging.
+self.log = logging.getLogger(__name__)
+self.log.setLevel(logging.DEBUG)
 
 
 def execute_in_main_thread(func_to_call_from_main_thread):
@@ -65,6 +72,31 @@ def launch(application_path, scene_path=None):
         self.callback_queue = queue.Queue()
         while True:
             main_thread_listen()
+
+
+def on_file_changed(path):
+    self.log.debug("File changed: " + path)
+
+    if self.workfile_path is None:
+        return
+
+    thread = threading.Thread(
+        target=zip_and_move, args=(os.path.dirname(path), self.workfile_path)
+    )
+    thread.start()
+
+
+def zip_and_move(source, destination):
+    """Zip a directory and move to `destination`
+
+    Args:
+        - source (str): Directory to zip and move to destination.
+        - destination (str): Destination file path to zip file.
+    """
+    os.chdir(os.path.dirname(source))
+    shutil.make_archive(os.path.basename(source), "zip", source)
+    shutil.move(os.path.basename(source) + ".zip", destination)
+    self.log.debug("Saved \"{}\" to \"{}\"".format(source, destination))
 
 
 def show(module_name):

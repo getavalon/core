@@ -31,10 +31,7 @@ def save_file(filepath):
         {"function": "scene.saveAs", "args": [temp_path]}
     )["result"]
 
-    os.chdir(os.path.dirname(temp_path))
-
-    shutil.make_archive(os.path.basename(temp_path), "zip", temp_path)
-    shutil.move(os.path.basename(temp_path) + ".zip", filepath)
+    lib.zip_and_move(temp_path, filepath)
 
 
 def open_file(filepath):
@@ -48,6 +45,9 @@ def open_file(filepath):
 
     # Stop server.
     lib.server.stop()
+
+    # Save workfile path for later.
+    lib.workfile_path = filepath
 
     # Launch new scene.
     scene_path = os.path.join(

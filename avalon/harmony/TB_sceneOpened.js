@@ -229,6 +229,27 @@ function start()
   }
   var action = menu.addAction("Manage...");
   action.triggered.connect(self.on_manage)
+
+  // Watch scene file for changes.
+  self.on_file_changed = function(path)
+  {
+    var app = QCoreApplication.instance();
+    app.avalon_client.send(
+      {
+        "module": "avalon.harmony.lib",
+        "method": "on_file_changed",
+        "args": [path]
+      },
+      false
+    );
+
+    app.watcher.addPath(path);
+  }
+
+	app.watcher = new QFileSystemWatcher();
+	scene_path = scene.currentProjectPath() +"/" + scene.currentVersionName() + ".xstage";
+	app.watcher.addPath(scene_path);
+	app.watcher.fileChanged.connect(on_file_changed);
 }
 
 function TB_sceneOpened()
