@@ -4,18 +4,18 @@ import logging
 from .. import models as tools_models
 from ..loader import model as loader_models
 from ..models import TreeModel, Item
-from ..loader.model import GroupMemberFilterProxyModel
 from . import lib
+from ...lib import MasterVersionType
 from ... import style
 
 from ...vendor import qtawesome
-from ...vendor.Qt import QtCore, QtGui
+from ...vendor.Qt import QtCore
 
 log = logging.getLogger(__name__)
 
 
 class TasksModel(tools_models.TasksModel):
-    """A model listing the tasks combined for a list of assets"""
+    """A model listing the tasks combined for a list of assets."""
 
     Columns = ["name", "count"]
 
@@ -37,14 +37,12 @@ class TasksModel(tools_models.TasksModel):
                 self._icons[task["name"]] = icon
 
     def set_assets(self, asset_ids=[], asset_entities=None):
-        """Set assets to track by their database id
+        """Set assets to track by their database id.
 
         Arguments:
             asset_ids (list): List of asset ids.
             asset_entities (list): List of asset entities from MongoDB.
-
         """
-
         assets = list()
         if asset_entities is not None:
             assets = asset_entities
@@ -59,7 +57,7 @@ class TasksModel(tools_models.TasksModel):
 
             # check if all assets were found
             not_found = [
-                str(a_id) for a_id in assets_ids if a_id not in db_assets_ids
+                str(a_id) for a_id in asset_ids if a_id not in db_assets_ids
             ]
 
             assert not not_found, "Assets not found by id: {0}".format(
@@ -170,11 +168,42 @@ class SubsetsModel(loader_models.SubsetsModel):
         if index.column() == self.Columns.index("version"):
             item = index.internalPointer()
             parent = item["_id"]
-            version = self.dbcon.find_one({
-                "name": value,
-                "type": "version",
-                "parent": parent
-            })
+            if isinstance(value, MasterVersionType):
+                versions = list(self.dbcon.find({
+                    "type": {"$in": ["version", "master_version"]},
+                    "parent": parent
+                }, sort=[("name", -1)]))
+
+                version = None
+                last_version = None
+                for __version in versions:
+                    if __version["type"] == "master_version":
+                        version = __version
+                    elif last_version is None:
+                        last_version = __version
+
+                    if version is not None and last_version is not None:
+                        break
+
+                _version = None
+                for __version in versions:
+                    if __version["_id"] == version["version_id"]:
+                        _version = __version
+                        break
+
+                version["data"] = _version["data"]
+                version["name"] = _version["name"]
+                version["is_from_latest"] = (
+                    last_version["_id"] == _version["_id"]
+                )
+
+            else:
+                version = self.dbcon.find_one({
+                    "name": value,
+                    "type": "version",
+                    "parent": parent
+                })
+
             self.set_version(index, version)
 
         # Use super of TreeModel not SubsetsModel from loader!!
@@ -240,8 +269,10 @@ class SubsetsModel(loader_models.SubsetsModel):
         family = families[0]
         family_config = lib.get_family_cached_config(family)
 
+        version_value = version["name"]
+
         item.update({
-            "version": version["name"],
+            "version": version_value,
             "version_document": version,
             "author": version_data.get("author", None),
             "time": version_data.get("time", None),
@@ -271,9 +302,10 @@ class SubsetsModel(loader_models.SubsetsModel):
             if result:
                 active_groups.extend(result)
 
-        parent_filter = [{"parent": asset_id} for asset_id in self._asset_ids]
         filtered_subsets = [
-            s for s in self.dbcon.find({"type": "subset", "$or": parent_filter})
+            sub for sub in self.dbcon.find({
+                "type": "subset", "parent": {"$in": self._asset_ids}
+            })
         ]
 
         asset_entities = {}
@@ -288,13 +320,33 @@ class SubsetsModel(loader_models.SubsetsModel):
                 "type": "version",
                 "parent": subset["_id"]
             }, sort=[("name", -1)])
+
+            master_version = self.dbcon.find_one({
+                "type": "master_version",
+                "parent": subset["_id"]
+            })
+            if master_version:
+                _version = self.dbcon.find_one({
+                    "_id": master_version["version_id"]
+                })
+                master_version["data"] = _version["data"]
+                master_version["name"] = MasterVersionType(_version["name"])
+                # Add information if master version is from latest version
+                is_from_latest = True
+                if last_version:
+                    is_from_latest = last_version["_id"] == _version["_id"]
+                master_version["is_from_latest"] = is_from_latest
+
+                last_versions[subset["_id"]] = master_version
+                continue
+
             # No published version for the subset
             last_versions[subset["_id"]] = last_version
 
         # Prepare data if is selected more than one asset
         process_only_single_asset = True
         merge_subsets = False
-        if len(parent_filter) >= 2:
+        if len(self._asset_ids) >= 2:
             process_only_single_asset = False
             all_subset_names = []
             multiple_asset_names = []
@@ -317,7 +369,7 @@ class SubsetsModel(loader_models.SubsetsModel):
         row = 0
         group_items = dict()
 
-         # When only one asset is selected
+        # When only one asset is selected
         if process_only_single_asset:
             if self._grouping:
                 # Generate subset group items
@@ -374,14 +426,13 @@ class SubsetsModel(loader_models.SubsetsModel):
                     single_asset_subsets.append(data)
 
             color_count = len(self.merged_subset_colors)
-            merged_names = {}
             subset_counter = 0
             total = len(multi_asset_subsets)
             str_order_temp = "%0{}d".format(len(str(total)))
 
             for subset_name, per_asset_data in multi_asset_subsets.items():
                 subset_color = self.merged_subset_colors[
-                    subset_counter%color_count
+                    subset_counter % color_count
                 ]
                 inverse_order = total - subset_counter
 
@@ -463,6 +514,7 @@ class SubsetsModel(loader_models.SubsetsModel):
             self.set_version(index, last_version)
 
         self.endResetModel()
+
 
 class FamiliesFilterProxyModel(loader_models.FamiliesFilterProxyModel):
     """Filters to specified families"""

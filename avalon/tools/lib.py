@@ -5,11 +5,19 @@ import contextlib
 from .. import io, api, style
 from ..vendor import qtawesome
 
-from ..vendor.Qt import QtWidgets, QtCore, QtGui
+from ..vendor.Qt import QtWidgets, QtCore
 
 self = sys.modules[__name__]
 self._jobs = dict()
 self._path = os.path.dirname(__file__)
+
+
+def format_version(value, master_version=False):
+    """Formats integer to displayable version name"""
+    label = "v{0:03d}".format(value)
+    if not master_version:
+        return label
+    return "[{}]".format(label)
 
 
 def resource(*path):

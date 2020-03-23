@@ -21,7 +21,7 @@ class AssetDelegate(QtWidgets.QItemDelegate):
         subset_colors = index.data(AssetModel.subsetColorsRole)
         subset_colors_width = 0
         if subset_colors:
-            subset_colors_width = option.rect.width()/len(subset_colors)
+            subset_colors_width = option.rect.width() / len(subset_colors)
 
         subset_rects = []
         counter = 0
@@ -33,7 +33,9 @@ class AssetDelegate(QtWidgets.QItemDelegate):
 
                 new_rect = QtCore.QRect(
                     option.rect.left() + (counter * subset_colors_width),
-                    option.rect.top() + (option.rect.height()-self.bar_height),
+                    option.rect.top() + (
+                        option.rect.height() - self.bar_height
+                    ),
                     subset_colors_width,
                     self.bar_height
                 )

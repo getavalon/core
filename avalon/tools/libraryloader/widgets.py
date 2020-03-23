@@ -1,7 +1,5 @@
 import datetime
-import pprint
 import logging
-import contextlib
 import inspect
 
 from ...vendor import qtawesome, Qt
@@ -9,6 +7,7 @@ from ...vendor.Qt import QtWidgets, QtCore
 from ... import style, api, pipeline
 from . import lib
 from .. import lib as tools_lib
+from ...lib import MasterVersionType
 
 from .. import widgets as tools_widgets
 from ..loader import widgets as loader_widgets
@@ -53,12 +52,6 @@ class SubsetWidget(loader_widgets.SubsetWidget):
         view = QtWidgets.QTreeView()
         view.setObjectName("SubsetView")
         view.setIndentation(20)
-        view.setStyleSheet("""
-            QTreeView::item{
-                padding: 5px 1px;
-                border: 0px;
-            }
-        """)
         view.setAllColumnsShowFocus(True)
 
         # Set view delegates
@@ -153,7 +146,8 @@ class SubsetWidget(loader_widgets.SubsetWidget):
                 continue
 
             elif item.get("isMerged"):
-                # TODO use `for` loop of index's rowCount instead of `while` loop
+                # TODO use `for` loop of index's rowCount
+                # - instead of `while` loop
                 idx = 0
                 while idx < 2000:
                     child_index = row_index.child(idx, 0)
@@ -255,7 +249,7 @@ class SubsetWidget(loader_widgets.SubsetWidget):
 
         else:
             def sorter(value):
-                """Sort the Loaders by their order and then their name"""
+                """Sort the Loaders by their order and then their name."""
                 Plugin = value[1]
                 return Plugin.order, Plugin.__name__
 
@@ -366,7 +360,8 @@ class SubsetWidget(loader_widgets.SubsetWidget):
 
 
 class VersionWidget(loader_widgets.VersionWidget):
-    """A Widget that display information about a specific version"""
+    """A Widget that display information about a specific version."""
+
     def __init__(self, dbcon, parent=None):
         super(loader_widgets.VersionWidget, self).__init__(parent=parent)
         self.dbcon = dbcon
@@ -390,13 +385,13 @@ class VersionTextEdit(loader_widgets.VersionTextEdit):
     to clipboard.
 
     """
+
     def __init__(self, dbcon, parent=None):
         self.dbcon = dbcon
         super(VersionTextEdit, self).__init__(parent=parent)
 
-    def set_version(self, version_id):
-
-        if not version_id:
+    def set_version(self, version_doc=None, version_id=None):
+        if not version_doc and not version_id:
             # Reset state to empty
             self.data = {
                 "source": None,
@@ -410,48 +405,69 @@ class VersionTextEdit(loader_widgets.VersionTextEdit):
 
         print("Querying..")
 
-        version = self.dbcon.find_one(
-            {"_id": version_id, "type": "version"}
-        )
-        assert version, "Not a valid version id"
+        if not version_doc:
+            version_doc = self.dbcon.find_one({
+                "_id": version_id,
+                "type": {"$in": ["version", "master_version"]}
+            })
+            assert version_doc, "Not a valid version id"
+
+        if version_doc["type"] == "master_version":
+            _version_doc = self.dbcon.find_one({
+                "_id": version_doc["version_id"],
+                "type": "version"
+            })
+            version_doc["data"] = _version_doc["data"]
+            version_doc["name"] = MasterVersionType(
+                _version_doc["name"]
+            )
 
         subset = self.dbcon.find_one(
-            {"_id": version["parent"], "type": "subset"}
+            {"_id": version_doc["parent"], "type": "subset"}
         )
         assert subset, "No valid subset parent for version"
 
         # Define readable creation timestamp
-        created = version["data"]["time"]
+        created = version_doc["data"]["time"]
         created = datetime.datetime.strptime(created, "%Y%m%dT%H%M%SZ")
         created = datetime.datetime.strftime(created, "%b %d %Y %H:%M")
 
-        comment = version["data"].get("comment", None) or "No comment"
+        comment = (version_doc["data"].get("comment") or "").strip() or (
+            "No comment"
+        )
 
-        source = version["data"].get("source", None)
+        source = version_doc["data"].get("source", None)
         source_label = source if source else "No source"
 
         # Store source and raw data
         self.data["source"] = source
-        self.data["raw"] = version
+        self.data["raw"] = version_doc
+
+        if version_doc["type"] == "master_version":
+            version_name = "Master"
+        else:
+            version_name = tools_lib.format_version(version_doc["name"])
 
         data = {
             "subset": subset["name"],
-            "version": version["name"],
+            "version": version_name,
             "comment": comment,
             "created": created,
             "source": source_label
         }
 
-        self.setHtml(u"""
-<h3>{subset} v{version:03d}</h3>
-<b>Comment</b><br>
-{comment}<br>
-<br>
-<b>Created</b><br>
-{created}<br>
-<br>
-<b>Source</b><br>
-{source}<br>""".format(**data))
+        self.setHtml((
+            "<h2>{subset}</h2>"
+            "<h3>{version}</h3>"
+            "<b>Comment</b><br>"
+            "{comment}<br><br>"
+
+            "<b>Created</b><br>"
+            "{created}<br><br>"
+
+            "<b>Source</b><br>"
+            "{source}"
+        ).format(**data))
 
     def on_copy_source(self):
         """Copy formatted source path to clipboard"""

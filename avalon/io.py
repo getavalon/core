@@ -420,6 +420,10 @@ def parenthood(document):
         if document is None:
             break
 
+        if document.get("type") == "master_version":
+            _document = self.find_one({"_id": document["version_id"]})
+            document["data"] = _document["data"]
+
         parents.append(document)
 
     return parents

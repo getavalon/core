@@ -1103,6 +1103,8 @@ QTableView::item:selected:active, QTreeView::item:selected:active, QListView::it
 #SubsetView:item {
     background: rgba(0, 0, 0, 0);
     color: #FFFFFF;
+    padding: 5px 1px;
+    border: 0px;
 }
 
 #SubsetView:item:selected {
