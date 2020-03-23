@@ -728,7 +728,7 @@ class FilesWidget(QtWidgets.QWidget):
                 continue
 
             modified = index.data(role)
-            if modified > highest:
+            if modified is not None and modified > highest:
                 highest_index = index
                 highest = modified
 

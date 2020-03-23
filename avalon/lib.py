@@ -8,6 +8,7 @@ import datetime
 import importlib
 import subprocess
 import types
+import numbers
 
 from . import schema
 from .vendor import six, toml
@@ -303,3 +304,22 @@ def find_submodule(module, submodule):
             log_.warning("Could not find '%s' in module: %s",
                          submodule,
                          module)
+
+
+class MasterVersionType(object):
+    def __init__(self, version):
+        assert isinstance(version, numbers.Integral), (
+            "Version is not an integer. \"{}\" {}".format(
+                version, str(type(version))
+            )
+        )
+        self.version = version
+
+    def __str__(self):
+        return str(self.version)
+
+    def __int__(self):
+        return int(self.version)
+
+    def __format__(self, format_spec):
+        return self.version.__format__(format_spec)

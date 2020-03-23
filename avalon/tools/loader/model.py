@@ -1,9 +1,10 @@
 from ... import io, style
-from ...vendor.Qt import QtCore
+from ...vendor.Qt import QtCore, QtGui
 from ...vendor import qtawesome
 
 from ..models import TreeModel, Item
 from .. import lib
+from ...lib import MasterVersionType
 
 
 def is_filtering_recursible():
@@ -57,6 +58,7 @@ class SubsetsModel(TreeModel):
         (0, 204, 106), # Dark Green
         (247, 99, 12), # Orange
     ]
+    not_last_master_brush = QtGui.QBrush(QtGui.QColor(254, 121, 121))
 
     def __init__(self, grouping=True, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
@@ -82,9 +84,41 @@ class SubsetsModel(TreeModel):
         if index.column() == self.Columns.index("version"):
             item = index.internalPointer()
             parent = item["_id"]
-            version = io.find_one({"name": value,
-                                   "type": "version",
-                                   "parent": parent})
+            if isinstance(value, MasterVersionType):
+                versions = list(io.find({
+                    "type": {"$in": ["version", "master_version"]},
+                    "parent": parent
+                }, sort=[("name", -1)]))
+
+                version = None
+                last_version = None
+                for __version in versions:
+                    if __version["type"] == "master_version":
+                        version = __version
+                    elif last_version is None:
+                        last_version = __version
+
+                    if version is not None and last_version is not None:
+                        break
+
+                _version = None
+                for __version in versions:
+                    if __version["_id"] == version["version_id"]:
+                        _version = __version
+                        break
+
+                version["data"] = _version["data"]
+                version["name"] = _version["name"]
+                version["is_from_latest"] = (
+                    last_version["_id"] == _version["_id"]
+                )
+
+            else:
+                version = io.find_one({
+                    "name": value,
+                    "type": "version",
+                    "parent": parent
+                })
             self.set_version(index, version)
 
         return super(SubsetsModel, self).setData(index, value, role)
@@ -195,6 +229,28 @@ class SubsetsModel(TreeModel):
                 "type": "version",
                 "parent": subset["_id"]
             }, sort=[("name", -1)])
+
+            master_version = io.find_one({
+                "type": "master_version",
+                "parent": subset["_id"]
+            })
+            if master_version:
+                _version = io.find_one({
+                    "_id": master_version["version_id"]
+                })
+                master_version["data"] = _version["data"]
+                master_version["name"] = MasterVersionType(
+                    _version["name"]
+                )
+                # Add information if master version is from latest version
+                is_from_latest = True
+                if last_version:
+                    is_from_latest = last_version["_id"] == _version["_id"]
+                master_version["is_from_latest"] = is_from_latest
+
+                last_versions[subset["_id"]] = master_version
+                continue
+
             # No published version for the subset
             last_versions[subset["_id"]] = last_version
 
@@ -224,7 +280,7 @@ class SubsetsModel(TreeModel):
         row = 0
         group_items = dict()
 
-         # When only one asset is selected
+        # When only one asset is selected
         if process_only_single_asset:
             if self._grouping:
                 # Generate subset group items
@@ -288,7 +344,7 @@ class SubsetsModel(TreeModel):
 
             for subset_name, per_asset_data in multi_asset_subsets.items():
                 subset_color = self.merged_subset_colors[
-                    subset_counter%color_count
+                    subset_counter % color_count
                 ]
                 inverse_order = total - subset_counter
 
@@ -376,13 +432,39 @@ class SubsetsModel(TreeModel):
         if not index.isValid():
             return
 
+        if role == self.SortDescendingRole:
+            item = index.internalPointer()
+            if item.get("isGroup") or item.get("isMerged"):
+                # Ensure groups be on top when sorting by descending order
+                prefix = "1"
+                order = item["inverseOrder"]
+            else:
+                prefix = "0"
+                order = str(super(SubsetsModel, self).data(
+                    index, QtCore.Qt.DisplayRole
+                ))
+            return prefix + order
+
+        if role == self.SortAscendingRole:
+            item = index.internalPointer()
+            if item.get("isGroup") or item.get("isMerged"):
+                # Ensure groups be on top when sorting by ascending order
+                prefix = "0"
+                order = item["order"]
+            else:
+                prefix = "1"
+                order = str(super(SubsetsModel, self).data(
+                    index, QtCore.Qt.DisplayRole
+                ))
+            return prefix + order
+
         if role == QtCore.Qt.DisplayRole:
             if index.column() == self.Columns.index("family"):
                 # Show familyLabel instead of family
                 item = index.internalPointer()
                 return item.get("familyLabel", None)
 
-        if role == QtCore.Qt.DecorationRole:
+        elif role == QtCore.Qt.DecorationRole:
 
             # Add icon to subset column
             if index.column() == self.Columns.index("subset"):
@@ -397,31 +479,12 @@ class SubsetsModel(TreeModel):
                 item = index.internalPointer()
                 return item.get("familyIcon", None)
 
-        if role == self.SortDescendingRole:
+        elif role == QtCore.Qt.ForegroundRole:
             item = index.internalPointer()
-            if item.get("isGroup") or item.get("isMerged"):
-                # Ensure groups be on top when sorting by descending order
-                prefix = "1"
-                order = item["inverseOrder"]
-            else:
-                prefix = "0"
-                order = str(
-                    super(SubsetsModel, self).data(index, QtCore.Qt.DisplayRole)
-                )
-            return prefix + order
-
-        if role == self.SortAscendingRole:
-            item = index.internalPointer()
-            if item.get("isGroup") or item.get("isMerged"):
-                # Ensure groups be on top when sorting by ascending order
-                prefix = "0"
-                order = item["order"]
-            else:
-                prefix = "1"
-                order = str(
-                    super(SubsetsModel, self).data(index, QtCore.Qt.DisplayRole)
-                )
-            return prefix + order
+            version_doc = item.get("version_document")
+            if version_doc and version_doc.get("type") == "master_version":
+                if not version_doc["is_from_latest"]:
+                    return self.not_last_master_brush
 
         return super(SubsetsModel, self).data(index, role)
 
