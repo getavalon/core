@@ -33,6 +33,23 @@ def save_file(filepath):
 
     lib.zip_and_move(temp_path, filepath)
 
+    lib.workfile_path = filepath
+
+    func = """function add_path(path)
+    {
+        var app = QCoreApplication.instance();
+        app.watcher.addPath(path);
+    }
+    add_path
+    """
+
+    scene_path = os.path.join(
+        temp_path, os.path.basename(temp_path) + ".xstage"
+    )
+    lib.server.send(
+        {"function": func, "args": [scene_path]}
+    )
+
 
 def open_file(filepath):
     temp_path = _get_temp_path(filepath)

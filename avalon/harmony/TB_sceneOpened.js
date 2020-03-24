@@ -232,7 +232,7 @@ function start()
   action.triggered.connect(self.on_manage)
 
   // Watch scene file for changes.
-  self.on_file_changed = function(path)
+  app.on_file_changed = function(path)
   {
     var app = QCoreApplication.instance();
     app.avalon_client.send(
@@ -250,7 +250,7 @@ function start()
 	app.watcher = new QFileSystemWatcher();
 	scene_path = scene.currentProjectPath() +"/" + scene.currentVersionName() + ".xstage";
 	app.watcher.addPath(scene_path);
-	app.watcher.fileChanged.connect(on_file_changed);
+	app.watcher.fileChanged.connect(app.on_file_changed);
 }
 
 function TB_sceneOpened()
