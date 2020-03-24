@@ -6,11 +6,15 @@ Anything that isn't defined here is INTERNAL and unreliable for external use.
 
 from .pipeline import (
     ls,
-    install
+    install,
+    Creator
 )
 
 from .lib import (
-    launch
+    launch,
+    maintained_selection,
+    imprint,
+    read
 )
 
 from .workio import (
@@ -27,9 +31,13 @@ __all__ = [
     # pipeline
     "ls",
     "install",
+    "Creator",
 
     # lib
-    "launch"
+    "launch",
+    "maintained_selection",
+    "imprint",
+    "read",
 
     # Workfiles API
     "open_file",

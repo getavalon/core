@@ -33,6 +33,7 @@ function Client()
 
   self.process_request = function(request)
   {
+    self.log_debug("Processing: " + JSON.stringify(request))
     var result = null;
 
     if (request["function"] != null)

@@ -8,6 +8,8 @@ import importlib
 import queue
 import shutil
 import logging
+import contextlib
+import json
 
 from .server import Server
 from ..vendor.Qt import QtWidgets
@@ -122,3 +124,75 @@ def show(module_name):
         return
 
     app.exec_()
+
+
+def read(node):
+    func = """function read(node_path)
+    {
+        return node.getTextAttr(node_path, 1.0, "avalon");
+    }
+    read
+    """
+    try:
+        return json.loads(
+            self.server.send({"function": func, "args": [node]})["result"]
+        )
+    except json.decoder.JSONDecodeError:
+        return {}
+
+
+def imprint(node, data):
+    node_data = read(node)
+    node_data.update(data)
+
+    func = """function imprint(args)
+    {
+        var node_path = args[0];
+        var data = args[1];
+        node.createDynamicAttr(
+            node_path, "STRING", "avalon", "Avalon Metadata", false
+        );
+        node.setTextAttr(
+            node_path,
+            "avalon",
+            1.0,
+            JSON.stringify(data)
+        );
+    }
+    imprint
+    """
+    self.server.send({"function": func, "args": [node, node_data]})
+
+
+@contextlib.contextmanager
+def maintained_selection():
+    func = """function get_selection_nodes()
+    {
+        var selection_length = selection.numberOfNodesSelected();
+        var selected_nodes = [];
+        for (var i = 0 ; i < selection_length; i++)
+        {
+            selected_nodes.push(selection.selectedNode(i));
+        }
+        return selected_nodes
+    }
+    get_selection_nodes
+    """
+    selected_nodes = self.server.send({"function": func})["result"]
+
+    func = """function select_nodes(node_paths)
+    {
+        selection.clearSelection();
+        for (var i = 0 ; i < node_paths.length; i++)
+        {
+            selection.addNodeToSelection(node_paths[i]);
+        }
+    }
+    select_nodes
+    """
+    try:
+        yield selected_nodes
+    finally:
+        selected_nodes = self.server.send(
+            {"function": func, "args": selected_nodes}
+        )
