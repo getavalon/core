@@ -14,7 +14,8 @@ from .lib import (
     launch,
     maintained_selection,
     imprint,
-    read
+    read,
+    send
 )
 
 from .workio import (
@@ -25,7 +26,6 @@ from .workio import (
     file_extensions,
     work_root
 )
-
 
 __all__ = [
     # pipeline
@@ -38,6 +38,7 @@ __all__ = [
     "maintained_selection",
     "imprint",
     "read",
+    "send",
 
     # Workfiles API
     "open_file",

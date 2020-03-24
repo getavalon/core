@@ -44,6 +44,7 @@ def launch(application_path, scene_path=None):
 
     port = random.randrange(5000, 6000)
     os.environ["AVALON_HARMONY_PORT"] = str(port)
+    self.application_path = application_path
 
     # Launch Harmony.
     os.environ["TOONBOOM_GLOBAL_SCRIPT_LOCATION"] = os.path.dirname(__file__)
@@ -62,7 +63,6 @@ def launch(application_path, scene_path=None):
     process = subprocess.Popen([application_path, path])
 
     self.pid = process.pid
-    self.application_path = application_path
 
     # Launch Avalon server.
     self.server = Server(port)
@@ -196,3 +196,7 @@ def maintained_selection():
         selected_nodes = self.server.send(
             {"function": func, "args": selected_nodes}
         )
+
+
+def send(request):
+    return self.server.send(request)
