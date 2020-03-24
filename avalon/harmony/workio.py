@@ -18,7 +18,10 @@ def file_extensions():
 
 
 def has_unsaved_changes():
-    return lib.server.send({"function": "scene.isDirty"})["result"]
+    if lib.server:
+        return lib.server.send({"function": "scene.isDirty"})["result"]
+
+    return False
 
 
 def save_file(filepath):
@@ -58,13 +61,18 @@ def open_file(filepath):
         zip_ref.extractall(temp_path)
 
     # Close existing scene.
-    os.kill(lib.pid, signal.SIGTERM)
+    if lib.pid:
+        os.kill(lib.pid, signal.SIGTERM)
 
     # Stop server.
-    lib.server.stop()
+    if lib.server:
+        lib.server.stop()
 
     # Save workfile path for later.
     lib.workfile_path = filepath
+
+    # Disable workfiles on launch.
+    os.environ["AVALON_HARMONY_WORKFILES_ON_LAUNCH"] = "0"
 
     # Launch new scene.
     scene_path = os.path.join(

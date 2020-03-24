@@ -251,6 +251,20 @@ function start()
 	scene_path = scene.currentProjectPath() +"/" + scene.currentVersionName() + ".xstage";
 	app.watcher.addPath(scene_path);
 	app.watcher.fileChanged.connect(app.on_file_changed);
+
+  // Open Workfiles if requested.
+  var show_workfiles = parseInt(System.getenv("AVALON_HARMONY_WORKFILES_ON_LAUNCH"));
+  if (show_workfiles)
+  {
+    app.avalon_client.send(
+        {
+          "module": "avalon.harmony.lib",
+          "method": "show",
+          "args": ["avalon.tools.workfiles"]
+        },
+        false
+    );
+  }
 }
 
 function TB_sceneOpened()
