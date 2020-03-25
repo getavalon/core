@@ -62,6 +62,8 @@ ZXPSignCmd -sign {path to avalon-core}\avalon\photoshop\extension {path to avalo
 
 ### Plugin Examples
 
+These plugins were made with the [polly config](https://github.com/mindbender-studio/config). To fully integrate and load, you will have to use this config and add `image` to the [integration plugin](https://github.com/mindbender-studio/config/blob/master/polly/plugins/publish/integrate_asset.py).
+
 #### Creator Plugin
 ```python
 from avalon import photoshop
