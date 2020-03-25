@@ -3,7 +3,7 @@ import logging
 import collections
 
 from ..vendor.Qt import QtCore, QtGui
-from ..vendor import qtawesome
+from ..vendor import Qt, qtawesome
 from .. import io
 from .. import style
 
@@ -69,7 +69,10 @@ class TreeModel(QtCore.QAbstractItemModel):
                 item[key] = value
 
                 # passing `list()` for PyQt5 (see PYSIDE-462)
-                self.dataChanged.emit(index, index, list())
+                if Qt.__binding__ in ("PyQt4", "PySide"):
+                    self.dataChanged.emit(index, index)
+                else:
+                    self.dataChanged.emit(index, index, [role])
 
                 # must return true if successful
                 return True
@@ -232,17 +235,18 @@ class TasksModel(TreeModel):
         assets = list()
         if asset_entities is not None:
             assets = asset_entities
-        elif asset_ids:
+        else:
             # prepare filter query
-            _filter = {"type": "asset", "_id": {"$in": asset_ids}}
+            or_query = [{"_id": asset_id} for asset_id in asset_ids]
+            _filter = {"type": "asset", "$or": or_query}
 
             # find assets in db by query
-            assets = list(io.find(_filter))
+            assets = [asset for asset in io.find_one(_filter)]
             db_assets_ids = [asset["_id"] for asset in assets]
 
             # check if all assets were found
             not_found = [
-                str(a_id) for a_id in asset_ids if a_id not in db_assets_ids
+                str(a_id) for a_id in assets_ids if a_id not in db_assets_ids
             ]
 
             assert not not_found, "Assets not found by id: {0}".format(
@@ -292,9 +296,7 @@ class TasksModel(TreeModel):
         # it is listing the tasks for
         if role == QtCore.Qt.DisplayRole:
             if orientation == QtCore.Qt.Horizontal:
-                if section == 0:
-                    return "Tasks"
-                elif section == 1:  # count column
+                if section == 1:  # count column
                     return "count ({0})".format(self._num_assets)
 
         return super(TasksModel, self).headerData(section, orientation, role)
@@ -439,7 +441,10 @@ class AssetModel(TreeModel):
             self.asset_colors[asset_id] = value
 
             # passing `list()` for PyQt5 (see PYSIDE-462)
-            self.dataChanged.emit(index, index, list())
+            if Qt.__binding__ in ("PyQt4", "PySide"):
+                self.dataChanged.emit(index, index)
+            else:
+                self.dataChanged.emit(index, index, [role])
 
             return True
 
