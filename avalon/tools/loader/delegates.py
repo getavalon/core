@@ -22,7 +22,7 @@ class AssetDelegate(QtWidgets.QItemDelegate):
         # Qt4 compat
         if Qt.__binding__ in ("PySide", "PyQt4"):
             option = QStyleOptionViewItemV4(option)
-            
+
         painter.save()
 
         item_rect = QtCore.QRect(option.rect)
