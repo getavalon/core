@@ -235,13 +235,12 @@ class TasksModel(TreeModel):
         assets = list()
         if asset_entities is not None:
             assets = asset_entities
-        else:
+        elif asset_ids:
             # prepare filter query
-            or_query = [{"_id": asset_id} for asset_id in asset_ids]
-            _filter = {"type": "asset", "$or": or_query}
+            _filter = {"type": "asset", "_id": {"$in": asset_ids}}
 
             # find assets in db by query
-            assets = [asset for asset in io.find_one(_filter)]
+            assets = list(io.find(_filter))
             db_assets_ids = [asset["_id"] for asset in assets]
 
             # check if all assets were found
@@ -296,7 +295,9 @@ class TasksModel(TreeModel):
         # it is listing the tasks for
         if role == QtCore.Qt.DisplayRole:
             if orientation == QtCore.Qt.Horizontal:
-                if section == 1:  # count column
+                if section == 0:
+                    return "Tasks"
+                elif section == 1:  # count column
                     return "count ({0})".format(self._num_assets)
 
         return super(TasksModel, self).headerData(section, orientation, role)
