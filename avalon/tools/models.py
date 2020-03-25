@@ -246,7 +246,7 @@ class TasksModel(TreeModel):
 
             # check if all assets were found
             not_found = [
-                str(a_id) for a_id in assets_ids if a_id not in db_assets_ids
+                str(a_id) for a_id in asset_ids if a_id not in db_assets_ids
             ]
 
             assert not not_found, "Assets not found by id: {0}".format(
