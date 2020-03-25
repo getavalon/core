@@ -135,7 +135,7 @@ def read(node):
     """
     try:
         return json.loads(
-            self.server.send({"function": func, "args": [node]})["result"]
+            self.send({"function": func, "args": [node]})["result"]
         )
     except json.decoder.JSONDecodeError:
         return {}
@@ -161,7 +161,7 @@ def imprint(node, data):
     }
     imprint
     """
-    self.server.send({"function": func, "args": [node, node_data]})
+    self.send({"function": func, "args": [node, node_data]})
 
 
 @contextlib.contextmanager
@@ -178,7 +178,7 @@ def maintained_selection():
     }
     get_selection_nodes
     """
-    selected_nodes = self.server.send({"function": func})["result"]
+    selected_nodes = self.send({"function": func})["result"]
 
     func = """function select_nodes(node_paths)
     {
@@ -193,10 +193,52 @@ def maintained_selection():
     try:
         yield selected_nodes
     finally:
-        selected_nodes = self.server.send(
+        selected_nodes = self.send(
             {"function": func, "args": selected_nodes}
         )
 
 
 def send(request):
     return self.server.send(request)
+
+
+@contextlib.contextmanager
+def maintained_nodes_state(nodes):
+    # Collect current state.
+    states = []
+    for node in nodes:
+        states.append(
+            self.send(
+                {"function": "node.getEnable", "args": [node]}
+            )["result"]
+        )
+
+    # Disable all nodes.
+    func = """function func(nodes)
+    {
+        for (var i = 0 ; i < nodes.length; i++)
+        {
+            node.setEnable(nodes[i], false);
+        }
+    }
+    func
+    """
+    self.send({"function": func, "args": [nodes]})
+
+    # Restore state after yield.
+    func = """function func(args)
+    {
+        var nodes = args[0];
+        var states = args[1];
+        for (var i = 0 ; i < nodes.length; i++)
+        {
+            node.setEnable(nodes[i], states[i]);
+        }
+    }
+    func
+    """
+
+    try:
+        yield
+    finally:
+        self.send({"function": func, "args": [nodes, states]})

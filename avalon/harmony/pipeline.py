@@ -90,7 +90,6 @@ class Creator(api.Creator):
                     }
                 )["result"]
 
-            data = {"str": "someting", "int": 1, "float": 0.32, "bool": True}
-            lib.imprint(composite, data)
+            lib.imprint(composite, self.data)
 
         return composite
