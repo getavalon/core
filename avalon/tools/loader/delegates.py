@@ -1,5 +1,11 @@
+from ...vendor import Qt
 from ...vendor.Qt import QtWidgets, QtGui, QtCore
 from ..models import AssetModel
+
+if Qt.__binding__ == "PySide":
+    from PySide.QtGui import QStyleOptionViewItemV4
+elif Qt.__binding__ == "PyQt4":
+    from PyQt4.QtGui import QStyleOptionViewItemV4
 
 
 class AssetDelegate(QtWidgets.QItemDelegate):
@@ -13,6 +19,10 @@ class AssetDelegate(QtWidgets.QItemDelegate):
         return result
 
     def paint(self, painter, option, index):
+        # Qt4 compat
+        if Qt.__binding__ in ("PySide", "PyQt4"):
+            option = QStyleOptionViewItemV4(option)
+            
         painter.save()
 
         item_rect = QtCore.QRect(option.rect)
