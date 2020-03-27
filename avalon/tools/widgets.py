@@ -120,6 +120,11 @@ class AssetWidget(QtWidgets.QWidget):
         current = self.view.currentIndex()
         return current.data(self.model.ObjectIdRole)
 
+    def get_active_asset_document(self):
+        """Return the asset id the current asset."""
+        current = self.view.currentIndex()
+        return current.data(self.model.DocumentRole)
+
     def get_active_index(self):
         return self.view.currentIndex()
 
@@ -442,10 +447,13 @@ class OptionalActionWidget(QtWidgets.QWidget):
         layout.addWidget(option)
 
         body.setMouseTracking(True)
+        label.setMouseTracking(True)
+        option.setMouseTracking(True)
         self.setMouseTracking(True)
         self.setFixedHeight(32)
 
         self.icon = icon
+        self.label = label
         self.option = option
         self.body = body
 
@@ -458,7 +466,7 @@ class OptionalActionWidget(QtWidgets.QWidget):
         self.icon.setPixmap(pixmap)
 
 
-class OptionBox(QtWidgets.QWidget):
+class OptionBox(QtWidgets.QLabel):
     """Option box widget class for `OptionalActionWidget`"""
 
     clicked = QtCore.Signal()
@@ -466,19 +474,12 @@ class OptionBox(QtWidgets.QWidget):
     def __init__(self, parent):
         super(OptionBox, self).__init__(parent)
 
-        label = QtWidgets.QLabel()
-
-        layout = QtWidgets.QHBoxLayout(self)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addSpacing(8)
-        layout.addWidget(label)
+        self.setAlignment(QtCore.Qt.AlignCenter)
 
         icon = qtawesome.icon("fa.sticky-note-o", color="#c6c6c6")
         pixmap = icon.pixmap(18, 18)
-        label.setPixmap(pixmap)
+        self.setPixmap(pixmap)
 
-        label.setMouseTracking(True)
-        self.setMouseTracking(True)
         self.setStyleSheet("background: transparent;")
 
     def is_hovered(self, global_pos):

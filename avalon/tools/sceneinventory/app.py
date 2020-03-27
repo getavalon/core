@@ -250,7 +250,9 @@ class View(QtWidgets.QTreeView):
             name = node.get("objectName")
             if name in object_names:
                 self.scrollTo(item)  # Ensure item is visible
-                selection_model.select(item, select_mode)
+                flags = select_mode | selection_model.Rows
+                selection_model.select(item, flags)
+
                 object_names.remove(name)
 
             if len(object_names) == 0:
@@ -898,6 +900,16 @@ class Window(QtWidgets.QDialog):
         self.view.setColumnWidth(4, 100)  # namespace
 
         tools_lib.refresh_family_config_cache()
+
+    def keyPressEvent(self, event):
+        """Custom keyPressEvent.
+
+        Override keyPressEvent to do nothing so that Maya's panels won't
+        take focus when pressing "SHIFT" whilst mouse is over viewport or
+        outliner. This way users don't accidently perform Maya commands
+        whilst trying to name an instance.
+
+        """
 
     def refresh(self):
         with tools_lib.preserve_expanded_rows(tree_view=self.view,
