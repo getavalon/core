@@ -4,7 +4,6 @@ import json
 import traceback
 import importlib
 import functools
-import sys
 
 from . import lib
 
@@ -57,6 +56,12 @@ class Server(object):
             self.log.error(traceback.format_exc())
 
     def receive(self):
+        """Receives data from `self.connection`.
+
+        When the data is a json serializable string, a reply is sent then
+        processing of the request.
+        """
+
         while True:
             # Receive the data in small chunks and retransmit it
             request = None
@@ -81,16 +86,21 @@ class Server(object):
             if request is None:
                 break
 
+            self.received = ""
+
             self.log.debug("Request: {}".format(request))
             if "reply" not in request.keys():
                 request["reply"] = True
                 self._send(json.dumps(request))
 
-            self.received = ""
-
-            self.process_request(request)
+                self.process_request(request)
 
     def start(self):
+        """Entry method for server.
+
+        Waits for a connection on `self.port` before going into listen mode.
+        """
+
         # Wait for a connection
         self.log.debug("Waiting for a connection.")
         self.connection, client_address = self.socket.accept()
@@ -113,6 +123,12 @@ class Server(object):
         self.socket.close()
 
     def _send(self, message):
+        """Send a message to Harmony.
+
+        Args:
+            message (str): Data to send to Harmony.
+        """
+
         # Wait for a connection.
         while not self.connection:
             pass
@@ -121,6 +137,13 @@ class Server(object):
         self.connection.sendall(message.encode("utf-8"))
 
     def send(self, request):
+        """Send a request in dictionary to Harmony.
+
+        Waits for a reply from Harmony.
+
+        Args:
+            request (dict): Data to send to Harmony.
+        """
         self._send(json.dumps(request))
 
         result = None

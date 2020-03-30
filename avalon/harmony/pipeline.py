@@ -6,9 +6,9 @@ import pyblish.api
 
 
 def install():
-    """Install Photoshop-specific functionality of avalon-core.
+    """Install Harmony-specific functionality of avalon-core.
 
-    This function is called automatically on calling `api.install(photoshop)`.
+    This function is called automatically on calling `api.install(harmony)`.
     """
     print("Installing Avalon Harmony...")
     pyblish.api.register_host("harmony")

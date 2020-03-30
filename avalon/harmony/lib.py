@@ -37,6 +37,10 @@ def main_thread_listen():
 
 def launch(application_path, scene_path=None):
     """Setup for Harmony launch.
+
+    Launches Harmony and the server, then starts listening on the main thread
+    for callbacks from the server. This is to have Qt applications run in the
+    main thread.
     """
     from avalon import api, harmony
 
@@ -77,6 +81,11 @@ def launch(application_path, scene_path=None):
 
 
 def on_file_changed(path):
+    """Threaded zipping and move of the project directory.
+
+    This method is called when the `.xstage` file is changed.
+    """
+
     self.log.debug("File changed: " + path)
 
     if self.workfile_path is None:
@@ -127,6 +136,15 @@ def show(module_name):
 
 
 def read(node):
+    """Read the node metadata in to a dictionary.
+
+    Args:
+        node (str): Path to node.
+
+    Returns:
+        dict
+    """
+
     func = """function read(node_path)
     {
         return node.getTextAttr(node_path, 1.0, "avalon");
@@ -142,6 +160,19 @@ def read(node):
 
 
 def imprint(node, data):
+    """Write `data` to the `node` as json.
+
+    Arguments:
+        node (str): Path to node.
+        data (dict): Dictionary of key/value pairs.
+
+    Example:
+        >>> from avalon.harmony import lib
+        >>> node = "Top/Display"
+        >>> data = {"str": "someting", "int": 1, "float": 0.32, "bool": True}
+        >>> lib.imprint(layer, data)
+    """
+
     node_data = read(node)
     node_data.update(data)
 
@@ -166,6 +197,8 @@ def imprint(node, data):
 
 @contextlib.contextmanager
 def maintained_selection():
+    """Maintain selection during context."""
+
     func = """function get_selection_nodes()
     {
         var selection_length = selection.numberOfNodesSelected();
@@ -199,11 +232,13 @@ def maintained_selection():
 
 
 def send(request):
+    """Public method for sending requests to Harmony."""
     return self.server.send(request)
 
 
 @contextlib.contextmanager
 def maintained_nodes_state(nodes):
+    """Maintain nodes states during context."""
     # Collect current state.
     states = []
     for node in nodes:
