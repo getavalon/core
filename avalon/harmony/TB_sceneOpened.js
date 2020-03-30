@@ -8,32 +8,32 @@ function Client()
   {
       message = typeof(data.message) != "undefined" ? data.message : data;
       MessageLog.trace("(DEBUG): " + message.toString());
-  }
+  };
 
 
   self.log_info = function(data)
   {
       message = typeof(data.message) != "undefined" ? data.message : data;
       MessageLog.trace("(INFO): " + message.toString());
-  }
+  };
 
 
   self.log_warning = function(data)
   {
       message = typeof(data.message) != "undefined" ? data.message : data;
       MessageLog.trace("(WARNING): " + message.toString());
-  }
+  };
 
 
   self.log_error = function(data)
   {
       message = typeof(data.message) != "undefined" ? data.message : data;
       MessageLog.trace("(ERROR): " + message.toString());
-  }
+  };
 
   self.process_request = function(request)
   {
-    self.log_debug("Processing: " + JSON.stringify(request))
+    self.log_debug("Processing: " + JSON.stringify(request));
     var result = null;
 
     if (request["function"] != null)
