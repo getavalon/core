@@ -42,28 +42,28 @@ function Client()
       {
         var func = eval(request["function"]);
 
-        if (request["args"] == null)
+        if (request.args == null)
         {
-          var result = func();
+          result = func();
         }else
         {
-          var result = func(request["args"]);
+          result = func(request.args);
         }
       }
 
       catch (error)
       {
-        var result = "Error processing request.\nRequest:\n" + JSON.stringify(request) + "\nError:\n" + error;
+        result = "Error processing request.\nRequest:\n" + JSON.stringify(request) + "\nError:\n" + error;
       }
     }
 
     return result;
-  }
+  };
 
   self.on_ready_read = function()
   {
     self.log_debug("Receiving data...");
-    data = self.socket.readAll()
+    data = self.socket.readAll();
 
     if (data.size() != 0)
     {
@@ -80,20 +80,20 @@ function Client()
 
     request.result = self.process_request(request);
 
-    if (!request["reply"])
+    if (!request.reply)
     {
       request.reply = true;
       self._send(JSON.stringify(request));
     }
 
     self.received = "";
-  }
+  };
 
   self.on_connected = function()
   {
     self.log_debug("Connected to server.");
     self.socket.readyRead.connect(self.on_ready_read);
-  }
+  };
 
   self._send = function(message)
   {
@@ -107,7 +107,7 @@ function Client()
     outstr.writeInt(data.size() - 4);
     var codec = QTextCodec.codecForUtfText(data);
     self.socket.write(codec.fromUnicode(message));
-  }
+  };
 
   self.send = function(request, wait)
   {
@@ -127,17 +127,17 @@ function Client()
     }
 
     self.received = "";
-  }
+  };
 
   self.on_disconnected = function()
   {
     self.socket.close();
-  }
+  };
 
   self.disconnect = function()
   {
-    self.socket.close()
-  }
+    self.socket.close();
+  };
 
   self.socket.connected.connect(self.on_connected);
   self.socket.disconnected.connect(self.on_disconnected);
@@ -171,7 +171,7 @@ function start()
       },
       false
     );
-  }
+  };
   var action = menu.addAction("Create...");
   action.triggered.connect(self.on_creator)
 
