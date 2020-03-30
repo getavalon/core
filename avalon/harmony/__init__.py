@@ -40,7 +40,7 @@ __all__ = [
     "imprint",
     "read",
     "send",
-    "maintained_nodes_state"
+    "maintained_nodes_state",
 
     # Workfiles API
     "open_file",

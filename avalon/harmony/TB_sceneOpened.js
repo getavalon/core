@@ -229,7 +229,7 @@ function start()
     );
   }
   var action = menu.addAction("Manage...");
-  action.triggered.connect(self.on_manage)
+  action.triggered.connect(self.on_manage);
 
   // Watch scene file for changes.
   app.on_file_changed = function(path)
