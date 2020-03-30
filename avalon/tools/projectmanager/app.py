@@ -247,8 +247,8 @@ def show(root=None, debug=False, parent=None):
 
     with tools_lib.application():
         window = Window(parent=parent)
-        window.setStyleSheet(style.load_stylesheet())
         window.show()
+        window.setStyleSheet(style.load_stylesheet())
         window.refresh()
 
         module.window = window

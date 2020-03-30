@@ -39,9 +39,9 @@ class Window(QtWidgets.QDialog):
 
         container = QtWidgets.QWidget()
 
-        assets = AssetWidget(parent=self)
+        assets = AssetWidget()
         families = FamilyListWidget()
-        subsets = SubsetWidget(parent=self)
+        subsets = SubsetWidget()
         version = VersionWidget()
 
         # Create splitter to show / hide family filters
@@ -425,8 +425,8 @@ def show(debug=False, parent=None, use_context=False):
         lib.refresh_group_config_cache()
 
         window = Window(parent)
-        window.setStyleSheet(style.load_stylesheet())
         window.show()
+        window.setStyleSheet(style.load_stylesheet())
 
         if use_context:
             context = {"asset": api.Session["AVALON_ASSET"]}

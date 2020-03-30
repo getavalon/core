@@ -746,7 +746,7 @@ class Window(QtWidgets.QMainWindow):
         widgets = {
             "pages": QtWidgets.QStackedWidget(),
             "body": QtWidgets.QWidget(),
-            "assets": AssetWidget(parent=self),
+            "assets": AssetWidget(),
             "tasks": TasksWidget(),
             "files": FilesWidget()
         }
