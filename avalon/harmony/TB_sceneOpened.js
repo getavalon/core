@@ -173,7 +173,7 @@ function start()
     );
   };
   var action = menu.addAction("Create...");
-  action.triggered.connect(self.on_creator)
+  action.triggered.connect(self.on_creator);
 
   self.on_workfiles = function()
   {
@@ -185,9 +185,9 @@ function start()
       },
       false
     );
-  }
-  var action = menu.addAction("Workfiles");
-  action.triggered.connect(self.on_workfiles)
+  };
+  action = menu.addAction("Workfiles");
+  action.triggered.connect(self.on_workfiles);
 
   self.on_load = function()
   {
@@ -199,9 +199,9 @@ function start()
         },
         false
     );
-  }
-  var action = menu.addAction("Load...");
-  action.triggered.connect(self.on_load)
+  };
+  action = menu.addAction("Load...");
+  action.triggered.connect(self.on_load);
 
   self.on_publish = function()
   {
@@ -213,9 +213,9 @@ function start()
         },
         false
     );
-  }
-  var action = menu.addAction("Publish...");
-  action.triggered.connect(self.on_publish)
+  };
+  action = menu.addAction("Publish...");
+  action.triggered.connect(self.on_publish);
 
   self.on_manage = function()
   {
@@ -227,8 +227,8 @@ function start()
         },
         false
     );
-  }
-  var action = menu.addAction("Manage...");
+  };
+  action = menu.addAction("Manage...");
   action.triggered.connect(self.on_manage);
 
   // Watch scene file for changes.
@@ -245,7 +245,7 @@ function start()
     );
 
     app.watcher.addPath(path);
-  }
+  };
 
 	app.watcher = new QFileSystemWatcher();
 	scene_path = scene.currentProjectPath() +"/" + scene.currentVersionName() + ".xstage";
