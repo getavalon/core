@@ -7,7 +7,8 @@ Anything that isn't defined here is INTERNAL and unreliable for external use.
 from .pipeline import (
     ls,
     install,
-    Creator
+    Creator,
+    containerise
 )
 
 from .lib import (
@@ -33,6 +34,7 @@ __all__ = [
     "ls",
     "install",
     "Creator",
+    "containerise",
 
     # lib
     "launch",
