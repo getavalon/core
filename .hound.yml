@@ -7,5 +7,5 @@ flake8:
 
 fail_on_violations: true
 
-jshint:
-  config_file: .jshintrc
+eslint:
+  config_file: .eslintrc
