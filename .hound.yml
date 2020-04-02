@@ -8,4 +8,4 @@ flake8:
 fail_on_violations: true
 
 eslint:
-  config_file: .eslintrc
+  enabled: false
