@@ -6,3 +6,6 @@ flake8:
   config_file: .flake8
 
 fail_on_violations: true
+
+jshint:
+  config_file: .jshintrc
