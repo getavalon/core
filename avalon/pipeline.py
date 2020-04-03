@@ -993,7 +993,7 @@ def compute_session_changes(session, task=None, asset=None, app=None):
     if "AVALON_ASSET" in changes:
 
         # Update silo
-        changes["AVALON_SILO"] = asset_document.get("silo") or ""
+        changes["AVALON_SILO"] = asset_document.get("silo")
 
         # Update hierarchy
         parents = asset_document['data'].get('parents', [])
@@ -1033,11 +1033,14 @@ def update_current_task(task=None, asset=None, app=None):
                                       asset=asset,
                                       app=app)
 
-    # Update the full session in one go to avoid half updates
-    Session.update(changes)
-
-    # Update the environment
-    os.environ.update(changes)
+    # Update the Session and environments. Pop from environments all keys with
+    # value set to None.
+    for key, value in changes.items():
+        Session[key] = value
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
 
     # Emit session change
     emit("taskChanged", changes.copy())
