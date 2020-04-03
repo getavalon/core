@@ -118,7 +118,7 @@ class Window(QtWidgets.QDialog):
 
         # Get parent asset (active index in selection)
         model = self.data["model"]["assets"]
-        parent = model.get_active_asset_document()
+        parent = model.get_active_asset()
 
         if parent and parent["type"] == "silo":
             parent_id = None
@@ -131,7 +131,9 @@ class Window(QtWidgets.QDialog):
             is_silo_required=self.is_silo_project, parent=self
         )
         if self.is_silo_project:
-            dialog.set_silo_input_enable(silo is None)
+            dialog.set_silo_input_enable(
+                parent_id is None or silo is None
+            )
 
         def _on_asset_created(data):
             """Callback whenever asset gets created"""
@@ -165,7 +167,9 @@ class Window(QtWidgets.QDialog):
             dialog.set_parent(_parent_id)
             dialog.set_silo(_silo)
             if self.is_silo_project:
-                dialog.set_silo_input_enable(_silo is None)
+                dialog.set_silo_input_enable(
+                    _parent_id is None or _silo is None
+                )
 
         # Set initial values
         dialog.set_parent(parent_id)
