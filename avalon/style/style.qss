@@ -920,6 +920,7 @@ QTreeView, QListView
 {
     border: 1px solid #444;
     background-color: #201F1F;
+    selection-background-color: rgba(0, 0, 0, 0);
 }
 
 QTreeView:branch:selected, QTreeView:branch:hover
@@ -1097,9 +1098,37 @@ QTableView::item:pressed, QListView::item:pressed, QTreeView::item:pressed  {
 
 QTableView::item:selected:active, QTreeView::item:selected:active, QListView::item:selected:active  {
     background: #3d8ec9;
+}
+
+#SubsetView:item {
+    background: rgba(0, 0, 0, 0);
+    color: #FFFFFF;
+    padding: 5px 1px;
+    border: 0px;
+}
+
+#SubsetView:item:selected {
+    background: rgba(61, 142, 236, 88);
     color: #FFFFFF;
 }
 
+#SubsetView:item:hover {
+    background: rgba(61, 142, 236, 48);
+    color: #FFFFFF;
+}
+
+#SubsetView:item:selected:hover {
+    background: rgba(61, 142, 236, 128);
+    color: #FFFFFF;
+}
+
+#SubsetView:branch {
+    background: rgba(0, 0, 0, 0);
+}
+
+#SubsetView:branch:selected {
+    background: rgba(0, 0, 0, 0);
+}
 
 QHeaderView
 {

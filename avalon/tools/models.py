@@ -14,10 +14,17 @@ class TreeModel(QtCore.QAbstractItemModel):
 
     Columns = list()
     ItemRole = QtCore.Qt.UserRole + 1
+    item_class = None
 
     def __init__(self, parent=None):
         super(TreeModel, self).__init__(parent)
-        self._root_item = Item()
+        self._root_item = self.ItemClass()
+
+    @property
+    def ItemClass(self):
+        if self.item_class is not None:
+            return self.item_class
+        return Item
 
     def rowCount(self, parent):
         if parent.isValid():
@@ -65,7 +72,7 @@ class TreeModel(QtCore.QAbstractItemModel):
                 if Qt.__binding__ in ("PyQt4", "PySide"):
                     self.dataChanged.emit(index, index)
                 else:
-                    self.dataChanged.emit(index, index, list())
+                    self.dataChanged.emit(index, index, [role])
 
                 # must return true if successful
                 return True
@@ -132,7 +139,7 @@ class TreeModel(QtCore.QAbstractItemModel):
 
     def clear(self):
         self.beginResetModel()
-        self._root_item = Item()
+        self._root_item = self.ItemClass()
         self.endResetModel()
 
 
@@ -193,8 +200,8 @@ class TasksModel(TreeModel):
 
     Columns = ["name", "count"]
 
-    def __init__(self):
-        super(TasksModel, self).__init__()
+    def __init__(self, parent=None):
+        super(TasksModel, self).__init__(parent=parent)
         self._num_assets = 0
         self._icons = {
             "__default__": qtawesome.icon("fa.male",
@@ -216,19 +223,34 @@ class TasksModel(TreeModel):
                                       color=style.colors.default)
                 self._icons[task["name"]] = icon
 
-    def set_assets(self, asset_ids):
+    def set_assets(self, asset_ids=[], asset_entities=None):
         """Set assets to track by their database id
 
         Arguments:
             asset_ids (list): List of asset ids.
+            asset_entities (list): List of asset entities from MongoDB.
 
         """
 
         assets = list()
-        for asset_id in asset_ids:
-            asset = io.find_one({"_id": asset_id, "type": "asset"})
-            assert asset, "Asset not found by id: {0}".format(asset_id)
-            assets.append(asset)
+        if asset_entities is not None:
+            assets = asset_entities
+        elif asset_ids:
+            # prepare filter query
+            _filter = {"type": "asset", "_id": {"$in": asset_ids}}
+
+            # find assets in db by query
+            assets = list(io.find(_filter))
+            db_assets_ids = [asset["_id"] for asset in assets]
+
+            # check if all assets were found
+            not_found = [
+                str(a_id) for a_id in asset_ids if a_id not in db_assets_ids
+            ]
+
+            assert not not_found, "Assets not found by id: {0}".format(
+                ", ".join(not_found)
+            )
 
         self._num_assets = len(assets)
 
@@ -273,7 +295,9 @@ class TasksModel(TreeModel):
         # it is listing the tasks for
         if role == QtCore.Qt.DisplayRole:
             if orientation == QtCore.Qt.Horizontal:
-                if section == 1:  # count column
+                if section == 0:
+                    return "Tasks"
+                elif section == 1:  # count column
                     return "count ({0})".format(self._num_assets)
 
         return super(TasksModel, self).headerData(section, orientation, role)
@@ -307,22 +331,14 @@ class AssetModel(TreeModel):
 
     DocumentRole = QtCore.Qt.UserRole + 2
     ObjectIdRole = QtCore.Qt.UserRole + 3
+    subsetColorsRole = QtCore.Qt.UserRole + 4
 
-    def __init__(self, silo=None, parent=None):
+    def __init__(self, parent=None):
         super(AssetModel, self).__init__(parent=parent)
+        self.asset_colors = {}
+        self.refresh()
 
-        self._silo = None
-
-        if silo is not None:
-            self.set_silo(silo, refresh=True)
-
-    def set_silo(self, silo, refresh=True):
-        """Set the root path to the ItemType root."""
-        self._silo = silo
-        if refresh:
-            self.refresh()
-
-    def _add_hierarchy(self, assets, parent=None):
+    def _add_hierarchy(self, assets, parent=None, silos=None):
         """Add the assets that are related to the parent as children items.
 
         This method does *not* query the database. These instead are queried
@@ -337,6 +353,22 @@ class AssetModel(TreeModel):
             None
 
         """
+        # Reset colors
+        self.asset_colors = {}
+
+        if silos:
+            # WARNING: Silo item "_id" is set to silo value
+            # mainly because GUI issue with perserve selection and expanded row
+            # and because of easier hierarchy parenting (in "assets")
+            for silo in silos:
+                item = Item({
+                    "_id": silo,
+                    "name": silo,
+                    "label": silo,
+                    "type": "silo"
+                })
+                self.add_child(item, parent=parent)
+                self._add_hierarchy(assets, parent=item)
 
         parent_id = parent["_id"] if parent else None
         current_assets = assets.get(parent_id, list())
@@ -365,33 +397,59 @@ class AssetModel(TreeModel):
             if asset["_id"] in assets:
                 self._add_hierarchy(assets, parent=item)
 
+            self.asset_colors[asset["_id"]] = []
+
     def refresh(self):
         """Refresh the data for the model."""
 
         self.clear()
         self.beginResetModel()
-        if self._silo:
 
-            # Get all assets in current silo sorted by name
-            db_assets = io.find({
-                "type": "asset",
-                "silo": self._silo
-            }).sort("name", 1)
+        # Get all assets in current silo sorted by name
+        db_assets = io.find({"type": "asset"}).sort("name", 1)
+        silos = db_assets.distinct("silo") or None
+        # if any silo is set to None then it's expected it should not be used
+        if silos and None in silos:
+            silos = None
 
-            # Group the assets by their visual parent's id
-            assets_by_parent = collections.defaultdict(list)
-            for asset in db_assets:
-                parent_id = asset.get("data", {}).get("visualParent") or None
-                assets_by_parent[parent_id].append(asset)
+        # Group the assets by their visual parent's id
+        assets_by_parent = collections.defaultdict(list)
+        for asset in db_assets:
+            parent_id = (
+                asset.get("data", {}).get("visualParent") or
+                asset.get("silo")
+            )
+            assets_by_parent[parent_id].append(asset)
 
-            # Build the hierarchical tree items recursively
-            self._add_hierarchy(assets_by_parent,
-                                parent=None)
+        # Build the hierarchical tree items recursively
+        self._add_hierarchy(
+            assets_by_parent,
+            parent=None,
+            silos=silos
+        )
 
         self.endResetModel()
 
     def flags(self, index):
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
+
+    def setData(self, index, value, role=QtCore.Qt.EditRole):
+        if not index.isValid():
+            return False
+
+        if role == self.subsetColorsRole:
+            asset_id = index.data(self.ObjectIdRole)
+            self.asset_colors[asset_id] = value
+
+            # passing `list()` for PyQt5 (see PYSIDE-462)
+            if Qt.__binding__ in ("PyQt4", "PySide"):
+                self.dataChanged.emit(index, index)
+            else:
+                self.dataChanged.emit(index, index, [role])
+
+            return True
+
+        return super(AssetModel, self).setData(index, value, role)
 
     def data(self, index, role):
 
@@ -405,8 +463,10 @@ class AssetModel(TreeModel):
             if column == self.Name:
 
                 # Allow a custom icon and custom icon color to be defined
-                data = item["_document"]["data"]
+                data = item.get("_document", {}).get("data", {})
                 icon = data.get("icon", None)
+                if icon is None and item.get("type") == "silo":
+                    icon = "database"
                 color = data.get("color", style.colors.default)
 
                 if icon is None:
@@ -440,6 +500,10 @@ class AssetModel(TreeModel):
 
         if role == self.DocumentRole:
             return item.get("_document", None)
+
+        if role == self.subsetColorsRole:
+            asset_id = item.get("_id", None)
+            return self.asset_colors.get(asset_id) or []
 
         return super(AssetModel, self).data(index, role)
 

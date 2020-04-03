@@ -78,7 +78,6 @@ class FilterProxyModel(QtCore.QSortFilterProxyModel):
                 # node will be hidden even it's actually outdated.
                 if version is None or highest is None:
                     return False
-
             return version != highest
 
         index = self.sourceModel().index(row, self.filterKeyColumn(), parent)

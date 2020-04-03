@@ -38,10 +38,11 @@ def validate(data, schema=None):
     """
 
     root, schema = data["schema"].rsplit(":", 1)
-    assert root in (
-        "mindbender-core",  # Backwards compatiblity
-        "avalon-core"
-    )
+    # assert root in (
+    #     "mindbender-core",  # Backwards compatiblity
+    #     "avalon-core",
+    #     "pype"
+    # )
 
     if isinstance(schema, basestring):
         schema = _cache[schema + ".json"]
@@ -62,9 +63,11 @@ def validate(data, schema=None):
 if sys.version_info[0] == 3:
     basestring = str
 
-
-_MODULE_DIR = os.path.dirname(__file__)
-_SCHEMA_DIR = os.path.join(_MODULE_DIR, "schema")
+if os.environ.get('AVALON_SCHEMA'):
+    _SCHEMA_DIR = os.environ['AVALON_SCHEMA']
+else:
+    _MODULE_DIR = os.path.dirname(__file__)
+    _SCHEMA_DIR = os.path.join(_MODULE_DIR, "schema")
 
 _cache = {
     # A mock schema for docstring tests

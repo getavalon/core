@@ -5,8 +5,10 @@ import sys
 import json
 import logging
 import datetime
+import importlib
 import subprocess
 import types
+import numbers
 
 from . import schema
 from .vendor import six, toml
@@ -236,7 +238,7 @@ def modules_from_path(path):
     """Get python scripts as modules from a path.
 
     Arguments:
-        path (str): Path to python scrips.
+        path (str): Path to folder containing python scripts.
 
     Returns:
         List of modules.
@@ -275,9 +277,49 @@ def modules_from_path(path):
             sys.modules[mod_name] = module
 
         except Exception as err:
-            print("Skipped: \"%s\" (%s)", mod_name, err)
+            print("Skipped: \"{0}\" ({1})".format(mod_name, err))
             continue
 
         modules.append(module)
 
     return modules
+
+
+def find_submodule(module, submodule):
+    """Find and return submodule of the module.
+
+    Args:
+        module (types.ModuleType): The module to search in.
+        submodule (str): The submodule name to find.
+
+    Returns:
+        types.ModuleType or None: The module, if found.
+
+    """
+    name = "{0}.{1}".format(module.__name__, submodule)
+    try:
+        return importlib.import_module(name)
+    except ImportError as exc:
+        if str(exc) != "No module name {}".format(name):
+            log_.warning("Could not find '%s' in module: %s",
+                         submodule,
+                         module)
+
+
+class MasterVersionType(object):
+    def __init__(self, version):
+        assert isinstance(version, numbers.Integral), (
+            "Version is not an integer. \"{}\" {}".format(
+                version, str(type(version))
+            )
+        )
+        self.version = version
+
+    def __str__(self):
+        return str(self.version)
+
+    def __int__(self):
+        return int(self.version)
+
+    def __format__(self, format_spec):
+        return self.version.__format__(format_spec)

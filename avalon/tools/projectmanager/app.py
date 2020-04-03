@@ -18,12 +18,18 @@ class Window(QtWidgets.QDialog):
 
     """
 
-    def __init__(self, parent=None):
+    def __init__(self, is_silo_project=None, parent=None):
         super(Window, self).__init__(parent)
         project_name = io.active_project()
         self.setWindowTitle("Project Manager ({0})".format(project_name))
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+
+        if is_silo_project is None:
+            is_silo_project = True
+            if not io.distinct("silo"):
+                is_silo_project = False
+        self.is_silo_project = is_silo_project
 
         # assets
         assets_widgets = QtWidgets.QWidget()
@@ -91,7 +97,6 @@ class Window(QtWidgets.QDialog):
         add_asset.clicked.connect(self.on_add_asset)
         add_task.clicked.connect(self.on_add_task)
         assets.selection_changed.connect(self.on_asset_changed)
-        assets.silo_changed.connect(self.on_silo_changed)
 
         self.resize(800, 500)
 
@@ -113,17 +118,20 @@ class Window(QtWidgets.QDialog):
 
         # Get parent asset (active index in selection)
         model = self.data["model"]["assets"]
-        parent_id = model.get_active_asset()
+        parent = model.get_active_asset()
 
-        # Get active silo
-        silo = model.get_current_silo()
-        if not silo:
-            QtWidgets.QMessageBox.critical(self, "Missing silo",
-                                           "Please create a silo first.\n"
-                                           "Use the + tab at the top left.")
-            return
+        if parent and parent["type"] == "silo":
+            parent_id = None
+            silo = parent["name"]
+        else:
+            parent_id = parent["_id"] if parent else None
+            silo = parent.get("_document", {}).get("silo") if parent else None
 
-        dialog = AssetCreateDialog(parent=self)
+        dialog = AssetCreateDialog(
+            is_silo_required=self.is_silo_project, parent=self
+        )
+        if self.is_silo_project:
+            dialog.set_silo_input_enable(silo is None)
 
         def _on_asset_created(data):
             """Callback whenever asset gets created"""
@@ -145,8 +153,17 @@ class Window(QtWidgets.QDialog):
             """
 
             parent = model.get_active_asset()
-            dialog.set_parent(parent)
-            dialog.set_silo(model.get_current_silo())
+            if parent and parent["type"] == "silo":
+                _parent_id = None
+                _silo = parent["name"]
+            else:
+                _parent_id = parent["_id"] if parent else None
+                _silo = parent.get("_document", {}).get("silo") if parent else None
+
+            dialog.set_parent(_parent_id)
+            dialog.set_silo(_silo)
+            if self.is_silo_project:
+                dialog.set_silo_input_enable(_silo is None)
 
         # Set initial values
         dialog.set_parent(parent_id)
@@ -175,9 +192,9 @@ class Window(QtWidgets.QDialog):
         # Add tasks in database for selected assets
         model = self.data["model"]["assets"]
         selected = model.get_selected_assets()
-        for asset_id in selected:
-            _filter = {"_id": asset_id}
-            asset = io.find_one(_filter)
+        for asset in selected:
+            _filter = {"_id": asset["_id"]}
+
             asset_tasks = asset.get("data", {}).get("tasks", [])
             for task in tasks:
                 if task not in asset_tasks:
@@ -189,7 +206,8 @@ class Window(QtWidgets.QDialog):
             schema.validate(asset)
             io.replace_one(_filter, asset)
 
-        # Refresh the tasks model
+        # Refresh assets from db and the tasks model with new task
+        self.refresh()
         self.on_asset_changed()
 
         self.echo("Added tasks: {0}".format(", ".join(tasks)))
@@ -203,12 +221,8 @@ class Window(QtWidgets.QDialog):
 
         model = self.data["model"]["assets"]
         selected = model.get_selected_assets()
-        self.data["model"]["tasks"].set_assets(selected)
 
-    def on_silo_changed(self, silo):
-        """Callback on asset silo changed"""
-        if silo:
-            self.echo("Silo changed to: {0}".format(silo))
+        self.data["model"]["tasks"].set_assets(asset_entities=selected)
 
 
 def show(root=None, debug=False, parent=None):
@@ -232,9 +246,9 @@ def show(root=None, debug=False, parent=None):
         io.install()
 
     with tools_lib.application():
-        window = Window(parent)
-        window.show()
+        window = Window(parent=parent)
         window.setStyleSheet(style.load_stylesheet())
+        window.show()
         window.refresh()
 
         module.window = window

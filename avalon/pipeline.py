@@ -2,9 +2,11 @@
 
 import os
 import sys
+import re
 import json
 import errno
 import types
+import copy
 import shutil
 import getpass
 import logging
@@ -29,7 +31,8 @@ from . import (
     _registered_event_handlers,
 )
 
-from .vendor import six
+from .vendor import six, acre
+
 
 self = sys.modules[__name__]
 self._is_installed = False
@@ -49,11 +52,9 @@ class IncompatibleLoaderError(ValueError):
 
 def install(host):
     """Install `host` into the running Python session.
-
     Arguments:
         host (module): A Python module containing the Avalon
             avalon host-interface.
-
     """
 
     io.install()
@@ -76,7 +77,14 @@ def install(host):
 
     # Optional host install function
     if hasattr(host, "install"):
-        host.install(config)
+        host.install()
+
+    # Optional config.host.install()
+    host_name = host.__name__.rsplit(".", 1)[-1]
+    config_host = lib.find_submodule(config, host_name)
+    if config_host != host:
+        if hasattr(config_host, "install"):
+            config_host.install()
 
     register_host(host)
     register_config(config)
@@ -92,7 +100,6 @@ def find_config():
     log.info("Finding configuration for project..")
 
     config = Session["AVALON_CONFIG"]
-
     if not config:
         raise EnvironmentError("No configuration found in "
                                "the project nor environment")
@@ -104,9 +111,16 @@ def find_config():
 def uninstall():
     """Undo all of what `install()` did"""
     config = registered_config()
+    host = registered_host()
+
+    # Optional config.host.uninstall()
+    host_name = host.__name__.rsplit(".", 1)[-1]
+    config_host = lib.find_submodule(config, host_name)
+    if hasattr(config_host, "uninstall"):
+        config_host.uninstall()
 
     try:
-        registered_host().uninstall(config)
+        host.uninstall()
     except AttributeError:
         pass
 
@@ -323,7 +337,6 @@ class Application(Action):
     def is_compatible(self, session):
         required = ["AVALON_PROJECTS",
                     "AVALON_PROJECT",
-                    "AVALON_SILO",
                     "AVALON_ASSET",
                     "AVALON_TASK"]
         missing = [x for x in required if x not in session]
@@ -345,33 +358,51 @@ class Application(Action):
         workdir = _format_work_template(template, session)
         session["AVALON_WORKDIR"] = os.path.normpath(workdir)
 
-        # Construct application environment from .toml config
-        app_environment = self.config.get("environment", {})
-        for key, value in app_environment.copy().items():
-            if isinstance(value, list):
-                # Treat list values as paths, e.g. PYTHONPATH=[]
-                app_environment[key] = os.pathsep.join(value)
+        # dynamic environmnets
+        tools_attr = []
+        if session["AVALON_APP"] is not None:
+            tools_attr.append(session["AVALON_APP"])
+        if session["AVALON_APP_NAME"] is not None:
+            tools_attr.append(session["AVALON_APP_NAME"])
 
-            elif isinstance(value, six.string_types):
-                if lib.PY2:
-                    # Protect against unicode in the environment
-                    encoding = sys.getfilesystemencoding()
-                    app_environment[key] = value.encode(encoding)
-                else:
-                    app_environment[key] = value
-            else:
-                log.error(
-                    "%s: Unsupported environment reference in %s for %s"
-                    % (value, self.name, key)
-                )
+        # collect all the 'environment' attributes from parents
+        asset = io.find_one({"type": "asset"})
+        tools = self.find_tools(asset)
+        tools_attr.extend(tools)
+
+        tools_env = acre.get_tools(tools_attr)
+        dyn_env = acre.compute(tools_env)
+        dyn_env = acre.merge(dyn_env, current_env=dict(os.environ))
+        env = acre.append(dict(os.environ), dyn_env)
 
         # Build environment
-        env = os.environ.copy()
+        # env = os.environ.copy()
+        env.update(self.config.get("environment", {}))
+        # env.update(dyn_env)
         env.update(session)
-        app_environment = self._format(app_environment, **env)
-        env.update(app_environment)
 
         return env
+
+    def find_tools(self, entity):
+        tools = []
+        if ('data' in entity and 'tools_env' in entity['data'] and
+        len(entity['data']['tools_env']) > 0):
+            tools = entity['data']['tools_env']
+
+        elif ('data' in entity and 'visualParent' in entity['data'] and
+        entity['data']['visualParent'] is not None):
+            tmp = io.find_one({
+                "_id": entity['data']['visualParent']
+            })
+            tools = self.find_tools(tmp)
+
+        project = io.find_one({"_id": entity['parent']})
+
+        if ('data' in project and 'tools_env' in project['data'] and
+        len(project['data']['tools_env']) > 0):
+            tools = project['data']['tools_env']
+
+        return tools
 
     def initialize(self, environment):
         """Initialize work directory"""
@@ -455,6 +486,81 @@ class Application(Action):
             raise ValueError(
                 "This is typically a bug in the pipeline, "
                 "ask your developer.")
+
+
+@lib.log
+class ThumbnailResolver(object):
+    """Determine how to get data from thumbnail entity.
+
+    "priority" - determines the order of processing in `get_thumbnail_binary`,
+        lower number is processed earlier.
+    "thumbnail_types" - it is expected that thumbnails will be used in more
+        more than one level, there is only ["thumbnail"] type at the moment
+        of creating this docstring but it is expected to add "ico" and "full"
+        in future.
+    """
+
+    priority = 100
+    thumbnail_types = ["*"]
+
+    def __init__(self, dbcon):
+        self.dbcon = dbcon
+
+    def process(self, thumbnail_entity, thumbnail_type):
+        pass
+
+
+class TemplateResolver(ThumbnailResolver):
+
+    priority = 90
+
+    def process(self, thumbnail_entity, thumbnail_type):
+
+        if not os.environ.get("AVALON_THUMBNAIL_ROOT"):
+            return
+
+        template = thumbnail_entity["data"].get("template")
+        if not template:
+            log.debug("Thumbnail entity does not have set template")
+            return
+
+        project = self.dbcon.find_one({"type": "project"})
+
+        template_data = copy.deepcopy(
+            thumbnail_entity["data"].get("template_data") or {}
+        )
+        template_data.update({
+            "_id": str(thumbnail_entity["_id"]),
+            "thumbnail_type": thumbnail_type,
+            "thumbnail_root": os.environ.get("AVALON_THUMBNAIL_ROOT"),
+            "project": {
+                "name": project["name"],
+                "code": project["data"].get("code")
+            }
+        })
+
+        try:
+            filepath = os.path.normpath(template.format(**template_data))
+        except KeyError:
+            log.warning((
+                "Missing template data keys for template <{0}> || Data: {1}"
+            ).format(template, str(template_data)))
+            return
+
+        if not os.path.exists(filepath):
+            log.warning("File does not exist \"{0}\"".format(filepath))
+            return
+
+        with open(filepath, "rb") as _file:
+            content = _file.read()
+
+        return content
+
+
+class BinaryThumbnail(ThumbnailResolver):
+
+    def process(self, thumbnail_entity, thumbnail_type):
+        return thumbnail_entity["data"].get("binary_data")
 
 
 def discover(superclass):
@@ -604,6 +710,10 @@ def register_plugin(superclass, obj):
 
     if obj not in _registered_plugins[superclass]:
         _registered_plugins[superclass].append(obj)
+
+
+register_plugin(ThumbnailResolver, BinaryThumbnail)
+register_plugin(ThumbnailResolver, TemplateResolver)
 
 
 def register_plugin_path(superclass, path):
@@ -882,8 +992,8 @@ def create(name, asset, family, options=None, data=None):
             with host.maintained_selection():
                 print("Running %s" % plugin)
                 instance = plugin.process()
-        except Exception as e:
-            log.warning(e)
+        except Exception:
+            traceback.print_exception(*sys.exc_info())
             continue
         plugins.append(plugin)
 
@@ -916,7 +1026,10 @@ def get_representation_context(representation):
     )
 
     context = {
-        "project": project,
+        "project": {
+            "name": project["name"],
+            "code": project["data"].get("code", '')
+        },
         "asset": asset,
         "subset": subset,
         "version": version,
@@ -924,6 +1037,81 @@ def get_representation_context(representation):
     }
 
     return context
+
+
+def compute_session_changes(session, task=None, asset=None, app=None):
+    """Compute the changes for a Session object on asset, task or app switch
+
+    This does *NOT* update the Session object, but returns the changes
+    required for a valid update of the Session.
+
+    Args:
+        session (dict): The initial session to compute changes to.
+            This is required for computing the full Work Directory, as that
+            also depends on the values that haven't changed.
+        task (str, Optional): Name of task to switch to.
+        asset (str or dict, Optional): Name of asset to switch to.
+            You can also directly provide the Asset dictionary as returned
+            from the database to avoid an additional query. (optimization)
+        app (str, Optional): Name of app to switch to.
+
+    Returns:
+        dict: The required changes in the Session dictionary.
+
+    """
+
+    changes = dict()
+
+    # If no changes, return directly
+    if not any([task, asset, app]):
+        return changes
+
+    # Get asset document and asset
+    asset_document = None
+    if asset:
+        if isinstance(asset, dict):
+            # Assume asset database document
+            asset_document = asset
+            asset = asset["name"]
+        else:
+            # Assume asset name
+            asset_document = io.find_one({"name": asset,
+                                          "type": "asset"})
+            assert asset_document, "Asset must exist"
+
+    # Detect any changes compared session
+    mapping = {
+        "AVALON_ASSET": asset,
+        "AVALON_TASK": task,
+        "AVALON_APP": app,
+    }
+    changes = {key: value for key, value in mapping.items()
+               if value and value != session.get(key)}
+    if not changes:
+        return changes
+
+    # Update silo and hierarchy when asset changed
+    if "AVALON_ASSET" in changes:
+
+        # Update silo
+        changes["AVALON_SILO"] = asset_document.get("silo") or ""
+
+        # Update hierarchy
+        parents = asset_document['data'].get('parents', [])
+        hierarchy = ""
+        if len(parents) > 0:
+            hierarchy = os.path.sep.join(parents)
+        changes['AVALON_HIERARCHY'] = hierarchy
+
+    # Compute work directory (with the temporary changed session so far)
+    project = io.find_one({"type": "project"},
+                          projection={"config.template.work": True})
+    template = project["config"]["template"]["work"]
+    _session = session.copy()
+    _session.update(changes)
+    changes["AVALON_WORKDIR"] = _format_work_template(template, _session)
+
+    return changes
 
 
 def update_current_task(task=None, asset=None, app=None):
@@ -941,46 +1129,20 @@ def update_current_task(task=None, asset=None, app=None):
 
     """
 
-    mapping = {
-        "AVALON_ASSET": asset,
-        "AVALON_TASK": task,
-        "AVALON_APP": app,
-    }
-    changed = {key: value for key, value in mapping.items() if value}
-    if not changed:
-        return
-
-    # Update silo when asset changed
-    if "AVALON_ASSET" in changed:
-        asset_document = io.find_one({"name": changed["AVALON_ASSET"],
-                                      "type": "asset"})
-        assert asset_document, "Asset must exist"
-        changed["AVALON_SILO"] = asset_document["silo"]
-
-    # Compute work directory (with the temporary changed session so far)
-    project = io.find_one({"type": "project"},
-                          projection={"config.template.work": True})
-    template = project["config"]["template"]["work"]
-    _session = Session.copy()
-    _session.update(changed)
-    changed["AVALON_WORKDIR"] = _format_work_template(template, _session)
-
-    parents = asset_document['data'].get('parents', [])
-    hierarchy = ""
-    if len(parents) > 0:
-        hierarchy = os.path.sep.join(parents)
-    changed['AVALON_HIERARCHY'] = hierarchy
+    changes = compute_session_changes(
+        Session, task=task, asset=asset, app=app
+    )
 
     # Update the full session in one go to avoid half updates
-    Session.update(changed)
+    Session.update(changes)
 
     # Update the environment
-    os.environ.update(changed)
+    os.environ.update(changes)
 
     # Emit session change
-    emit("taskChanged", changed.copy())
+    emit("taskChanged", changes.copy())
 
-    return changed
+    return changes
 
 
 def _format_work_template(template, session=None):
@@ -1002,15 +1164,20 @@ def _format_work_template(template, session=None):
     if session is None:
         session = Session
 
+    project = io.find_one({'type': 'project'})
+
     return template.format(**{
         "root": registered_root(),
-        "project": session["AVALON_PROJECT"],
-        "silo": session["AVALON_SILO"],
+        "project": {
+            "name": project.get("name", session["AVALON_PROJECT"]),
+            "code": project["data"].get("code", ''),
+        },
         "asset": session["AVALON_ASSET"],
         "task": session["AVALON_TASK"],
         "app": session["AVALON_APP"],
 
         # Optional
+        "silo": session.get("AVALON_SILO"),
         "user": session.get("AVALON_USER", getpass.getuser()),
         "hierarchy": session.get("AVALON_HIERARCHY"),
     })
@@ -1128,11 +1295,18 @@ def update(container, version=-1):
             "parent": subset["_id"]
         }, sort=[("name", -1)])
     else:
-        new_version = io.find_one({
-            "type": "version",
-            "parent": subset["_id"],
-            "name": version,
-        })
+        if isinstance(version, lib.MasterVersionType):
+            version_query = {
+                "parent": subset["_id"],
+                "type": "master_version"
+            }
+        else:
+            version_query = {
+                "parent": subset["_id"],
+                "type": "version",
+                "name": version
+            }
+        new_version = io.find_one(version_query)
 
     assert new_version is not None, "This is a bug"
 
@@ -1193,6 +1367,28 @@ def switch(container, representation):
     return loader.switch(container, new_representation)
 
 
+def format_template_with_optional_keys(data, template):
+    # Remove optional missing keys
+    pattern = re.compile(r"(<.*?[^{0]*>)[^0-9]*?")
+    invalid_optionals = []
+    for group in pattern.findall(template):
+        try:
+            group.format(**data)
+        except KeyError:
+            invalid_optionals.append(group)
+
+    for group in invalid_optionals:
+        template = template.replace(group, "")
+
+    work_file = template.format(**data)
+
+    # Remove optional symbols
+    work_file = work_file.replace("<", "")
+    work_file = work_file.replace(">", "")
+
+    return work_file
+
+
 def get_representation_path(representation):
     """Get filename from representation document
 
@@ -1221,7 +1417,7 @@ def get_representation_path(representation):
         try:
             context = representation["context"]
             context["root"] = registered_root()
-            path = template.format(**context)
+            path = format_template_with_optional_keys(context, template)
 
         except KeyError:
             # Template references unavailable data
@@ -1249,22 +1445,35 @@ def get_representation_path(representation):
             )
             return None
 
+        # hierarchy may be equal to "" so it is not possible to use `or`
+        hierarchy = asset.get("data", {}).get("hierarchy")
+        if hierarchy is None:
+            # default list() in get would not discover missing parents on asset
+            parents = asset.get("data", {}).get("parents")
+            if parents is not None:
+                hierarchy = "/".join(parents)
+
         # Cannot fail, required members only
         data = {
             "root": registered_root(),
-            "project": project["name"],
+            "project": {
+                "name": project["name"],
+                "code": project.get("data", {}).get("code")
+            },
             "asset": asset["name"],
-            "silo": asset["silo"],
+            "silo": asset.get("silo"),
+            "hierarchy": hierarchy,
             "subset": subset["name"],
             "version": version_["name"],
             "representation": representation["name"],
+            "family": representation.get("context", {}).get("family"),
             "user": Session.get("AVALON_USER", getpass.getuser()),
             "app": Session.get("AVALON_APP", ""),
             "task": Session.get("AVALON_TASK", "")
         }
 
         try:
-            path = template.format(**data)
+            path = format_template_with_optional_keys(data, template)
         except KeyError as e:
             log.debug("Template references unavailable data: %s" % e)
             return None
@@ -1280,11 +1489,64 @@ def get_representation_path(representation):
         if os.path.exists(path):
             return os.path.normpath(path)
 
+        dir_path, file_name = os.path.split(path)
+        if not os.path.exists(dir_path):
+            return
+
+        base_name, ext = os.path.splitext(file_name)
+        file_name_items = None
+        if "#" in base_name:
+            file_name_items = [part for part in base_name.split("#") if part]
+        elif "%" in base_name:
+            file_name_items = base_name.split("%")
+
+        if not file_name_items:
+            return
+
+        filename_start = file_name_items[0]
+
+        for _file in os.listdir(dir_path):
+            if _file.startswith(filename_start) and _file.endswith(ext):
+                return os.path.normpath(path)
+
     return (
         path_from_represenation() or
         path_from_config() or
         path_from_data()
     )
+
+
+def get_thumbnail_binary(thumbnail_entity, thumbnail_type, dbcon=None):
+    if not thumbnail_entity:
+        return
+
+    resolvers = discover(ThumbnailResolver)
+    resolvers = sorted(resolvers, key=lambda cls: cls.priority)
+    if dbcon is None:
+        dbcon = io
+
+    for Resolver in resolvers:
+        available_types = Resolver.thumbnail_types
+        if (
+            thumbnail_type not in available_types
+            and "*" not in available_types
+            and (
+                isinstance(available_types, (list, tuple))
+                and len(available_types) == 0
+            )
+        ):
+            continue
+        try:
+            instance = Resolver(dbcon)
+            result = instance.process(thumbnail_entity, thumbnail_type)
+            if result:
+                return result
+
+        except Exception:
+            log.warning("Resolver {0} failed durring process.".format(
+                Resolver.__class__.__name__
+            ))
+            traceback.print_exception(*sys.exc_info())
 
 
 def is_compatible_loader(Loader, context):

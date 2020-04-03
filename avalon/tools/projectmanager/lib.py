@@ -17,7 +17,7 @@ provides a bridge between the file-based project inventory and configuration.
 from ... import schema, io
 
 
-def create_asset(data):
+def create_asset(data, silo_required):
     """Create asset
 
     Requires:
@@ -38,14 +38,16 @@ def create_asset(data):
         "schema": "avalon-core:asset-2.0",
         "parent": project["_id"],
         "name": data.pop("name"),
-        "silo": data.pop("silo"),
         "type": "asset",
         "data": data
     }
 
-    # Asset *must* have a name and silo
+    # Asset *must* have a name
     assert asset["name"], "Asset has no name"
-    assert asset["silo"], "Asset has no silo"
+    # Backwards compatibility with required silo
+    if silo_required:
+        asset["silo"] = data.pop("silo")
+        assert asset["silo"], "Asset has no silo"
 
     # Ensure it has a unique name
     asset_doc = io.find_one({

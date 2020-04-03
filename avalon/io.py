@@ -138,6 +138,14 @@ def _from_environment():
             # Optional path to scenes directory (see Work Files API)
             ("AVALON_SCENEDIR", None),
 
+            # Optional hierarchy for the current Asset. This can be referenced
+            # as `{hierarchy}` in your file templates.
+            # This will be (re-)computed when you switch the context to another
+            # asset. It is computed by checking asset['data']['parents'] and
+            # joining those together with `os.path.sep`.
+            # E.g.: ['ep101', 'scn0010'] -> 'ep101/scn0010'.
+            ("AVALON_HIERARCHY", None),
+
             # Name of current Config
             # TODO(marcus): Establish a suitable default config
             ("AVALON_CONFIG", "no_config"),
@@ -191,7 +199,7 @@ def _from_environment():
         ) if os.getenv(item[0], item[1]) is not None
     }
 
-    session["schema"] = "avalon-core:session-1.0"
+    session["schema"] = "avalon-core:session-2.0"
     try:
         schema.validate(session)
     except schema.ValidationError as e:
@@ -411,6 +419,10 @@ def parenthood(document):
 
         if document is None:
             break
+
+        if document.get("type") == "master_version":
+            _document = self.find_one({"_id": document["version_id"]})
+            document["data"] = _document["data"]
 
         parents.append(document)
 
