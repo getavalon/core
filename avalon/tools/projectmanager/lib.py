@@ -21,8 +21,7 @@ def create_asset(data, silo_required):
     """Create asset
 
     Requires:
-        {"name": "uniquecode",
-         "silo": "assets"}
+        {"name": "uniquecode"}
 
      Optional:
         {"data": {}}
@@ -34,12 +33,17 @@ def create_asset(data, silo_required):
     if project is None:
         raise RuntimeError("Project must exist prior to creating assets")
 
+    # Use asset schema 2.0 when silo is required
+    if silo_required:
+        schema_name = "avalon-core:asset-2.0"
+    else:
+        schema_name = "avalon-core:asset-3.0"
+
     asset = {
-        "schema": "avalon-core:asset-2.0",
+        "schema": schema_name,
         "parent": project["_id"],
         "name": data.pop("name"),
-        "type": "asset",
-        "data": data
+        "type": "asset"
     }
 
     # Asset *must* have a name
@@ -48,6 +52,9 @@ def create_asset(data, silo_required):
     if silo_required:
         asset["silo"] = data.pop("silo")
         assert asset["silo"], "Asset has no silo"
+
+    # Set asset's data when all keys are popped
+    asset["data"] = data
 
     # Ensure it has a unique name
     asset_doc = io.find_one({
