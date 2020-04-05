@@ -12,14 +12,13 @@ import pymongo
 
 
 self = sys.modules[__name__]
+self.self.project_name = "batman"
 
 
 os.environ["AVALON_PROJECT"] = "batman"
 os.environ["AVALON_ASSET"] = "bruce"
 os.environ["AVALON_SILO"] = "assets"
 avalon.io.install()
-
-project_name = "batman"
 
 
 @contextlib.contextmanager
@@ -52,10 +51,10 @@ def teardown():
 def test_project_sync():
     """Syncing project from Avalon to CGWire works."""
 
-    project_id = avalon.inventory.create_project(project_name)
+    project_id = avalon.inventory.create_project(self.project_name)
     client = pymongo.MongoClient(os.environ["AVALON_MONGO"])
     db = client["avalon"]
-    avalon_project = db[project_name].find_one({"_id": project_id})
+    avalon_project = db[self.project_name].find_one({"_id": project_id})
 
     avalon.cgwire.cgwire.full_sync()
 
@@ -78,14 +77,14 @@ def test_project_sync():
 def test_asset_sync():
     """Syncing asset from Avalon to CGWire works."""
 
-    project_id = avalon.inventory.create_project(project_name)
+    project_id = avalon.inventory.create_project(self.project_name)
     asset_id = avalon.inventory.create_asset(
         "Bruce", "assets", {"tasks": ["modeling"]}, project_id
     )
 
     client = pymongo.MongoClient(os.environ["AVALON_MONGO"])
     db = client["avalon"]
-    avalon_asset = db[project_name].find_one({"_id": asset_id})
+    avalon_asset = db[self.project_name].find_one({"_id": asset_id})
 
     avalon.cgwire.cgwire.full_sync()
 
@@ -108,7 +107,7 @@ def test_asset_sync():
 def test_sequence_sync():
     """Syncing sequence from Avalon to CGWire works."""
 
-    project_id = avalon.inventory.create_project(project_name)
+    project_id = avalon.inventory.create_project(self.project_name)
     sequence_id = avalon.inventory.create_asset(
         "sequence", "film", {}, project_id
     )
@@ -121,8 +120,8 @@ def test_sequence_sync():
 
     client = pymongo.MongoClient(os.environ["AVALON_MONGO"])
     db = client["avalon"]
-    avalon_sequence = db[project_name].find_one({"_id": sequence_id})
-    avalon_shot = db[project_name].find_one({"_id": shot_id})
+    avalon_sequence = db[self.project_name].find_one({"_id": sequence_id})
+    avalon_shot = db[self.project_name].find_one({"_id": shot_id})
 
     avalon.cgwire.cgwire.full_sync()
 
@@ -151,7 +150,7 @@ def test_sequence_sync():
 def test_episode_sync():
     """Syncing episode from Avalon to CGWire works."""
 
-    project_id = avalon.inventory.create_project(project_name)
+    project_id = avalon.inventory.create_project(self.project_name)
     episode_id = avalon.inventory.create_asset(
         "episode", "film", {}, project_id
     )
@@ -167,9 +166,9 @@ def test_episode_sync():
 
     client = pymongo.MongoClient(os.environ["AVALON_MONGO"])
     db = client["avalon"]
-    avalon_episode = db[project_name].find_one({"_id": episode_id})
-    avalon_sequence = db[project_name].find_one({"_id": sequence_id})
-    avalon_shot = db[project_name].find_one({"_id": shot_id})
+    avalon_episode = db[self.project_name].find_one({"_id": episode_id})
+    avalon_sequence = db[self.project_name].find_one({"_id": sequence_id})
+    avalon_shot = db[self.project_name].find_one({"_id": shot_id})
 
     avalon.cgwire.cgwire.full_sync()
 
