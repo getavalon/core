@@ -1,0 +1,14 @@
+FROM cgwire/cgwire
+
+RUN apt-get update && apt-get install -y iputils-ping
+
+RUN pip3 install \
+	nose \
+	coverage \
+	pymongo \
+	gazu
+
+WORKDIR /workspace
+
+ENTRYPOINT PYTHONPATH=$(pwd):$PYTHONPATH && \
+	python3 -u run_cgwire_tests.py
