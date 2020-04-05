@@ -158,7 +158,7 @@ def update_project(avalon_project):
 
 def update_entity(avalon_entity, cgwire_entity, cgwire_type):
     data = json.loads(json_util.dumps(avalon_entity["data"]))
-    #data["avalon_id"] = str(avalon_entity["_id"])
+    data["avalon_id"] = str(avalon_entity["_id"])
 
     cgwire_entity.update({
         "data": data,

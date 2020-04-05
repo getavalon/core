@@ -1,5 +1,3 @@
-docker run --rm --name avalon-mongo -d mongo
-: <<'END'
 docker run \
 	--rm \
 	-v /$(pwd):/workspace \
@@ -9,7 +7,7 @@ docker run \
 	-e AVALON_SILENT \
 	-e AVALON_MONGO=mongodb://mongo:27017 \
 	avalon/maya
-END
+
 docker run \
 	--rm \
 	-v /$(pwd):/workspace \
@@ -17,5 +15,3 @@ docker run \
 	-e AVALON_SILENT \
 	-e AVALON_MONGO=mongodb://mongo:27017 \
 	avalon/cgwire
-
-docker kill avalon-mongo
