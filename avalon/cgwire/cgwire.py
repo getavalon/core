@@ -162,6 +162,16 @@ def update_project(avalon_project):
 
 
 def update_entity(avalon_entity, cgwire_entity, cgwire_type):
+    # Update task data.
+    if cgwire_type in ["asset", "shot"]:
+        task_types = {x["name"]: x for x in gazu.task.all_task_types()}
+        for task_name in avalon_entity["data"].get("tasks", []):
+            gazu.task.new_task(
+                cgwire_entity, task_types[task_name.title()], name=task_name
+            )
+        avalon_entity["data"].pop("tasks", None)
+
+    # Update data.
     data = json.loads(json_util.dumps(avalon_entity["data"]))
     data["avalon_id"] = str(avalon_entity["_id"])
 
@@ -169,6 +179,8 @@ def update_entity(avalon_entity, cgwire_entity, cgwire_type):
         "data": data,
         "name": avalon_entity["data"].get("label", avalon_entity["name"])
     })
+
+    # Update cgwire_entity.
     modules = {
         "asset": gazu.asset.update_asset,
         "episode": gazu.shot.update_episode,
@@ -180,14 +192,6 @@ def update_entity(avalon_entity, cgwire_entity, cgwire_type):
 
 def update_asset(cgwire_project, avalon_asset):
     cgwire_asset = get_asset(cgwire_project, avalon_asset)
-
-    # Update task data.
-    task_types = {x["name"]: x for x in gazu.task.all_task_types()}
-    for task_name in avalon_asset["data"].get("tasks", []):
-        gazu.task.new_task(
-            cgwire_asset, task_types[task_name.title()], name=task_name
-        )
-    avalon_asset["data"].pop("tasks", None)
 
     # Update data.
     update_entity(avalon_asset, cgwire_asset, "asset")
@@ -215,14 +219,6 @@ def update_sequence(cgwire_project, avalon_asset, episode=None):
 
 def update_shot(cgwire_project, cgwire_sequence, avalon_asset):
     cgwire_shot = get_shot(cgwire_project, cgwire_sequence, avalon_asset)
-
-    # Update task data.
-    task_types = {x["name"]: x for x in gazu.task.all_task_types()}
-    for task_name in avalon_asset["data"].get("tasks", []):
-        gazu.task.new_task(
-            cgwire_shot, task_types[task_name.title()], name=task_name
-        )
-    avalon_asset["data"].pop("tasks", None)
 
     # Update asset data.
     update_entity(avalon_asset, cgwire_shot, "shot")
