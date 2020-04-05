@@ -8,9 +8,9 @@ services:
 
 install:
   - docker run --name avalon-mongo -d mongo
-  - docker build -t avalon/core -f Dockerfile-maya2016 .
 
 script:
+  - . build_docker.sh
   - . test_docker.sh
   - . build_docs.sh
 
