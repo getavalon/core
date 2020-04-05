@@ -3,7 +3,12 @@ import json
 
 import pymongo
 from bson import json_util
-import gazu
+
+# Try/Except for prevent error in import testing.
+try:
+    import gazu
+except ImportError:
+    pass
 
 
 def get_project(avalon_project):

@@ -3,8 +3,14 @@ import nose
 import os
 import warnings
 import subprocess
-import gazu
 import requests
+import pymongo
+
+# Try/Except for prevent error in import testing.
+try:
+    import gazu
+except ImportError:
+    pass
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
@@ -52,5 +58,11 @@ if __name__ == "__main__":
             pass
         except gazu.exception.ServerErrorException:
             pass
+
+    # Clear database for testing.
+    client = pymongo.MongoClient(os.environ["AVALON_MONGO"])
+    db = client["avalon"]
+    for collection in db.list_collection_names():
+        db[collection].drop()
 
     nose.main(argv=argv)
