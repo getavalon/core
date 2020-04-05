@@ -6,7 +6,7 @@ docker run \
     -e TRAVIS_JOB_ID \
 	-e AVALON_SILENT \
 	-e AVALON_MONGO=mongodb://mongo:27017 \
-	avalon/maya
+	avalon/core
 
 docker run \
 	--rm \
