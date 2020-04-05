@@ -26,7 +26,30 @@ def get_project(avalon_project):
     return gazu.project.new_project(avalon_project["name"])
 
 
-def get_entity(project, avalon_entity, cgwire_type):
+def create_entity(name, project, entity_type, parent):
+    print(
+        "Creating new entity:\nProject: {}\nEntity Name: {}".format(
+            json.dumps(project, sort_keys=True, indent=4),
+            name
+        )
+    )
+
+    # There are no asset type in Avalon, so we take the first available type.
+    asset_type = gazu.asset.all_asset_types()[0]
+
+    functions = {
+        "asset": partial(gazu.asset.new_asset, project, asset_type, name),
+        "episode": partial(gazu.shot.new_episode, project, name),
+        "sequence": partial(
+            gazu.shot.new_sequence, project, name, episode=parent
+        ),
+        "shot": partial(gazu.shot.new_shot, project, parent, name)
+    }
+
+    return functions[entity_type]()
+
+
+def get_entity(avalon_entity, project, entity_type, parent=None):
     modules = {
         "asset": gazu.asset.all_assets_for_project,
         "episode": gazu.shot.all_episodes_for_project,
@@ -34,100 +57,25 @@ def get_entity(project, avalon_entity, cgwire_type):
         "shot": gazu.shot.all_shots_for_project
     }
 
-    for entity in modules[cgwire_type](project):
+    cgwire_entity = None
+    for entity in modules[entity_type](project):
         # Search for existing asset with id.
         if entity["data"].get("avalon_id", "") == str(avalon_entity["_id"]):
-            print("Found existing {} by id.".format(cgwire_type))
-            return entity
+            print("Found existing {} by id.".format(entity_type))
+            cgwire_entity = entity
 
         # Search for existing asset with label/name.
         name = avalon_entity["data"].get("label", avalon_entity["name"])
         if entity["name"] == name:
-            print("Found existing {} by label/name.".format(cgwire_type))
-            return entity
+            print("Found existing {} by label/name.".format(entity_type))
+            cgwire_entity = entity
 
-
-def get_asset(cgwire_project, avalon_entity):
-    cgwire_asset = get_entity(cgwire_project, avalon_entity, "asset")
-
-    if cgwire_asset is None:
-        print(
-            "Creating new asset:\nProject: {}\nAsset Type: {}"
-            "\nAsset Name: {}".format(
-                json.dumps(cgwire_project, sort_keys=True, indent=4),
-                gazu.asset.all_asset_types()[0],
-                avalon_entity["name"]
-            )
-        )
-        # There are no asset type in Avalon, so we take the first
-        # available asset type.
-        cgwire_asset = gazu.asset.new_asset(
-            cgwire_project,
-            gazu.asset.all_asset_types()[0],
-            avalon_entity["name"]
+    if cgwire_entity is None:
+        cgwire_entity = create_entity(
+            avalon_entity["name"], project, entity_type, parent
         )
 
-    return cgwire_asset
-
-
-def get_episode(cgwire_project, avalon_entity):
-    cgwire_episode = get_entity(cgwire_project, avalon_entity, "episode")
-
-    if cgwire_episode is None:
-        print(
-            "Creating new episode:\nProject: {}\nEpisode Name: {}".format(
-                json.dumps(cgwire_project, sort_keys=True, indent=4),
-                avalon_entity["name"]
-            )
-        )
-        cgwire_episode = gazu.shot.new_episode(
-            cgwire_project,
-            avalon_entity["name"]
-        )
-
-    return cgwire_episode
-
-
-def get_sequence(cgwire_project, avalon_entity, episode=None):
-    cgwire_sequence = get_entity(cgwire_project, avalon_entity, "sequence")
-
-    if cgwire_sequence is None:
-        print(
-            "Creating new sequence:\nProject: {}\nName: {}"
-            "\nEpisode: {}".format(
-                json.dumps(cgwire_project, sort_keys=True, indent=4),
-                avalon_entity["name"],
-                json.dumps(episode, sort_keys=True, indent=4)
-            )
-        )
-        cgwire_sequence = gazu.shot.new_sequence(
-            cgwire_project,
-            avalon_entity["name"],
-            episode=episode
-        )
-
-    return cgwire_sequence
-
-
-def get_shot(cgwire_project, cgwire_sequence, avalon_entity):
-    cgwire_shot = get_entity(cgwire_project, avalon_entity, "shot")
-
-    if cgwire_shot is None:
-        print(
-            "Creating new shot:\nProject: {}\nSequence: {}"
-            "\nShot Name: {}".format(
-                json.dumps(cgwire_project, sort_keys=True, indent=4),
-                json.dumps(cgwire_sequence, sort_keys=True, indent=4),
-                avalon_entity["name"]
-            )
-        )
-        cgwire_shot = gazu.shot.new_shot(
-            cgwire_project,
-            cgwire_sequence,
-            avalon_entity["name"]
-        )
-
-    return cgwire_shot
+    return cgwire_entity
 
 
 def update_project(avalon_project):
@@ -162,28 +110,17 @@ def update_project(avalon_project):
     return cgwire_project
 
 
-def update_entity(avalon_entity,
-                  cgwire_project,
-                  cgwire_type,
-                  cgwire_parent=None):
+def update_entity(avalon_entity, project, entity_type, parent=None):
 
     # Update project.
-    if cgwire_type == "project":
+    if entity_type == "project":
         return update_project(avalon_entity)
 
     # Get cgwire entity.
-    getters = {
-        "asset": partial(get_asset, cgwire_project, avalon_entity),
-        "episode": partial(get_episode, cgwire_project, avalon_entity),
-        "sequence": partial(
-            get_sequence, cgwire_project, avalon_entity, cgwire_parent
-        ),
-        "shot": partial(get_shot, cgwire_project, cgwire_parent, avalon_entity)
-    }
-    cgwire_entity = getters[cgwire_type]()
+    cgwire_entity = get_entity(avalon_entity, project, entity_type, parent)
 
     # Update task data.
-    if cgwire_type in ["asset", "shot"]:
+    if entity_type in ["asset", "shot"]:
         task_types = {x["name"]: x for x in gazu.task.all_task_types()}
         for task_name in avalon_entity["data"].get("tasks", []):
             gazu.task.new_task(
@@ -195,10 +132,12 @@ def update_entity(avalon_entity,
     data = json.loads(json_util.dumps(avalon_entity["data"]))
     data["avalon_id"] = str(avalon_entity["_id"])
 
-    cgwire_entity.update({
-        "data": data,
-        "name": avalon_entity["data"].get("label", avalon_entity["name"])
-    })
+    cgwire_entity.update(
+        {
+            "data": data,
+            "name": avalon_entity["data"].get("label", avalon_entity["name"])
+        }
+    )
 
     # Update cgwire_entity.
     modules = {
@@ -207,7 +146,7 @@ def update_entity(avalon_entity,
         "sequence": gazu.shot.update_sequence,
         "shot": gazu.shot.update_shot
     }
-    modules[cgwire_type](cgwire_entity)
+    modules[entity_type](cgwire_entity)
 
     return cgwire_entity
 
