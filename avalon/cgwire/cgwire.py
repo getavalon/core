@@ -226,7 +226,7 @@ def update_shot(cgwire_project, cgwire_sequence, avalon_asset):
     return cgwire_shot
 
 
-def get_visual_child_ids(database, asset, children=[]):
+def get_visual_child_ids(database, asset, children):
     for child in database.find({"data.visualParent": asset["_id"]}):
         children.append(child["_id"])
         return get_visual_child_ids(database, child, children)
@@ -234,7 +234,7 @@ def get_visual_child_ids(database, asset, children=[]):
 
 
 def get_visual_children(database, asset):
-    ids = get_visual_child_ids(database, asset)
+    ids = get_visual_child_ids(database, asset, [])
     children = []
     for id in ids:
         child = database.find_one({"_id": id})
