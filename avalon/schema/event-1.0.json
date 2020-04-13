@@ -1,0 +1,58 @@
+{
+    "$schema": "http://json-schema.org/draft-04/schema#",
+
+    "title": "avalon-core:event-1.0",
+    "description": "IO event",
+
+    "type": "object",
+
+    "additionalProperties": true,
+
+    "required": [
+        "schema",
+        "type",
+        "datetime",
+        "method",
+        "args",
+        "kwargs"
+    ],
+
+    "properties": {
+        "schema": {
+            "description": "Schema identifier for payload",
+            "type": "string",
+            "enum": ["avalon-core:event-1.0"],
+            "example": "avalon-core:event-1.0"
+        },
+        "type": {
+            "description": "The type of document",
+            "type": "string",
+            "enum": ["event"],
+            "example": "event"
+        },
+        "parent": {
+            "description": "Unique identifier to parent document",
+            "example": "592c33475f8c1b064c4d1696"
+        },
+        "datetime": {
+            "description": "Date and time of creation",
+            "type": "string",
+            "example": "2020-04-13T22:17:00.314220+01:00"
+        },
+        "method": {
+            "description": "Method used at the event.",
+            "type": "string",
+            "example": "insert_one"
+        },
+        "args": {
+            "description": "Arguments used for the mehod. Has to be string because storing the arguments to update_many with '$' in the keys is not allow by mongo.",
+            "type": "string"
+        },
+        "kwargs": {
+            "description": "Keyword arguments used for the mehod.",
+            "type": "object"
+        }
+    },
+
+    "definitions": {}
+}

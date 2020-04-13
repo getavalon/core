@@ -9,9 +9,10 @@ import logging
 import tempfile
 import functools
 import contextlib
+import json
 
 from . import schema, Session
-from .vendor import requests
+from .vendor import requests, arrow
 
 # Third-party dependencies
 import pymongo
@@ -336,6 +337,16 @@ def locate(path):
 def insert_one(item):
     assert isinstance(item, dict), "item must be of type <dict>"
     schema.validate(item)
+    event = {
+        "schema": "avalon-core:event-1.0",
+        "type": "event",
+        "datetime": str(arrow.now()),
+        "method": "insert_one",
+        "args": json.dumps([item]),
+        "kwargs": {}
+    }
+    schema.validate(event)
+    self._database[Session["AVALON_PROJECT"]].insert_one(event)
     return self._database[Session["AVALON_PROJECT"]].insert_one(item)
 
 
@@ -346,6 +357,17 @@ def insert_many(items, ordered=True):
     for item in items:
         assert isinstance(item, dict), "`item` must be of type <dict>"
         schema.validate(item)
+
+    event = {
+        "schema": "avalon-core:event-1.0",
+        "type": "event",
+        "datetime": str(arrow.now()),
+        "method": "insert_many",
+        "args": json.dumps([items]),
+        "kwargs": {"ordered": ordered}
+    }
+    schema.validate(event)
+    self._database[Session["AVALON_PROJECT"]].insert_one(event)
 
     return self._database[Session["AVALON_PROJECT"]].insert_many(
         items,
@@ -381,12 +403,34 @@ def save(*args, **kwargs):
 
 @auto_reconnect
 def replace_one(filter, replacement):
+    event = {
+        "schema": "avalon-core:event-1.0",
+        "type": "event",
+        "datetime": str(arrow.now()),
+        "method": "replace_one",
+        "args": json.dumps([filter, replacement]),
+        "kwargs": {}
+    }
+    schema.validate(event)
+    self._database[Session["AVALON_PROJECT"]].insert_one(event)
+
     return self._database[Session["AVALON_PROJECT"]].replace_one(
         filter, replacement)
 
 
 @auto_reconnect
 def update_many(filter, update):
+    event = {
+        "schema": "avalon-core:event-1.0",
+        "type": "event",
+        "datetime": str(arrow.now()),
+        "method": "update_many",
+        "args": json.dumps([filter, update]),
+        "kwargs": {}
+    }
+    schema.validate(event)
+    self._database[Session["AVALON_PROJECT"]].insert_one(event)
+
     return self._database[Session["AVALON_PROJECT"]].update_many(
         filter, update)
 
@@ -405,6 +449,17 @@ def drop(*args, **kwargs):
 
 @auto_reconnect
 def delete_many(*args, **kwargs):
+    event = {
+        "schema": "avalon-core:event-1.0",
+        "type": "event",
+        "datetime": str(arrow.now()),
+        "method": "delete_many",
+        "args": json.dumps(args),
+        "kwargs": kwargs
+    }
+    schema.validate(event)
+    self._database[Session["AVALON_PROJECT"]].insert_one(event)
+
     return self._database[Session["AVALON_PROJECT"]].delete_many(
         *args, **kwargs)
 
