@@ -62,7 +62,7 @@ class TreeModel(QtCore.QAbstractItemModel):
                 item[key] = value
 
                 # passing `list()` for PyQt5 (see PYSIDE-462)
-                args = () if Qt.IsPySide or Qt.IsPyQt4 else ([],)
+                args = () if Qt.IsPySide or Qt.IsPyQt4 else ([role],)
                 self.dataChanged.emit(index, index, *args)
 
                 # must return true if successful
