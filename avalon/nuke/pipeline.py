@@ -181,7 +181,8 @@ def parse_container(node):
     if node.fullName() == "%s.%s" % (AVALON_CONTAINERS, node.name()):
         data["_members"] = lib.lsattr("avalon:containerId",
                                       value=data["avalonId"],
-                                      group=nuke.toNode(AVALON_CONTAINERS))
+                                      group=nuke.toNode(AVALON_CONTAINERS),
+                                      recursive=True)
 
     return data
 
