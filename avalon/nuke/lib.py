@@ -68,7 +68,7 @@ def lsattr(attr, value=None, type=None, group=None, recursive=False):
         attr (str): Name of Node knob
         value (object, optional): Value of attribute. If none
             is provided, return all nodes with this attribute.
-        type (str, optional): Node class name
+        type (str, optional): Node class name (Not work with `recursive`)
         group (nuke.Node, optional): Listing nodes from `group`, default `root`
         recursive (bool, optional): Whether to look into child groups.
 
@@ -90,7 +90,7 @@ def lsattrs(attrs, type=None, group=None, recursive=False):
 
     Arguments:
         attrs (dict): Name and value pairs of expected matches
-        type (str, optional): Node class name
+        type (str, optional): Node class name (Not work with `recursive`)
         group (nuke.Node, optional): Listing nodes from `group`, default `root`
         recursive (bool, optional): Whether to look into child groups.
 
@@ -160,7 +160,10 @@ def find_copies(source, group=None, recursive=True):
     source_id = get_id(source)
     if source_id:
         copies = lsattrs({"avalon:avalonId": source_id},
-                         type=source.Class(),
+                         # (NOTE) Cannot specify node `type` to `lsattrs()` if
+                         #        `recursive=True`. Because the arg `filter`
+                         #        in command `nuke.allNodes` doesn't work with
+                         #        `recurseGroups=True`.
                          group=group,
                          recursive=recursive)
     return copies
