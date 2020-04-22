@@ -3,6 +3,7 @@ from ...vendor import qtawesome
 from ...vendor.Qt import QtWidgets, QtCore
 
 from . import lib
+from .. import widgets
 
 
 class TasksCreateDialog(QtWidgets.QDialog):
@@ -67,7 +68,7 @@ class AssetCreateDialog(QtWidgets.QDialog):
 
         # Label
         label_label = QtWidgets.QLabel("Label:")
-        label = QtWidgets.QLineEdit()
+        label = widgets.NameValidEdit()
         label.setPlaceholderText("<label>")
 
         # Parent
