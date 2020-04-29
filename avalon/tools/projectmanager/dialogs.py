@@ -62,8 +62,7 @@ class AssetCreateDialog(QtWidgets.QDialog):
         self.setWindowTitle("Add asset")
         self.is_silo_required = is_silo_required
 
-        self.parent_id = None
-        self.parent_name = ""
+        self.parent_doc = None
 
         # Label
         label_label = QtWidgets.QLabel("Label:")
@@ -136,18 +135,16 @@ class AssetCreateDialog(QtWidgets.QDialog):
     def set_parent(self, parent_id):
 
         # Get the parent asset (if any provided)
-        parent_name = ""
         if parent_id:
-            parent_asset = io.find_one({"_id": parent_id, "type": "asset"})
-            assert parent_asset, "Parent asset does not exist."
-            parent_name = parent_asset["name"]
+            parent_doc = io.find_one({"_id": parent_id, "type": "asset"})
+            assert parent_doc, "Parent asset does not exist."
+            parent_name = parent_doc["name"]
 
-            self.parent_name = parent_name
-            self.parent_id = parent_id
+            self.parent_doc = parent_doc
         else:
             # Clear the parent
-            self.parent_name = ""
-            self.parent_id = None
+            parent_name = ""
+            self.parent_doc = None
 
         self.data["label"]["parent"].setText(parent_name)
 
@@ -163,14 +160,18 @@ class AssetCreateDialog(QtWidgets.QDialog):
         name = label
 
         # Prefix with parent name (if parent)
-        if self.parent_name:
-            name = self.parent_name + "_" + name
+        if self.parent_doc:
+            name = "_".join((self.parent_doc["name"], name))
 
         self.data["label"]["name"].setText(name)
 
     def on_add_asset(self):
 
-        parent_id = self.parent_id
+        if self.parent_doc:
+            parent_id = self.parent_doc["_id"]
+        else:
+            parent_id = None
+
         name = self.data["label"]["name"].text()
         label = self.data["label"]["label"].text()
 
