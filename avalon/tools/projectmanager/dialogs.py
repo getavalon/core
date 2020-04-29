@@ -197,8 +197,19 @@ class AssetCreateDialog(QtWidgets.QDialog):
             "label": label,
             "visualParent": parent_id
         }
+
         if self.is_silo_required:
             data["silo"] = silo
+
+        else:
+            # Add "parents" key if not silo required
+            parents = []
+            if self.parent_doc:
+                # Use parent's "parents" value and append it's "label"
+                # WARNING this requires to have already set "parents" on asset
+                parents = self.parent_doc["data"]["parents"]
+                parents.append(self.parent_doc["data"]["label"])
+            data["parents"] = parents
 
         # For the launcher automatically add a `group` dataa when the asset
         # is added under a visual parent to look as if it's grouped underneath
