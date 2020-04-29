@@ -595,7 +595,8 @@ class FilesWidget(QtWidgets.QWidget):
             print("No file selected to open..")
             return
 
-        return self.open_file(path)
+        self.open_file(path)
+        self.window().close()
 
     def on_browse_pressed(self):
 
