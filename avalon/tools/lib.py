@@ -108,12 +108,13 @@ def iter_model_rows(model,
 
 
 @contextlib.contextmanager
-def preserve_states(
-    tree_view, column=0, role=None,
-    preserve_expanded=True, preserve_selection=True,
-    expanded_role=QtCore.Qt.DisplayRole, selection_role=QtCore.Qt.DisplayRole
-
-):
+def preserve_states(tree_view,
+                    column=0,
+                    role=None,
+                    preserve_expanded=True,
+                    preserve_selection=True,
+                    expanded_role=QtCore.Qt.DisplayRole,
+                    selection_role=QtCore.Qt.DisplayRole):
     """Preserves row selection in QTreeView by column's data role.
     This function is created to maintain the selection status of
     the model items. When refresh is triggered the items which are expanded
