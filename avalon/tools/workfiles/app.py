@@ -516,7 +516,8 @@ class FilesWidget(QtWidgets.QWidget):
                 pass
 
         self._enter_session()
-        return host.open_file(filepath)
+        host.open_file(filepath)
+        self.window().close()
 
     def save_changes_prompt(self):
         self._messagebox = QtWidgets.QMessageBox()
@@ -596,7 +597,6 @@ class FilesWidget(QtWidgets.QWidget):
             return
 
         self.open_file(path)
-        self.window().close()
 
     def on_browse_pressed(self):
 
