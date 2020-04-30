@@ -1,7 +1,7 @@
 import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import io, schema, api, style, lib
+from ... import io, schema, api, style
 
 from .. import lib as tools_lib
 from ..widgets import AssetWidget
@@ -28,7 +28,7 @@ class Window(QtWidgets.QDialog):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         if is_silo_project is None:
-            is_silo_project = lib.project_use_silo(project_doc)
+            is_silo_project = tools_lib.project_use_silo(project_doc)
         self.is_silo_project = is_silo_project
 
         # assets
