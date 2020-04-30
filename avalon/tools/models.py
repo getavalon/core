@@ -6,6 +6,7 @@ from ..vendor.Qt import QtCore, QtGui
 from ..vendor import qtawesome
 from .. import io
 from .. import style
+from .. import lib
 
 log = logging.getLogger(__name__)
 
@@ -393,11 +394,11 @@ class AssetModel(TreeModel):
 
         # Get all assets sorted by name
         db_assets = io.find({"type": "asset"}).sort("name", 1)
-        silos = db_assets.distinct("silo") or None
+        project_doc = io.find({"type": "project"})
 
-        # if any silo is set to None then it's expected it should not be used
-        if silos and None in silos:
-            silos = None
+        silos = None
+        if lib.roject_use_silo(project_doc):
+            silos = db_assets.distinct("silo")
 
         # Group the assets by their visual parent's id
         assets_by_parent = collections.defaultdict(list)

@@ -452,3 +452,19 @@ def get_active_group_config(asset_id, include_predefined=False):
         })
 
     return ordered
+
+
+def project_use_silo(project_doc):
+    """Check if templates of project document contain `{silo}`.
+
+    Args:
+        project_doc (dict): Project document queried from database.
+
+    Returns:
+        bool: True if any project's template contain "{silo}".
+    """
+    templates = project_doc["config"].get("template") or {}
+    for template in templates.values():
+        if "{silo}" in template:
+            return True
+    return False

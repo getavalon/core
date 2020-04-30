@@ -1,7 +1,7 @@
 import sys
 
 from ...vendor.Qt import QtWidgets, QtCore
-from ... import io, schema, api, style
+from ... import io, schema, api, style, lib
 
 from .. import lib as tools_lib
 from ..widgets import AssetWidget
@@ -20,15 +20,15 @@ class Window(QtWidgets.QDialog):
 
     def __init__(self, is_silo_project=None, parent=None):
         super(Window, self).__init__(parent)
-        project_name = io.active_project()
+        project_doc = io.find({"type": "project"})
+        project_name = project_doc["name"]
+
         self.setWindowTitle("Project Manager ({0})".format(project_name))
         self.setFocusPolicy(QtCore.Qt.StrongFocus)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
         if is_silo_project is None:
-            is_silo_project = True
-            if not io.distinct("silo"):
-                is_silo_project = False
+            is_silo_project = lib.project_use_silo(project_doc)
         self.is_silo_project = is_silo_project
 
         # assets
