@@ -334,13 +334,13 @@ class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
         self._families = set(values)
         self.invalidateFilter()
 
-    def filterAcceptsRow(self, row=0, parent=QtCore.QModelIndex()):
+    def filterAcceptsRow(self, row=0, parent=None):
 
         if not self._families:
             return False
 
         model = self.sourceModel()
-        index = model.index(row, 0, parent=parent)
+        index = model.index(row, 0, parent=parent or QtCore.QModelIndex())
 
         # Ensure index is valid
         if not index.isValid() or index is None:
