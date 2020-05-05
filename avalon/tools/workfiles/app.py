@@ -633,8 +633,7 @@ class FilesWidget(QtWidgets.QWidget):
 
         self._enter_session()   # Make sure we are in the right session
         self.host.save_file(file_path)
-        self.set_asset_task(self._asset, self._task)
-        self.refresh()
+        self.window().close()
 
     def initialize_work_directory(self):
         """Initialize Work Directory.
