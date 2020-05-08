@@ -13,7 +13,7 @@ def has_unsaved_changes():
 
 def save_file(filepath):
     path = filepath.replace("\\", "/")
-    nuke.scriptSaveAs(path)
+    nuke.scriptSave()
     nuke.Root()["name"].setValue(path)
     nuke.Root()["project_directory"].setValue(os.path.dirname(path))
     nuke.Root().setModified(False)
