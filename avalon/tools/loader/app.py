@@ -276,7 +276,8 @@ class Window(QtWidgets.QDialog):
             self.show_grouping_dialog()
             return
 
-        return super(Window, self).keyPressEvent(event)
+        super(Window, self).keyPressEvent(event)
+        event.setAccepted(True)  # Avoid interfering other widgets
 
     def show_grouping_dialog(self):
         subsets = self.data["model"]["subsets"]
