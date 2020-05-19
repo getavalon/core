@@ -249,6 +249,10 @@ def show(root=None, debug=False, parent=None):
 
         module.window = window
 
+        # Pull window to the front.
+        module.window.raise_()
+        module.window.activateWindow()
+
 
 def cli(args):
     import argparse

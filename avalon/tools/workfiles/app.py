@@ -907,3 +907,7 @@ def show(root=None, debug=False, parent=None, use_context=True):
         window.setStyleSheet(style.load_stylesheet())
 
         module.window = window
+
+        # Pull window to the front.
+        module.window.raise_()
+        module.window.activateWindow()
