@@ -26,8 +26,9 @@ avalon.io.install()
 
 project_name = "batman"
 
-gazu.client.set_host("http://127.0.0.1/api")
-gazu.log_in("admin@example.com", "mysecretpassword")
+os.environ["CGWIRE_HOST"] = "http://127.0.0.1/api"
+os.environ["CGWIRE_USERNAME"] = "admin@example.com"
+os.environ["CGWIRE_PASSWORD"] = "mysecretpassword"
 
 
 @contextlib.contextmanager

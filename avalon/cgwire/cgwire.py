@@ -169,8 +169,8 @@ def get_visual_children(database, asset):
 
 
 def full_sync():
-    gazu.client.set_host("http://127.0.0.1/api")
-    gazu.log_in("admin@example.com", "mysecretpassword")
+    gazu.client.set_host(os.environ["CGWIRE_HOST"])
+    gazu.log_in(os.environ["CGWIRE_USERNAME"], os.environ["CGWIRE_PASSWORD"])
 
     # Mapping.
     silo_mapping = {"film": "shot", "assets": "asset"}
