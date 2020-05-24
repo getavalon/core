@@ -29,6 +29,8 @@ project_name = "batman"
 os.environ["CGWIRE_HOST"] = "http://127.0.0.1/api"
 os.environ["CGWIRE_USERNAME"] = "admin@example.com"
 os.environ["CGWIRE_PASSWORD"] = "mysecretpassword"
+gazu.client.set_host(os.environ["CGWIRE_HOST"])
+gazu.log_in(os.environ["CGWIRE_USERNAME"], os.environ["CGWIRE_PASSWORD"])
 
 
 @contextlib.contextmanager
