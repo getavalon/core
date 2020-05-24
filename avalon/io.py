@@ -9,14 +9,21 @@ import logging
 import tempfile
 import functools
 import contextlib
-import json
+from datetime import datetime
 
-from . import schema, Session
-from .vendor import requests, arrow
+from . import schema, Session, vendor
+from .vendor import requests
 
 # Third-party dependencies
 import pymongo
 from bson.objectid import ObjectId, InvalidId
+from bson import json_util
+
+try:
+    sys.path.append(os.path.dirname(vendor.__file__))
+    import pytz
+except ImportError:
+    pass
 
 __all__ = [
     "ObjectId",
@@ -340,9 +347,9 @@ def insert_one(item):
     event = {
         "schema": "avalon-core:event-1.0",
         "type": "event",
-        "datetime": str(arrow.now()),
+        "datetime": datetime.now(pytz.utc).isoformat(),
         "method": "insert_one",
-        "args": json.dumps([item]),
+        "args": json_util.dumps([item]),
         "kwargs": {}
     }
     schema.validate(event)
@@ -361,9 +368,9 @@ def insert_many(items, ordered=True):
     event = {
         "schema": "avalon-core:event-1.0",
         "type": "event",
-        "datetime": str(arrow.now()),
+        "datetime": datetime.now(pytz.utc).isoformat(),
         "method": "insert_many",
-        "args": json.dumps([items]),
+        "args": json_util.dumps([items]),
         "kwargs": {"ordered": ordered}
     }
     schema.validate(event)
@@ -406,9 +413,9 @@ def replace_one(filter, replacement):
     event = {
         "schema": "avalon-core:event-1.0",
         "type": "event",
-        "datetime": str(arrow.now()),
+        "datetime": datetime.now(pytz.utc).isoformat(),
         "method": "replace_one",
-        "args": json.dumps([filter, replacement]),
+        "args": json_util.dumps([filter, replacement]),
         "kwargs": {}
     }
     schema.validate(event)
@@ -423,9 +430,9 @@ def update_many(filter, update):
     event = {
         "schema": "avalon-core:event-1.0",
         "type": "event",
-        "datetime": str(arrow.now()),
+        "datetime": datetime.now(pytz.utc).isoformat(),
         "method": "update_many",
-        "args": json.dumps([filter, update]),
+        "args": json_util.dumps([filter, update]),
         "kwargs": {}
     }
     schema.validate(event)
@@ -452,9 +459,9 @@ def delete_many(*args, **kwargs):
     event = {
         "schema": "avalon-core:event-1.0",
         "type": "event",
-        "datetime": str(arrow.now()),
+        "datetime": datetime.now(pytz.utc).isoformat(),
         "method": "delete_many",
-        "args": json.dumps(args),
+        "args": json_util.dumps(args),
         "kwargs": kwargs
     }
     schema.validate(event)

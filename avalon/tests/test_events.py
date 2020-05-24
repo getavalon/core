@@ -6,7 +6,6 @@ import json
 
 from nose.tools import with_setup
 import pymongo
-from bson.json_util import dumps
 
 import avalon.io
 import avalon.inventory
@@ -216,9 +215,6 @@ def test_delete_many():
 
     client = pymongo.MongoClient(os.environ["AVALON_MONGO"])
     db = client["avalon"]
-
-    all = db[project_name].find({})
-    print(dumps(all, indent=4, sort_keys=True))
 
     events = db[project_name].find({"type": "event"})
     assert events.count() == 2
