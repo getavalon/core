@@ -57,18 +57,24 @@ class AssetCreateDialog(QtWidgets.QDialog):
 
     asset_created = QtCore.Signal(dict)
 
-    def __init__(self, parent=None):
+    def __init__(self, is_silo_required=True, parent=None):
         super(AssetCreateDialog, self).__init__(parent=parent)
         self.setWindowTitle("Add asset")
+        self.is_silo_required = is_silo_required
 
-        self.parent_id = None
-        self.parent_name = ""
-        self.silo = ""
+        self.parent_doc = None
 
         # Label
         label_label = QtWidgets.QLabel("Label:")
         label = QtWidgets.QLineEdit()
         label.setPlaceholderText("<label>")
+
+        # Silo - backwards compatibility
+        silo_label = QtWidgets.QLabel("Silo:")
+        silo_label.setVisible(is_silo_required)
+        silo_field = QtWidgets.QLineEdit()
+        silo_field.setPlaceholderText("<silo>")
+        silo_field.setVisible(is_silo_required)
 
         # Parent
         parent_label = QtWidgets.QLabel("Parent:")
@@ -89,6 +95,8 @@ class AssetCreateDialog(QtWidgets.QDialog):
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(label_label)
         layout.addWidget(label)
+        layout.addWidget(silo_label)
+        layout.addWidget(silo_field)
         layout.addWidget(parent_label)
         layout.addWidget(parent_field)
         layout.addWidget(name_label)
@@ -96,8 +104,15 @@ class AssetCreateDialog(QtWidgets.QDialog):
         layout.addWidget(add_asset)
 
         self.data = {
+            "labels": {
+                "parent": parent_label,
+                "silo": silo_label,
+                "label": label_label,
+                "name": name_label
+            },
             "label": {
                 "parent": parent_field,
+                "silo": silo_field,
                 "label": label,
                 "name": name
             }
@@ -112,24 +127,24 @@ class AssetCreateDialog(QtWidgets.QDialog):
         add_asset.clicked.connect(self.on_add_asset)
 
     def set_silo(self, silo):
-        assert silo
-        self.silo = silo
+        self.data["label"]["silo"].setText(silo or "")
+
+    def set_silo_input_enable(self, enabled=False):
+        self.data["label"]["silo"].setEnabled(enabled)
 
     def set_parent(self, parent_id):
 
         # Get the parent asset (if any provided)
-        parent_name = ""
         if parent_id:
-            parent_asset = io.find_one({"_id": parent_id, "type": "asset"})
-            assert parent_asset, "Parent asset does not exist."
-            parent_name = parent_asset["name"]
+            parent_doc = io.find_one({"_id": parent_id, "type": "asset"})
+            assert parent_doc, "Parent asset does not exist."
+            parent_name = parent_doc["name"]
 
-            self.parent_name = parent_name
-            self.parent_id = parent_id
+            self.parent_doc = parent_doc
         else:
             # Clear the parent
-            self.parent_name = ""
-            self.parent_id = None
+            parent_name = ""
+            self.parent_doc = None
 
         self.data["label"]["parent"].setText(parent_name)
 
@@ -145,28 +160,34 @@ class AssetCreateDialog(QtWidgets.QDialog):
         name = label
 
         # Prefix with parent name (if parent)
-        if self.parent_name:
-            name = self.parent_name + "_" + name
+        if self.parent_doc:
+            name = "_".join((self.parent_doc["name"], name))
 
         self.data["label"]["name"].setText(name)
 
     def on_add_asset(self):
 
-        parent_id = self.parent_id
+        if self.parent_doc:
+            parent_id = self.parent_doc["_id"]
+        else:
+            parent_id = None
+
         name = self.data["label"]["name"].text()
         label = self.data["label"]["label"].text()
-        silo = self.silo
 
         if not label:
             QtWidgets.QMessageBox.warning(self, "Missing required label",
                                           "Please fill in asset label.")
             return
 
-        if not silo:
-            QtWidgets.QMessageBox.critical(self, "Missing silo",
-                                           "Please create a silo first.\n"
-                                           "Use the + tab at the top.")
-            return
+        if self.is_silo_required:
+            silo_field = self.data["label"]["silo"]
+            silo = silo_field.text()
+            if not silo:
+                QtWidgets.QMessageBox.critical(
+                    self, "Missing silo", "Please enter a silo."
+                )
+                return
 
         # Name is based on label, so if label passes then name should too
         assert name, "This is a bug"
@@ -174,9 +195,21 @@ class AssetCreateDialog(QtWidgets.QDialog):
         data = {
             "name": name,
             "label": label,
-            "silo": silo,
             "visualParent": parent_id
         }
+
+        if self.is_silo_required:
+            data["silo"] = silo
+
+        else:
+            # Add "parents" key if not silo required
+            parents = []
+            if self.parent_doc:
+                # Use parent's "parents" value and append it's "label"
+                # WARNING this requires to have already set "parents" on asset
+                parents = self.parent_doc["data"]["parents"]
+                parents.append(self.parent_doc["data"]["label"])
+            data["parents"] = parents
 
         # For the launcher automatically add a `group` dataa when the asset
         # is added under a visual parent to look as if it's grouped underneath
@@ -188,7 +221,7 @@ class AssetCreateDialog(QtWidgets.QDialog):
                 data["group"] = group
 
         try:
-            lib.create_asset(data)
+            lib.create_asset(data, self.is_silo_required)
         except (RuntimeError, AssertionError) as exc:
             QtWidgets.QMessageBox.critical(self, "Add asset failed",
                                            str(exc))

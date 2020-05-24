@@ -24,8 +24,10 @@ class Window(QtWidgets.QDialog):
         super(Window, self).__init__(parent)
         self.setWindowTitle(
             "Asset Loader 2.1 - %s/%s" % (
-                api.registered_root(),
-                api.Session.get("AVALON_PROJECT")))
+                api.registered_root().replace("\\", "/"),
+                api.Session.get("AVALON_PROJECT")
+            )
+        )
 
         # Enable minimize and maximize for app
         self.setWindowFlags(QtCore.Qt.Window)
@@ -37,7 +39,7 @@ class Window(QtWidgets.QDialog):
 
         container = QtWidgets.QWidget()
 
-        assets = AssetWidget(silo_creatable=False)
+        assets = AssetWidget()
         families = FamilyListWidget()
         subsets = SubsetWidget()
         version = VersionWidget()
@@ -166,19 +168,29 @@ class Window(QtWidgets.QDialog):
 
         t1 = time.time()
 
-        asset_item = assets_model.get_active_index()
-        if asset_item is None or not asset_item.isValid():
-            return
+        asset_item = assets_model.get_active_asset()
+        if asset_item is None:
+            document_id = None
+            document_name = None
+            document_silo = None
+        elif asset_item["type"] == "silo":
+            document_id = None
+            document_name = None
+            document_silo = asset_item["name"]
+        else:
+            document = asset_item["_document"]
+            document_id = document["_id"]
+            document_name = document["name"]
+            document_silo = document.get("silo")
 
-        document = asset_item.data(DocumentRole)
-        subsets_model.set_asset(document["_id"])
+        subsets_model.set_asset(document_id)
 
         # Clear the version information on asset change
         self.data["model"]["version"].set_version(None)
 
-        self.data["state"]["context"]["asset"] = document["name"]
-        self.data["state"]["context"]["assetId"] = document["_id"]
-        self.data["state"]["context"]["silo"] = document["silo"]
+        self.data["state"]["context"]["asset"] = document_name
+        self.data["state"]["context"]["assetId"] = document_id
+        self.data["state"]["context"]["silo"] = document_silo
         self.echo("Duration: %.3fs" % (time.time() - t1))
 
     def _versionschanged(self):
@@ -217,10 +229,6 @@ class Window(QtWidgets.QDialog):
 
         """
 
-        silo = context.get("silo", None)
-        if silo is None:
-            return
-
         asset = context.get("asset", None)
         if asset is None:
             return
@@ -235,8 +243,7 @@ class Window(QtWidgets.QDialog):
             self._refresh()
 
         asset_widget = self.data["model"]["assets"]
-        asset_widget.set_silo(silo)
-        asset_widget.select_assets([asset], expand=True)
+        asset_widget.select_assets(asset)
 
     def echo(self, message):
         widget = self.data["label"]["message"]
@@ -401,8 +408,8 @@ def show(debug=False, parent=None, use_context=False):
             module.window.activateWindow()     # for Windows
             module.window.refresh()
             return
-        except RuntimeError as e:
-            if not str(e).rstrip().endswith("already deleted."):
+        except RuntimeError as exc:
+            if not str(exc).rstrip().endswith("already deleted."):
                 raise
 
             # Garbage collected
@@ -423,8 +430,7 @@ def show(debug=False, parent=None, use_context=False):
         window.setStyleSheet(style.load_stylesheet())
 
         if use_context:
-            context = {"asset": api.Session["AVALON_ASSET"],
-                       "silo": api.Session["AVALON_SILO"]}
+            context = {"asset": api.Session["AVALON_ASSET"]}
             window.set_context(context, refresh=True)
         else:
             window.refresh()
