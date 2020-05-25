@@ -29,12 +29,13 @@ project_name = "batman"
 os.environ["CGWIRE_HOST"] = "http://127.0.0.1/api"
 os.environ["CGWIRE_USERNAME"] = "admin@example.com"
 os.environ["CGWIRE_PASSWORD"] = "mysecretpassword"
-gazu.client.set_host(os.environ["CGWIRE_HOST"])
-gazu.log_in(os.environ["CGWIRE_USERNAME"], os.environ["CGWIRE_PASSWORD"])
 
 
 @contextlib.contextmanager
 def setup():
+    gazu.client.set_host(os.environ["CGWIRE_HOST"])
+    gazu.log_in(os.environ["CGWIRE_USERNAME"], os.environ["CGWIRE_PASSWORD"])
+
     for project in gazu.project.all_projects():
         for shot in gazu.shot.all_shots_for_project(project):
             gazu.shot.remove_shot(shot, force=True)
@@ -93,6 +94,7 @@ def test_asset_sync():
     db = client["avalon"]
     avalon_asset = db[project_name].find_one({"_id": asset_id})
 
+    os.environ["AVALON_CGWIRE_ASSET_PARENTS"] = "Bruce"
     avalon.cgwire.cgwire.full_sync()
 
     # There should only be one project in CGWire at this point.
@@ -130,6 +132,7 @@ def test_sequence_sync():
     avalon_sequence = db[project_name].find_one({"_id": sequence_id})
     avalon_shot = db[project_name].find_one({"_id": shot_id})
 
+    os.environ["AVALON_CGWIRE_SHOT_PARENTS"] = "sequence"
     avalon.cgwire.cgwire.full_sync()
 
     # There should only be one project in CGWire at this point.
@@ -177,6 +180,7 @@ def test_episode_sync():
     avalon_sequence = db[project_name].find_one({"_id": sequence_id})
     avalon_shot = db[project_name].find_one({"_id": shot_id})
 
+    os.environ["AVALON_CGWIRE_SHOT_PARENTS"] = "episode"
     avalon.cgwire.cgwire.full_sync()
 
     # There should only be one project in CGWire at this point.
@@ -204,3 +208,47 @@ def test_episode_sync():
         task["name"] for task in gazu.task.all_tasks_for_shot(cgwire_shot)
     ]
     assert avalon_shot["data"]["tasks"] == cgwire_tasks
+
+
+@with_setup(setup)
+def test_multiple_folders():
+    """Syncing with multiple folders from Avalon to CGWire works."""
+
+    project_id = avalon.inventory.create_project(project_name)
+    episodes_id = avalon.inventory.create_asset(
+        "episodes", "film", {}, project_id
+    )
+    episode_id = avalon.inventory.create_asset(
+        "episode", "film", {"visualParent": episodes_id}, project_id
+    )
+    sequence_id = avalon.inventory.create_asset(
+        "sequence", "film", {"visualParent": episode_id}, project_id
+    )
+    avalon.inventory.create_asset(
+        "shotA",
+        "film",
+        {"tasks": ["layout"], "visualParent": sequence_id},
+        project_id
+    )
+    shots_id = avalon.inventory.create_asset(
+        "shots", "film", {}, project_id
+    )
+    avalon.inventory.create_asset(
+        "shotB",
+        "film",
+        {"tasks": ["layout"], "visualParent": shots_id},
+        project_id
+    )
+
+    os.environ["AVALON_CGWIRE_SHOT_PARENTS"] = os.pathsep.join(
+        ["episodes", "shots"]
+    )
+    avalon.cgwire.cgwire.full_sync()
+
+    # There should only be one project in CGWire at this point.
+    cgwire_project = gazu.project.all_projects()[0]
+
+    # There should be two shots in CGWire at this point.
+    cgwire_shots = gazu.shot.all_shots_for_project(cgwire_project)
+
+    assert len(cgwire_shots) == 2

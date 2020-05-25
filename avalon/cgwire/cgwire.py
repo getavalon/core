@@ -168,12 +168,33 @@ def get_visual_children(database, asset):
     return children
 
 
+def get_visual_parents(database, entity, parents):
+    if entity["data"].get("visualParent"):
+        visual_parent = database.find_one(
+            {"_id": entity["data"]["visualParent"]}
+        )
+        parents.append(visual_parent)
+        get_visual_parents(database, visual_parent, parents)
+
+    return parents
+
+
+def get_entity_type(database, entity, asset_names, shot_names):
+    if entity["name"] in asset_names:
+        return "asset"
+    if entity["name"] in shot_names:
+        return "shot"
+
+    for parent in get_visual_parents(database, entity, []):
+        if parent["name"] in asset_names:
+            return "asset"
+        if parent["name"] in shot_names:
+            return "shot"
+
+
 def full_sync():
     gazu.client.set_host(os.environ["CGWIRE_HOST"])
     gazu.log_in(os.environ["CGWIRE_USERNAME"], os.environ["CGWIRE_PASSWORD"])
-
-    # Mapping.
-    silo_mapping = {"film": "shot", "assets": "asset"}
 
     # Collect all projects data in Mongo.
     client = pymongo.MongoClient(os.environ["AVALON_MONGO"])
@@ -184,15 +205,21 @@ def full_sync():
             db[name].find_one({"type": "project"}), None, "project"
         )
         for asset in db[name].find({"type": "asset"}):
-            if silo_mapping[asset["silo"]] == "asset":
+            asset_type = get_entity_type(
+                db[name],
+                asset,
+                os.environ.get(
+                    "AVALON_CGWIRE_ASSET_PARENTS", ""
+                ).split(os.pathsep),
+                os.environ.get(
+                    "AVALON_CGWIRE_SHOT_PARENTS", ""
+                ).split(os.pathsep)
+            )
+
+            if asset_type == "asset":
                 update_entity(asset, cgwire_project, "asset")
 
-            if silo_mapping[asset["silo"]] == "shot":
-                # If the asset has a visual parent skip.
-                if asset["data"].get("visualParent", None):
-                    print("Skipping {} due to visual parent.".format(asset))
-                    continue
-
+            if asset_type == "shot":
                 # Query visual children for hierarchy.
                 children = get_visual_children(db[name], asset)
 
