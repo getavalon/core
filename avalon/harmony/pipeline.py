@@ -47,15 +47,30 @@ def ls():
 
 class Creator(api.Creator):
     """Creator plugin to create instances in Harmony.
-    A Composite node is created to support any number of nodes in an instance.
-    If the selection is used, these nodes will be connected to the composite
-    node.
+
+    By default a Composite node is created to support any number of nodes in
+    an instance, but any node type is supported.
+    If the selection is used, the selected nodes will be connected to the
+    created node.
     """
 
-    def process(self):
-        func = """function get_composites()
+    node_type = "COMPOSITE"
+
+    def setup_node(self, node):
+        func = """function func(args)
         {
-            var nodes = node.getNodes(["COMPOSITE"]);
+            node.setTextAttr(args[0], "COMPOSITE_MODE", 1, "Pass Through");
+        }
+        func
+        """
+        lib.send(
+            {"function": func, "args": [node]}
+        )
+
+    def process(self):
+        func = """function func(args)
+        {
+            var nodes = node.getNodes([args[0]]);
             var node_names = [];
             for (var i = 0; i < nodes.length; ++i)
             {
@@ -63,63 +78,65 @@ class Creator(api.Creator):
             }
             return node_names
         }
-        get_composites
+        func
         """
 
-        composite_names = lib.send({"function": func})["result"]
+        existing_node_names = lib.send(
+            {"function": func, "args": [self.node_type]}
+        )["result"]
 
         # Dont allow instances with the same name.
         message_box = Qt.QtWidgets.QMessageBox()
         message_box.setIcon(Qt.QtWidgets.QMessageBox.Warning)
         msg = "Instance with name \"{}\" already exists.".format(self.name)
         message_box.setText(msg)
-        for name in composite_names:
+        for name in existing_node_names:
             if self.name.lower() == name.lower():
                 message_box.exec_()
                 return False
 
-        # Have to use "args" else the selected_nodes list/array is not
-        # preserved.
-        create_composite = """function create_composite(args)
+        func = """function func(args)
         {
-            var comp = node.add("Top", args[0], "COMPOSITE", 0, 0, 0);
-            node.setTextAttr(comp, "COMPOSITE_MODE", 1, "Pass Through");
+            var result_node = node.add("Top", args[0], args[1], 0, 0, 0);
 
-            if (args.length > 1)
+            if (args.length > 2)
             {
-                selected_nodes = args[1].reverse();
+                selected_nodes = args[2].reverse();
                 for (var i = 0; i < selected_nodes.length; ++i)
                 {
                     MessageLog.trace(selected_nodes[i]);
-                    node.link(selected_nodes[i], 0, comp, i, false, true);
+                    node.link(
+                        selected_nodes[i], 0, result_node, i, false, true
+                    );
                 }
             }
-            return comp
+            return result_node
         }
-        create_composite
+        func
         """
 
         with lib.maintained_selection() as selection:
-            composite = None
+            node = None
 
             if (self.options or {}).get("useSelection") and selection:
-                composite = lib.send(
+                node = lib.send(
                     {
-                        "function": create_composite,
-                        "args": [self.name, selection]
+                        "function": func,
+                        "args": [self.name, self.node_type, selection]
                     }
                 )["result"]
             else:
-                composite = lib.send(
+                node = lib.send(
                     {
-                        "function": create_composite,
-                        "args": [self.name]
+                        "function": func,
+                        "args": [self.name, self.node_type]
                     }
                 )["result"]
 
-            lib.imprint(composite, self.data)
+            lib.imprint(node, self.data)
+            self.setup_node(node)
 
-        return composite
+        return node
 
 
 def containerise(name,
