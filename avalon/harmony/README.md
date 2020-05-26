@@ -1,4 +1,4 @@
-# Photoshop Integration
+# Harmony Integration
 
 ## Setup
 
@@ -51,19 +51,6 @@ You can show the Workfiles app when Harmony launches by setting environment vari
 To send from Python to Harmony you can use the exposed method:
 ```python
 from avalon import harmony
-harmony.send({"function": "MessageLog.trace", "args": ["Hello Harmony!"]})
-```
-
-To get the result of a function call in Harmony:
-```python
-from avalon import harmony
-print(harmony.send({"function": "about.fullVersion"})["result"])
-```
-NOTE: The `args` parameter does not need to be sent if a function does not require any argument.
-
-To send a custom function you can declare it when sending:
-```python
-from avalon import harmony
 func = """function hello(person)
 {
   return ("Hello " + person + "!");
@@ -101,10 +88,38 @@ class CreateComposite(harmony.Creator):
 
     name = "compositeDefault"
     label = "Composite"
-    family = "mindbender.imagesequence"
+    family = "mindbender.template"
 
     def __init__(self, *args, **kwargs):
         super(CreateComposite, self).__init__(*args, **kwargs)
+```
+
+The creator plugin can be configured to use other node types. For example here is a write node creator:
+```python
+from avalon import harmony
+
+
+class CreateRender(harmony.Creator):
+    """Composite node for publishing renders."""
+
+    name = "writeDefault"
+    label = "Write"
+    family = "mindbender.imagesequence"
+    node_type = "WRITE"
+
+    def __init__(self, *args, **kwargs):
+        super(CreateRender, self).__init__(*args, **kwargs)
+
+    def setup_node(self, node):
+        func = """function func(args)
+        {
+            node.setTextAttr(args[0], "DRAWING_TYPE", 1, "PNG4");
+        }
+        func
+        """
+        harmony.send(
+            {"function": func, "args": [node]}
+        )
 ```
 
 #### Collector Plugin
