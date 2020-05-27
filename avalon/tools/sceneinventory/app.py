@@ -832,7 +832,35 @@ class SwitchAssetDialog(QtWidgets.QDialog):
             if asset_name not in filtered_assets:
                 filtered_assets.append(asset_name)
         return sorted(filtered_assets)
-    
+
+    def _get_subset_box_values(self):
+        selected_asset = self._assets_box.get_valid_value()
+        if selected_asset:
+            asset_doc = io.find_one({"type": "asset", "name": selected_asset})
+            asset_ids = [asset_doc["_id"]]
+        else:
+            asset_ids = list(self.content_assets.keys())
+
+        subsets = io.find({
+            "type": "subset",
+            "parent": {"$in": asset_ids}
+        })
+
+        subset_names_by_parent_id = collections.defaultdict(set)
+        for subset in subsets:
+            subset_names_by_parent_id[subset["parent"]].add(subset["name"])
+
+        possible_subsets = None
+        for subset_names in subset_names_by_parent_id.values():
+            if possible_subsets is None:
+                possible_subsets = subset_names
+            else:
+                possible_subsets = (possible_subsets & subset_names)
+
+            if not possible_subsets:
+                break
+
+        return list(possible_subsets or list())
 
 class Window(QtWidgets.QDialog):
     """Scene Inventory window"""
