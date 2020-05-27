@@ -638,6 +638,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         if init_refresh:
             asset_values = self._get_asset_box_values()
+            self._fill_combobox(asset_values, "asset")
 
         # Set other comboboxes to empty if any document is missing or any asset
         # of loaded representations is archived.
@@ -645,6 +646,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         if asset_ok:
             subset_values = self._get_subset_box_values()
+            self._fill_combobox(subset_values, "subset")
             if not subset_values:
                 asset_ok = False
             else:
@@ -652,6 +654,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         if asset_ok and subset_ok:
             repre_values = sorted(self._representations_box_values())
+            self._fill_combobox(repre_values, "repre")
             if not repre_values:
                 subset_ok = False
             else:
@@ -668,6 +671,29 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self.apply_validations(asset_ok, subset_ok, repre_ok)
 
         self._fill_check = True
+
+    def _fill_combobox(self, values, combobox_type):
+        if combobox_type == "asset":
+            combobox_widget = self._assets_box
+        elif combobox_type == "subset":
+            combobox_widget = self._subsets_box
+        elif combobox_type == "repre":
+            combobox_widget = self._representations_box
+        else:
+            return
+        selected_value = combobox_widget.get_valid_value()
+
+        # Fill combobox
+        if values is not None:
+            combobox_widget.populate(values)
+            if selected_value and selected_value in values:
+                index = None
+                for idx in range(combobox_widget.count()):
+                    if selected_value == str(combobox_widget.itemText(idx)):
+                        index = idx
+                        break
+                if index is not None:
+                    combobox_widget.setCurrentIndex(index)
 
     def set_labels(self):
         asset_label = self._assets_box.get_valid_value()
