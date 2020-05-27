@@ -20,7 +20,7 @@ class Window(QtWidgets.QDialog):
 
     def __init__(self, is_silo_project=None, parent=None):
         super(Window, self).__init__(parent)
-        project_doc = io.find({"type": "project"})
+        project_doc = io.find_one({"type": "project"})
         project_name = project_doc["name"]
 
         self.setWindowTitle("Project Manager ({0})".format(project_name))

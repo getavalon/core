@@ -394,7 +394,7 @@ class AssetModel(TreeModel):
 
         # Get all assets sorted by name
         db_assets = io.find({"type": "asset"}).sort("name", 1)
-        project_doc = io.find({"type": "project"})
+        project_doc = io.find_one({"type": "project"})
 
         silos = None
         if lib.project_use_silo(project_doc):
