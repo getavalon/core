@@ -1,6 +1,7 @@
 import os
 import sys
 import logging
+import collections
 from functools import partial
 
 from ...vendor.Qt import QtWidgets, QtCore
@@ -950,6 +951,106 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                 break
 
         return list(output_repres or list())
+
+    def _is_asset_ok(self):
+        selected_asset = self._assets_box.get_valid_value()
+        if selected_asset is None and self.missing_docs:
+            return False
+        return True
+
+    def _is_subset_ok(self, subset_values):
+        selected_subset = self._subsets_box.get_valid_value()
+        if selected_subset is None and self.missing_docs:
+            return False
+        return True
+
+    def _is_repre_ok(self, repre_values):
+        selected_asset = self._assets_box.get_valid_value()
+        selected_subset = self._subsets_box.get_valid_value()
+        selected_repre = self._representations_box.get_valid_value()
+
+        # If subset is selected then must be ok
+        if selected_repre is not None:
+            return True
+
+        if self.missing_docs:
+            return False
+
+        if selected_asset is None and selected_subset is None:
+            return True
+
+        if selected_asset:
+            asset_doc = io.find_one({"type": "asset", "name": selected_asset})
+            asset_ids = [asset_doc["_id"]]
+        else:
+            asset_ids = list(self.content_assets.keys())
+
+        subset_query = {
+            "type": "subset",
+            "parent": {"$in": asset_ids}
+        }
+        if selected_subset:
+            subset_query["name"] = selected_subset
+
+        subset_docs = list(io.find(subset_query))
+        if not subset_docs:
+            return False
+
+        if selected_asset and selected_subset is None:
+            return True
+
+        subsets_by_id = {
+            subset_doc["_id"]: subset_doc
+            for subset_doc in subset_docs
+        }
+        versions = io.find({
+            "type": "version",
+            "parent": {"$in": list(subsets_by_id.keys())}
+        }, sort=[("name", -1)])
+
+        highest_version_mapping = {}
+        for version in versions:
+            subset_id = version["parent"]
+            if subset_id not in highest_version_mapping:
+                highest_version_mapping[subset_id] = version
+
+        higher_versions_by_id = {
+            version_doc["_id"]: version_doc
+            for version_doc in highest_version_mapping.values()
+        }
+        repre_docs = io.find({
+            "type": "representation",
+            "parent": {"$in": list(higher_versions_by_id.keys())}
+        })
+
+        hierarchy = collections.defaultdict(list)
+        for repre_doc in repre_docs:
+            version_doc = higher_versions_by_id[repre_doc["parent"]]
+            subset_doc = subsets_by_id[version_doc["parent"]]
+            hierarchy[subset_doc["name"]].append(repre_doc["name"])
+
+        content_repre_names = set()
+        for repre_doc in self.content_repres.values():
+            content_repre_names.add(repre_doc["name"])
+
+        if selected_subset:
+            subset_repre_names = hierarchy.get(selected_subset)
+            if not subset_repre_names:
+                return False
+            for repre_name in content_repre_names:
+                if repre_name not in subset_repre_names:
+                    return False
+            return True
+
+        for repre_doc in self.content_repres.values():
+            version_doc = self.content_versions[repre_doc["parent"]]
+            subset_doc = self.content_subsets[version_doc["parent"]]
+            subset_name = subset_doc["name"]
+
+            repre_names = hierarchy.get(subset_name) or []
+            if repre_doc["name"] not in repre_names:
+                return False
+        return True
 
 class Window(QtWidgets.QDialog):
     """Scene Inventory window"""
