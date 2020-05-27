@@ -862,6 +862,95 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         return list(possible_subsets or list())
 
+    def _representations_box_values(self):
+        # NOTE master versions are not used because it is expected that
+        # master version has same representations as latests
+        selected_asset = self._assets_box.currentText()
+        selected_subset = self._subsets_box.currentText()
+
+        # If nothing is selected
+        if not selected_asset and not selected_subset:
+            # Find all representations of selection's subsets
+            possible_repres = list(io.find({
+                "type": "representation",
+                "parent": {"$in": list(self.content_versions.keys())}
+            }))
+
+            possible_repres_by_parent = collections.defaultdict(set)
+            for repre in possible_repres:
+                possible_repres_by_parent[repre["parent"]].add(repre["name"])
+
+            output_repres = None
+            for repre_names in possible_repres_by_parent.values():
+                if output_repres is None:
+                    output_repres = repre_names
+                else:
+                    output_repres = (output_repres & repre_names)
+
+                if not output_repres:
+                    break
+
+            return list(output_repres or list())
+
+        if selected_asset:
+            # If asset only is selected
+            asset = io.find_one({"type": "asset", "name": selected_asset})
+            asset_ids = [asset["_id"]]
+        else:
+            # If only subset is selected
+            asset_ids = list(self.content_assets.keys())
+
+        subset_query = {
+            "type": "subset",
+            "parent": {"$in": asset_ids}
+        }
+        if selected_subset:
+            subset_query["name"] = selected_subset
+
+        subsets = list(io.find(subset_query))
+        if not subsets:
+            return list()
+
+        # versions
+        versions = list(io.find({
+            "type": "version",
+            "parent": {"$in": [subset["_id"] for subset in subsets]}
+        }, sort=[("name", -1)]))
+        if not versions:
+            return list()
+
+        higher_versions_map = {}
+        for version in versions:
+            parent_id = version["parent"]
+            if parent_id not in higher_versions_map:
+                higher_versions_map[parent_id] = version
+
+        higher_versions_ids = [
+            version["_id"] for version in higher_versions_map.values()
+        ]
+
+        higher_version_repres = io.find({
+            "type": "representation",
+            "parent": {"$in": higher_versions_ids}
+        })
+
+        repre_per_version = collections.defaultdict(set)
+        for repre in higher_version_repres:
+            repre_per_version[repre["parent"]].add(repre["name"])
+
+        # representations
+        output_repres = None
+        for repre_names in repre_per_version.values():
+            if output_repres is None:
+                output_repres = repre_names
+            else:
+                output_repres = (output_repres & repre_names)
+
+            if not output_repres:
+                break
+
+        return list(output_repres or list())
+
 class Window(QtWidgets.QDialog):
     """Scene Inventory window"""
 
