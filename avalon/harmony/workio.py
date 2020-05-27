@@ -56,9 +56,15 @@ def save_file(filepath):
 
 def open_file(filepath):
     temp_path = _get_temp_path(filepath)
-
-    with zipfile.ZipFile(filepath, "r") as zip_ref:
-        zip_ref.extractall(temp_path)
+    scene_path = os.path.join(
+        temp_path, os.path.basename(temp_path) + ".xstage"
+    )
+    if os.path.exists(scene_path):
+        # Check remote scene is newer than local.
+        if os.path.getmtime(scene_path) < os.path.getmtime(filepath):
+            shutil.rmtree(temp_path)
+            with zipfile.ZipFile(filepath, "r") as zip_ref:
+                zip_ref.extractall(temp_path)
 
     # Close existing scene.
     if lib.pid:
@@ -74,10 +80,7 @@ def open_file(filepath):
     # Disable workfiles on launch.
     os.environ["AVALON_HARMONY_WORKFILES_ON_LAUNCH"] = "0"
 
-    # Launch new scene.
-    scene_path = os.path.join(
-        temp_path, os.path.basename(temp_path) + ".xstage"
-    )
+    # Launch scene.
     lib.launch(lib.application_path, scene_path=scene_path)
 
 
