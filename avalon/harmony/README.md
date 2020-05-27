@@ -75,6 +75,21 @@ hello
 print(harmony.send({"function": func, "args": ["Hello", "Python"]})["result"])
 ```
 
+### Scene Save
+Instead of sending a request to Harmony with `scene.saveAll` please use:
+```python
+from avalon import harmony
+harmony.save_scene()
+```
+
+<details>
+  <summary>Click to expand for details on scene save.</summary>
+
+  Because Avalon tools does not deal well with folders for a single entity like a Harmony scene, this integration has implemented to use zip files to encapsulate the Harmony scene folders. This is done with a background watcher for when the `.xstage` file is changed, at which point a request is sent to zip up the Harmony scene folder and move from the local to remote storage.
+
+  This does come with an edge case where if you send `scene.saveAll` to Harmony, two request will be sent back; the reply to `scene.saveAll` and the request to zip and move the scene folder. To prevent this a boolean has been implemented to the background watcher; `app.avalon_on_file_changed`, enable and disable to zip and move.
+</details>
+
 ### Plugin Examples
 These plugins were made with the [polly config](https://github.com/mindbender-studio/config).
 
