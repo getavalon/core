@@ -99,16 +99,15 @@ class Creator(api.Creator):
         {
             var result_node = node.add("Top", args[0], args[1], 0, 0, 0);
 
+
             if (args.length > 2)
             {
-                selected_nodes = args[2].reverse();
-                for (var i = 0; i < selected_nodes.length; ++i)
-                {
-                    MessageLog.trace(selected_nodes[i]);
-                    node.link(
-                        selected_nodes[i], 0, result_node, i, false, true
-                    );
-                }
+                node.link(args[2], 0, result_node, 0, false, true);
+                node.setCoord(
+                    result_node,
+                    node.coordX(args[2]),
+                    node.coordY(args[2]) + 70
+                )
             }
             return result_node
         }
@@ -122,7 +121,7 @@ class Creator(api.Creator):
                 node = lib.send(
                     {
                         "function": func,
-                        "args": [self.name, self.node_type, selection]
+                        "args": [self.name, self.node_type, selection[-1]]
                     }
                 )["result"]
             else:
