@@ -515,8 +515,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self.setLayout(main_layout)
         self.setWindowTitle("Switch selected items ...")
 
-
-        self.refresh()
+        self.refresh(True)
 
         self.setFixedSize(self.sizeHint())  # Lock window size
 
@@ -528,7 +527,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
 
 
-    def refresh(self, refresh_type=0):
+    def refresh(self, init_refresh=False):
         """Build the need comboboxes with content"""
         if refresh_type < 1:
             assets = sorted(self._get_assets())
