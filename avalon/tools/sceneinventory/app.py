@@ -511,12 +511,12 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self._representations_box.currentIndexChanged.connect(
             self.on_repre_change
         )
+        self._accept_btn.clicked.connect(self._on_accept)
 
         main_layout.addLayout(context_layout)
         self.setLayout(main_layout)
         self.setWindowTitle("Switch selected items ...")
 
-        self.connections()
 
         self.refresh()
 
@@ -526,8 +526,6 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         # first asset field, this also allows to see the placeholder value.
         accept_btn.setFocus()
 
-    def connections(self):
-        self._accept_btn.clicked.connect(self._on_accept)
 
     def on_assets_change(self):
         self.refresh(1)
