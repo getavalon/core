@@ -460,6 +460,7 @@ class SearchComboBox(QtWidgets.QComboBox):
 class SwitchAssetDialog(QtWidgets.QDialog):
     """Widget to support asset switching"""
 
+    _fill_check = False
     switched = QtCore.Signal()
 
     def __init__(self, parent=None, items=None):
@@ -621,6 +622,11 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
     def refresh(self, init_refresh=False):
         """Build the need comboboxes with content"""
+        if not self._fill_check and not init_refresh:
+            return
+
+        self._fill_check = False
+
         if refresh_type < 1:
             assets = sorted(self._get_assets())
             self._assets_box.populate(assets)
@@ -654,6 +660,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
                         break
                 if index is not None:
                     self._representations_box.setCurrentIndex(index)
+        self._fill_check = True
 
         self.set_labels()
         self.validate()
