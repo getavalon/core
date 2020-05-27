@@ -672,6 +672,26 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         self._fill_check = True
 
+    def _get_loaders(self, representations):
+        if not representations:
+            return list()
+
+        available_loaders = filter(
+            lambda l: not (hasattr(l, "is_utility") and l.is_utility),
+            api.discover(api.Loader)
+        )
+
+        loaders = set()
+
+        for representation in representations:
+            for loader in api.loaders_from_representation(
+                available_loaders,
+                representation
+            ):
+                loaders.add(loader)
+
+        return loaders
+
     def _fill_combobox(self, values, combobox_type):
         if combobox_type == "asset":
             combobox_widget = self._assets_box
@@ -705,30 +725,6 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self._subset_label.setText(subset_label or default)
         self._repre_label.setText(repre_label or default)
 
-    def _on_accept(self):
-
-        # Use None when not a valid value or when placeholder value
-        asset = self._assets_box.get_valid_value() or None
-        subset = self._subsets_box.get_valid_value() or None
-        representation = self._representations_box.get_valid_value() or None
-
-        if not any([asset, subset, representation]):
-            self.log.error("Nothing selected")
-            return
-
-        for item in self._items:
-            try:
-                switch_item(item,
-                            asset_name=asset,
-                            subset_name=subset,
-                            representation_name=representation)
-            except Exception as e:
-                self.log.warning(e)
-
-        self.switched.emit()
-
-        self.close()
-
     def apply_validations(self, asset_ok, subset_ok, repre_ok):
         error_msg = "*Please select"
         error_sheet = "border: 1px solid red;"
@@ -759,7 +755,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         self._accept_btn.setEnabled(all_ok)
         self._accept_btn.setStyleSheet(accept_sheet or "")
-    
+
     def _get_asset_box_values(self):
         assets_by_id = {
             asset_doc["_id"]: asset_doc
@@ -994,6 +990,120 @@ class SwitchAssetDialog(QtWidgets.QDialog):
             if repre_doc["name"] not in repre_names:
                 return False
         return True
+
+    def _on_accept(self):
+        # Use None when not a valid value or when placeholder value
+        selected_asset = self._assets_box.get_valid_value()
+        selected_subset = self._subsets_box.get_valid_value()
+        selected_representation = self._representations_box.get_valid_value()
+
+        if selected_asset:
+            asset_doc = io.find_one({"type": "asset", "name": selected_asset})
+            asset_docs_by_id = {asset_doc["_id"]: asset_doc}
+        else:
+            asset_docs_by_id = self.content_assets
+
+        asset_docs_by_name = {
+            asset_doc["name"]: asset_doc
+            for asset_doc in asset_docs_by_id.values()
+        }
+
+        asset_ids = list(asset_docs_by_id.keys())
+
+        subset_query = {
+            "type": "subset",
+            "parent": {"$in": asset_ids}
+        }
+        if selected_subset:
+            subset_query["name"] = selected_subset
+
+        subset_docs = list(io.find(subset_query))
+
+        subset_ids = list()
+        subset_docs_by_parent_and_name = collections.defaultdict(dict)
+        for subset in subset_docs:
+            subset_ids.append(subset["_id"])
+            asset_id = subset["parent"]
+            name = subset["name"]
+            subset_docs_by_parent_and_name[asset_id][name] = subset
+
+        # versions
+        version_docs = list(io.find({
+            "type": "version",
+            "parent": {"$in": subset_ids}
+        }, sort=[("name", -1)]))
+
+        version_ids = list()
+        version_docs_by_parent_id = {}
+        for version_doc in version_docs:
+            subset_id = version_doc["parent"]
+            if subset_id not in version_docs_by_parent_id:
+                version_ids.append(version_doc["_id"])
+                version_docs_by_parent_id[subset_id] = version_doc
+
+        repre_docs = io.find({
+            "type": "representation",
+            "parent": {"$in": version_ids}
+        })
+        repre_docs_by_parent_id_by_name = collections.defaultdict(dict)
+        for repre_doc in repre_docs:
+            version_id = repre_doc["parent"]
+            name = repre_doc["name"]
+            repre_docs_by_parent_id_by_name[version_id][name] = repre_doc
+
+        for container in self._items:
+            container_repre_id = io.ObjectId(container["representation"])
+            container_repre = self.content_repres[container_repre_id]
+            container_repre_name = container_repre["name"]
+
+            container_version_id = container_repre["parent"]
+            container_version = self.content_versions[container_version_id]
+
+            container_subset_id = container_version["parent"]
+            container_subset = self.content_subsets[container_subset_id]
+            container_subset_name = container_subset["name"]
+
+            container_asset_id = container_subset["parent"]
+            container_asset = self.content_assets[container_asset_id]
+            container_asset_name = container_asset["name"]
+
+            if selected_asset:
+                asset_doc = asset_docs_by_name[selected_asset]
+            else:
+                asset_doc = asset_docs_by_name[container_asset_name]
+
+            subsets_by_name = subset_docs_by_parent_and_name[asset_doc["_id"]]
+            if selected_subset:
+                subset_doc = subsets_by_name[selected_subset]
+            else:
+                subset_doc = subsets_by_name[container_subset_name]
+
+            subset_id = subset_doc["_id"]
+            version_doc = version_docs_by_parent_id[subset_id]
+
+            version_id = version_doc["_id"]
+            repres_by_name = repre_docs_by_parent_id_by_name[version_id]
+
+            if selected_representation:
+                repre_doc = repres_by_name[selected_representation]
+            else:
+                repre_doc = repres_by_name[container_repre_name]
+
+            try:
+                api.switch(container, repre_doc)
+            except Exception:
+                self.log.warning(
+                    (
+                        "Couldn't switch asset."
+                        "See traceback for more information."
+                    ),
+                    exc_info=True
+                )
+
+        self.switched.emit()
+
+        self.close()
+
 
 class Window(QtWidgets.QDialog):
     """Scene Inventory window"""
