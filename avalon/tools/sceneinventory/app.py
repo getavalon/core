@@ -506,11 +506,9 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         self._accept_btn = accept_btn
 
-        self._assets_box.currentIndexChanged.connect(self.on_assets_change)
-        self._subsets_box.currentIndexChanged.connect(self.on_subset_change)
-        self._representations_box.currentIndexChanged.connect(
-            self.on_repre_change
-        )
+        self._assets_box.currentIndexChanged.connect(self.refresh)
+        self._subsets_box.currentIndexChanged.connect(self.refresh)
+        self._representations_box.currentIndexChanged.connect(self.refresh)
         self._accept_btn.clicked.connect(self._on_accept)
 
         main_layout.addLayout(context_layout)
@@ -527,14 +525,8 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         accept_btn.setFocus()
 
 
-    def on_assets_change(self):
-        self.refresh(1)
 
-    def on_subset_change(self):
-        self.refresh(2)
 
-    def on_repre_change(self):
-        self.refresh(3)
 
     def refresh(self, refresh_type=0):
         """Build the need comboboxes with content"""
