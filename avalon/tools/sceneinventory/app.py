@@ -13,7 +13,6 @@ from ..delegates import VersionDelegate
 
 from .proxy import FilterProxyModel
 from .model import InventoryModel
-from .lib import switch_item
 
 DEFAULT_COLOR = "#fb9c15"
 
