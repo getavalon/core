@@ -17,7 +17,8 @@ from .lib import (
     imprint,
     read,
     send,
-    maintained_nodes_state
+    maintained_nodes_state,
+    save_scene
 )
 
 from .workio import (
@@ -43,6 +44,7 @@ __all__ = [
     "read",
     "send",
     "maintained_nodes_state",
+    "save_scene"
 
     # Workfiles API
     "open_file",

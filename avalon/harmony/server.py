@@ -69,11 +69,7 @@ class Server(object):
                 if self.connection is None:
                     break
 
-                # The only way to ensure we process each request is to received
-                # one byte. Else two requests can be back to back like;
-                # {...}{...}, which does not json.loads and both requests get
-                # ignored.
-                data = self.connection.recv(1)
+                data = self.connection.recv(4096)
                 if data:
                     self.received += data.decode("utf-8")
                 else:

@@ -277,3 +277,41 @@ def maintained_nodes_state(nodes):
         yield
     finally:
         self.send({"function": func, "args": [nodes, states]})
+
+
+def save_scene():
+    """Saves the Harmony scene safely.
+
+    The built-in (to Avalon) background zip and moving of the Harmony scene
+    folder, interfers with server/client communication by sending two requests
+    at the same time. This only happens when sending "scene.saveAll()". This
+    method prevents this double request and safely saves the scene.
+    """
+    # Need to turn off the backgound watcher else the communication with
+    # the server gets spammed with two requests at the same time.
+    func = """function func()
+    {
+        var app = QCoreApplication.instance();
+        app.avalon_on_file_changed = false;
+        scene.saveAll();
+        return (
+            scene.currentProjectPath() + "/" +
+            scene.currentVersionName() + ".xstage"
+        );
+    }
+    func
+    """
+    scene_path = self.send({"function": func})["result"]
+
+    # Manually update the remote file.
+    self.on_file_changed(scene_path)
+
+    # Re-enable the background watcher.
+    func = """function func()
+    {
+        var app = QCoreApplication.instance();
+        app.avalon_on_file_changed = true;
+    }
+    func
+    """
+    self.send({"function": func})

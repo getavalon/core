@@ -235,14 +235,16 @@ function start()
   app.on_file_changed = function(path)
   {
     var app = QCoreApplication.instance();
-    app.avalon_client.send(
-      {
-        "module": "avalon.harmony.lib",
-        "method": "on_file_changed",
-        "args": [path]
-      },
-      false
-    );
+    if (app.avalon_on_file_changed){
+      app.avalon_client.send(
+        {
+          "module": "avalon.harmony.lib",
+          "method": "on_file_changed",
+          "args": [path]
+        },
+        false
+      );
+    };
 
     app.watcher.addPath(path);
   };
@@ -251,6 +253,7 @@ function start()
 	scene_path = scene.currentProjectPath() +"/" + scene.currentVersionName() + ".xstage";
 	app.watcher.addPath(scene_path);
 	app.watcher.fileChanged.connect(app.on_file_changed);
+  app.avalon_on_file_changed = true;
 
   // Open Workfiles if requested.
   var show_workfiles = parseInt(System.getenv("AVALON_HARMONY_WORKFILES_ON_LAUNCH"));
