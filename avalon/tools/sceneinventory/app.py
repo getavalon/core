@@ -628,43 +628,46 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         self._fill_check = False
 
-        if refresh_type < 1:
-            assets = sorted(self._get_assets())
-            self._assets_box.populate(assets)
+        asset_ok = True
+        subset_ok = True
+        repre_ok = True
 
-        if refresh_type < 2:
-            last_subset = self._subsets_box.currentText()
+        asset_values = None
+        subset_values = None
+        repre_values = None
 
-            subsets = sorted(self._get_subsets())
-            self._subsets_box.populate(subsets)
+        if init_refresh:
+            asset_values = self._get_asset_box_values()
 
-            if (last_subset != "" and last_subset in list(subsets)):
-                index = None
-                for i in range(self._subsets_box.count()):
-                    if last_subset == str(self._subsets_box.itemText(i)):
-                        index = i
-                        break
-                if index is not None:
-                    self._subsets_box.setCurrentIndex(index)
+        # Set other comboboxes to empty if any document is missing or any asset
+        # of loaded representations is archived.
+        asset_ok = self._is_asset_ok()
 
-        if refresh_type < 3:
-            last_repre = self._representations_box.currentText()
+        if asset_ok:
+            subset_values = self._get_subset_box_values()
+            if not subset_values:
+                asset_ok = False
+            else:
+                subset_ok = self._is_subset_ok(subset_values)
 
-            representations = sorted(self._get_representations())
-            self._representations_box.populate(representations)
+        if asset_ok and subset_ok:
+            repre_values = sorted(self._representations_box_values())
+            if not repre_values:
+                subset_ok = False
+            else:
+                repre_ok = self._is_repre_ok(repre_values)
 
-            if (last_repre != "" and last_repre in list(representations)):
-                index = None
-                for i in range(self._representations_box.count()):
-                    if last_repre == self._representations_box.itemText(i):
-                        index = i
-                        break
-                if index is not None:
-                    self._representations_box.setCurrentIndex(index)
-        self._fill_check = True
+        if not asset_ok:
+            subset_values = list()
+            repre_values = list()
+        elif not subset_ok:
+            repre_values = list()
 
+        # Fill comboboxes with values
         self.set_labels()
-        self.validate()
+        self.apply_validations(asset_ok, subset_ok, repre_ok)
+
+        self._fill_check = True
 
     def set_labels(self):
         asset_label = self._assets_box.get_valid_value()
