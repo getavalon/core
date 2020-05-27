@@ -666,21 +666,14 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self.validate()
 
     def set_labels(self):
+        asset_label = self._assets_box.get_valid_value()
+        subset_label = self._subsets_box.get_valid_value()
+        repre_label = self._representations_box.get_valid_value()
+
         default = "*No changes"
-        asset_label = default
-        subset_label = default
-        repre_label = default
-
-        if self._assets_box.currentText() != "":
-            asset_label = self._assets_box.currentText()
-        if self._subsets_box.currentText() != "":
-            subset_label = self._subsets_box.currentText()
-        if self._representations_box.currentText() != "":
-            repre_label = self._representations_box.currentText()
-
-        self._asset_label.setText(asset_label)
-        self._subset_label.setText(subset_label)
-        self._repre_label.setText(repre_label)
+        self._asset_label.setText(asset_label or default)
+        self._subset_label.setText(subset_label or default)
+        self._repre_label.setText(repre_label or default)
 
     def validate(self):
         asset_name = self._assets_box.get_valid_value() or None
