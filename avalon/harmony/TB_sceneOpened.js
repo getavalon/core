@@ -243,7 +243,7 @@ function start()
           "args": [path]
         },
         false
-      );
+      )
     };
 
     app.watcher.addPath(path);
