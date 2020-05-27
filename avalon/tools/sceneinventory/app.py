@@ -454,7 +454,7 @@ class SearchComboBox(QtWidgets.QComboBox):
         if text not in lookup:
             return None
 
-        return text
+        return text or None
 
 
 class SwitchAssetDialog(QtWidgets.QDialog):
