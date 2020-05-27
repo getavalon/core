@@ -515,6 +515,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self.setLayout(main_layout)
         self.setWindowTitle("Switch selected items ...")
 
+        self._prepare_content_data()
         self.refresh(True)
 
         self.setFixedSize(self.sizeHint())  # Lock window size
@@ -523,9 +524,100 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         # first asset field, this also allows to see the placeholder value.
         accept_btn.setFocus()
 
+    def _prepare_content_data(self):
+        repre_ids = [
+            io.ObjectId(item["representation"])
+            for item in self._items
+        ]
+        repres = list(io.find({
+            "type": "representation",
+            "_id": {"$in": repre_ids}
+        }))
+        repres_by_id = {
+            repre["_id"]: repre
+            for repre in repres
+        }
 
+        content_repres = {}
+        missing_repres = []
+        for repre_id in repre_ids:
+            if repre_id not in repres_by_id:
+                missing_repres.append(repre_id)
+            else:
+                content_repres[repre_id] = repres_by_id[repre_id]
 
+        version_ids = set(
+            repre["parent"]
+            for repre in content_repres.values()
+        )
+        version_docs = io.find({
+            "type": "version",
+            "_id": {"$in": list(version_ids)}
+        })
+        content_versions = {
+            version_doc["_id"]: version_doc
+            for version_doc in version_docs
+        }
+        missing_versions = [
+            version_id
+            for version_id in version_ids
+            if version_id not in content_versions
+        ]
 
+        subset_ids = set(
+            version_doc["parent"]
+            for version_doc in content_versions.values()
+        )
+        subset_docs = io.find({
+            "type": "subset",
+            "_id": {"$in": list(subset_ids)}
+        })
+        subsets_by_id = {
+            subset_doc["_id"]: subset_doc
+            for subset_doc in subset_docs
+        }
+
+        missing_subsets = []
+        content_subsets = {}
+        for subset_id in subset_ids:
+            if subset_id not in subsets_by_id:
+                missing_subsets.append(subset_id)
+            else:
+                content_subsets[subset_id] = subsets_by_id[subset_id]
+
+        asset_ids = set(
+            subset_doc["parent"]
+            for subset_doc in content_subsets.values()
+        )
+
+        asset_docs = io.find({
+            "type": "asset",
+            "_id": {"$in": list(asset_ids)}
+        })
+        assets_by_id = {
+            asset_doc["_id"]: asset_doc
+            for asset_doc in asset_docs
+        }
+
+        missing_assets = []
+        content_assets = {}
+        for asset_id in asset_ids:
+            if asset_id not in assets_by_id:
+                missing_assets.append(asset_id)
+            else:
+                content_assets[asset_id] = assets_by_id[asset_id]
+
+        self.content_assets = content_assets
+        self.content_subsets = content_subsets
+        self.content_versions = content_versions
+        self.content_repres = content_repres
+
+        self.missing_docs = (
+            bool(missing_assets)
+            or bool(missing_versions)
+            or bool(missing_subsets)
+            or bool(missing_repres)
+        )
 
     def refresh(self, init_refresh=False):
         """Build the need comboboxes with content"""
