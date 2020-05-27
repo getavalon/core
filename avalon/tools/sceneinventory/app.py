@@ -817,6 +817,37 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         self.close()
 
+    def apply_validations(self, asset_ok, subset_ok, repre_ok):
+        error_msg = "*Please select"
+        error_sheet = "border: 1px solid red;"
+        success_sheet = "border: 1px solid green;"
+
+        asset_sheet = None
+        subset_sheet = None
+        repre_sheet = None
+        accept_sheet = None
+        all_ok = asset_ok and subset_ok and repre_ok
+
+        if asset_ok is False:
+            asset_sheet = error_sheet
+            self._asset_label.setText(error_msg)
+        elif subset_ok is False:
+            subset_sheet = error_sheet
+            self._subset_label.setText(error_msg)
+        elif repre_ok is False:
+            repre_sheet = error_sheet
+            self._repre_label.setText(error_msg)
+
+        if all_ok:
+            accept_sheet = success_sheet
+
+        self._assets_box.setStyleSheet(asset_sheet or "")
+        self._subsets_box.setStyleSheet(subset_sheet or "")
+        self._representations_box.setStyleSheet(repre_sheet or "")
+
+        self._accept_btn.setEnabled(all_ok)
+        self._accept_btn.setStyleSheet(accept_sheet or "")
+    
     def _get_asset_box_values(self):
         assets_by_id = {
             asset_doc["_id"]: asset_doc
