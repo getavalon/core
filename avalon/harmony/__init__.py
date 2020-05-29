@@ -44,7 +44,7 @@ __all__ = [
     "read",
     "send",
     "maintained_nodes_state",
-    "save_scene"
+    "save_scene",
 
     # Workfiles API
     "open_file",
