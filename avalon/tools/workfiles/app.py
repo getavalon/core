@@ -854,7 +854,7 @@ class Window(QtWidgets.QMainWindow):
         files.refresh()
 
 
-def show(root=None, debug=False, parent=None, use_context=True):
+def show(root=None, debug=False, parent=None, use_context=True, save=True):
     """Show Work Files GUI"""
     # todo: remove `root` argument to show()
 
@@ -896,6 +896,8 @@ def show(root=None, debug=False, parent=None, use_context=True):
                        "silo": api.Session["AVALON_SILO"],
                        "task": api.Session["AVALON_TASK"]}
             window.set_context(context)
+
+        window.widgets["files"].widgets["save"].setEnabled(save)
 
         window.show()
         window.setStyleSheet(style.load_stylesheet())
