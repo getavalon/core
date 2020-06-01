@@ -5,12 +5,15 @@ Anything that isn't defined here is INTERNAL and unreliable for external use.
 """
 
 from .lib import (
-    maintained_selection,
-    imprint,
-    read,
-
     add_publish_knob,
+    ls_img_sequence,
+    maintained_selection,
     get_node_path,
+    get_avalon_knob_data,
+    set_avalon_knob_data,
+    imprint,
+    find_copies,
+    sync_copies
 )
 
 from .workio import (
@@ -25,32 +28,30 @@ from .workio import (
 from .pipeline import (
     install,
     uninstall,
-
     ls,
     publish,
-
     Creator,
-
     containerise,
     parse_container,
     update_container,
     get_handles,
-
-    # Experimental
     viewer_update_and_undo_stop,
     reload_pipeline,
 )
 
 __all__ = [
-    "reload_pipeline",
-    "install",
-    "uninstall",
+    # Lib API.
+    "add_publish_knob",
+    "ls_img_sequence",
+    "maintained_selection",
+    "get_node_path",
+    "get_avalon_knob_data",
+    "set_avalon_knob_data",
+    "imprint",
+    "find_copies",
+    "sync_copies",
 
-    "ls",
-    "publish",
-
-    "Creator",
-
+    # Workfiles API
     "file_extensions",
     "has_unsaved_changes",
     "save_file",
@@ -58,20 +59,20 @@ __all__ = [
     "current_file",
     "work_root",
 
+    # Pipeline API.
+    "install",
+    "uninstall",
+    "ls",
+    "publish",
+    "Creator",
     "containerise",
     "parse_container",
     "update_container",
     "get_handles",
 
-    "imprint",
-    "read",
-
     # Experimental
     "viewer_update_and_undo_stop",
-
-    "add_publish_knob",
-    "maintained_selection",
-    "get_node_path",
+    "reload_pipeline"
 ]
 
 # Backwards API compatibility
