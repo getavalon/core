@@ -156,6 +156,8 @@ def find_copies(source, group=None, recursive=True):
             default True.
 
     """
+    assert isinstance(source, nuke.Node), "`Source` needs to be a nuke node."
+
     copies = list()
     source_id = get_id(source)
     if source_id:
@@ -166,6 +168,11 @@ def find_copies(source, group=None, recursive=True):
                          #        `recurseGroups=True`.
                          group=group,
                          recursive=recursive)
+
+    # Dont return the source.
+    if source in copies:
+        copies.remove(source)
+
     return copies
 
 
