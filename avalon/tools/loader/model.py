@@ -17,6 +17,10 @@ def is_filtering_recursible():
 
 
 class SubsetsModel(TreeModel):
+
+    subset_reseted = QtCore.Signal()
+    subset_loaded = QtCore.Signal()
+
     Columns = [
         "subset",
         "family",
@@ -160,6 +164,8 @@ class SubsetsModel(TreeModel):
 
         self._subset_producing = True
         self._subset_producer = lib.create_qthread(self._refresh)
+        self._subset_producer.started.connect(self.subset_reseted)
+        self._subset_producer.finished.connect(self.subset_loaded)
         self._subset_producer.start()
 
     def _refresh(self):
