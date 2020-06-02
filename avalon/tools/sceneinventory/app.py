@@ -460,7 +460,6 @@ class SearchComboBox(QtWidgets.QComboBox):
 class SwitchAssetDialog(QtWidgets.QDialog):
     """Widget to support asset switching"""
 
-    _fill_check = False
     switched = QtCore.Signal()
 
     def __init__(self, parent=None, items=None):
@@ -522,6 +521,7 @@ class SwitchAssetDialog(QtWidgets.QDialog):
         self.setLayout(main_layout)
         self.setWindowTitle("Switch selected items ...")
 
+        self._fill_check = False
         self._prepare_content_data()
         self.refresh(True)
 
