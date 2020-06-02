@@ -1,5 +1,5 @@
 from ... import io, style
-from ...vendor.Qt import QtCore
+from ...vendor.Qt import QtCore, QtGui
 from ...vendor import qtawesome
 
 from ..models import TreeModel, Item
@@ -249,6 +249,10 @@ class SubsetsModel(TreeModel):
                     return "%s  (%d)" % (item["subset"], item["childRow"])
                 else:
                     return item["subset"]
+
+        if role == QtCore.Qt.ForegroundRole:
+            if self._subset_producing:
+                return QtGui.QColor("#454545")
 
         if role == QtCore.Qt.DecorationRole:
 
