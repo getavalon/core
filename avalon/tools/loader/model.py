@@ -43,6 +43,8 @@ class SubsetsModel(TreeModel):
         self._icons = {
             "subset": qtawesome.icon("fa.file-o", color=style.colors.default)
         }
+        self._subset_producer = None
+        self._subset_producing = False
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id
@@ -141,13 +143,26 @@ class SubsetsModel(TreeModel):
             "step": version_data.get("step", None)
         })
 
+    def add_child(self, item, parent=None):
+        self.beginResetModel()
+        super(SubsetsModel, self).add_child(item, parent)
+        self.endResetModel()
+
     def refresh(self):
+        if self._subset_producer is not None:
+            self._subset_producing = False
+            while self._subset_producer.isRunning():
+                pass
 
         self.clear()
-        self.beginResetModel()
         if not self._asset_id:
-            self.endResetModel()
             return
+
+        self._subset_producing = True
+        self._subset_producer = lib.create_qthread(self._refresh)
+        self._subset_producer.start()
+
+    def _refresh(self):
 
         asset_id = self._asset_id
 
@@ -171,6 +186,8 @@ class SubsetsModel(TreeModel):
         # Process subsets
         row = len(group_items)
         for subset in io.find(filter):
+            if not self._subset_producing:
+                return
 
             last_version = io.find_one({"type": "version",
                                         "parent": subset["_id"]},
@@ -204,7 +221,7 @@ class SubsetsModel(TreeModel):
             index = self.index(row_, 0, parent=parent_index)
             self.set_version(index, last_version)
 
-        self.endResetModel()
+        self._subset_producing = False
 
     def data(self, index, role):
 

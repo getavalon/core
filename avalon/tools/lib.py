@@ -468,3 +468,10 @@ def project_use_silo(project_doc):
         if "{silo}" in template:
             return True
     return False
+
+
+def create_qthread(func, *args, **kwargs):
+    class Thread(QtCore.QThread):
+        def run(self):
+            func(*args, **kwargs)
+    return Thread()
