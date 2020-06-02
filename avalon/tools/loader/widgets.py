@@ -127,6 +127,8 @@ class SubsetWidget(QtWidgets.QWidget):
             self.model.set_grouping(state)
 
     def on_context_menu(self, point):
+        if self.model.is_loading():
+            return
 
         point_index = self.view.indexAt(point)
         if not point_index.isValid():

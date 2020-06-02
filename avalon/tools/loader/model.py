@@ -229,6 +229,9 @@ class SubsetsModel(TreeModel):
 
         self._subset_producing = False
 
+    def is_loading(self):
+        return self._subset_producing
+
     def data(self, index, role):
 
         if not index.isValid():
