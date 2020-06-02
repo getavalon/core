@@ -234,6 +234,13 @@ class SubsetsModel(TreeModel):
                 item = index.internalPointer()
                 return item.get("familyLabel", None)
 
+            if index.column() == self.columns_index["subset"]:
+                item = index.internalPointer()
+                if item.get("isGroup"):
+                    return "%s  (%d)" % (item["subset"], item["childRow"])
+                else:
+                    return item["subset"]
+
         if role == QtCore.Qt.DecorationRole:
 
             # Add icon to subset column
