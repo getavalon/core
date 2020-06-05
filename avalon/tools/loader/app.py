@@ -207,7 +207,11 @@ class Window(QtWidgets.QDialog):
             if active in rows:
                 node = active.data(subsets.model.ItemRole)
                 if node is not None and not node.get("isGroup"):
-                    version = node["version_document"]["_id"]
+                    if "version_document" in node:
+                        version = node["version_document"]["_id"]
+                    else:
+                        # Version not ready
+                        pass
 
         self.data["model"]["version"].set_version(version)
 

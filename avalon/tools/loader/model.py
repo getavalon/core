@@ -1,5 +1,5 @@
 from ... import io, style
-from ...vendor.Qt import QtCore, QtGui
+from ...vendor.Qt import Qt, QtCore, QtGui
 from ...vendor import qtawesome
 
 from ..models import TreeModel, Item
@@ -17,9 +17,6 @@ def is_filtering_recursible():
 
 
 class SubsetsModel(TreeModel):
-
-    subset_reseted = QtCore.Signal()
-    subset_loaded = QtCore.Signal()
 
     Columns = [
         "subset",
@@ -47,8 +44,8 @@ class SubsetsModel(TreeModel):
         self._icons = {
             "subset": qtawesome.icon("fa.file-o", color=style.colors.default)
         }
-        self._subset_producer = None
-        self._subset_producing = False
+        self._version_producer = None
+        self._version_producing = False
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id
@@ -122,23 +119,22 @@ class SubsetsModel(TreeModel):
             frames = None
             duration = None
 
-        if item["schema"] == "avalon-core:subset-3.0":
-            families = item["data"]["families"]
-        else:
+        if item["schema"] != "avalon-core:subset-3.0":
             families = version_data.get("families", [None])
-
-        family = families[0]
-        family_config = lib.get_family_cached_config(family)
+            family = families[0]
+            family_config = lib.get_family_cached_config(family)
+            item.update({
+                "family": family,
+                "familyLabel": family_config.get("label", family),
+                "familyIcon": family_config.get("icon", None),
+                "families": set(families),
+            })
 
         item.update({
             "version": version["name"],
             "version_document": version,
             "author": version_data.get("author", None),
             "time": version_data.get("time", None),
-            "family": family,
-            "familyLabel": family_config.get("label", family),
-            "familyIcon": family_config.get("icon", None),
-            "families": set(families),
             "frameStart": frame_start,
             "frameEnd": frame_end,
             "duration": duration,
@@ -147,28 +143,60 @@ class SubsetsModel(TreeModel):
             "step": version_data.get("step", None)
         })
 
-    def add_child(self, item, parent=None):
-        self.beginResetModel()
-        super(SubsetsModel, self).add_child(item, parent)
-        self.endResetModel()
+    def clear(self):
+        self.stop()
+        super(SubsetsModel, self).clear()
+
+    def stop(self):
+        if self._version_producer is not None:
+            self._version_producing = False
+            while self._version_producer.isRunning():
+                pass
+
+    def get_versions(self):
+        self.stop()
+
+        self._version_producing = True
+        self._version_producer = lib.create_qthread(self._get_versions)
+        self._version_producer.start()
+
+    def _get_versions(self, parent=None):
+        parent = parent or QtCore.QModelIndex()
+        for row in range(self.rowCount(parent)):
+            if not self._version_producing:
+                return
+
+            index = self.index(row, 0, parent)
+            item = index.internalPointer()
+            if item.get("isGroup"):
+                self._get_versions(index)
+            else:
+                # Set the version information
+                last_version = io.find_one({"type": "version",
+                                            "parent": item["_id"]},
+                                           sort=[("name", -1)])
+                if last_version:
+                    left = index.sibling(row, 2 if "family" in item else 1)
+                    right = index.sibling(row, len(self.Columns) - 1)
+
+                    self.set_version(index, last_version)
+
+                    # passing `list()` for PyQt5 (see PYSIDE-462)
+                    role = QtCore.Qt.EditRole
+                    args = () if Qt.IsPySide or Qt.IsPyQt4 else ([role],)
+                    self.dataChanged.emit(left, right, *args)
+                    # (TODO) May crash if switching between assets in fast pace
+
+        if parent is None:
+            self._version_producing = False
 
     def refresh(self):
-        if self._subset_producer is not None:
-            self._subset_producing = False
-            while self._subset_producer.isRunning():
-                pass
 
         self.clear()
         if not self._asset_id:
             return
 
-        self._subset_producing = True
-        self._subset_producer = lib.create_qthread(self._refresh)
-        self._subset_producer.started.connect(self.subset_reseted)
-        self._subset_producer.finished.connect(self.subset_loaded)
-        self._subset_producer.start()
-
-    def _refresh(self):
+        self.beginResetModel()
 
         asset_id = self._asset_id
 
@@ -190,17 +218,7 @@ class SubsetsModel(TreeModel):
         filter = {"type": "subset", "parent": asset_id}
 
         # Process subsets
-        row = len(group_items)
         for subset in io.find(filter):
-            if not self._subset_producing:
-                return
-
-            last_version = io.find_one({"type": "version",
-                                        "parent": subset["_id"]},
-                                       sort=[("name", -1)])
-            if not last_version:
-                # No published version for the subset
-                continue
 
             data = subset.copy()
             data["subset"] = data["name"]
@@ -209,28 +227,29 @@ class SubsetsModel(TreeModel):
             if self._grouping and group_name:
                 group = group_items[group_name]
                 parent = group
-                parent_index = self.createIndex(0, 0, group)
-                row_ = group["childRow"]
                 group["childRow"] += 1
             else:
                 parent = None
-                parent_index = QtCore.QModelIndex()
-                row_ = row
-                row += 1
 
             item = Item()
             item.update(data)
 
+            if data["schema"] == "avalon-core:subset-3.0":
+                families = item["data"]["families"]
+                family = families[0]
+                family_config = lib.get_family_cached_config(family)
+                item.update({
+                    "family": family,
+                    "familyLabel": family_config.get("label", family),
+                    "familyIcon": family_config.get("icon", None),
+                    "families": set(families),
+                })
+
             self.add_child(item, parent=parent)
 
-            # Set the version information
-            index = self.index(row_, 0, parent=parent_index)
-            self.set_version(index, last_version)
+        self.endResetModel()
 
-        self._subset_producing = False
-
-    def is_loading(self):
-        return self._subset_producing
+        self.get_versions()
 
     def data(self, index, role):
 
@@ -249,10 +268,6 @@ class SubsetsModel(TreeModel):
                     return "%s  (%d)" % (item["subset"], item["childRow"])
                 else:
                     return item["subset"]
-
-        if role == QtCore.Qt.ForegroundRole:
-            if self._subset_producing:
-                return QtGui.QColor("#454545")
 
         if role == QtCore.Qt.DecorationRole:
 

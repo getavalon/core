@@ -127,15 +127,16 @@ class SubsetWidget(QtWidgets.QWidget):
             self.model.set_grouping(state)
 
     def on_context_menu(self, point):
-        if self.model.is_loading():
-            return
-
         point_index = self.view.indexAt(point)
         if not point_index.isValid():
             return
 
         node = point_index.data(self.model.ItemRole)
         if node.get("isGroup"):
+            return
+
+        if not node.get("version_document"):
+            # Version not ready
             return
 
         # Get all representation->loader combinations available for the
