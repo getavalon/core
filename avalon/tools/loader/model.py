@@ -43,8 +43,7 @@ class SubsetsModel(TreeModel):
         self._icons = {
             "subset": qtawesome.icon("fa.file-o", color=style.colors.default)
         }
-        self._version_producer = None
-        self._version_producing = False
+        self._version_fetching_thread = None
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id
@@ -143,48 +142,42 @@ class SubsetsModel(TreeModel):
         })
 
     def clear(self):
-        self.stop()
+        if self._version_fetching_thread is not None:
+            self._version_fetching_thread.requestInterruption()
+            while self._version_fetching_thread.isRunning():
+                pass
         super(SubsetsModel, self).clear()
 
-    def stop(self):
-        if self._version_producer is not None:
-            self._version_producing = False
-            while self._version_producer.isRunning():
-                pass
+    def fetch_versions(self):
+        """Fetch versions data for each subset in other thread
+        """
+        def _fetch_versions(parent=None):
+            parent = parent or QtCore.QModelIndex()
 
-    def get_versions(self):
-        self._version_producing = True
-        self._version_producer = lib.create_qthread(self._get_versions)
-        self._version_producer.start()
+            for row in range(self.rowCount(parent)):
+                if lib.is_interruption_requested():
+                    return
 
-    def _get_versions(self, parent=None):
-        parent = parent or QtCore.QModelIndex()
-        for row in range(self.rowCount(parent)):
-            if not self._version_producing:
-                return
+                index = self.index(row, 0, parent)
+                item = index.internalPointer()
+                if item.get("isGroup"):
+                    _fetch_versions(parent=index)
+                else:
+                    # Set the version information
+                    last_version = io.find_one({"type": "version",
+                                                "parent": item["_id"]},
+                                            sort=[("name", -1)])
+                    if last_version:
+                        left = index.sibling(row, 2 if "family" in item else 1)
+                        right = index.sibling(row, len(self.Columns) - 1)
+                        role = QtCore.Qt.EditRole
+                        args = () if Qt.IsPySide or Qt.IsPyQt4 else ([role],)
 
-            index = self.index(row, 0, parent)
-            item = index.internalPointer()
-            if item.get("isGroup"):
-                self._get_versions(index)
-            else:
-                # Set the version information
-                last_version = io.find_one({"type": "version",
-                                            "parent": item["_id"]},
-                                           sort=[("name", -1)])
-                if last_version:
-                    left = index.sibling(row, 2 if "family" in item else 1)
-                    right = index.sibling(row, len(self.Columns) - 1)
+                        self.set_version(index, last_version)
+                        self.dataChanged.emit(left, right, *args)
 
-                    self.set_version(index, last_version)
-
-                    # passing `list()` for PyQt5 (see PYSIDE-462)
-                    role = QtCore.Qt.EditRole
-                    args = () if Qt.IsPySide or Qt.IsPyQt4 else ([role],)
-                    self.dataChanged.emit(left, right, *args)
-
-        if parent is None:
-            self._version_producing = False
+        self._version_fetching_thread = lib.create_qthread(_fetch_versions)
+        self._version_fetching_thread.start()
 
     def refresh(self):
 
@@ -245,7 +238,7 @@ class SubsetsModel(TreeModel):
 
         self.endResetModel()
 
-        lib.schedule(self.get_versions, 200, "versioning")
+        lib.schedule(self.fetch_versions, 200, "versionFetching")
 
     def data(self, index, role):
 
