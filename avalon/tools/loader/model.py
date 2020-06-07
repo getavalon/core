@@ -183,7 +183,6 @@ class SubsetsModel(TreeModel):
                     role = QtCore.Qt.EditRole
                     args = () if Qt.IsPySide or Qt.IsPyQt4 else ([role],)
                     self.dataChanged.emit(left, right, *args)
-                    # (TODO) May crash if switching between assets in fast pace
 
         if parent is None:
             self._version_producing = False
@@ -247,7 +246,7 @@ class SubsetsModel(TreeModel):
 
         self.endResetModel()
 
-        self.get_versions()
+        lib.schedule(self.get_versions, 200, "versioning")
 
     def data(self, index, role):
 
