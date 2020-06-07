@@ -475,3 +475,6 @@ def create_qthread(func, *args, **kwargs):
         def run(self):
             func(*args, **kwargs)
     return Thread()
+
+def is_interruption_requested():
+    return QtCore.QThread.currentThread().isInterruptionRequested()
