@@ -39,7 +39,6 @@ class SubsetsModel(TreeModel):
             (key, idx) for idx, key in enumerate(self.Columns)
         )
         self._asset_id = None
-        self._sorter = None
         self._grouping = grouping
         self._icons = {
             "subset": qtawesome.icon("fa.file-o", color=style.colors.default)
