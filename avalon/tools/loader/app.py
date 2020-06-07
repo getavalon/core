@@ -162,9 +162,7 @@ class Window(QtWidgets.QDialog):
         """Selected assets have changed"""
 
         assets_model = self.data["model"]["assets"]
-        subsets = self.data["model"]["subsets"]
-        subsets_model = subsets.model
-        subsets_model.clear()
+        subsets_model = self.data["model"]["subsets"].model
 
         t1 = time.time()
 

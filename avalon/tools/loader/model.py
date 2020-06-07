@@ -154,8 +154,6 @@ class SubsetsModel(TreeModel):
                 pass
 
     def get_versions(self):
-        self.stop()
-
         self._version_producing = True
         self._version_producer = lib.create_qthread(self._get_versions)
         self._version_producer.start()
