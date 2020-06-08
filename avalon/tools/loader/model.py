@@ -80,7 +80,7 @@ class SubsetsModel(TreeModel):
         if not index.isValid():
             return
 
-        item = index.data(self.ItemRole)
+        item = index.internalPointer()
         assert version["parent"] == item["_id"], ("Version does not "
                                                   "belong to subset")
 
@@ -162,7 +162,8 @@ class SubsetsModel(TreeModel):
                 item = index.internalPointer()
                 if item.get("isGroup"):
                     _fetch_versions(parent=index)
-                else:
+
+                elif not item.get("version_document"):
                     # Set the version information
                     last_version = io.find_one({"type": "version",
                                                 "parent": item["_id"]},

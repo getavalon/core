@@ -60,8 +60,22 @@ class VersionDelegate(SpinIconDelegate):
 
     def createEditor(self, parent, option, index):
         item = index.data(TreeModel.ItemRole)
-        if item.get("isGroup") or not item.get("version_document"):
+        if item.get("isGroup"):
             return
+
+        if not item.get("version_document"):
+            last_version = io.find_one({"type": "version",
+                                        "parent": item["_id"]},
+                                       sort=[("name", -1)])
+            if last_version:
+                family_proxy = index.model()
+                subset_proxy = family_proxy.sourceModel()
+                model = subset_proxy.sourceModel()
+                proxy_index = family_proxy.mapToSource(index)
+                real_index = subset_proxy.mapToSource(proxy_index)
+                model.set_version(real_index, last_version)
+            else:
+                return
 
         editor = QtWidgets.QComboBox(parent)
 

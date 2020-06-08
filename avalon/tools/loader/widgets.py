@@ -133,18 +133,8 @@ class SubsetWidget(QtWidgets.QWidget):
             return
 
         node = point_index.data(self.model.ItemRole)
-        if node.get("isGroup"):
+        if node.get("isGroup") or not node.get("version_document"):
             return
-
-        if not node.get("version_document"):
-            # Version not ready
-            last_version = io.find_one({"type": "version",
-                                        "parent": node["_id"]},
-                                       sort=[("name", -1)])
-            if last_version:
-                self.model.set_version(point_index, last_version)
-            else:
-                return
 
         # Get all representation->loader combinations available for the
         # index under the cursor, so we can list the user the options.
