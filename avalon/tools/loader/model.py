@@ -44,6 +44,7 @@ class SubsetsModel(TreeModel):
             "subset": qtawesome.icon("fa.file-o", color=style.colors.default)
         }
         self._version_fetching_thread = None
+        self._version_fetching_stop = False
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id
@@ -143,7 +144,7 @@ class SubsetsModel(TreeModel):
 
     def clear(self):
         if self._version_fetching_thread is not None:
-            self._version_fetching_thread.requestInterruption()
+            self._version_fetching_stop = True
             while self._version_fetching_thread.isRunning():
                 pass
         super(SubsetsModel, self).clear()
@@ -155,7 +156,7 @@ class SubsetsModel(TreeModel):
             parent = parent or QtCore.QModelIndex()
 
             for row in range(self.rowCount(parent)):
-                if lib.is_interruption_requested():
+                if self._version_fetching_stop:
                     return
 
                 index = self.index(row, 0, parent)
@@ -171,6 +172,7 @@ class SubsetsModel(TreeModel):
                     if last_version:
                         self.set_version(index, last_version)
 
+        self._version_fetching_stop = False
         self._version_fetching_thread = lib.create_qthread(_fetch_versions)
         self._version_fetching_thread.start()
 
