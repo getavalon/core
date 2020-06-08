@@ -80,7 +80,7 @@ class SubsetsModel(TreeModel):
         if not index.isValid():
             return
 
-        item = index.internalPointer()
+        item = index.data(self.ItemRole)
         assert version["parent"] == item["_id"], ("Version does not "
                                                   "belong to subset")
 
