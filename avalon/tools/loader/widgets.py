@@ -133,7 +133,23 @@ class SubsetWidget(QtWidgets.QWidget):
             return
 
         node = point_index.data(self.model.ItemRole)
-        if node.get("isGroup") or not node.get("version_document"):
+        if node.get("isGroup"):
+            return
+        
+        def get_version_id(item):
+            if "version_document" in item:
+                return item["version_document"]["_id"]
+            else:
+                # Version not fetched, use latest version as default.
+                last_version = io.find_one({"type": "version",
+                                            "parent": item["_id"]},
+                                        sort=[("name", -1)],
+                                        projection={"_id": True})
+                if last_version:
+                    return last_version["_id"]
+
+        version_id = get_version_id(node)
+        if version_id is None:
             return
 
         # Get all representation->loader combinations available for the
@@ -141,7 +157,6 @@ class SubsetWidget(QtWidgets.QWidget):
         available_loaders = api.discover(api.Loader)
         loaders = list()
 
-        version_id = node["version_document"]["_id"]
         representations = io.find({"type": "representation",
                                    "parent": version_id})
         for representation in representations:
@@ -252,7 +267,10 @@ class SubsetWidget(QtWidgets.QWidget):
             if node.get("isGroup"):
                 continue
 
-            version_id = node["version_document"]["_id"]
+            version_id = get_version_id(node)
+            if version_id is None:
+                continue
+
             representation = io.find_one({"type": "representation",
                                           "name": representation_name,
                                           "parent": version_id})
