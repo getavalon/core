@@ -1,17 +1,41 @@
+import os
 import time
 from datetime import datetime
 import logging
 import numbers
 
-from ..vendor.Qt import QtWidgets, QtCore
-from .. import io
+from ..vendor.Qt import QtWidgets, QtCore, QtGui, QtSvg
+from ..vendor import qtawesome
+from .. import io, style
 
 from .models import TreeModel
 
 log = logging.getLogger(__name__)
 
 
-class VersionDelegate(QtWidgets.QStyledItemDelegate):
+class SpinIconDelegate(QtWidgets.QStyledItemDelegate):
+
+    repaint_needed = QtCore.Signal()
+
+    def __init__(self, parent=None):
+        super(SpinIconDelegate, self).__init__(parent)
+
+        path = os.path.dirname(style.__file__) + "/svg/spinner.svg"
+        spinner = QtSvg.QSvgRenderer(path)
+        self.spinner = spinner
+        self.repaint_needed = spinner.repaintNeeded
+
+    def spin(self, painter, option, index):
+        super(SpinIconDelegate, self).paint(painter, option, index)
+        x = option.rect.center().x()
+        y = option.rect.center().y()
+        rect = option.rect
+        rect.setSize(QtCore.QSize(24, 24))
+        rect.moveTo(x - rect.width() / 2, y - rect.height() / 2)
+        self.spinner.render(painter, rect)
+
+
+class VersionDelegate(SpinIconDelegate):
     """A delegate that display version integer formatted as version string."""
 
     version_changed = QtCore.Signal()
@@ -26,9 +50,17 @@ class VersionDelegate(QtWidgets.QStyledItemDelegate):
         assert isinstance(value, numbers.Integral), "Version is not integer"
         return self._format_version(value)
 
+    def paint(self, painter, option, index):
+        item = index.data(TreeModel.ItemRole)
+        if item.get("isGroup") or item.get("version_document"):
+            super(VersionDelegate, self).paint(painter, option, index)
+            return
+
+        self.spin(painter, option, index)
+
     def createEditor(self, parent, option, index):
         item = index.data(TreeModel.ItemRole)
-        if item.get("isGroup"):
+        if item.get("isGroup") or not item.get("version_document"):
             return
 
         editor = QtWidgets.QComboBox(parent)

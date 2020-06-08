@@ -107,6 +107,7 @@ class SubsetWidget(QtWidgets.QWidget):
         selection.selectionChanged.connect(self.active_changed)
 
         version_delegate.version_changed.connect(self.version_changed)
+        version_delegate.repaint_needed.connect(self.update)
 
         groupable.stateChanged.connect(self.set_grouping)
 
