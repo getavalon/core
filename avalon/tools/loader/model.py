@@ -166,7 +166,7 @@ class SubsetsModel(TreeModel):
                     # Set the version information
                     last_version = io.find_one({"type": "version",
                                                 "parent": item["_id"]},
-                                            sort=[("name", -1)])
+                                               sort=[("name", -1)])
                     if last_version:
                         left = index.sibling(row, 2 if "family" in item else 1)
                         right = index.sibling(row, len(self.Columns) - 1)
