@@ -5,7 +5,6 @@ import logging
 import numbers
 
 from ..vendor.Qt import QtWidgets, QtCore, QtGui, QtSvg
-from ..vendor import qtawesome
 from .. import io, style
 
 from .models import TreeModel
