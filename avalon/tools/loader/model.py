@@ -168,13 +168,7 @@ class SubsetsModel(TreeModel):
                                                 "parent": item["_id"]},
                                                sort=[("name", -1)])
                     if last_version:
-                        left = index.sibling(row, 2 if "family" in item else 1)
-                        right = index.sibling(row, len(self.Columns) - 1)
-                        role = QtCore.Qt.EditRole
-                        args = () if Qt.IsPySide or Qt.IsPyQt4 else ([role],)
-
                         self.set_version(index, last_version)
-                        self.dataChanged.emit(left, right, *args)
 
         self._version_fetching_thread = lib.create_qthread(_fetch_versions)
         self._version_fetching_thread.start()
