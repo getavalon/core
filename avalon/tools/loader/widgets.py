@@ -98,10 +98,15 @@ class SubsetWidget(QtWidgets.QWidget):
         self.view.setModel(self.family_proxy)
         self.view.customContextMenuRequested.connect(self.on_context_menu)
 
-        header = self.view.header()
-        # Enforce the columns to fit the data (purely cosmetic)
-        QtCompat.setSectionResizeMode(
-            header, QtWidgets.QHeaderView.ResizeToContents)
+        view.setColumnWidth(0, 240)  # subset
+        view.setColumnWidth(1, 120)  # family
+        view.setColumnWidth(2, 80)   # version
+        view.setColumnWidth(3, 120)  # time
+        view.setColumnWidth(4, 100)  # author
+        view.setColumnWidth(5, 80)   # frames
+        view.setColumnWidth(6, 60)   # duration
+        view.setColumnWidth(7, 60)   # handles
+        view.setColumnWidth(8, 60)   # step
 
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.active_changed)
