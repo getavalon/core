@@ -398,6 +398,12 @@ def distinct(*args, **kwargs):
 
 
 @auto_reconnect
+def aggregate(*args, **kwargs):
+    return self._database[Session["AVALON_PROJECT"]].aggregate(
+        *args, **kwargs)
+
+
+@auto_reconnect
 def drop(*args, **kwargs):
     return self._database[Session["AVALON_PROJECT"]].drop(
         *args, **kwargs)

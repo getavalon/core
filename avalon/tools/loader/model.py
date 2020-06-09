@@ -141,6 +141,38 @@ class SubsetsModel(TreeModel):
             "step": version_data.get("step", None)
         })
 
+    def fetch_subset_and_version(self, asset_id):
+        """Query all subsets and latest versions from aggregation
+
+        (NOTE) The returned verion documents are NOT the real verison
+            document, it's generated from the MongoDB's aggregation so
+            some of the first level field may not be presented.
+
+        """
+        subsets = list(io.find({"type": "subset", "parent": asset_id}))
+
+        parent_ids = [subset["_id"] for subset in subsets]
+        pipeline = [
+            # Find all versions of those subsets
+            {"$match": {"type": "version", "parent": {"$in": parent_ids}}},
+            # Sorting versions all together
+            {"$sort": {"name": 1}},
+            # Group them by "parent", but only take the last
+            {"$group": {"_id": "$parent",
+                        "_version_id": {"$last": "$_id"},
+                        "name": {"$last": "$name"},
+                        "data": {"$last": "$data"},
+                        "locations": {"$last": "$locations"},
+                        "schema": {"$last": "$schema"}}},
+        ]
+        versions = dict()
+        for doc in io.aggregate(pipeline):
+            doc["parent"] = doc["_id"]
+            doc["_id"] = doc.pop("_version_id")
+            versions[doc["parent"]] = doc
+
+        return [(subset, versions.get(subset["_id"])) for subset in subsets]
+
     def refresh(self):
 
         self.clear()
@@ -166,15 +198,9 @@ class SubsetsModel(TreeModel):
                 group_items[name] = group
                 self.add_child(group)
 
-        filter = {"type": "subset", "parent": asset_id}
-
         # Process subsets
         row = len(group_items)
-        for subset in io.find(filter):
-
-            last_version = io.find_one({"type": "version",
-                                        "parent": subset["_id"]},
-                                       sort=[("name", -1)])
+        for subset, last_version in self.fetch_subset_and_version(asset_id):
             if not last_version:
                 # No published version for the subset
                 continue
