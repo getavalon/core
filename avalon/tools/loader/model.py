@@ -1,5 +1,5 @@
 from ... import io, style
-from ...vendor.Qt import Qt, QtCore, QtGui
+from ...vendor.Qt import QtCore
 from ...vendor import qtawesome
 
 from ..models import TreeModel, Item

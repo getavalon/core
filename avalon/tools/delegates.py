@@ -4,7 +4,7 @@ from datetime import datetime
 import logging
 import numbers
 
-from ..vendor.Qt import QtWidgets, QtCore, QtGui, QtSvg
+from ..vendor.Qt import QtWidgets, QtCore, QtSvg
 from .. import io, style
 
 from .models import TreeModel
