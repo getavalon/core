@@ -149,28 +149,47 @@ class SubsetsModel(TreeModel):
                 pass
         super(SubsetsModel, self).clear()
 
-    def fetch_versions(self):
+    def fetch_versions(self, subset_ids):
         """Fetch versions data for each subset in other thread
         """
-        def _fetch_versions(parent=None):
-            parent = parent or QtCore.QModelIndex()
+        pipeline = [
+            # Find all versions of those subsets
+            {"$match": {"type": "version", "parent": {"$in": subset_ids}}},
+            # Sorting versions all together
+            {"$sort": {"name": 1}},
+            # Group them by "parent", but only take the last
+            {"$group": {"_id": "$parent",
+                        "_version_id": {"$last": "$_id"},
+                        "name": {"$last": "$name"},
+                        "data": {"$last": "$data"},
+                        "locations": {"$last": "$locations"},
+                        "schema": {"$last": "$schema"}}},
+        ]
 
-            for row in range(self.rowCount(parent)):
+        def _fetch_versions():
+
+            versions = {doc["_id"]: doc for doc in io.aggregate(pipeline)}
+
+            def iter_indexes(parent=None):
+                parent = parent or QtCore.QModelIndex()
+                for row in range(self.rowCount(parent)):
+                    index = self.index(row, 0, parent)
+                    item = index.internalPointer()
+                    if item.get("isGroup"):
+                        for index, item in iter_indexes(parent=index):
+                            yield index, item
+                    elif not item.get("version_document"):
+                        yield index, item
+
+            for index, item in iter_indexes():
                 if self._version_fetching_stop:
                     return
-
-                index = self.index(row, 0, parent)
-                item = index.internalPointer()
-                if item.get("isGroup"):
-                    _fetch_versions(parent=index)
-
-                elif not item.get("version_document"):
-                    # Set the version information
-                    last_version = io.find_one({"type": "version",
-                                                "parent": item["_id"]},
-                                               sort=[("name", -1)])
-                    if last_version:
-                        self.set_version(index, last_version)
+                # Set the version information
+                last_version = versions.get(item["_id"])
+                if last_version:
+                    last_version["parent"] = item["_id"]
+                    last_version["_id"] = last_version.pop("_version_id")
+                    self.set_version(index, last_version)
 
         self._version_fetching_stop = False
         self._version_fetching_thread = lib.create_qthread(_fetch_versions)
@@ -204,7 +223,9 @@ class SubsetsModel(TreeModel):
         filter = {"type": "subset", "parent": asset_id}
 
         # Process subsets
+        subset_ids = list()
         for subset in io.find(filter):
+            subset_ids.append(subset["_id"])
 
             data = subset.copy()
             data["subset"] = data["name"]
@@ -235,7 +256,9 @@ class SubsetsModel(TreeModel):
 
         self.endResetModel()
 
-        lib.schedule(self.fetch_versions, 200, "versionFetching")
+        lib.schedule(lambda: self.fetch_versions(subset_ids),
+                     200,
+                     "versionFetching")
 
     def data(self, index, role):
 
