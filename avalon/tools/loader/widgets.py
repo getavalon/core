@@ -140,7 +140,7 @@ class SubsetWidget(QtWidgets.QWidget):
         node = point_index.data(self.model.ItemRole)
         if node.get("isGroup"):
             return
-        
+
         def get_version_id(item):
             if "version_document" in item:
                 return item["version_document"]["_id"]
@@ -148,8 +148,8 @@ class SubsetWidget(QtWidgets.QWidget):
                 # Version not fetched, use latest version as default.
                 last_version = io.find_one({"type": "version",
                                             "parent": item["_id"]},
-                                        sort=[("name", -1)],
-                                        projection={"_id": True})
+                                           sort=[("name", -1)],
+                                           projection={"_id": True})
                 if last_version:
                     return last_version["_id"]
 
