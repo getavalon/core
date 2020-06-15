@@ -468,3 +468,38 @@ def project_use_silo(project_doc):
         if "{silo}" in template:
             return True
     return False
+
+
+class AnimatedIcon(object):
+
+    def __init__(self, icon_path):
+        movie = QtGui.QMovie(icon_path)
+        movie.setCacheMode(QtGui.QMovie.CacheAll)
+        movie.frameChanged.connect(self._update_icon)
+
+        self._icon = QtGui.QIcon()
+        self._movie = movie
+        self.frameChanged = movie.frameChanged
+
+    def _update_icon(self, current_frame):
+        """Save current frame as a QIcon."""
+        self._icon.addPixmap(self._movie.currentPixmap())
+
+    def get_icon(self):
+        """Get current movie frame as a QIcon."""
+        return self._icon
+
+    def start(self):
+        """Start the movie."""
+        self._movie.start()
+
+    def stop(self):
+        """Stop the movie."""
+        self._movie.stop()
+
+
+def create_qthread(func, *args, **kwargs):
+    class Thread(QtCore.QThread):
+        def run(self):
+            func(*args, **kwargs)
+    return Thread()

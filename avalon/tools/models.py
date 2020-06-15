@@ -1,4 +1,5 @@
 import re
+import os
 import logging
 import collections
 
@@ -325,9 +326,13 @@ class AssetModel(TreeModel):
 
     DocumentRole = QtCore.Qt.UserRole + 2
     ObjectIdRole = QtCore.Qt.UserRole + 3
+    LoadingStateRole = QtCore.Qt.UserRole + 4
 
     def __init__(self, parent=None):
         super(AssetModel, self).__init__(parent=parent)
+        loading_gif = os.path.dirname(style.__file__) + "/gif/spinner.gif"
+        self.loading_icon = lib.AnimatedIcon(loading_gif)
+
         self.refresh()
 
     def _add_hierarchy(self, assets, parent=None, silos=None):
@@ -431,6 +436,9 @@ class AssetModel(TreeModel):
             column = index.column()
             if column == self.Name:
 
+                if item.get("isLoading"):
+                    return self.loading_icon.get_icon()
+
                 # Allow a custom icon and custom icon color to be defined
                 data = item.get("_document", {}).get("data", {})
                 icon = data.get("icon", None)
@@ -471,6 +479,27 @@ class AssetModel(TreeModel):
             return item.get("_document", None)
 
         return super(AssetModel, self).data(index, role)
+
+    def setData(self, index, value, role=QtCore.Qt.EditRole):
+
+        if index.isValid():
+            if role == self.LoadingStateRole:
+
+                item = index.internalPointer()
+                item["isLoading"] = value
+
+                if value:
+                    self.loading_icon.start()
+                else:
+                    self.loading_icon.stop()
+
+                # passing `list()` for PyQt5 (see PYSIDE-462)
+                self.dataChanged.emit(index, index, list())
+
+                # must return true if successful
+                return True
+
+        return super(AssetModel, self).setData(index, value, role)
 
 
 class RecursiveSortFilterProxyModel(QtCore.QSortFilterProxyModel):

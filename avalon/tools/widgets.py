@@ -69,6 +69,7 @@ class AssetWidget(QtWidgets.QWidget):
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.selection_changed)
         selection.currentChanged.connect(self.current_changed)
+        model.loading_icon.frameChanged.connect(view.viewport().update)
         refresh.clicked.connect(self.refresh)
 
         self.refreshButton = refresh
@@ -108,6 +109,11 @@ class AssetWidget(QtWidgets.QWidget):
 
         # NOTE: skip None object assumed they are silo (backwards comp.)
         return [asset for asset in assets if asset]
+
+    def set_loading_state(self, state):
+        current = self.view.currentIndex()
+        index = self.proxy.mapToSource(current)
+        self.model.setData(index, state, role=self.model.LoadingStateRole)
 
     def select_assets(self, assets, expand=True, key="name"):
         """Select assets by item key.

@@ -141,7 +141,7 @@ class SubsetsModel(TreeModel):
             "step": version_data.get("step", None)
         })
 
-    def fetch_subset_and_version(self, asset_id):
+    def fetch_subset_and_version(self, asset_id, results):
         """Query all subsets and latest versions from aggregation
 
         (NOTE) The returned verion documents are NOT the real verison
@@ -171,7 +171,7 @@ class SubsetsModel(TreeModel):
             doc["_id"] = doc.pop("_version_id")
             versions[doc["parent"]] = doc
 
-        return [(subset, versions.get(subset["_id"])) for subset in subsets]
+        results[:] = [(subset, versions.get(subset["_id"])) for subset in subsets]
 
     def refresh(self):
 
@@ -198,9 +198,17 @@ class SubsetsModel(TreeModel):
                 group_items[name] = group
                 self.add_child(group)
 
+        subset_and_version = list()
+        thread = lib.create_qthread(self.fetch_subset_and_version,
+                                    asset_id,
+                                    subset_and_version)
+        thread.start()
+        while not subset_and_version:
+            pass
+
         # Process subsets
         row = len(group_items)
-        for subset, last_version in self.fetch_subset_and_version(asset_id):
+        for subset, last_version in subset_and_version:
             if not last_version:
                 # No published version for the subset
                 continue

@@ -183,15 +183,24 @@ class Window(QtWidgets.QDialog):
             document_name = document["name"]
             document_silo = document.get("silo")
 
-        subsets_model.set_asset(document_id)
+        def set_asset():
+            # Start loading
+            assets_model.set_loading_state(True)
 
-        # Clear the version information on asset change
-        self.data["model"]["version"].set_version(None)
+            subsets_model.set_asset(document_id)
 
-        self.data["state"]["context"]["asset"] = document_name
-        self.data["state"]["context"]["assetId"] = document_id
-        self.data["state"]["context"]["silo"] = document_silo
-        self.echo("Duration: %.3fs" % (time.time() - t1))
+            # Clear the version information on asset change
+            self.data["model"]["version"].set_version(None)
+
+            self.data["state"]["context"]["asset"] = document_name
+            self.data["state"]["context"]["assetId"] = document_id
+            self.data["state"]["context"]["silo"] = document_silo
+            self.echo("Duration: %.3fs" % (time.time() - t1))
+
+            # Complete
+            assets_model.set_loading_state(False)
+
+        lib.schedule(set_asset, 250, channel="mongo.setasset")
 
     def _versionschanged(self):
 
@@ -451,6 +460,8 @@ def cli(args):
 
     args = parser.parse_args(args)
     project = args.project
+
+    print("Entering Project: %s" % project)
 
     io.install()
 
