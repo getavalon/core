@@ -59,7 +59,7 @@ class SubsetsModel(TreeModel):
 
     def set_grouping(self, state):
         self._grouping = state
-        self.refresh()
+        self.on_doc_fetched()
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
 
