@@ -17,6 +17,10 @@ def is_filtering_recursible():
 
 
 class SubsetsModel(TreeModel):
+
+    doc_fetched = QtCore.Signal()
+    refreshed = QtCore.Signal()
+
     Columns = [
         "subset",
         "family",
@@ -43,6 +47,11 @@ class SubsetsModel(TreeModel):
         self._icons = {
             "subset": qtawesome.icon("fa.file-o", color=style.colors.default)
         }
+        self._doc_fetching_thread = None
+        self._doc_fetching_stop = False
+        self._doc_payload = list()
+
+        self.doc_fetched.connect(self.on_doc_fetched)
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id
@@ -141,49 +150,72 @@ class SubsetsModel(TreeModel):
             "step": version_data.get("step", None)
         })
 
-    def fetch_subset_and_version(self, asset_id, results):
+    def fetch_subset_and_version(self):
         """Query all subsets and latest versions from aggregation
 
-        (NOTE) The returned verion documents are NOT the real verison
+        (NOTE) The returned version documents are NOT the real version
             document, it's generated from the MongoDB's aggregation so
             some of the first level field may not be presented.
 
         """
-        subsets = list(io.find({"type": "subset", "parent": asset_id}))
+        def _fetch():
+            _subsets = list()
+            _ids = list()
+            for subset in io.find({"type": "subset",
+                                   "parent": self._asset_id}):
+                if self._doc_fetching_stop:
+                    return
+                _subsets.append(subset)
+                _ids.append(subset["_id"])
 
-        parent_ids = [subset["_id"] for subset in subsets]
-        pipeline = [
-            # Find all versions of those subsets
-            {"$match": {"type": "version", "parent": {"$in": parent_ids}}},
-            # Sorting versions all together
-            {"$sort": {"name": 1}},
-            # Group them by "parent", but only take the last
-            {"$group": {"_id": "$parent",
-                        "_version_id": {"$last": "$_id"},
-                        "name": {"$last": "$name"},
-                        "data": {"$last": "$data"},
-                        "locations": {"$last": "$locations"},
-                        "schema": {"$last": "$schema"}}},
-        ]
-        versions = dict()
-        for doc in io.aggregate(pipeline):
-            doc["parent"] = doc["_id"]
-            doc["_id"] = doc.pop("_version_id")
-            versions[doc["parent"]] = doc
+            _pipeline = [
+                # Find all versions of those subsets
+                {"$match": {"type": "version", "parent": {"$in": _ids}}},
+                # Sorting versions all together
+                {"$sort": {"name": 1}},
+                # Group them by "parent", but only take the last
+                {"$group": {"_id": "$parent",
+                            "_version_id": {"$last": "$_id"},
+                            "name": {"$last": "$name"},
+                            "data": {"$last": "$data"},
+                            "locations": {"$last": "$locations"},
+                            "schema": {"$last": "$schema"}}},
+            ]
+            versions = dict()
+            for doc in io.aggregate(_pipeline):
+                if self._doc_fetching_stop:
+                    return
+                doc["parent"] = doc["_id"]
+                doc["_id"] = doc.pop("_version_id")
+                versions[doc["parent"]] = doc
 
-        results[:] = [(subset, versions.get(subset["_id"])) for subset in subsets]
+            self._doc_payload[:] = [(subset, versions.get(subset["_id"]))
+                                    for subset in _subsets]
+            self.doc_fetched.emit()
+
+        self._doc_payload[:] = []
+        self._doc_fetching_stop = False
+        self._doc_fetching_thread = lib.create_qthread(_fetch)
+        self._doc_fetching_thread.start()
+
+    def stop_fetch_thread(self):
+        if self._doc_fetching_thread is not None:
+            self._doc_fetching_stop = True
+            while self._doc_fetching_thread.isRunning():
+                pass
 
     def refresh(self):
+        self.stop_fetch_thread()
+        self.clear()
+        if not self._asset_id:
+            return
+        self.fetch_subset_and_version()
 
+    def on_doc_fetched(self):
         self.clear()
         self.beginResetModel()
-        if not self._asset_id:
-            self.endResetModel()
-            return
 
-        asset_id = self._asset_id
-
-        active_groups = lib.get_active_group_config(asset_id)
+        active_groups = lib.get_active_group_config(self._asset_id)
 
         # Generate subset group nodes
         group_items = dict()
@@ -198,17 +230,9 @@ class SubsetsModel(TreeModel):
                 group_items[name] = group
                 self.add_child(group)
 
-        subset_and_version = list()
-        thread = lib.create_qthread(self.fetch_subset_and_version,
-                                    asset_id,
-                                    subset_and_version)
-        thread.start()
-        while not subset_and_version:
-            pass
-
         # Process subsets
         row = len(group_items)
-        for subset, last_version in subset_and_version:
+        for subset, last_version in self._doc_payload:
             if not last_version:
                 # No published version for the subset
                 continue
@@ -239,6 +263,7 @@ class SubsetsModel(TreeModel):
             self.set_version(index, last_version)
 
         self.endResetModel()
+        self.refreshed.emit()
 
     def data(self, index, role):
 

@@ -162,9 +162,7 @@ class Window(QtWidgets.QDialog):
         """Selected assets have changed"""
 
         assets_model = self.data["model"]["assets"]
-        subsets = self.data["model"]["subsets"]
-        subsets_model = subsets.model
-        subsets_model.clear()
+        subsets_model = self.data["model"]["subsets"].model
 
         t1 = time.time()
 
@@ -183,24 +181,23 @@ class Window(QtWidgets.QDialog):
             document_name = document["name"]
             document_silo = document.get("silo")
 
-        def set_asset():
-            # Start loading
-            assets_model.set_loading_state(True)
+        # Start loading
+        assets_model.set_loading_state(document_name)
 
-            subsets_model.set_asset(document_id)
-
-            # Clear the version information on asset change
-            self.data["model"]["version"].set_version(None)
-
-            self.data["state"]["context"]["asset"] = document_name
-            self.data["state"]["context"]["assetId"] = document_id
-            self.data["state"]["context"]["silo"] = document_silo
+        def on_refreshed():
+            subsets_model.refreshed.disconnect()
+            assets_model.set_loading_state(None)
             self.echo("Duration: %.3fs" % (time.time() - t1))
 
-            # Complete
-            assets_model.set_loading_state(False)
+        subsets_model.refreshed.connect(on_refreshed)
+        subsets_model.set_asset(document_id)
 
-        lib.schedule(set_asset, 250, channel="mongo.setasset")
+        # Clear the version information on asset change
+        self.data["model"]["version"].set_version(None)
+
+        self.data["state"]["context"]["asset"] = document_name
+        self.data["state"]["context"]["assetId"] = document_id
+        self.data["state"]["context"]["silo"] = document_silo
 
     def _versionschanged(self):
 

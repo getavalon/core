@@ -110,10 +110,8 @@ class AssetWidget(QtWidgets.QWidget):
         # NOTE: skip None object assumed they are silo (backwards comp.)
         return [asset for asset in assets if asset]
 
-    def set_loading_state(self, state):
-        current = self.view.currentIndex()
-        index = self.proxy.mapToSource(current)
-        self.model.setData(index, state, role=self.model.LoadingStateRole)
+    def set_loading_state(self, name):
+        self.model.current_loading = name
 
     def select_assets(self, assets, expand=True, key="name"):
         """Select assets by item key.
