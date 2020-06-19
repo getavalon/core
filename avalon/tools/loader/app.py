@@ -270,14 +270,6 @@ class Window(QtWidgets.QDialog):
             print("Force quitted..")
             self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
-        # Kill on holding SHIFT
-        modifiers = QtWidgets.QApplication.queryKeyboardModifiers()
-        shift_pressed = QtCore.Qt.ShiftModifier & modifiers
-
-        if shift_pressed:
-            print("Force quitted..")
-            self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-
         print("Good bye")
         return super(Window, self).closeEvent(event)
 
