@@ -329,11 +329,6 @@ class AssetModel(TreeModel):
 
     def __init__(self, parent=None):
         super(AssetModel, self).__init__(parent=parent)
-        loading_gif = os.path.dirname(style.__file__) + "/gif/spinner.gif"
-        self.loading_icon = lib.AnimatedIcon(loading_gif)
-        self.loading_icon.start()
-        self.current_loading = None
-
         self.refresh()
 
     def _add_hierarchy(self, assets, parent=None, silos=None):
@@ -436,10 +431,6 @@ class AssetModel(TreeModel):
 
             column = index.column()
             if column == self.Name:
-
-                if item.get("name") == self.current_loading:
-                    return self.loading_icon.get_icon()
-
                 # Allow a custom icon and custom icon color to be defined
                 data = item.get("_document", {}).get("data", {})
                 icon = data.get("icon", None)

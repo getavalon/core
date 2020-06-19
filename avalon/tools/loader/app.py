@@ -184,11 +184,9 @@ class Window(QtWidgets.QDialog):
 
         # Start loading
         if document_name is not None:
-            assets_model.set_loading_asset(document_name)
             subsets_widget.set_loading_state(True)
 
         def on_refreshed():
-            assets_model.set_loading_asset(None)
             subsets_widget.set_loading_state(False)
             subsets_model.refreshed.disconnect()
             self.echo("Duration: %.3fs" % (time.time() - t1))
