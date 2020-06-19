@@ -162,7 +162,8 @@ class Window(QtWidgets.QDialog):
         """Selected assets have changed"""
 
         assets_model = self.data["model"]["assets"]
-        subsets_model = self.data["model"]["subsets"].model
+        subsets_widget = self.data["model"]["subsets"]
+        subsets_model = subsets_widget.model
 
         t1 = time.time()
 
@@ -182,11 +183,14 @@ class Window(QtWidgets.QDialog):
             document_silo = document.get("silo")
 
         # Start loading
-        assets_model.set_loading_state(document_name)
+        if document_name is not None:
+            assets_model.set_loading_asset(document_name)
+            subsets_widget.set_loading_state(True)
 
         def on_refreshed():
+            assets_model.set_loading_asset(None)
+            subsets_widget.set_loading_state(False)
             subsets_model.refreshed.disconnect()
-            assets_model.set_loading_state(None)
             self.echo("Duration: %.3fs" % (time.time() - t1))
 
         subsets_model.refreshed.connect(on_refreshed)

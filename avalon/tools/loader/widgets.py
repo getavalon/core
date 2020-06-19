@@ -1,12 +1,14 @@
+import os
 import datetime
 import pprint
 import inspect
 
-from ...vendor.Qt import QtWidgets, QtCore, QtCompat
+from ...vendor.Qt import QtWidgets, QtCore, QtGui, QtSvg, QtCompat
 from ...vendor import qtawesome
 from ... import io
 from ... import api
 from ... import pipeline
+from ... import style
 
 from .. import lib as tools_lib
 from ..delegates import VersionDelegate
@@ -44,7 +46,7 @@ class SubsetWidget(QtWidgets.QWidget):
         top_bar_layout.addWidget(filter)
         top_bar_layout.addWidget(groupable)
 
-        view = QtWidgets.QTreeView()
+        view = SubsetTreeView()
         view.setIndentation(20)
         view.setStyleSheet("""
             QTreeView::item{
@@ -125,6 +127,9 @@ class SubsetWidget(QtWidgets.QWidget):
         with tools_lib.preserve_selection(tree_view=self.view,
                                           current_index=False):
             self.model.set_grouping(state)
+
+    def set_loading_state(self, state):
+        self.view.is_loading = state
 
     def on_context_menu(self, point):
 
@@ -307,6 +312,34 @@ class SubsetWidget(QtWidgets.QWidget):
 
     def echo(self, message):
         print(message)
+
+
+class SubsetTreeView(QtWidgets.QTreeView):
+
+    def __init__(self, parent=None):
+        super(SubsetTreeView, self).__init__(parent=parent)
+        loading_gif = os.path.dirname(style.__file__) + "/svg/spinner-200.svg"
+        spinner = QtSvg.QSvgRenderer(loading_gif)
+        spinner.repaintNeeded.connect(self.viewport().update)
+
+        self.loading_icon = spinner
+        self.is_loading = False
+
+    def paint_loading(self, event):
+        size = 80
+        rect = event.rect()
+        rect.moveTo(rect.x() + rect.width() / 2 - size / 2,
+                    rect.y() + rect.height() / 2 - size / 2)
+        rect.setSize(QtCore.QSize(size, size))
+        painter = QtGui.QPainter(self.viewport())
+        self.loading_icon.render(painter, rect)
+
+    def paintEvent(self, event):
+        if self.is_loading:
+            self.paint_loading(event)
+            return
+
+        super(SubsetTreeView, self).paintEvent(event)
 
 
 class VersionTextEdit(QtWidgets.QTextEdit):
