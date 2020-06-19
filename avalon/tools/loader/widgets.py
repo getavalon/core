@@ -331,7 +331,7 @@ class SubsetTreeView(QtWidgets.QTreeView):
         self.is_loading = False
 
     def paint_loading(self, event):
-        size = 80
+        size = 160
         rect = event.rect()
         rect.moveTo(rect.x() + rect.width() / 2 - size / 2,
                     rect.y() + rect.height() / 2 - size / 2)
