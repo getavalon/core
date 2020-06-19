@@ -183,11 +183,10 @@ class Window(QtWidgets.QDialog):
             document_silo = document.get("silo")
 
         # Start loading
-        if document_name is not None:
-            subsets_widget.set_loading_state(True)
+        subsets_widget.set_loading_state(True if document_name else None)
 
-        def on_refreshed():
-            subsets_widget.set_loading_state(False)
+        def on_refreshed(has_item):
+            subsets_widget.set_loading_state(False if has_item else None)
             subsets_model.refreshed.disconnect()
             self.echo("Duration: %.3fs" % (time.time() - t1))
 

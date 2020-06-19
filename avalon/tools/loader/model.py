@@ -19,7 +19,7 @@ def is_filtering_recursible():
 class SubsetsModel(TreeModel):
 
     doc_fetched = QtCore.Signal()
-    refreshed = QtCore.Signal()
+    refreshed = QtCore.Signal(bool)
 
     Columns = [
         "subset",
@@ -232,6 +232,7 @@ class SubsetsModel(TreeModel):
 
         # Process subsets
         row = len(group_items)
+        has_item = False
         for subset, last_version in self._doc_payload:
             if not last_version:
                 # No published version for the subset
@@ -261,9 +262,10 @@ class SubsetsModel(TreeModel):
             # Set the version information
             index = self.index(row_, 0, parent=parent_index)
             self.set_version(index, last_version)
+            has_item = True
 
         self.endResetModel()
-        self.refreshed.emit()
+        self.refreshed.emit(has_item)
 
     def data(self, index, role):
 

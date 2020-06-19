@@ -134,7 +134,13 @@ class SubsetWidget(QtWidgets.QWidget):
             self.model.set_grouping(state)
 
     def set_loading_state(self, state):
-        self.view.is_loading = state
+        view = self.view
+        if bool(view.is_loading) != bool(state):  # state could be None
+            view.is_loading = state
+            if state:
+                view.spinner.repaintNeeded.connect(view.viewport().update)
+            else:
+                view.spinner.repaintNeeded.disconnect()
 
     def on_context_menu(self, point):
 
@@ -325,9 +331,8 @@ class SubsetTreeView(QtWidgets.QTreeView):
         super(SubsetTreeView, self).__init__(parent=parent)
         loading_gif = os.path.dirname(style.__file__) + "/svg/spinner-200.svg"
         spinner = QtSvg.QSvgRenderer(loading_gif)
-        spinner.repaintNeeded.connect(self.viewport().update)
 
-        self.loading_icon = spinner
+        self.spinner = spinner
         self.is_loading = False
 
     def paint_loading(self, event):
@@ -337,14 +342,21 @@ class SubsetTreeView(QtWidgets.QTreeView):
                     rect.y() + rect.height() / 2 - size / 2)
         rect.setSize(QtCore.QSize(size, size))
         painter = QtGui.QPainter(self.viewport())
-        self.loading_icon.render(painter, rect)
+        self.spinner.render(painter, rect)
+
+    def paint_empty(self, event):
+        painter = QtGui.QPainter(self.viewport())
+        painter.drawText(event.rect(),
+                         "No Data",
+                         QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
 
     def paintEvent(self, event):
-        if self.is_loading:
+        if self.is_loading is None:
+            self.paint_empty(event)
+        elif self.is_loading:
             self.paint_loading(event)
-            return
-
-        super(SubsetTreeView, self).paintEvent(event)
+        else:
+            super(SubsetTreeView, self).paintEvent(event)
 
 
 class VersionTextEdit(QtWidgets.QTextEdit):
