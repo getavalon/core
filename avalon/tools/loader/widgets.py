@@ -3,7 +3,7 @@ import datetime
 import pprint
 import inspect
 
-from ...vendor.Qt import QtWidgets, QtCore, QtGui, QtSvg, QtCompat
+from ...vendor.Qt import QtWidgets, QtCore, QtGui, QtSvg
 from ...vendor import qtawesome
 from ... import io
 from ... import api
