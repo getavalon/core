@@ -133,14 +133,17 @@ class SubsetWidget(QtWidgets.QWidget):
                                           current_index=False):
             self.model.set_grouping(state)
 
-    def set_loading_state(self, state):
+    def set_loading_state(self, loading, empty):
         view = self.view
-        if bool(view.is_loading) != bool(state):  # state could be None
-            view.is_loading = state
-            if state:
+
+        if view.is_loading != loading:
+            if loading:
                 view.spinner.repaintNeeded.connect(view.viewport().update)
             else:
                 view.spinner.repaintNeeded.disconnect()
+
+        view.is_loading = loading
+        view.is_empty = empty
 
     def on_context_menu(self, point):
 
@@ -334,6 +337,7 @@ class SubsetTreeView(QtWidgets.QTreeView):
 
         self.spinner = spinner
         self.is_loading = False
+        self.is_empty = True
 
     def paint_loading(self, event):
         size = 160
@@ -351,10 +355,10 @@ class SubsetTreeView(QtWidgets.QTreeView):
                          QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
 
     def paintEvent(self, event):
-        if self.is_loading is None:
-            self.paint_empty(event)
-        elif self.is_loading:
+        if self.is_loading:
             self.paint_loading(event)
+        elif self.is_empty:
+            self.paint_empty(event)
         else:
             super(SubsetTreeView, self).paintEvent(event)
 
