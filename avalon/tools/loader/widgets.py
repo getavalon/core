@@ -353,8 +353,8 @@ class SubsetTreeView(QtWidgets.QTreeView):
         painter = QtGui.QPainter(self.viewport())
         rect = event.rect()
         rect = QtCore.QRectF(rect.topLeft(), rect.bottomRight())
-        qtext_opt = QtGui.QTextOption(QtCore.Qt.AlignHCenter
-                                      | QtCore.Qt.AlignVCenter)
+        qtext_opt = QtGui.QTextOption(QtCore.Qt.AlignHCenter |
+                                      QtCore.Qt.AlignVCenter)
         painter.drawText(rect, "No Data", qtext_opt)
 
     def paintEvent(self, event):
