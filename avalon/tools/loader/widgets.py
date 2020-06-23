@@ -342,17 +342,20 @@ class SubsetTreeView(QtWidgets.QTreeView):
     def paint_loading(self, event):
         size = 160
         rect = event.rect()
+        rect = QtCore.QRectF(rect.topLeft(), rect.bottomRight())
         rect.moveTo(rect.x() + rect.width() / 2 - size / 2,
                     rect.y() + rect.height() / 2 - size / 2)
-        rect.setSize(QtCore.QSize(size, size))
+        rect.setSize(QtCore.QSizeF(size, size))
         painter = QtGui.QPainter(self.viewport())
         self.spinner.render(painter, rect)
 
     def paint_empty(self, event):
         painter = QtGui.QPainter(self.viewport())
-        painter.drawText(event.rect(),
-                         "No Data",
-                         QtCore.Qt.AlignHCenter | QtCore.Qt.AlignVCenter)
+        rect = event.rect()
+        rect = QtCore.QRectF(rect.topLeft(), rect.bottomRight())
+        qtext_opt = QtGui.QTextOption(QtCore.Qt.AlignHCenter
+                                      | QtCore.Qt.AlignVCenter)
+        painter.drawText(rect, "No Data", qtext_opt)
 
     def paintEvent(self, event):
         if self.is_loading:
