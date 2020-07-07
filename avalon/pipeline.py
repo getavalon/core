@@ -1153,12 +1153,19 @@ def load(Loader, representation, namespace=None, name=None, options=None,
 def _get_container_loader(container):
     """Return the Loader corresponding to the container"""
 
-    loader = container["loader"]
-    for Plugin in discover(Loader):
+    # loader = container["loader"]
+    # for Plugin in discover(Loader):
+    #
+    #     # TODO: Ensure the loader is valid
+    #     if Plugin.__name__ == loader:
+    #         return Plugin
 
-        # TODO: Ensure the loader is valid
-        if Plugin.__name__ == loader:
-            return Plugin
+    from avalon import api
+    loaders = api.loaders_from_representation(api.discover(api.Loader),
+                                              container['representation'])
+    Loader = next((i for i in loaders if i.__name__ == container["loader"]), None)
+    print('Get loader from container: {}\n'.format(Loader))
+    return Loader
 
 
 def remove(container):
