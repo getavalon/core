@@ -388,15 +388,16 @@ class Window(QtWidgets.QDialog):
 
         self._hide_task_options()
 
-        _option_data = self.options_tasks_data[sel_asset_name]
-        if task_name in _option_data.keys():
-            widget = _option_data[task_name].get('widget', '')
+        _option_data = self.options_tasks_data.get(sel_asset_name)
+        if _option_data and task_name in _option_data.keys():
+            widget = _option_data[task_name].get('widget')
             if widget:
                 widget.show()
                 self.top_msg_group.hide()
-        else:
-            self.top_msg_group.show()
-            self.option_msg_label.setText('No task options found')
+                return
+
+        self.top_msg_group.show()
+        self.option_msg_label.setText('No task options found')
 
 
 def show(root=None, debug=False, parent=None):
