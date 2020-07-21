@@ -4,6 +4,7 @@ import copy
 from functools import partial
 
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
+from ...vendor import qargparse, qtawesome
 from ... import io, schema, api, style
 
 from .. import lib as tools_lib
@@ -14,10 +15,6 @@ from .dialogs import TasksCreateDialog, AssetCreateDialog
 
 module = sys.modules[__name__]
 module.window = None
-
-import avalon.api
-import avalon.io
-from avalon.vendor import qargparse, qtawesome
 
 
 class Window(QtWidgets.QDialog):
@@ -83,8 +80,8 @@ class Window(QtWidgets.QDialog):
         self.tasks_option_layout.addWidget(self.top_msg_group, 1)
 
         # Generate option widget
-        self.project = avalon.io.find_one({"name": avalon.api.Session["AVALON_PROJECT"], "type": "project"})
-        self.assets = avalon.io.find({"type": "asset"})
+        self.project = io.find_one({"name": api.Session["AVALON_PROJECT"], "type": "project"})
+        self.assets = io.find({"type": "asset"})
 
         self.options_tasks_data = {}
         for _asset in self.assets:
