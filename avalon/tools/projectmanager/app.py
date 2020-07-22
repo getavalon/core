@@ -107,7 +107,7 @@ class Window(QtWidgets.QDialog):
                             qargparse.Boolean(_option_name,
                                               label=_data['label'], default=_default_value, help=_data.get('help', ''))
                         ]
-                        self.__set_option_widget(options, asset_name, _option_name, _task_name, _option_layout)
+                        self._set_option_widget(options, asset_name, _option_name, _task_name, _option_layout)
 
                     if type(_default_value) == int:
                         options = [
@@ -119,7 +119,7 @@ class Window(QtWidgets.QDialog):
                                               help=_data.get('help', ''))
                         ]
 
-                        self.__set_option_widget(options, asset_name, _option_name, _task_name, _option_layout)
+                        self._set_option_widget(options, asset_name, _option_name, _task_name, _option_layout)
 
                 _options['widget'] = _option_group
                 self.tasks_option_layout.addWidget(_option_group, 1)
@@ -181,7 +181,7 @@ class Window(QtWidgets.QDialog):
 
         self.echo("Connected to project: {0}".format(project_name))
 
-    def __set_option_widget(self, options, asset_name, option_name, task_name, option_layout):
+    def _set_option_widget(self, options, asset_name, option_name, task_name, option_layout):
         parser = qargparse.QArgumentParser(arguments=options)
 
         # Set value
