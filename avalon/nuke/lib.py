@@ -236,7 +236,7 @@ def sync_copies(nodes, force=False):
 
                 knob_name = knob.name()
                 if knob_name == "name":  # Node name should never be synced
-                    pass
+                    continue
 
                 # Only update knob that hasn't been modified
                 if force or is_knob_eq(sources[name], knob):
