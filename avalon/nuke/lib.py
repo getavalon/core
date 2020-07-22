@@ -233,6 +233,11 @@ def sync_copies(nodes, force=False):
             for name, knob in copy.knobs().items():
                 if name not in sources:
                     continue
+
+                knob_name = knob.name()
+                if knob_name == "name":  # Node name should never be synced
+                    pass
+
                 # Only update knob that hasn't been modified
                 if force or is_knob_eq(sources[name], knob):
                     # (NOTE) If current Nuke session has multiple views, like
@@ -241,7 +246,7 @@ def sync_copies(nodes, force=False):
                     #   example "renderlayer.Read1.first.left".
                     #   Assemble from node's full name and knob name to avoid
                     #   that.
-                    targets.append("%s.%s" % (copy_name, knob.name()))
+                    targets.append("%s.%s" % (copy_name, knob_name))
 
         if targets:
             staged[node] = targets
