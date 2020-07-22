@@ -23,6 +23,7 @@ class GroupBoxMessage(QtWidgets.QGroupBox):
         super(GroupBoxMessage, self).__init__(title, parent)
 
         status_label = QtWidgets.QLabel("")
+        status_label.setWordWrap(True)
         status_icon = QtWidgets.QLabel()
         status_icon.setPixmap(
             qtawesome.icon("fa.exclamation-circle",
@@ -30,7 +31,7 @@ class GroupBoxMessage(QtWidgets.QGroupBox):
         )
         layout = QtWidgets.QHBoxLayout(self)
         layout.addWidget(status_icon)
-        layout.addWidget(status_label)
+        layout.addWidget(status_label, stretch=True)
 
         self.message = status_label
 
@@ -38,61 +39,83 @@ class GroupBoxMessage(QtWidgets.QGroupBox):
         self.message.setText(message)
 
 
-class TaskOptionContainer(QtWidgets.QWidget):
+class TaskOptionContainer(QtWidgets.QScrollArea):
 
     def __init__(self, parent=None):
         super(TaskOptionContainer, self).__init__(parent)
 
-        container = QtWidgets.QVBoxLayout(self)
-        status = GroupBoxMessage("")
-
-        self.container = container
-        self.status = status
         self.task = None
+        self.parsers = None
         self.is_batch = False
-        self.option_names = list()
-
-        self.clear()
-
-    def clear(self):
-        for child in self.container.children():
-            self.container.removeWidget(child)
-        self.status.hide()
 
     def empty(self, message):
-        self.container.addWidget(self.status)
-        self.status.set_message(message)
-        self.status.show()
+        status = GroupBoxMessage("")
+        status.set_message(message)
+
+        widget = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(widget)
+        layout.addWidget(status)
+
         # Reset
         self.task = None
+        self.parsers = None
         self.is_batch = False
-        self.option_names = list()
+
+        self.setWidget(widget)
+        self.setWidgetResizable(True)
 
     def add_options(self, parsers, task, is_batch):
-        self.task = task
-        self.is_batch = is_batch
+        widget = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(widget)
         for parser in parsers:
-            self.container.addWidget(parser)
+            layout.addWidget(parser)
+
+        self.task = task
+        self.parsers = parsers
+        self.is_batch = is_batch
+
+        self.setWidget(widget)
+        self.setWidgetResizable(False)
 
     def save_options(self, assets):
-        # (TODO) WIP
+        if self.task is None or self.parsers is None:
+            return  # Possibly a bug.
+
         changes = dict()
         task_name = self.task["name"]
-        option_names = self.task["options"].values()
+        option_names = self.task["options"].keys()
+        filed_template = "data.task_options.{task}.{option}"
 
-        for parser in self.container:
-            # changes[]
-            option_name = parser["name"]
-            option_value = parser.read()
+        for parser in self.parsers:
+            asset_name = parser._desciption
+            if asset_name not in changes:
+                changes[asset_name] = dict()
+            for option_name in option_names:
+                arg = parser.find(option_name)
+                value = arg.read()
+                field = filed_template.format(task=task_name,
+                                              option=option_name)
+                changes[asset_name].update({field: {"value": value}})
+                # Update cache
+                # (TODO) This doesn't work
+                print(assets[asset_name]["data"])
+                doc = assets[asset_name]["data"]
+                nested_keys = ["task_options", task_name, option_name]
+                for key in nested_keys:
+                    if key not in doc:
+                        doc[key] = dict()
+                    doc = doc[key]
+                doc["value"] = value
+                print(assets[asset_name]["data"])
 
-        filter_ = {"_id": assets}
-        value_dict = {
-            'value': option_value
-        }
-        update = {"$set": {
-            "data.task_options.{}.{}".format(task_name, option_name): value_dict}
-        }
-        io.update_many(filter_, update)
+        if self.is_batch:
+            filter_ = {"_id": {"$in": [_["_id"] for _ in assets.values()]}}
+            io.update_many(filter_, {"$set": changes.popitem()[1]})
+
+        else:
+            for asset_name, options in changes.items():
+                filter_ = {"_id": assets[asset_name]["_id"]}
+                io.update_many(filter_, {"$set": options})
 
 
 class Window(QtWidgets.QDialog):
@@ -145,16 +168,14 @@ class Window(QtWidgets.QDialog):
 
         options_label = QtWidgets.QLabel("Tasks Options")
         options_batch = QtWidgets.QCheckBox("Batch Edit")
-        options_body = QtWidgets.QScrollArea()
+        options_container = TaskOptionContainer()
         options_accept = QtWidgets.QPushButton("Save")
         options_accept.setEnabled(False)
 
-        options_container = TaskOptionContainer()
-        options_body.setWidget(options_container)
-
         options_layout = QtWidgets.QVBoxLayout(options_widgets)
         options_layout.addWidget(options_label)
-        options_layout.addWidget(options_body, stretch=True)
+        options_layout.addWidget(options_batch)
+        options_layout.addWidget(options_container, stretch=True)
         options_layout.addWidget(options_accept)
 
         # set body layout
@@ -207,9 +228,11 @@ class Window(QtWidgets.QDialog):
         add_asset.clicked.connect(self.on_add_asset)
         add_task.clicked.connect(self.on_add_task)
         options_accept.clicked.connect(self.on_task_options_accepted)
+        options_batch.stateChanged.connect(self.on_batch_changed)
         assets.selection_changed.connect(self.on_asset_changed)
         task_view.selectionModel().selectionChanged.connect(self.on_task_changed)
 
+        self.task_options_refresh()  # Init
         self.resize(800, 500)
 
         self.echo("Connected to project: {0}".format(project_name))
@@ -372,22 +395,28 @@ class Window(QtWidgets.QDialog):
         task_name = tasks_model.data(indexes[0], 0)
         self.task_options_refresh(task_name)
 
+    def on_batch_changed(self, state):
+        task = None
+        container = self.data["options"]["container"]
+        if container.task is not None:
+            task = container.task["name"]
+        self.task_options_refresh(task)
+
     def on_task_options_accepted(self):
         container = self.data["options"]["container"]
         model = self.data["model"]["assets"]
 
-        assets = []
+        assets = dict()
         for asset in model.get_selected_assets():
-            assets.append(asset["_id"])
+            assets[asset["name"]] = asset
         container.save_options(assets)
 
     def task_options_refresh(self, selected_task=None):
         accept = self.data["options"]["accept"]
         container = self.data["options"]["container"]
-        container.clear()
 
         if selected_task is None:
-            message = "Make a task selection to view options"
+            message = "Select task to view options."
             container.empty(message)
             accept.setEnabled(False)
             return
@@ -403,7 +432,7 @@ class Window(QtWidgets.QDialog):
                 task_options = deepcopy(task)
                 break
         else:
-            message = "No task options found"
+            message = "No task options."
             container.empty(message)
             accept.setEnabled(False)
             return
@@ -438,7 +467,7 @@ class Window(QtWidgets.QDialog):
         else:
             for asset in model.get_selected_assets():
                 asset_name = asset["name"]
-                asset_data = asset["_document"]["data"]
+                asset_data = asset["data"]
                 parser = qargparse.QArgumentParser(description=asset_name)
                 add_options(parser, asset_data)
 
