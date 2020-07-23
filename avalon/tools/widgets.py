@@ -2,7 +2,7 @@ import logging
 
 from . import lib
 
-from .models import AssetModel, RecursiveSortFilterProxyModel
+from .models import AssetModel, TasksModel, RecursiveSortFilterProxyModel
 from .views import DeselectableTreeView
 from ..vendor import qtawesome, qargparse
 from ..vendor.Qt import QtWidgets, QtCore, QtGui
@@ -109,6 +109,19 @@ class AssetWidget(QtWidgets.QWidget):
         # NOTE: skip None object assumed they are silo (backwards comp.)
         return [asset for asset in assets if asset]
 
+    def update_selected_assets(self):
+        """Update selected assets' document from database
+
+        Fetch documents that have been written into database by user, and
+        update model.
+        Documents that have changed should be those being selected.
+
+        """
+        selection = self.view.selectionModel()
+        rows = selection.selectedRows()
+        indexes = [row.model().mapToSource(row) for row in rows]
+        self.model.update_documents(indexes)
+
     def select_assets(self, assets, expand=True, key="name"):
         """Select assets by item key.
 
@@ -161,6 +174,44 @@ class AssetWidget(QtWidgets.QWidget):
 
             # Set the currently active index
             self.view.setCurrentIndex(index)
+
+
+class TaskWidget(QtWidgets.QWidget):
+    # (TODO) Merge `workfiles.app.TasksWidget`
+
+    selection_changed = QtCore.Signal()  # on view selection change
+
+    def __init__(self, parent=None):
+        super(TaskWidget, self).__init__(parent=parent)
+
+        model = TasksModel()
+
+        view = QtWidgets.QTreeView()
+        view.setIndentation(0)
+        view.setModel(model)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(view)
+
+        # Signals/Slots
+        selection = view.selectionModel()
+        selection.selectionChanged.connect(self.selection_changed)
+
+        self.setContentsMargins(0, 0, 0, 0)
+
+        self.model = model
+        self.view = view
+
+    def set_assets(self, asset_docs):
+        """Update task model with view state preserved"""
+        with lib.preserve_states(self.view, column=0):
+            self.model.set_assets(asset_docs)
+
+    def get_selected_tasks(self):
+        """Returns a list of selected tasks' names"""
+        selection = self.view.selectionModel()
+        tasks = [row.data() for row in selection.selectedRows()]
+        return tasks
 
 
 class OptionalMenu(QtWidgets.QMenu):
