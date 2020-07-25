@@ -41,8 +41,8 @@ class MessageBox(QtWidgets.QWidget):
         self._message.setText(message)
 
 
-class TaskOptionContainer(QtWidgets.QScrollArea):
-    """Scrollable task option widgets' container
+class AssetOptionContainer(QtWidgets.QScrollArea):
+    """Scrollable asset option widgets' container
 
     This widget hold a set of `qargparser.QArgumentParser` widget that
     aim to read/write task options' config per asset from/to database.
@@ -52,7 +52,7 @@ class TaskOptionContainer(QtWidgets.QScrollArea):
     BATCH = ":.batch.:"
 
     def __init__(self, parent=None):
-        super(TaskOptionContainer, self).__init__(parent)
+        super(AssetOptionContainer, self).__init__(parent)
         self._has_active_read = False
         self.changes = None
         self.is_batch = False
@@ -97,16 +97,14 @@ class TaskOptionContainer(QtWidgets.QScrollArea):
         self.setWidget(widget)
         self.setWidgetResizable(False)
 
-    def update_change(self, value, option, asset, task):
+    def update_change(self, value, option, asset):
         """Update option changes from QArgument object"""
         if self.changes is None:
             self.changes = dict()
         if asset not in self.changes:
             self.changes[asset] = dict()
-        if task not in self.changes[asset]:
-            self.changes[asset][task] = dict()
 
-        self.changes[asset][task].update({option: value})
+        self.changes[asset][option] = value
 
     def save_options(self, asset_ids):
         """Write per asset's task option configurations into database"""
@@ -116,14 +114,13 @@ class TaskOptionContainer(QtWidgets.QScrollArea):
         if self.changes is None:
             return False
 
-        field_template = "data.taskOptions.{task}.{option}.value"
+        field_template = "data.{option}"
 
         def compose(changes):
             operation = dict()
-            for task, options in changes.items():
-                for option, value in options.items():
-                    field = field_template.format(task=task, option=option)
-                    operation[field] = value
+            for option, value in changes.items():
+                field = field_template.format(option=option)
+                operation[field] = value
             return operation
 
         if self.is_batch:
@@ -131,8 +128,8 @@ class TaskOptionContainer(QtWidgets.QScrollArea):
             filter_ = {"_id": {"$in": list(asset_ids.values())}}
             io.update_many(filter_, {"$set": batch})
         else:
-            for asset_name, tasks_options in self.changes.items():
-                edits = compose(tasks_options)
+            for asset_name, options in self.changes.items():
+                edits = compose(options)
                 filter_ = {"_id": asset_ids[asset_name]}
                 io.update_many(filter_, {"$set": edits})
 
@@ -181,13 +178,13 @@ class Window(QtWidgets.QDialog):
         tasks_layout.addWidget(tasks)
         tasks_layout.addWidget(add_task)
 
-        # task option widget
+        # asset option widget
         options_widgets = QtWidgets.QWidget()
         options_widgets.setContentsMargins(0, 0, 0, 0)
 
-        options_label = QtWidgets.QLabel("Tasks Options")
+        options_label = QtWidgets.QLabel("Asset Options")
         options_batch = QtWidgets.QCheckBox("Batch Edit")
-        options_container = TaskOptionContainer()
+        options_container = AssetOptionContainer()
         options_accept = QtWidgets.QPushButton("Save")
         options_accept.setEnabled(False)
 
@@ -400,7 +397,7 @@ class Window(QtWidgets.QDialog):
     def on_task_changed(self):
         """Callback on task selection changed
 
-        This updates the task extra option view.
+        This updates the asset option view.
 
         """
         accept = self.data["options"]["accept"]
@@ -410,7 +407,7 @@ class Window(QtWidgets.QDialog):
         task_names = tasks.get_selected_tasks()
 
         if not task_names:
-            message = "Select tasks to view options."
+            message = "Select tasks to view asset options."
             container.empty(message)
             accept.setEnabled(False)
             return
@@ -419,14 +416,18 @@ class Window(QtWidgets.QDialog):
         project = self.data["project"]
         model = self.data["model"]["assets"]
         options_batch = self.data["options"]["batch"]
-        task_options = dict()
+        asset_options = dict()
 
-        for task in project["config"]["tasks"]:
-            if task["name"] in task_names and "options" in task:
-                task_options[task["name"]] = task
+        for asset_opt in project["config"].get("assetOptions", []):
+            specified_tasks = asset_opt.get("onTasks", [])
+            available_in_all_tasks = not specified_tasks
 
-        if not task_options:
-            message = "No task options."
+            if (available_in_all_tasks
+                    or any(task in specified_tasks for task in task_names)):
+                asset_options[asset_opt["name"]] = asset_opt
+
+        if not asset_options:
+            message = "No asset options in selected tasks."
             container.empty(message)
             accept.setEnabled(False)
             return
@@ -435,34 +436,23 @@ class Window(QtWidgets.QDialog):
         is_batch = options_batch.checkState()
         container.clear_active_read()
 
-        def walk(data, fields):
-            for key in fields:
-                data = data.get(key, {})
-            return data
-
         def setup(_parser, data=None, _asset=None):
-            for _task in task_names:
-                if _task not in task_options:
-                    continue  # `_task` has no option registered in project
+            data = data or {}
+            for opt_name, opt_data in asset_options.items():
+                arg = _parser.add_argument(
+                    _asset=_asset,  # additional info
+                    **opt_data
+                )
+                value = data.get(opt_name)
+                if value is not None:
+                    # Asset has task option setup
+                    arg.write(value)
 
-                for name, opt in task_options[_task]["options"].items():
-                    d = walk(data or {}, fields=["taskOptions", _task, name])
-                    value = d.get("value")
-                    arg = _parser.add_argument(
-                        name,
-                        _asset=_asset,  # additional info
-                        _task=_task,  # additional info
-                        **opt
-                    )
-                    if value is not None:
-                        # Asset has task option setup
-                        arg.write(value)
-
-                    if is_batch:
-                        # When batch mode enabled, no matter user has changed
-                        # the value or not, all setup should be written into
-                        # database.
-                        container.add_active_read(arg)
+                if is_batch:
+                    # When batch mode enabled, no matter user has changed
+                    # the value or not, all setup should be written into
+                    # database.
+                    container.add_active_read(arg)
 
             _parser.changed.connect(self.on_task_options_changed)
             parsers.append(_parser)
@@ -505,8 +495,7 @@ class Window(QtWidgets.QDialog):
         container = self.data["options"]["container"]
         container.update_change(value=arg.read(),
                                 option=arg["name"],
-                                asset=arg["_asset"],
-                                task=arg["_task"])
+                                asset=arg["_asset"])
 
 
 def show(root=None, debug=False, parent=None):
