@@ -53,6 +53,20 @@
                 "required": ["name"]
             }
         },
+        "assetOptions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": true,
+                "properties": {
+                    "name": {"type": "string"},
+                    "label": {"type": "string"},
+                    "help": {"type": "string"},
+                    "onTasks": {"type":  "array"}
+                },
+                "required": ["name"]
+            }
+        },
         "families": {
             "type": "array",
             "items": {
