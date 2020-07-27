@@ -21,7 +21,7 @@ script:
 
 after_success:
   - coverage combine
-  - coveralls
+  - coveralls debug
 
 before_deploy:
   - sudo chmod -R 777 docs/build/
