@@ -3,15 +3,11 @@ language: python
 python:
   - 3.7
 
-env:
-  global:
-    - COVERALLS_SERVICE_NAME=travis-ci
-
 services:
   - docker
 
 install:
-  - pip install coverage coveralls
+  - pip install coverage python-coveralls
   - docker run --name avalon-mongo -d mongo
   - . build_docker.sh
 
@@ -21,7 +17,7 @@ script:
 
 after_success:
   - coverage combine
-  - coveralls debug
+  - coveralls
 
 before_deploy:
   - sudo chmod -R 777 docs/build/
