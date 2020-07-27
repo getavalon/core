@@ -1,6 +1,12 @@
 [run]
 source = avalon
 
+[paths]
+# Remap source root path in docker
+source =
+    avalon
+    /workspace/avalon
+
 [report]
 include = *avalon*
 omit = 
