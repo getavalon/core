@@ -13,7 +13,7 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && \
 		six \
 		sphinxcontrib-napoleon
 
-# Avoid creation of auxilliary files
+# Avoid creation of auxiliary files
 ENV PYTHONDONTWRITEBYTECODE=1
 
 WORKDIR /workspace
