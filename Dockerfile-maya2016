@@ -5,16 +5,13 @@ RUN wget https://bootstrap.pypa.io/get-pip.py && \
 	mayapy -m pip install \
 		nose \
 		nose-exclude \
-		coverage==4.5.4 \
-		pyblish-base==1.4.2 \
+		coverage \
+		pyblish-base \
 		pyblish-maya \
 		pymongo \
-		# Sphinx 1.8.0 fail to build doc, pin version to 1.7.9
-		# see https://github.com/sphinx-doc/sphinx/issues/5417
-		sphinx==1.7.9 \
+		sphinx \
 		six \
-		sphinxcontrib-napoleon \
-		python-coveralls
+		sphinxcontrib-napoleon
 
 # Avoid creation of auxilliary files
 ENV PYTHONDONTWRITEBYTECODE=1
