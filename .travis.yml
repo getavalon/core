@@ -9,7 +9,7 @@ services:
 install:
   - pip install coverage coveralls
   - docker run --name avalon-mongo -d mongo
-  - docker build -t avalon/core:maya -f Dockerfile-maya2016 .
+  - . build_docker.sh
 
 script:
   - . test_docker.sh
