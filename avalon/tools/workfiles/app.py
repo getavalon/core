@@ -651,8 +651,8 @@ class FilesWidget(QtWidgets.QWidget):
                                                    asset=self._asset,
                                                    task=self._task)
         session.update(changes)
-
-        pipeline.initialize(session)
+        # Initialize within the new session's environment
+        pipeline.initialize(session, reset_workdir=True)
 
         # Force a full to the asset as opposed to just self.refresh() so
         # that it will actually check again whether the Work directory exists

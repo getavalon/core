@@ -74,7 +74,8 @@ def install(host):
 
     if not os.getenv("_AVALON_APP_INITIALIZED"):
         log.info("Initializing working directory..")
-        initialize(Session)
+        no_predefined_workdir = "AVALON_WORKDIR" not in Session
+        initialize(Session, reset_workdir=no_predefined_workdir)
 
     config = find_config()
 
@@ -98,7 +99,7 @@ def install(host):
     log.info("Successfully installed Avalon!")
 
 
-def initialize(session):
+def initialize(session, reset_workdir):
     """Initialize Work Directory
 
     This finds the current AVALON_APP_NAME and tries to triggers its
@@ -122,10 +123,8 @@ def initialize(session):
             "config": app_definition.copy()
         }
     )
-
-    # Initialize within the new session's environment
     app = App()
-    env = app.environ(session)
+    env = app.environ(session, reset_workdir)
     app.initialize(env)
 
 
@@ -379,7 +378,7 @@ class Application(Action):
             return False
         return True
 
-    def environ(self, session):
+    def environ(self, session, reset_workdir=True):
         """Build application environment"""
 
         session = session.copy()
@@ -387,10 +386,11 @@ class Application(Action):
         session["AVALON_APP_NAME"] = self.name
 
         # Compute work directory
-        project = io.find_one({"type": "project"})
-        template = project["config"]["template"]["work"]
-        workdir = _format_work_template(template, session)
-        session["AVALON_WORKDIR"] = os.path.normpath(workdir)
+        if reset_workdir:
+            project = io.find_one({"type": "project"})
+            template = project["config"]["template"]["work"]
+            workdir = _format_work_template(template, session)
+            session["AVALON_WORKDIR"] = os.path.normpath(workdir)
 
         # Construct application environment from .toml config
         app_environment = self.config.get("environment", {})
