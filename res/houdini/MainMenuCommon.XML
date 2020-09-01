@@ -6,7 +6,8 @@
             <scriptItem id="avalon_context">
                 <labelExpression><![CDATA[
 from avalon import api
-return "%s - %s" % (api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"])
+return "%s - %s" % (api.Session.get("AVALON_ASSET", "--"),
+                    api.Session.get("AVALON_TASK", "--"))
 ]]></labelExpression>
             </scriptItem>
             <separatorItem/>

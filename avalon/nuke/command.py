@@ -18,8 +18,16 @@ def reset_frame_range():
     fps = float(api.Session.get("AVALON_FPS", 25))
 
     nuke.root()["fps"].setValue(fps)
-    name = api.Session["AVALON_ASSET"]
+    name = api.Session.get("AVALON_ASSET")
+    if name is None:
+        log.warning("No AVALON_ASSET setup in current working session.")
+        return
+
     asset = io.find_one({"name": name, "type": "asset"})
+    if asset is None:
+        log.error("No AVALON_ASSET setup in current working session.")
+        return
+
     asset_data = asset["data"]
 
     handles = get_handles(asset)

@@ -274,7 +274,8 @@ def _install_menu():
     menu = menubar.addMenu(api.Session["AVALON_LABEL"])
 
     label = "{0}, {1}".format(
-        api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"]
+        api.Session.get("AVALON_ASSET", "--"),
+        api.Session.get("AVALON_TASK", "--")
     )
     context_action = menu.addCommand(label)
     context_action.setEnabled(False)

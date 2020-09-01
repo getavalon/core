@@ -805,7 +805,7 @@ class Window(QtWidgets.QMainWindow):
 
     def set_context(self, context):
 
-        if "asset" in context:
+        if context.get("asset"):
             asset = context["asset"]
             asset_document = io.find_one({
                 "name": asset,
@@ -818,7 +818,7 @@ class Window(QtWidgets.QMainWindow):
             # Force a refresh on Tasks?
             self.widgets["tasks"].set_asset(asset_document)
 
-        if "task" in context:
+        if context.get("task"):
             self.widgets["tasks"].select_task(context["task"])
 
     def refresh(self):
@@ -892,9 +892,8 @@ def show(root=None, debug=False, parent=None, use_context=True):
         window.refresh()
 
         if use_context:
-            context = {"asset": api.Session["AVALON_ASSET"],
-                       "silo": api.Session["AVALON_SILO"],
-                       "task": api.Session["AVALON_TASK"]}
+            context = {"asset": api.Session.get("AVALON_ASSET"),
+                       "task": api.Session.get("AVALON_TASK")}
             window.set_context(context)
 
         window.show()

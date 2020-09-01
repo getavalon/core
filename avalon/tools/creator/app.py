@@ -396,7 +396,7 @@ class Window(QtWidgets.QDialog):
 
         listing = self.data["Listing"]
         asset = self.data["Asset"]
-        asset.setText(api.Session["AVALON_ASSET"])
+        asset.setText(api.Session.get("AVALON_ASSET", ""))
 
         has_families = False
 
