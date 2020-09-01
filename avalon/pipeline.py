@@ -426,30 +426,33 @@ class Application(Action):
         workdir = environment["AVALON_WORKDIR"]
         workdir_existed = os.path.exists(workdir)
         if not workdir_existed:
-            os.makedirs(workdir)
             self.log.info("Creating working directory '%s'" % workdir)
+            os.makedirs(workdir)
 
-            # Create default directories from app configuration
-            default_dirs = self.config.get("default_dirs", [])
-            default_dirs = self._format(default_dirs, **environment)
-            if default_dirs:
-                self.log.debug("Creating default directories..")
-                for dirname in default_dirs:
-                    try:
-                        os.makedirs(os.path.join(workdir, dirname))
-                        self.log.debug(" - %s" % dirname)
-                    except OSError as e:
-                        # An already existing default directory is fine.
-                        if e.errno == errno.EEXIST:
-                            pass
-                        else:
-                            raise
+        # Create default directories from app configuration
+        default_dirs = self.config.get("default_dirs", [])
+        default_dirs = self._format(default_dirs, **environment)
+        if default_dirs:
+            self.log.debug("Creating default directories..")
+            for dirname in default_dirs:
+                try:
+                    os.makedirs(os.path.join(workdir, dirname))
+                    self.log.debug(" - %s" % dirname)
+                except OSError as e:
+                    # An already existing default directory is fine.
+                    if e.errno == errno.EEXIST:
+                        pass
+                    else:
+                        raise
 
         # Perform application copy
         for src, dst in self.config.get("copy", {}).items():
             dst = os.path.join(workdir, dst)
             # Expand env vars
             src, dst = self._format([src, dst], **environment)
+
+            if os.path.isfile(dst):
+                continue
 
             try:
                 self.log.info("Copying %s -> %s" % (src, dst))
