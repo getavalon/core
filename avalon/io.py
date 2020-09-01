@@ -132,6 +132,9 @@ def _from_environment():
             # Name of current app
             ("AVALON_APP", None),
 
+            # Full name of current app (e.g. versioned name)
+            ("AVALON_APP_NAME", None),
+
             # Path to working directory
             ("AVALON_WORKDIR", None),
 

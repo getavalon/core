@@ -59,7 +59,7 @@ def install(host):
     io.install()
 
     missing = list()
-    for key in ("AVALON_PROJECT", "AVALON_ASSET"):
+    for key in ("AVALON_PROJECTS", "AVALON_PROJECT"):
         if key not in Session:
             missing.append(key)
 
@@ -71,6 +71,10 @@ def install(host):
 
     project = Session["AVALON_PROJECT"]
     log.info("Activating %s.." % project)
+
+    if not os.getenv("_AVALON_APP_INITIALIZED"):
+        log.info("Initializing working directory..")
+        initialize(Session)
 
     config = find_config()
 
@@ -92,6 +96,37 @@ def install(host):
     self._is_installed = True
     self._config = config
     log.info("Successfully installed Avalon!")
+
+
+def initialize(session):
+    """Initialize Work Directory
+
+    This finds the current AVALON_APP_NAME and tries to triggers its
+    `.toml` initialization step. Note that this will only be valid
+    whenever `AVALON_APP_NAME` is actually set in the current session.
+
+    """
+    # Find the application definition
+    app_name = session.get("AVALON_APP_NAME")
+    if not app_name:
+        log.error("No AVALON_APP_NAME session variable is set. "
+                  "Unable to initialize app Work Directory.")
+        return
+
+    app_definition = lib.get_application(app_name)
+    App = type(
+        "app_%s" % app_name,
+        (Application,),
+        {
+            "name": app_name,
+            "config": app_definition.copy()
+        }
+    )
+
+    # Initialize within the new session's environment
+    app = App()
+    env = app.environ(session)
+    app.initialize(env)
 
 
 def find_config():
@@ -423,7 +458,7 @@ class Application(Action):
                 self.log.error("Could not copy application file: %s" % e)
                 self.log.error(" - %s -> %s" % (src, dst))
 
-    def launch(self, environment):
+    def launch(self, environment, initialized=False):
 
         executable = lib.which(self.config["executable"])
         if executable is None:
@@ -431,6 +466,9 @@ class Application(Action):
                 "'%s' not found on your PATH\n%s"
                 % (self.config["executable"], os.getenv("PATH"))
             )
+
+        if initialized:
+            environment["_AVALON_APP_INITIALIZED"] = "1"
 
         args = self.config.get("args", [])
         return lib.launch(
@@ -444,12 +482,14 @@ class Application(Action):
         """Process the full Application action"""
 
         environment = self.environ(session)
+        initialized = False
 
         if kwargs.get("initialize", True):
             self.initialize(environment)
+            initialized = True
 
         if kwargs.get("launch", True):
-            return self.launch(environment)
+            return self.launch(environment, initialized)
 
     def _format(self, original, **kwargs):
         """Utility recursive dict formatting that logs the error clearly."""

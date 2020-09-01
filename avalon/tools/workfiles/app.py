@@ -652,22 +652,7 @@ class FilesWidget(QtWidgets.QWidget):
                                                    task=self._task)
         session.update(changes)
 
-        # Find the application definition
-        app_name = os.environ.get("AVALON_APP_NAME")
-        if not app_name:
-            log.error("No AVALON_APP_NAME session variable is set. "
-                      "Unable to initialize app Work Directory.")
-            return
-
-        app_definition = pipeline.lib.get_application(app_name)
-        App = type("app_%s" % app_name,
-                   (pipeline.Application,),
-                   {"config": app_definition.copy()})
-
-        # Initialize within the new session's environment
-        app = App()
-        env = app.environ(session)
-        app.initialize(env)
+        pipeline.initialize(session)
 
         # Force a full to the asset as opposed to just self.refresh() so
         # that it will actually check again whether the Work directory exists
