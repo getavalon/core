@@ -146,7 +146,8 @@ def save(name, config, inventory):
 
     handlers = {
         "avalon-core:inventory-1.0": _save_inventory_1_0,
-        "avalon-core:config-1.0": _save_config_1_0
+        "avalon-core:config-1.0": _save_config_1_0,
+        "avalon-core:config-2.0": _save_config_2_0,
     }
 
     for data in (inventory, config):
@@ -330,6 +331,23 @@ def _save_config_1_0(project_name, data):
     config = document["config"]
 
     config["apps"] = data.get("apps", [])
+    config["tasks"] = data.get("tasks", [])
+    config["template"].update(data.get("template", {}))
+    config["families"] = data.get("families", [])
+    config["groups"] = data.get("groups", [])
+
+    schema.validate(document)
+
+    io.replace_one(_filter, document)
+
+
+def _save_config_2_0(project_name, data):
+    _filter = {"type": "project"}
+
+    document = io.find_one(_filter)
+
+    config = document["config"]
+
     config["tasks"] = data.get("tasks", [])
     config["template"].update(data.get("template", {}))
     config["families"] = data.get("families", [])
