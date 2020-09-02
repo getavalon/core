@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
 
-    "title": "avalon-core:session-2.0",
+    "title": "avalon-core:session-3.0",
     "description": "The Avalon environment",
 
     "type": "object",
