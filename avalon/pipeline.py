@@ -59,7 +59,7 @@ def install(host):
     io.install()
 
     missing = list()
-    for key in ("AVALON_PROJECTS", "AVALON_PROJECT"):
+    for key in ("AVALON_PROJECT", ):
         if key not in Session:
             missing.append(key)
 
