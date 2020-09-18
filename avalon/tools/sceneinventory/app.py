@@ -677,14 +677,12 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
     def _get_assets(self):
         filtered_assets = []
+        subsets = list(io.find({"type": "subset"}))
         for asset in io.find({"type": "asset"}):
-            subsets = io.find({
-                "type": "subset",
-                "parent": asset["_id"]
-            })
-            for subs in subsets:
-                filtered_assets.append(asset["name"])
-                break
+            for subset in subsets:
+                if asset["_id"] == subset["parent"]:
+                    filtered_assets.append(asset["name"])
+                    break
 
         return filtered_assets
 
