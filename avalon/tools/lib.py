@@ -5,7 +5,7 @@ import contextlib
 from .. import io, api, style
 from ..vendor import qtawesome
 
-from ..vendor.Qt import QtWidgets, QtCore, QtGui
+from ..vendor.Qt import QtWidgets, QtCore
 
 self = sys.modules[__name__]
 self._jobs = dict()
@@ -478,3 +478,10 @@ def project_use_silo(project_doc):
         if "{silo}" in template:
             return True
     return False
+
+
+def create_qthread(func, *args, **kwargs):
+    class Thread(QtCore.QThread):
+        def run(self):
+            func(*args, **kwargs)
+    return Thread()
