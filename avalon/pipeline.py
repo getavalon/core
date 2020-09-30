@@ -878,7 +878,7 @@ def create(name, asset, family, options=None, data=None):
 
     host = registered_host()
 
-    if issubclass(family, Creator):
+    if inspect.isclass(family) and issubclass(family, Creator):
         # Allow passing in a specific Creator to run only that plug-in
         Plugins = [family]
     else:
