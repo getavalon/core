@@ -33,9 +33,15 @@ def setup():
     pipeline.register_root(self.tempdir)
 
     # Mock host
+    dummy_maintained_selection = type(
+        "empty_ctx", (object,),
+        {"__enter__": lambda s: s, "__exit__": lambda *a, **k: None}
+    )
+
     host = types.ModuleType("Test")
     host.__dict__.update({
         "ls": lambda: [],
+        "maintained_selection": dummy_maintained_selection,
     })
 
     pipeline.register_host(host)
@@ -80,37 +86,17 @@ class DemoLoader(api.Loader):
 def test_creators():
     """Register a Creator and create instance by different family input"""
 
-    tempdir = tempfile.mkdtemp()
+    class BarCreator(pipeline.Creator):
+        def process(self):
+            return True
+        family = "bar"
 
-    creator = """
-from avalon import api
+    pipeline.register_plugin(pipeline.Creator, BarCreator)
 
-class BarCreator(api.Creator):
-    def process(self):
-        return True
-    family = "bar"
-"""
-
-    with open(os.path.join(tempdir, "my_creator.py"), "w") as f:
-        f.write(creator)
-
-    try:
-        pipeline.register_plugin_path(pipeline.Creator, tempdir)
-
-        # Create with regular string type family
-        #
-        instance = pipeline.create("foo", "my_asset", family="bar")
-        assert_equals(instance, True)
-
-        # Create with plugin class, see getavalon/core#531
-        #
-        creators = pipeline.discover(pipeline.Creator)
-        BarCreator = next(c for c in creators if c.__name__ == "BarCreator")
-        instance = pipeline.create("foo", "my_asset", family=BarCreator)
-        assert_equals(instance, True)
-
-    finally:
-        shutil.rmtree(tempdir)
+    # Create with regular string type family
+    assert pipeline.create("foo", "my_asset", family="bar")
+    # Create with plugin class, see getavalon/core#531
+    assert pipeline.create("foo", "my_asset", family=BarCreator)
 
 
 @with_setup(clear)
