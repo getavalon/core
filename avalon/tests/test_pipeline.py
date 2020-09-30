@@ -80,17 +80,37 @@ class DemoLoader(api.Loader):
 def test_creators():
     """Register a Creator and create instance by different family input"""
 
-    class BarCreator(pipeline.Creator):
-        def process(self):
-            return True
-        family = "bar"
+    tempdir = tempfile.mkdtemp()
 
-    pipeline.register_plugin(pipeline.Creator, BarCreator)
+    creator = """
+from avalon import api
 
-    # Create with regular string type family
-    assert pipeline.create("foo", "my_asset", family="bar")
-    # Create with plugin class, see getavalon/core#531
-    assert pipeline.create("foo", "my_asset", family=BarCreator)
+class BarCreator(api.Creator):
+    def process(self):
+        return True
+    family = "bar"
+"""
+
+    with open(os.path.join(tempdir, "my_creator.py"), "w") as f:
+        f.write(creator)
+
+    try:
+        pipeline.register_plugin_path(pipeline.Creator, tempdir)
+
+        # Create with regular string type family
+        #
+        instance = pipeline.create("foo", "my_asset", family="bar")
+        assert_equals(instance, True)
+
+        # Create with plugin class, see getavalon/core#531
+        #
+        creators = pipeline.discover(pipeline.Creator)
+        BarCreator = next(c for c in creators if c.__name__ == "BarCreator")
+        instance = pipeline.create("foo", "my_asset", family=BarCreator)
+        assert_equals(instance, True)
+
+    finally:
+        shutil.rmtree(tempdir)
 
 
 @with_setup(clear)
