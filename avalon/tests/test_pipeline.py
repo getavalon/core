@@ -77,6 +77,23 @@ class DemoLoader(api.Loader):
 
 
 @with_setup(clear)
+def test_creators():
+    """Register a Creator and create instance by different family input"""
+
+    class BarCreator(pipeline.Creator):
+        def process(self):
+            return True
+        family = "bar"
+
+    pipeline.register_plugin(pipeline.Creator, BarCreator)
+
+    # Create with regular string type family
+    assert pipeline.create("foo", "my_asset", family="bar")
+    # Create with plugin class, see getavalon/core#531
+    assert pipeline.create("foo", "my_asset", family=BarCreator)
+
+
+@with_setup(clear)
 def test_on():
     """api.on() works as advertised"""
 
