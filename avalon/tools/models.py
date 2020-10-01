@@ -6,6 +6,7 @@ from ..vendor.Qt import QtCore, QtGui
 from ..vendor import qtawesome
 from .. import io
 from .. import style
+from . import lib
 
 log = logging.getLogger(__name__)
 
@@ -190,8 +191,8 @@ class TasksModel(TreeModel):
 
     Columns = ["name", "count"]
 
-    def __init__(self):
-        super(TasksModel, self).__init__()
+    def __init__(self, parent=None):
+        super(TasksModel, self).__init__(parent=parent)
         self._num_assets = 0
         self._icons = {
             "__default__": qtawesome.icon("fa.male",
@@ -213,25 +214,43 @@ class TasksModel(TreeModel):
                                       color=style.colors.default)
                 self._icons[task["name"]] = icon
 
-    def set_assets(self, asset_ids):
+    def set_assets(self, asset_docs):
         """Set assets to track by their database id
 
         Arguments:
-            asset_ids (list): List of asset ids.
+            asset_docs (list): List of asset documents from MongoDB.
 
         """
 
-        assets = list()
-        for asset_id in asset_ids:
-            asset = io.find_one({"_id": asset_id, "type": "asset"})
-            assert asset, "Asset not found by id: {0}".format(asset_id)
-            assets.append(asset)
+        # Backwards compatibility if anyone use this model in his tools
+        asset_ids = None
+        for doc in asset_docs:
+            if isinstance(doc, io.ObjectId):
+                asset_ids = asset_docs
+            break
 
-        self._num_assets = len(assets)
+        if asset_ids:
+            # prepare filter query
+            _filter = {"type": "asset", "_id": {"$in": asset_ids}}
+
+            # find assets in db by query
+            asset_docs = list(io.find(_filter))
+            db_assets_ids = [asset["_id"] for asset in asset_docs]
+
+            # check if all assets were found
+            not_found = [
+                str(a_id) for a_id in asset_ids if a_id not in db_assets_ids
+            ]
+
+            assert not not_found, "Assets not found by id: {0}".format(
+                ", ".join(not_found)
+            )
+
+        self._num_assets = len(asset_docs)
 
         tasks = collections.Counter()
-        for asset in assets:
-            asset_tasks = asset.get("data", {}).get("tasks", [])
+        for asset_doc in asset_docs:
+            asset_tasks = asset_doc.get("data", {}).get("tasks", [])
             tasks.update(asset_tasks)
 
         self.clear()
@@ -307,21 +326,11 @@ class AssetModel(TreeModel):
     DocumentRole = QtCore.Qt.UserRole + 2
     ObjectIdRole = QtCore.Qt.UserRole + 3
 
-    def __init__(self, silo=None, parent=None):
+    def __init__(self, parent=None):
         super(AssetModel, self).__init__(parent=parent)
+        self.refresh()
 
-        self._silo = None
-
-        if silo is not None:
-            self.set_silo(silo, refresh=True)
-
-    def set_silo(self, silo, refresh=True):
-        """Set the root path to the ItemType root."""
-        self._silo = silo
-        if refresh:
-            self.refresh()
-
-    def _add_hierarchy(self, assets, parent=None):
+    def _add_hierarchy(self, assets, parent=None, silos=None):
         """Add the assets that are related to the parent as children items.
 
         This method does *not* query the database. These instead are queried
@@ -336,6 +345,19 @@ class AssetModel(TreeModel):
             None
 
         """
+        if silos:
+            # WARNING: Silo item "_id" is set to silo value
+            # mainly because GUI issue with preserve selection and expanded row
+            # and because of easier hierarchy parenting (in "assets")
+            for silo in silos:
+                item = Item({
+                    "_id": silo,
+                    "name": silo,
+                    "label": silo,
+                    "type": "silo"
+                })
+                self.add_child(item, parent=parent)
+                self._add_hierarchy(assets, parent=item)
 
         parent_id = parent["_id"] if parent else None
         current_assets = assets.get(parent_id, list())
@@ -369,23 +391,29 @@ class AssetModel(TreeModel):
 
         self.clear()
         self.beginResetModel()
-        if self._silo:
 
-            # Get all assets in current silo sorted by name
-            db_assets = io.find({
-                "type": "asset",
-                "silo": self._silo
-            }).sort("name", 1)
+        # Get all assets sorted by name
+        db_assets = io.find({"type": "asset"}).sort("name", 1)
+        project_doc = io.find_one({"type": "project"})
 
-            # Group the assets by their visual parent's id
-            assets_by_parent = collections.defaultdict(list)
-            for asset in db_assets:
-                parent_id = asset.get("data", {}).get("visualParent") or None
-                assets_by_parent[parent_id].append(asset)
+        silos = None
+        if lib.project_use_silo(project_doc):
+            silos = db_assets.distinct("silo")
 
-            # Build the hierarchical tree items recursively
-            self._add_hierarchy(assets_by_parent,
-                                parent=None)
+        # Group the assets by their visual parent's id
+        assets_by_parent = collections.defaultdict(list)
+        for asset in db_assets:
+            parent_id = asset.get("data", {}).get("visualParent")
+            if parent_id is None and silos is not None:
+                parent_id = asset.get("silo")
+            assets_by_parent[parent_id].append(asset)
+
+        # Build the hierarchical tree items recursively
+        self._add_hierarchy(
+            assets_by_parent,
+            parent=None,
+            silos=silos
+        )
 
         self.endResetModel()
 
@@ -402,10 +430,11 @@ class AssetModel(TreeModel):
 
             column = index.column()
             if column == self.Name:
-
                 # Allow a custom icon and custom icon color to be defined
-                data = item["_document"]["data"]
+                data = item.get("_document", {}).get("data", {})
                 icon = data.get("icon", None)
+                if icon is None and item.get("type") == "silo":
+                    icon = "database"
                 color = data.get("color", style.colors.default)
 
                 if icon is None:

@@ -1,18 +1,24 @@
 language: python
 
 python:
-  - 2.7
+  - 3.7
 
 services:
   - docker
 
 install:
+  - pip install coverage==4.5.4
+  - pip install python-coveralls
   - docker run --name avalon-mongo -d mongo
-  - docker build -t avalon/core -f Dockerfile-maya2016 .
+  - . build_docker.sh
 
 script:
   - . test_docker.sh
   - . build_docs.sh
+
+after_success:
+  - coverage combine
+  - coveralls
 
 before_deploy:
   - sudo chmod -R 777 docs/build/

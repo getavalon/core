@@ -54,7 +54,7 @@ jobs:
 
   - job: MacOS
     pool:
-      vmImage: "macOS-10.13"  # High-Sierra
+      vmImage: "macOS-10.15"  # Catalina
     strategy:
       matrix:
         Python27:
