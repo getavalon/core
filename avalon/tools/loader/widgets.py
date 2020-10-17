@@ -11,7 +11,7 @@ from ... import pipeline
 from ... import style
 
 from .. import lib as tools_lib
-from ..delegates import VersionDelegate
+from ..delegates import VersionDelegate, PrettyTimeDelegate
 from ..widgets import OptionalMenu, OptionalAction, OptionDialog
 
 from .model import (
@@ -19,7 +19,6 @@ from .model import (
     SubsetFilterProxyModel,
     FamiliesFilterProxyModel,
 )
-from ..delegates import PrettyTimeDelegate
 
 
 class SubsetWidget(QtWidgets.QWidget):

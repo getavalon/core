@@ -9,7 +9,6 @@ from ..vendor import qtawesome, qargparse
 from ..vendor.Qt import QtWidgets, QtCore, QtGui
 
 from .. import style
-from .. import io
 
 log = logging.getLogger(__name__)
 
