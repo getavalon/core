@@ -217,22 +217,16 @@ class TasksModel(TreeModel):
                                       color=style.colors.default)
                 self._icons[task["name"]] = icon
 
-    def set_assets(self, asset_docs):
+    def set_assets(self, asset_ids=None, asset_docs=None):
         """Set assets to track by their database id
 
         Arguments:
-            asset_docs (list): List of asset documents from MongoDB.
+            asset_ids (list): List of asset ids.
+            asset_docs (list): List of asset entities from MongoDB.
 
         """
 
-        # Backwards compatibility if anyone use this model in his tools
-        asset_ids = None
-        for doc in asset_docs:
-            if isinstance(doc, io.ObjectId):
-                asset_ids = asset_docs
-            break
-
-        if asset_ids:
+        if asset_docs is None and asset_ids is not None:
             # prepare filter query
             _filter = {"type": "asset", "_id": {"$in": asset_ids}}
 
@@ -248,6 +242,13 @@ class TasksModel(TreeModel):
             assert not not_found, "Assets not found by id: {0}".format(
                 ", ".join(not_found)
             )
+
+            assert not not_found, "Assets not found by id: {0}".format(
+                ", ".join(not_found)
+            )
+
+        if asset_docs is None:
+            asset_docs = list()
 
         self._num_assets = len(asset_docs)
 
