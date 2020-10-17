@@ -3,7 +3,8 @@ import logging
 from . import lib
 
 from .models import AssetModel, RecursiveSortFilterProxyModel
-from .views import DeselectableTreeView
+from .views import AssetsView
+from .delegates import AssetDelegate
 from ..vendor import qtawesome, qargparse
 from ..vendor.Qt import QtWidgets, QtCore, QtGui
 
@@ -27,7 +28,7 @@ class AssetWidget(QtWidgets.QWidget):
     selection_changed = QtCore.Signal()  # on view selection change
     current_changed = QtCore.Signal()    # on view current index change
 
-    def __init__(self, parent=None):
+    def __init__(self, multiselection=False, parent=None):
         super(AssetWidget, self).__init__(parent=parent)
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -36,15 +37,12 @@ class AssetWidget(QtWidgets.QWidget):
         layout.setSpacing(4)
 
         # Tree View
-        model = AssetModel()
+        model = AssetModel(self)
         proxy = RecursiveSortFilterProxyModel()
         proxy.setSourceModel(model)
         proxy.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
 
-        view = DeselectableTreeView()
-        view.setIndentation(15)
-        view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        view.setHeaderHidden(True)
+        view = AssetsView()
         view.setModel(proxy)
 
         # Header
@@ -122,10 +120,12 @@ class AssetWidget(QtWidgets.QWidget):
             None
 
         Default `key` is "name" in that case `assets` should contain single
-        asset name or list of asset names. It is recommended to use "_id" key
-        instead of name. In that case `assets` must contain `ObjectId` objects.
-        It is assumed that each value in `assets` is found only once.
-        On multiple matches only the first found will be selected.
+        asset name or list of asset names. (It is good idea to use "_id" key
+        instead of name in that case `assets` must contain `ObjectId` object/s)
+        It is expected that each value in `assets` will be found only once.
+        If the filters according to the `key` and `assets` correspond to
+        the more asset, only the first found will be selected.
+
         """
 
         if not isinstance(assets, (tuple, list)):
