@@ -44,6 +44,11 @@ class AssetWidget(QtWidgets.QWidget):
 
         view = AssetsView()
         view.setModel(proxy)
+        view.setProperty("multiselection", multiselection)
+        if multiselection:
+            asset_delegate = AssetDelegate()
+            view.setSelectionMode(view.ExtendedSelection)
+            view.setItemDelegate(asset_delegate)
 
         # Header
         header = QtWidgets.QHBoxLayout()
