@@ -328,9 +328,11 @@ class AssetModel(TreeModel):
 
     DocumentRole = QtCore.Qt.UserRole + 2
     ObjectIdRole = QtCore.Qt.UserRole + 3
+    subsetColorsRole = QtCore.Qt.UserRole + 4
 
     def __init__(self, parent=None):
         super(AssetModel, self).__init__(parent=parent)
+        self.asset_colors = {}
         self.refresh()
 
     def _add_hierarchy(self, assets, parent=None, silos=None):
@@ -348,6 +350,9 @@ class AssetModel(TreeModel):
             None
 
         """
+        # Reset colors
+        self.asset_colors = {}
+
         if silos:
             # WARNING: Silo item "_id" is set to silo value
             # mainly because GUI issue with preserve selection and expanded row
@@ -389,6 +394,8 @@ class AssetModel(TreeModel):
             if asset["_id"] in assets:
                 self._add_hierarchy(assets, parent=item)
 
+            self.asset_colors[asset["_id"]] = []
+
     def refresh(self):
         """Refresh the data for the model."""
 
@@ -423,6 +430,24 @@ class AssetModel(TreeModel):
     def flags(self, index):
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
+    def setData(self, index, value, role=QtCore.Qt.EditRole):
+        if not index.isValid():
+            return False
+
+        if role == self.subsetColorsRole:
+            asset_id = index.data(self.ObjectIdRole)
+            self.asset_colors[asset_id] = value
+
+            # passing `list()` for PyQt5 (see PYSIDE-462)
+            if Qt.__binding__ in ("PyQt4", "PySide"):
+                self.dataChanged.emit(index, index)
+            else:
+                self.dataChanged.emit(index, index, [role])
+
+            return True
+
+        return super(AssetModel, self).setData(index, value, role)
+
     def data(self, index, role):
 
         if not index.isValid():
@@ -433,6 +458,7 @@ class AssetModel(TreeModel):
 
             column = index.column()
             if column == self.Name:
+
                 # Allow a custom icon and custom icon color to be defined
                 data = item.get("_document", {}).get("data", {})
                 icon = data.get("icon", None)
@@ -471,6 +497,10 @@ class AssetModel(TreeModel):
 
         if role == self.DocumentRole:
             return item.get("_document", None)
+
+        if role == self.subsetColorsRole:
+            asset_id = item.get("_id", None)
+            return self.asset_colors.get(asset_id) or []
 
         return super(AssetModel, self).data(index, role)
 
