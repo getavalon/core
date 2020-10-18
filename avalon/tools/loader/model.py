@@ -265,57 +265,6 @@ class SubsetsModel(TreeModel):
         self.clear()
         self.beginResetModel()
 
-        active_groups = lib.get_active_group_config(self._asset_id)
-
-        # Generate subset group nodes
-        group_items = dict()
-
-        if self._grouping:
-            for data in active_groups:
-                name = data.pop("name")
-                group = Item()
-                group.update({"subset": name, "isGroup": True, "childRow": 0})
-                group.update(data)
-
-                group_items[name] = group
-                self.add_child(group)
-
-        # Process subsets
-        row = len(group_items)
-        has_item = False
-        for subset, last_version in self._doc_payload:
-            if not last_version:
-                # No published version for the subset
-                continue
-
-            data = subset.copy()
-            data["subset"] = data["name"]
-
-            group_name = subset["data"].get("subsetGroup")
-            if self._grouping and group_name:
-                group = group_items[group_name]
-                parent = group
-                parent_index = self.createIndex(0, 0, group)
-                row_ = group["childRow"]
-                group["childRow"] += 1
-            else:
-                parent = None
-                parent_index = QtCore.QModelIndex()
-                row_ = row
-                row += 1
-
-            item = Item()
-            item.update(data)
-
-            self.add_child(item, parent=parent)
-
-            # Set the version information
-            index = self.index(row_, 0, parent=parent_index)
-            self.set_version(index, last_version)
-            has_item = True
-
-        self.endResetModel()
-        self.refreshed.emit(has_item)
 
     def data(self, index, role):
 
