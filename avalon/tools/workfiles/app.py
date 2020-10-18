@@ -600,11 +600,15 @@ class FilesWidget(QtWidgets.QWidget):
 
         filter = " *".join(self.host.file_extensions())
         filter = "Work File (*{0})".format(filter)
-        work_file = QtWidgets.QFileDialog.getOpenFileName(
-            caption="Work Files",
-            dir=self.root,
-            filter=filter
-        )[0]
+        kwargs = {
+            "caption": "Work Files",
+            "filter": filter
+        }
+        if Qt.__binding__ in ("PySide", "PySide2"):
+            kwargs["dir"] = self.root
+        else:
+            kwargs["directory"] = self.root
+        work_file = QtWidgets.QFileDialog.getOpenFileName(**kwargs)[0]
 
         if not work_file:
             return
