@@ -309,7 +309,7 @@ class SubsetWidget(QtWidgets.QWidget):
 
         return subsets
 
-    def group_subsets(self, name, asset_id, nodes):
+    def group_subsets(self, name, asset_ids, items):
         field = "data.subsetGroup"
 
         if name:
@@ -320,15 +320,16 @@ class SubsetWidget(QtWidgets.QWidget):
             self.echo("Ungroup subsets..")
 
         subsets = list()
-        for node in nodes:
-            subsets.append(node["subset"])
+        for item in items:
+            subsets.append(item["subset"])
 
-        filter = {
-            "type": "subset",
-            "parent": asset_id,
-            "name": {"$in": subsets},
-        }
-        io.update_many(filter, update)
+        for asset_id in asset_ids:
+            filter = {
+                "type": "subset",
+                "parent": asset_id,
+                "name": {"$in": subsets},
+            }
+            io.update_many(filter, update)
 
     def echo(self, message):
         print(message)
