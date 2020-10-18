@@ -53,16 +53,26 @@ class SubsetsModel(TreeModel):
     SortAscendingRole = QtCore.Qt.UserRole + 2
     SortDescendingRole = QtCore.Qt.UserRole + 3
     merged_subset_colors = [
-        (55, 161, 222), # Light Blue
-        (231, 176, 0), # Yellow
-        (154, 13, 255), # Purple
-        (130, 184, 30), # Light Green
-        (211, 79, 63), # Light Red
-        (179, 181, 182), # Grey
-        (194, 57, 179), # Pink
-        (0, 120, 215), # Dark Blue
-        (0, 204, 106), # Dark Green
-        (247, 99, 12), # Orange
+        # Light Blue
+        (55, 161, 222),
+        # Yellow
+        (231, 176, 0),
+        # Purple
+        (154, 13, 255),
+        # Light Green
+        (130, 184, 30),
+        # Light Red
+        (211, 79, 63),
+        # Grey
+        (179, 181, 182),
+        # Pink
+        (194, 57, 179),
+        # Dark Blue
+        (0, 120, 215),
+        # Dark Green
+        (0, 204, 106),
+        # Orange
+        (247, 99, 12),
     ]
 
     def __init__(self, grouping=True, parent=None):
