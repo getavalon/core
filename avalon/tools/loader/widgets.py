@@ -392,9 +392,8 @@ class VersionTextEdit(QtWidgets.QTextEdit):
         # Reset
         self.set_version(None)
 
-    def set_version(self, version_id):
-
-        if not version_id:
+    def set_version(self, version_doc=None, version_id=None):
+        if not version_doc and not version_id:
             # Reset state to empty
             self.data = {
                 "source": None,
@@ -408,29 +407,36 @@ class VersionTextEdit(QtWidgets.QTextEdit):
 
         print("Querying..")
 
-        version = io.find_one({"_id": version_id, "type": "version"})
-        assert version, "Not a valid version id"
+        if not version_doc:
+            version_doc = io.find_one({
+                "_id": version_id,
+                "type": "version"
+            })
+            assert version_doc, "Not a valid version id"
 
-        subset = io.find_one({"_id": version["parent"], "type": "subset"})
-        assert subset, "No valid subset parent for version"
+        subset_doc = io.find_one({
+            "_id": version_doc["parent"],
+            "type": "subset"
+        })
+        assert subset_doc, "No valid subset parent for version"
 
         # Define readable creation timestamp
-        created = version["data"]["time"]
+        created = version_doc["data"]["time"]
         created = datetime.datetime.strptime(created, "%Y%m%dT%H%M%SZ")
         created = datetime.datetime.strftime(created, "%b %d %Y %H:%M")
 
-        comment = version["data"].get("comment", None) or "No comment"
+        comment = version_doc["data"].get("comment", None) or "No comment"
 
-        source = version["data"].get("source", None)
+        source = version_doc["data"].get("source", None)
         source_label = source if source else "No source"
 
         # Store source and raw data
         self.data["source"] = source
-        self.data["raw"] = version
+        self.data["raw"] = version_doc
 
         data = {
-            "subset": subset["name"],
-            "version": version["name"],
+            "subset": subset_doc["name"],
+            "version": version_doc["name"],
             "comment": comment,
             "created": created,
             "source": source_label
