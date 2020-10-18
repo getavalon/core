@@ -600,8 +600,8 @@ class VersionWidget(QtWidgets.QWidget):
 
         self.data = data
 
-    def set_version(self, version_id):
-        self.data.set_version(version_id)
+    def set_version(self, version_doc):
+        self.data.set_version(version_doc)
 
 
 class FamilyListWidget(QtWidgets.QListWidget):
