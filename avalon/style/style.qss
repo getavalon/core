@@ -1221,3 +1221,7 @@ QSplitter::handle:horizontal:hover {
 QSplitter {
     border: 0px;
 }
+
+#AssetsView[multiselection=true] {
+    selection-background-color: rgba(0, 0, 0, 0);
+}
