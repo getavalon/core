@@ -59,6 +59,7 @@ class SubsetWidget(QtWidgets.QWidget):
         top_bar_layout.addWidget(groupable)
 
         view = SubsetTreeView()
+        view.setObjectName("SubsetView")
         view.setIndentation(20)
         view.setStyleSheet("""
             QTreeView::item{
@@ -592,9 +593,10 @@ class VersionWidget(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout(self)
 
-        label = QtWidgets.QLabel("Version")
+        label = QtWidgets.QLabel("Version", self)
         data = VersionTextEdit()
         data.setReadOnly(True)
+
         layout.addWidget(label)
         layout.addWidget(data)
 
