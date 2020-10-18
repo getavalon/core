@@ -49,7 +49,7 @@ class SubsetsModel(TreeModel):
         }
         self._doc_fetching_thread = None
         self._doc_fetching_stop = False
-        self._doc_payload = list()
+        self._doc_payload = {}
 
         self.doc_fetched.connect(self.on_doc_fetched)
 
@@ -159,41 +159,60 @@ class SubsetsModel(TreeModel):
 
         """
         def _fetch():
-            _subsets = list()
-            _ids = list()
-            for subset in io.find({"type": "subset",
-                                   "parent": self._asset_id}):
+            asset_docs = io.find({
+                "type": "asset",
+                "_id": {"$in": self._asset_ids}
+            })
+            asset_docs_by_id = {
+                asset_doc["_id"]: asset_doc
+                for asset_doc in asset_docs
+            }
+
+            subset_docs_by_id = {}
+            for subset in io.find({
+                "type": "subset",
+                "parent": {"$in": self._asset_ids}
+            }):
                 if self._doc_fetching_stop:
                     return
-                _subsets.append(subset)
-                _ids.append(subset["_id"])
+                subset_docs_by_id[subset["_id"]] = subset
 
+            subset_ids = list(subset_docs_by_id.keys())
             _pipeline = [
                 # Find all versions of those subsets
-                {"$match": {"type": "version", "parent": {"$in": _ids}}},
+                {"$match": {
+                    "type": "version",
+                    "parent": {"$in": subset_ids}
+                }},
                 # Sorting versions all together
                 {"$sort": {"name": 1}},
                 # Group them by "parent", but only take the last
-                {"$group": {"_id": "$parent",
-                            "_version_id": {"$last": "$_id"},
-                            "name": {"$last": "$name"},
-                            "data": {"$last": "$data"},
-                            "locations": {"$last": "$locations"},
-                            "schema": {"$last": "$schema"}}},
+                {"$group": {
+                    "_id": "$parent",
+                    "_version_id": {"$last": "$_id"},
+                    "name": {"$last": "$name"},
+                    "data": {"$last": "$data"},
+                    "locations": {"$last": "$locations"},
+                    "schema": {"$last": "$schema"}
+                }}
             ]
-            versions = dict()
+            last_versions_by_subset_id = dict()
             for doc in io.aggregate(_pipeline):
                 if self._doc_fetching_stop:
                     return
                 doc["parent"] = doc["_id"]
                 doc["_id"] = doc.pop("_version_id")
-                versions[doc["parent"]] = doc
+                last_versions_by_subset_id[doc["parent"]] = doc
 
-            self._doc_payload[:] = [(subset, versions.get(subset["_id"]))
-                                    for subset in _subsets]
+
+            self._doc_payload = {
+                "asset_docs_by_id": asset_docs_by_id,
+                "subset_docs_by_id": subset_docs_by_id,
+                "last_versions_by_subset_id": last_versions_by_subset_id
+            }
             self.doc_fetched.emit()
 
-        self._doc_payload[:] = []
+        self._doc_payload = {}
         self._doc_fetching_stop = False
         self._doc_fetching_thread = lib.create_qthread(_fetch)
         self._doc_fetching_thread.start()
