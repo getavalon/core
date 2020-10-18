@@ -297,15 +297,32 @@ class SubsetWidget(QtWidgets.QWidget):
                 self.echo(exc)
                 continue
 
-    def selected_subsets(self):
+    def selected_subsets(self, _groups=False, _merged=False, _other=True):
         selection = self.view.selectionModel()
         rows = selection.selectedRows(column=0)
 
         subsets = list()
+        if not any([_groups, _merged, _other]):
+            self.echo((
+                "This is a BUG: Selected_subsets args must contain"
+                " at least one value set to True"
+            ))
+            return subsets
+
         for row in rows:
-            node = row.data(self.model.ItemRole)
-            if not node.get("isGroup"):
-                subsets.append(node)
+            item = row.data(self.model.ItemRole)
+            if item.get("isGroup"):
+                if not _groups:
+                    continue
+
+            elif item.get("isMerged"):
+                if not _merged:
+                    continue
+            else:
+                if not _other:
+                    continue
+
+            subsets.append(item)
 
         return subsets
 
