@@ -88,25 +88,21 @@ class Window(QtWidgets.QDialog):
                 "message": message,
             },
             "state": {
-                "template": None,
-                "locations": list(),
-                "context": {
-                    "root": None,
-                    "project": None,
-                    "asset": None,
-                    "assetId": None,
-                    "silo": None,
-                    "subset": None,
-                    "version": None,
-                    "representation": None,
-                },
+                "assetIds": None
             }
         }
 
         families.active_changed.connect(subsets.set_family_filters)
         assets.selection_changed.connect(self.on_assetschanged)
+        assets.view.clicked.connect(self.on_assetview_click)
         subsets.active_changed.connect(self.on_subsetschanged)
         subsets.version_changed.connect(self.on_versionschanged)
+
+        lib.refresh_family_config_cache()
+        lib.refresh_group_config_cache()
+
+        self._refresh()
+        self._assetschanged()
 
         # Defaults
         self.resize(1330, 700)
@@ -114,6 +110,12 @@ class Window(QtWidgets.QDialog):
     # -------------------------------
     # Delay calling blocking methods
     # -------------------------------
+
+    def on_assetview_click(self, *args):
+        subsets_widget = self.data["model"]["subsets"]
+        selection_model = subsets_widget.view.selectionModel()
+        if selection_model.selectedIndexes():
+            selection_model.clearSelection()
 
     def refresh(self):
         self.echo("Fetching results..")
@@ -152,55 +154,56 @@ class Window(QtWidgets.QDialog):
         families = self.data["widgets"]["families"]
         families.refresh()
 
-        # Update state
-        state = self.data["state"]
-        state["template"] = project["config"]["template"]["publish"]
-        state["context"]["root"] = api.registered_root()
-        state["context"]["project"] = project["name"]
+    def clear_assets_underlines(self):
+        """Clear colors from asset data to remove colored underlines
+        When multiple assets are selected colored underlines mark which asset
+        own selected subsets. These colors must be cleared from asset data
+        on selection change so they match current selection.
+        """
+        last_asset_ids = self.data["state"]["assetIds"]
+        if not last_asset_ids:
+            return
+
+        assets_widget = self.data["model"]["assets"]
+        id_role = assets_widget.model.ObjectIdRole
+
+        for index in lib.iter_model_rows(assets_widget.model, 0):
+            if index.data(id_role) not in last_asset_ids:
+                continue
+
+            assets_widget.model.setData(
+                index, [], assets_widget.model.subsetColorsRole
+            )
 
     def _assetschanged(self):
         """Selected assets have changed"""
-
-        assets_model = self.data["model"]["assets"]
-        subsets_widget = self.data["model"]["subsets"]
-        subsets_model = subsets_widget.model
-
         t1 = time.time()
 
-        asset_item = assets_model.get_active_asset()
-        if asset_item is None:
-            document_id = None
-            document_name = None
-            document_silo = None
-        elif asset_item["type"] == "silo":
-            document_id = None
-            document_name = None
-            document_silo = asset_item["name"]
-        else:
-            document = asset_item["_document"]
-            document_id = document["_id"]
-            document_name = document["name"]
-            document_silo = document.get("silo")
+        assets_widget = self.data["model"]["assets"]
+        subsets_widget = self.data["model"]["subsets"]
 
-        # Start loading
-        subsets_widget.set_loading_state(loading=bool(document_name),
-                                         empty=True)
+        subsets_widget.model.clear()
+        self.clear_assets_underlines()
 
-        def on_refreshed(has_item):
-            empty = not has_item
-            subsets_widget.set_loading_state(loading=False, empty=empty)
-            subsets_model.refreshed.disconnect()
-            self.echo("Duration: %.3fs" % (time.time() - t1))
+        # filter None docs they are silo
+        asset_docs = assets_widget.get_selected_assets()
+        if len(asset_docs) == 0:
+            return
 
-        subsets_model.refreshed.connect(on_refreshed)
-        subsets_model.set_asset(document_id)
+        asset_ids = [asset_doc["_id"] for asset_doc in asset_docs]
+        subsets_widget.model.set_assets(asset_ids)
+        subsets_widget.view.setColumnHidden(
+            subsets_widget.model.Columns.index("asset"),
+            len(asset_ids) < 2
+        )
 
         # Clear the version information on asset change
         self.data["model"]["version"].set_version(None)
 
-        self.data["state"]["context"]["asset"] = document_name
-        self.data["state"]["context"]["assetId"] = document_id
-        self.data["state"]["context"]["silo"] = document_silo
+        self.data["state"]["assetIds"] = asset_ids
+
+        self.echo("Duration: %.3fs" % (time.time() - t1))
+
     def _subsetschanged(self):
         asset_ids = self.data["state"]["assetIds"]
         # Skip setting colors if not asset multiselection
@@ -286,7 +289,7 @@ class Window(QtWidgets.QDialog):
     def _set_context(self, context, refresh=True):
         """Set the selection in the interface using a context.
 
-        The context must contain `silo` and `asset` data by name.
+        The context must contain `asset` data by name.
 
         Note: Prior to setting context ensure `refresh` is triggered so that
               the "silos" are listed correctly, aside from that setting the
@@ -356,7 +359,18 @@ class Window(QtWidgets.QDialog):
             self.echo("Grouping not enabled.")
             return
 
-        selected = subsets.selected_subsets()
+        selected = []
+        merged_items = []
+        for item in subsets.selected_subsets(_merged=True):
+            if item.get("isMerged"):
+                merged_items.append(item)
+            else:
+                selected.append(item)
+
+        for merged_item in merged_items:
+            for child_item in merged_item.children():
+                selected.append(child_item)
+
         if not selected:
             self.echo("No selected subset.")
             return
@@ -378,7 +392,7 @@ class SubsetGroupingDialog(QtWidgets.QDialog):
 
         self.items = items
         self.subsets = parent.data["model"]["subsets"]
-        self.asset_id = parent.data["state"]["context"]["assetId"]
+        self.asset_ids = parent.data["state"]["assetIds"]
 
         name = QtWidgets.QLineEdit()
         name.setPlaceholderText("Remain blank to ungroup..")
@@ -419,12 +433,20 @@ class SubsetGroupingDialog(QtWidgets.QDialog):
         if group:
             group.deleteLater()
 
-        active_groups = lib.get_active_group_config(self.asset_id,
-                                                    include_predefined=True)
+        active_groups = list()
+        for asset_id in self.asset_ids:
+            active_groups.extend(lib.get_active_group_config(
+                asset_id, include_predefined=True
+            ))
+
         # Build new action group
         group = QtWidgets.QActionGroup(button)
+        group_names = list()
         for data in sorted(active_groups, key=lambda x: x["order"]):
             name = data["name"]
+            if name in group_names:
+                continue
+            group_names.append(name)
             icon = data["icon"]
 
             action = group.addAction(name)
@@ -439,7 +461,7 @@ class SubsetGroupingDialog(QtWidgets.QDialog):
 
     def on_group(self):
         name = self.name.text().strip()
-        self.subsets.group_subsets(name, self.asset_id, self.items)
+        self.subsets.group_subsets(name, self.asset_ids, self.items)
 
         with lib.preserve_selection(tree_view=self.subsets.view,
                                     current_index=False):
