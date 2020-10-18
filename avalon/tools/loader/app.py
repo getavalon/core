@@ -39,9 +39,9 @@ class Window(QtWidgets.QDialog):
 
         container = QtWidgets.QWidget()
 
-        assets = AssetWidget()
+        assets = AssetWidget(multiselection=True, parent=self)
         families = FamilyListWidget()
-        subsets = SubsetWidget()
+        subsets = SubsetWidget(parent=self)
         version = VersionWidget()
 
         # Create splitter to show / hide family filters
