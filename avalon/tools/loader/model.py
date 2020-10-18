@@ -23,6 +23,7 @@ class SubsetsModel(TreeModel):
 
     Columns = [
         "subset",
+        "asset",
         "family",
         "version",
         "time",
