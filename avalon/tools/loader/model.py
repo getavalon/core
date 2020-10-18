@@ -2,7 +2,7 @@ import copy
 import collections
 
 from ... import io, style
-from ...vendor.Qt import QtCore, QtGui
+from ...vendor.Qt import QtCore
 from ...vendor import qtawesome
 
 from ..models import TreeModel, Item
