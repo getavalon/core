@@ -64,23 +64,26 @@ class SubsetsModel(TreeModel):
 
     def __init__(self, grouping=True, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
+
         self.columns_index = dict(
             (key, idx) for idx, key in enumerate(self.Columns)
         )
-        self._asset_id = None
+        self._asset_ids = None
+
         self._sorter = None
         self._grouping = grouping
         self._icons = {
             "subset": qtawesome.icon("fa.file-o", color=style.colors.default)
         }
+
         self._doc_fetching_thread = None
         self._doc_fetching_stop = False
         self._doc_payload = {}
 
         self.doc_fetched.connect(self.on_doc_fetched)
 
-    def set_asset(self, asset_id):
-        self._asset_id = asset_id
+    def set_assets(self, asset_ids):
+        self._asset_ids = asset_ids
         self.refresh()
 
     def set_grouping(self, state):
@@ -252,8 +255,10 @@ class SubsetsModel(TreeModel):
     def refresh(self):
         self.stop_fetch_thread()
         self.clear()
-        if not self._asset_id:
+
+        if not self._asset_ids:
             return
+
         self.fetch_subset_and_version()
 
     def on_doc_fetched(self):
