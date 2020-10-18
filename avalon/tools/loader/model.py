@@ -246,7 +246,6 @@ class SubsetsModel(TreeModel):
                 doc["_id"] = doc.pop("_version_id")
                 last_versions_by_subset_id[doc["parent"]] = doc
 
-
             self._doc_payload = {
                 "asset_docs_by_id": asset_docs_by_id,
                 "subset_docs_by_id": subset_docs_by_id,
