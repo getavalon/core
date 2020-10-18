@@ -209,16 +209,35 @@ class Window(QtWidgets.QDialog):
 
         # Active must be in the selected rows otherwise we
         # assume it's not actually an "active" current index.
-        version = None
+        version_docs = None
+        version_doc = None
         active = selection.currentIndex()
+        rows = selection.selectedRows(column=active.column())
         if active:
-            rows = selection.selectedRows(column=active.column())
             if active in rows:
-                node = active.data(subsets.model.ItemRole)
-                if node is not None and not node.get("isGroup"):
-                    version = node["version_document"]["_id"]
+                item = active.data(subsets.model.ItemRole)
+                if (
+                    item is not None and
+                    not (item.get("isGroup") or item.get("isMerged"))
+                ):
+                    version_doc = item["version_document"]
 
-        self.data["model"]["version"].set_version(version)
+        if rows:
+            version_docs = []
+            for index in rows:
+                if not index or not index.isValid():
+                    continue
+                item = index.data(subsets.model.ItemRole)
+                if (
+                    item is None
+                    or item.get("isGroup")
+                    or item.get("isMerged")
+                ):
+                    continue
+                version_docs.append(item["version_document"])
+
+        self.data["model"]["version"].set_version(version_doc)
+
 
     def _set_context(self, context, refresh=True):
         """Set the selection in the interface using a context.
