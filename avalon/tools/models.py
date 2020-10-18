@@ -105,10 +105,10 @@ class TreeModel(QtCore.QAbstractItemModel):
 
         return self.createIndex(parent_item.row(), 0, parent_item)
 
-    def index(self, row, column, parent):
+    def index(self, row, column, parent=None):
         """Return index for row/column under parent"""
 
-        if not parent.isValid():
+        if parent is None or not parent.isValid():
             parent_item = self._root_item
         else:
             parent_item = parent.internalPointer()
