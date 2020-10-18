@@ -182,6 +182,7 @@ class Item(dict):
         if self._parent is not None:
             siblings = self.parent().children()
             return siblings.index(self)
+        return -1
 
     def add_child(self, child):
         """Add a child to this item"""
