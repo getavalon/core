@@ -27,6 +27,19 @@ class SubsetWidget(QtWidgets.QWidget):
     active_changed = QtCore.Signal()    # active index changed
     version_changed = QtCore.Signal()   # version state changed for a subset
 
+    default_widths = (
+        ("subset", 190),
+        ("asset", 130),
+        ("family", 90),
+        ("version", 60),
+        ("time", 120),
+        ("author", 85),
+        ("frames", 80),
+        ("duration", 60),
+        ("handles", 55),
+        ("step", 50)
+    )
+
     def __init__(self, enable_grouping=True, parent=None):
         super(SubsetWidget, self).__init__(parent=parent)
 
@@ -99,15 +112,9 @@ class SubsetWidget(QtWidgets.QWidget):
         self.view.setModel(self.family_proxy)
         self.view.customContextMenuRequested.connect(self.on_context_menu)
 
-        view.setColumnWidth(0, 240)  # subset
-        view.setColumnWidth(1, 120)  # family
-        view.setColumnWidth(2, 100)  # version
-        view.setColumnWidth(3, 120)  # time
-        view.setColumnWidth(4, 100)  # author
-        view.setColumnWidth(5, 80)  # frames
-        view.setColumnWidth(6, 60)  # duration
-        view.setColumnWidth(7, 50)  # handles
-        view.setColumnWidth(8, 50)  # step
+        for column_name, width in self.default_widths:
+            idx = model.Columns.index(column_name)
+            view.setColumnWidth(idx, width)
 
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.active_changed)
