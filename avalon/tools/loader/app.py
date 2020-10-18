@@ -125,7 +125,7 @@ class Window(QtWidgets.QDialog):
 
     def on_subsetschanged(self, *args):
         self.echo("Fetching subset..")
-        lib.schedule(self._versionschanged, 50, channel="mongo")
+        lib.schedule(self._subsetschanged, 50, channel="mongo")
 
     def on_versionschanged(self, *args):
         self.echo("Fetching version..")
@@ -201,6 +201,50 @@ class Window(QtWidgets.QDialog):
         self.data["state"]["context"]["asset"] = document_name
         self.data["state"]["context"]["assetId"] = document_id
         self.data["state"]["context"]["silo"] = document_silo
+    def _subsetschanged(self):
+        asset_ids = self.data["state"]["assetIds"]
+        # Skip setting colors if not asset multiselection
+        if not asset_ids or len(asset_ids) < 2:
+            self._versionschanged()
+            return
+
+        subsets = self.data["model"]["subsets"]
+        selected_subsets = subsets.selected_subsets(_merged=True, _other=False)
+
+        asset_models = {}
+        asset_ids = []
+        for subset_node in selected_subsets:
+            asset_ids.extend(subset_node.get("assetIds", []))
+        asset_ids = set(asset_ids)
+
+        for subset_node in selected_subsets:
+            for asset_id in asset_ids:
+                if asset_id not in asset_models:
+                    asset_models[asset_id] = []
+
+                color = None
+                if asset_id in subset_node.get("assetIds", []):
+                    color = subset_node["subsetColor"]
+
+                asset_models[asset_id].append(color)
+
+        self.clear_assets_underlines()
+
+        assets_widget = self.data["model"]["assets"]
+        indexes = assets_widget.view.selectionModel().selectedRows()
+
+        for index in indexes:
+            id = index.data(assets_widget.model.ObjectIdRole)
+            if id not in asset_models:
+                continue
+
+            assets_widget.model.setData(
+                index, asset_models[id], assets_widget.model.subsetColorsRole
+            )
+        # Trigger repaint
+        assets_widget.view.updateGeometries()
+        # Set version in Version Widget
+        self._versionschanged()
 
     def _versionschanged(self):
 
