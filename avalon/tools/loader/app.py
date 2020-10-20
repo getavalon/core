@@ -181,8 +181,9 @@ class Window(QtWidgets.QDialog):
 
         assets_widget = self.data["model"]["assets"]
         subsets_widget = self.data["model"]["subsets"]
+        subsets_model = subsets_widget.model
 
-        subsets_widget.model.clear()
+        subsets_model.clear()
         self.clear_assets_underlines()
 
         # filter None docs they are silo
@@ -191,7 +192,21 @@ class Window(QtWidgets.QDialog):
             return
 
         asset_ids = [asset_doc["_id"] for asset_doc in asset_docs]
-        subsets_widget.model.set_assets(asset_ids)
+        # Start loading
+        subsets_widget.set_loading_state(
+            loading=bool(asset_ids),
+            empty=True
+        )
+
+        def on_refreshed(has_item):
+            empty = not has_item
+            subsets_widget.set_loading_state(loading=False, empty=empty)
+            subsets_model.refreshed.disconnect()
+            self.echo("Duration: %.3fs" % (time.time() - t1))
+
+        subsets_model.refreshed.connect(on_refreshed)
+
+        subsets_model.set_assets(asset_ids)
         subsets_widget.view.setColumnHidden(
             subsets_widget.model.Columns.index("asset"),
             len(asset_ids) < 2
