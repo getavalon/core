@@ -1,2 +1,9 @@
 [flake8]
-ignore = BLK100
+
+# BLK100: Black would make changes
+#   W503: line break before binary operator
+ignore = BLK100,W503
+
+exclude =
+    vendor,
+    style,
