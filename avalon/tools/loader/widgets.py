@@ -13,6 +13,7 @@ from ... import style
 from .. import lib as tools_lib
 from ..delegates import VersionDelegate
 from ..widgets import OptionalMenu, OptionalAction, OptionDialog
+from ..views import TreeViewSpinner
 
 from .model import (
     SubsetsModel,
@@ -46,7 +47,8 @@ class SubsetWidget(QtWidgets.QWidget):
         top_bar_layout.addWidget(filter)
         top_bar_layout.addWidget(groupable)
 
-        view = SubsetTreeView()
+        view = TreeViewSpinner()
+        view.setObjectName("SubsetView")
         view.setIndentation(20)
         view.setStyleSheet("""
             QTreeView::item{
@@ -326,44 +328,6 @@ class SubsetWidget(QtWidgets.QWidget):
 
     def echo(self, message):
         print(message)
-
-
-class SubsetTreeView(QtWidgets.QTreeView):
-
-    def __init__(self, parent=None):
-        super(SubsetTreeView, self).__init__(parent=parent)
-        loading_gif = os.path.dirname(style.__file__) + "/svg/spinner-200.svg"
-        spinner = QtSvg.QSvgRenderer(loading_gif)
-
-        self.spinner = spinner
-        self.is_loading = False
-        self.is_empty = True
-
-    def paint_loading(self, event):
-        size = 160
-        rect = event.rect()
-        rect = QtCore.QRectF(rect.topLeft(), rect.bottomRight())
-        rect.moveTo(rect.x() + rect.width() / 2 - size / 2,
-                    rect.y() + rect.height() / 2 - size / 2)
-        rect.setSize(QtCore.QSizeF(size, size))
-        painter = QtGui.QPainter(self.viewport())
-        self.spinner.render(painter, rect)
-
-    def paint_empty(self, event):
-        painter = QtGui.QPainter(self.viewport())
-        rect = event.rect()
-        rect = QtCore.QRectF(rect.topLeft(), rect.bottomRight())
-        qtext_opt = QtGui.QTextOption(QtCore.Qt.AlignHCenter |
-                                      QtCore.Qt.AlignVCenter)
-        painter.drawText(rect, "No Data", qtext_opt)
-
-    def paintEvent(self, event):
-        if self.is_loading:
-            self.paint_loading(event)
-        elif self.is_empty:
-            self.paint_empty(event)
-        else:
-            super(SubsetTreeView, self).paintEvent(event)
 
 
 class VersionTextEdit(QtWidgets.QTextEdit):
