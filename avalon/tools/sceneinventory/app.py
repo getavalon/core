@@ -1,18 +1,19 @@
 import os
 import sys
 import logging
+import collections
 from functools import partial
 
 from ...vendor.Qt import QtWidgets, QtCore
 from ...vendor import qtawesome
 from ... import io, api, style
+from ...lib import MasterVersionType
 
 from .. import lib as tools_lib
 from ..delegates import VersionDelegate
 
 from .proxy import FilterProxyModel
 from .model import InventoryModel
-from .lib import switch_item
 
 DEFAULT_COLOR = "#fb9c15"
 
@@ -55,37 +56,211 @@ class View(QtWidgets.QTreeView):
         self.data_changed.emit()
         self.setStyleSheet("QTreeView {}")
 
-    def build_item_menu(self, items):
-        """Create menu for the selected items"""
+    def build_item_menu_for_selection(self, items, menu):
+        if not items:
+            return
 
-        menu = QtWidgets.QMenu(self)
+        repre_ids = []
+        for item in items:
+            item_id = io.ObjectId(item["representation"])
+            if item_id not in repre_ids:
+                repre_ids.append(item_id)
 
-        # update to latest version
-        def _on_update_to_latest(items):
-            for item in items:
-                api.update(item, -1)
-            self.data_changed.emit()
+        repre_docs = io.find(
+            {
+                "type": "representation",
+                "_id": {"$in": repre_ids}
+            },
+            {"parent": 1}
+        )
 
-        update_icon = qtawesome.icon("fa.angle-double-up", color=DEFAULT_COLOR)
-        updatetolatest_action = QtWidgets.QAction(update_icon,
-                                                  "Update to latest",
-                                                  menu)
-        updatetolatest_action.triggered.connect(
-            lambda: _on_update_to_latest(items))
+        version_ids = []
+        for repre_doc in repre_docs:
+            version_id = repre_doc["parent"]
+            if version_id not in version_ids:
+                version_ids.append(version_id)
+
+        loaded_versions = io.find({
+            "_id": {"$in": version_ids},
+            "type": {"$in": ["version", "master_version"]}
+        })
+
+        loaded_master_versions = []
+        versions_by_parent_id = collections.defaultdict(list)
+        version_parents = []
+        for version in loaded_versions:
+            if version["type"] == "master_version":
+                loaded_master_versions.append(version)
+            else:
+                parent_id = version["parent"]
+                versions_by_parent_id[parent_id].append(version)
+                if parent_id not in version_parents:
+                    version_parents.append(parent_id)
+
+        all_versions = io.find({
+            "type": {"$in": ["master_version", "version"]},
+            "parent": {"$in": version_parents}
+        })
+        master_versions = []
+        versions = []
+        for version in all_versions:
+            if version["type"] == "master_version":
+                master_versions.append(version)
+            else:
+                versions.append(version)
+
+        has_loaded_master_versions = len(loaded_master_versions) > 0
+        has_available_master_version = len(master_versions) > 0
+        has_outdated = False
+
+        for version in versions:
+            parent_id = version["parent"]
+            current_versions = versions_by_parent_id[parent_id]
+            for current_version in current_versions:
+                if current_version["name"] < version["name"]:
+                    has_outdated = True
+                    break
+
+            if has_outdated:
+                break
+
+        switch_to_versioned = None
+        if has_loaded_master_versions:
+            def _on_switch_to_versioned(items):
+                repre_ids = []
+                for item in items:
+                    item_id = io.ObjectId(item["representation"])
+                    if item_id not in repre_ids:
+                        repre_ids.append(item_id)
+
+                repre_docs = io.find(
+                    {
+                        "type": "representation",
+                        "_id": {"$in": repre_ids}
+                    },
+                    {"parent": 1}
+                )
+
+                version_ids = []
+                version_id_by_repre_id = {}
+                for repre_doc in repre_docs:
+                    version_id = repre_doc["parent"]
+                    version_id_by_repre_id[repre_doc["_id"]] = version_id
+                    if version_id not in version_ids:
+                        version_ids.append(version_id)
+
+                master_versions = io.find(
+                    {
+                        "_id": {"$in": version_ids},
+                        "type": "master_version"
+                    },
+                    {"version_id": 1}
+                )
+
+                version_ids = set()
+                for master_version in master_versions:
+                    version_id = master_version["version_id"]
+                    version_ids.add(version_id)
+                    master_version_id = master_version["_id"]
+                    for _repre_id, _version_id in (
+                        version_id_by_repre_id.items()
+                    ):
+                        if _version_id == master_version_id:
+                            version_id_by_repre_id[_repre_id] = version_id
+
+                version_docs = io.find(
+                    {
+                        "_id": {"$in": list(version_ids)},
+                        "type": "version"
+                    },
+                    {"name": 1}
+                )
+                version_name_by_id = {}
+                for version_doc in version_docs:
+                    version_name_by_id[version["_id"]] = version_doc["name"]
+
+                for item in items:
+                    repre_id = io.ObjectId(item["representation"])
+                    version_id = version_id_by_repre_id.get(repre_id)
+                    version_name = version_name_by_id.get(version_id)
+                    if version_name is not None:
+                        api.update(item, version_name)
+
+                self.data_changed.emit()
+
+            update_icon = qtawesome.icon(
+                "fa.asterisk",
+                color=DEFAULT_COLOR
+            )
+            switch_to_versioned = QtWidgets.QAction(
+                update_icon,
+                "Switch to versioned",
+                menu
+            )
+            switch_to_versioned.triggered.connect(
+                lambda: _on_switch_to_versioned(items)
+            )
+
+        update_to_latest_action = None
+        if has_outdated or has_loaded_master_versions:
+            # update to latest version
+            def _on_update_to_latest(items):
+                for item in items:
+                    api.update(item, -1)
+                self.data_changed.emit()
+
+            update_icon = qtawesome.icon(
+                "fa.angle-double-up",
+                color=DEFAULT_COLOR
+            )
+            update_to_latest_action = QtWidgets.QAction(
+                update_icon,
+                "Update to latest",
+                menu
+            )
+            update_to_latest_action.triggered.connect(
+                lambda: _on_update_to_latest(items)
+            )
+
+        change_to_master = None
+        if has_available_master_version:
+            # change to master version
+            def _on_update_to_master(items):
+                for item in items:
+                    api.update(item, MasterVersionType(-1))
+                self.data_changed.emit()
+
+            # TODO change icon
+            change_icon = qtawesome.icon(
+                "fa.asterisk",
+                color="#00b359"
+            )
+            change_to_master = QtWidgets.QAction(
+                change_icon,
+                "Change to Master",
+                menu
+            )
+            change_to_master.triggered.connect(
+                lambda: _on_update_to_master(items)
+            )
 
         # set version
         set_version_icon = qtawesome.icon("fa.hashtag", color=DEFAULT_COLOR)
-        set_version_action = QtWidgets.QAction(set_version_icon,
-                                               "Set version",
-                                               menu)
+        set_version_action = QtWidgets.QAction(
+            set_version_icon,
+            "Set version",
+            menu
+        )
         set_version_action.triggered.connect(
             lambda: self.show_version_dialog(items))
 
         # switch asset
         switch_asset_icon = qtawesome.icon("fa.sitemap", color=DEFAULT_COLOR)
-        switch_asset_action = QtWidgets.QAction(switch_asset_icon,
-                                                "Switch Asset",
-                                                menu)
+        switch_asset_action = QtWidgets.QAction(
+            switch_asset_icon,
+            "Switch Asset",
+            menu
+        )
         switch_asset_action.triggered.connect(
             lambda: self.show_switch_dialog(items))
 
@@ -95,22 +270,34 @@ class View(QtWidgets.QTreeView):
         remove_action.triggered.connect(
             lambda: self.show_remove_warning_dialog(items))
 
-        # go back to flat view
-        if self._hierarchy_view:
-            back_to_flat_icon = qtawesome.icon("fa.list", color=DEFAULT_COLOR)
-            back_to_flat_action = QtWidgets.QAction(back_to_flat_icon,
-                                                    "Back to Full-View",
-                                                    menu)
-            back_to_flat_action.triggered.connect(self.leave_hierarchy)
+        # add the actions
+        if switch_to_versioned:
+            menu.addAction(switch_to_versioned)
 
-        # send items to hierarchy view
-        enter_hierarchy_icon = qtawesome.icon("fa.indent", color="#d8d8d8")
-        enter_hierarchy_action = QtWidgets.QAction(enter_hierarchy_icon,
-                                                   "Cherry-Pick (Hierarchy)",
-                                                   menu)
-        enter_hierarchy_action.triggered.connect(
-            lambda: self.enter_hierarchy(items))
+        if update_to_latest_action:
+            menu.addAction(update_to_latest_action)
 
+        if change_to_master:
+            menu.addAction(change_to_master)
+
+        menu.addAction(set_version_action)
+        menu.addAction(switch_asset_action)
+
+        menu.addSeparator()
+
+        menu.addAction(remove_action)
+
+        menu.addSeparator()
+
+    def build_item_menu(self, items):
+        """Create menu for the selected items"""
+
+        menu = QtWidgets.QMenu(self)
+
+        # add the actions
+        self.build_item_menu_for_selection(items, menu)
+
+        # These two actions should be able to work without selection
         # expand all items
         expandall_action = QtWidgets.QAction(menu, text="Expand all items")
         expandall_action.triggered.connect(self.expandAll)
@@ -119,20 +306,6 @@ class View(QtWidgets.QTreeView):
         collapse_action = QtWidgets.QAction(menu, text="Collapse all items")
         collapse_action.triggered.connect(self.collapseAll)
 
-        # add the actions
-        has_selection = len(items)
-
-        if has_selection:
-            menu.addAction(updatetolatest_action)
-            menu.addAction(set_version_action)
-            menu.addAction(switch_asset_action)
-
-            menu.addSeparator()
-            menu.addAction(remove_action)
-
-            menu.addSeparator()
-
-        # These two actions should be able to work without selection
         menu.addAction(expandall_action)
         menu.addAction(collapse_action)
 
@@ -151,7 +324,27 @@ class View(QtWidgets.QTreeView):
 
             menu.addMenu(submenu)
 
-        if has_selection:
+        # go back to flat view
+        if self._hierarchy_view:
+            back_to_flat_icon = qtawesome.icon("fa.list", color=DEFAULT_COLOR)
+            back_to_flat_action = QtWidgets.QAction(
+                back_to_flat_icon,
+                "Back to Full-View",
+                menu
+            )
+            back_to_flat_action.triggered.connect(self.leave_hierarchy)
+
+        # send items to hierarchy view
+        enter_hierarchy_icon = qtawesome.icon("fa.indent", color="#d8d8d8")
+        enter_hierarchy_action = QtWidgets.QAction(
+            enter_hierarchy_icon,
+            "Cherry-Pick (Hierarchy)",
+            menu
+        )
+        enter_hierarchy_action.triggered.connect(
+            lambda: self.enter_hierarchy(items))
+
+        if items:
             menu.addAction(enter_hierarchy_action)
 
         if self._hierarchy_view:
@@ -243,11 +436,11 @@ class View(QtWidgets.QTreeView):
         }[options.get("mode", "select")]
 
         for item in tools_lib.iter_model_rows(model, 0):
-            node = item.data(InventoryModel.ItemRole)
-            if node.get("isGroupNode"):
+            item = item.data(InventoryModel.ItemRole)
+            if item.get("isGroupNode"):
                 continue
 
-            name = node.get("objectName")
+            name = item.get("objectName")
             if name in object_names:
                 self.scrollTo(item)  # Ensure item is visible
                 flags = select_mode | selection_model.Rows
@@ -282,14 +475,14 @@ class View(QtWidgets.QTreeView):
 
         # Extend to the sub-items
         all_indices = self.extend_to_children(indices)
-        nodes = [dict(i.data(InventoryModel.ItemRole)) for i in all_indices
+        items = [dict(i.data(InventoryModel.ItemRole)) for i in all_indices
                  if i.parent().isValid()]
 
         if self._hierarchy_view:
-            # Ensure no group node
-            nodes = [n for n in nodes if not n.get("isGroupNode")]
+            # Ensure no group item
+            items = [n for n in items if not n.get("isGroupNode")]
 
-        menu = self.build_item_menu(nodes)
+        menu = self.build_item_menu(items)
         menu.exec_(globalpos)
 
     def get_indices(self):
@@ -324,11 +517,11 @@ class View(QtWidgets.QTreeView):
                 subitems.add(i)
 
                 if self._hierarchy_view:
-                    # Assume this is a group node
+                    # Assume this is a group item
                     for child in get_children(i):
                         subitems.add(child)
             else:
-                # is top level node
+                # is top level item
                 for child in get_children(i):
                     subitems.add(child)
 
@@ -349,40 +542,76 @@ class View(QtWidgets.QTreeView):
         # Get available versions for active representation
         representation_id = io.ObjectId(active["representation"])
         representation = io.find_one({"_id": representation_id})
-        version = io.find_one({"_id": representation["parent"]})
+        version = io.find_one({
+            "_id": representation["parent"]
+        })
 
-        versions = io.find({"parent": version["parent"]},
-                           sort=[("name", 1)])
-        versions = list(versions)
+        versions = list(io.find(
+            {
+                "parent": version["parent"],
+                "type": "version"
+            },
+            sort=[("name", 1)]
+        ))
 
-        current_version = active["version"]
+        master_version = io.find_one({
+            "parent": version["parent"],
+            "type": "master_version"
+        })
+        if master_version:
+            _version_id = master_version["version_id"]
+            for _version in versions:
+                if _version["_id"] != _version_id:
+                    continue
+
+                master_version["name"] = MasterVersionType(
+                    _version["name"]
+                )
+                master_version["data"] = _version["data"]
+                break
 
         # Get index among the listed versions
-        index = len(versions) - 1
-        for i, version in enumerate(versions):
-            if version["name"] == current_version:
-                index = i
-                break
+        current_item = None
+        current_version = active["version"]
+        if isinstance(current_version, MasterVersionType):
+            current_item = master_version
+        else:
+            for version in versions:
+                if version["name"] == current_version:
+                    current_item = version
+                    break
+
+        all_versions = []
+        if master_version:
+            all_versions.append(master_version)
+        all_versions.extend(reversed(versions))
+
+        if current_item:
+            index = all_versions.index(current_item)
+        else:
+            index = 0
 
         versions_by_label = dict()
         labels = []
-        for version in versions:
-            label = "v{0:03d}".format(version["name"])
+        for version in all_versions:
+            is_master = version["type"] == "master_version"
+            label = tools_lib.format_version(version["name"], is_master)
             labels.append(label)
-            versions_by_label[label] = version
+            versions_by_label[label] = version["name"]
 
-        label, state = QtWidgets.QInputDialog.getItem(self,
-                                                      "Set version..",
-                                                      "Set version number "
-                                                      "to",
-                                                      labels,
-                                                      current=index,
-                                                      editable=False)
+        label, state = QtWidgets.QInputDialog.getItem(
+            self,
+            "Set version..",
+            "Set version number to",
+            labels,
+            current=index,
+            editable=False
+        )
         if not state:
             return
 
         if label:
-            version = versions_by_label[label]["name"]
+            version = versions_by_label[label]
             for item in items:
                 api.update(item, version)
             # refresh model when done
@@ -454,27 +683,32 @@ class SearchComboBox(QtWidgets.QComboBox):
         if text not in lookup:
             return None
 
-        return text
+        return text or None
 
 
 class SwitchAssetDialog(QtWidgets.QDialog):
     """Widget to support asset switching"""
 
+    MIN_WIDTH = 550
+
+    fill_check = False
     switched = QtCore.Signal()
 
     def __init__(self, parent=None, items=None):
         QtWidgets.QDialog.__init__(self, parent)
 
-        self.setModal(True)  # Force and keep focus dialog
+        self.setWindowTitle("Switch selected items ...")
+
+        # Force and keep focus dialog
+        self.setModal(True)
 
         self.log = logging.getLogger(self.__class__.__name__)
-
-        self._items = items
 
         self._assets_box = SearchComboBox(placeholder="<asset>")
         self._subsets_box = SearchComboBox(placeholder="<subset>")
         self._representations_box = SearchComboBox(
-            placeholder="<representation>")
+            placeholder="<representation>"
+        )
 
         self._asset_label = QtWidgets.QLabel("")
         self._subset_label = QtWidgets.QLabel("")
@@ -506,311 +740,670 @@ class SwitchAssetDialog(QtWidgets.QDialog):
 
         self._accept_btn = accept_btn
 
-        self._assets_box.currentIndexChanged.connect(self.on_assets_change)
-        self._subsets_box.currentIndexChanged.connect(self.on_subset_change)
-        self._representations_box.currentIndexChanged.connect(
-            self.on_repre_change
+        self._assets_box.currentIndexChanged.connect(
+            self._combobox_value_changed
         )
+        self._subsets_box.currentIndexChanged.connect(
+            self._combobox_value_changed
+        )
+        self._representations_box.currentIndexChanged.connect(
+            self._combobox_value_changed
+        )
+        self._accept_btn.clicked.connect(self._on_accept)
 
         main_layout.addLayout(context_layout)
         self.setLayout(main_layout)
-        self.setWindowTitle("Switch selected items ...")
 
-        self.connections()
+        self._items = items
+        self._prepare_content_data()
+        self.refresh(True)
 
-        self.refresh()
-
-        self.setFixedSize(self.sizeHint())  # Lock window size
+        self.setMinimumWidth(self.MIN_WIDTH)
 
         # Set default focus to accept button so you don't directly type in
         # first asset field, this also allows to see the placeholder value.
         accept_btn.setFocus()
 
-    def connections(self):
-        self._accept_btn.clicked.connect(self._on_accept)
+    def _prepare_content_data(self):
+        repre_ids = [
+            io.ObjectId(item["representation"])
+            for item in self._items
+        ]
+        repres = list(io.find({
+            "type": {"$in": ["representation", "archived_representation"]},
+            "_id": {"$in": repre_ids}
+        }))
+        repres_by_id = {repre["_id"]: repre for repre in repres}
 
-    def on_assets_change(self):
-        self.refresh(1)
+        content_repres = {}
+        archived_repres = []
+        missing_repres = []
+        version_ids = []
+        for repre_id in repre_ids:
+            if repre_id not in repres_by_id:
+                missing_repres.append(repre_id)
+            elif repres_by_id[repre_id]["type"] == "archived_representation":
+                repre = repres_by_id[repre_id]
+                archived_repres.append(repre)
+                version_ids.append(repre["parent"])
+            else:
+                repre = repres_by_id[repre_id]
+                content_repres[repre_id] = repres_by_id[repre_id]
+                version_ids.append(repre["parent"])
 
-    def on_subset_change(self):
-        self.refresh(2)
+        versions = io.find({
+            "type": {"$in": ["version", "master_version"]},
+            "_id": {"$in": list(set(version_ids))}
+        })
+        content_versions = {}
+        has_master_versions = False
+        for version in versions:
+            content_versions[version["_id"]] = version
+            if not has_master_versions:
+                has_master_versions = version["type"] == "master_version"
 
-    def on_repre_change(self):
-        self.refresh(3)
+        missing_versions = []
+        subset_ids = []
+        for version_id in version_ids:
+            if version_id not in content_versions:
+                missing_versions.append(version_id)
+            else:
+                subset_ids.append(content_versions[version_id]["parent"])
 
-    def refresh(self, refresh_type=0):
+        subsets = io.find({
+            "type": {"$in": ["subset", "archived_subset"]},
+            "_id": {"$in": subset_ids}
+        })
+        subsets_by_id = {sub["_id"]: sub for sub in subsets}
+
+        asset_ids = []
+        archived_subsets = []
+        missing_subsets = []
+        content_subsets = {}
+        for subset_id in subset_ids:
+            if subset_id not in subsets_by_id:
+                missing_subsets.append(subset_id)
+            elif subsets_by_id[subset_id]["type"] == "archived_subset":
+                subset = subsets_by_id[subset_id]
+                asset_ids.append(subset["parent"])
+                archived_subsets.append(subset)
+            else:
+                subset = subsets_by_id[subset_id]
+                asset_ids.append(subset["parent"])
+                content_subsets[subset_id] = subset
+
+        assets = io.find({
+            "type": {"$in": ["asset", "archived_asset"]},
+            "_id": {"$in": list(asset_ids)}
+        })
+        assets_by_id = {asset["_id"]: asset for asset in assets}
+
+        missing_assets = []
+        archived_assets = []
+        content_assets = {}
+        for asset_id in asset_ids:
+            if asset_id not in assets_by_id:
+                missing_assets.append(asset_id)
+            elif assets_by_id[asset_id]["type"] == "archived_asset":
+                archived_assets.append(assets_by_id[asset_id])
+            else:
+                content_assets[asset_id] = assets_by_id[asset_id]
+
+        self.content_assets = content_assets
+        self.content_subsets = content_subsets
+        self.content_versions = content_versions
+        self.content_repres = content_repres
+
+        self.has_master_versions = has_master_versions
+
+        self.missing_assets = missing_assets
+        self.missing_versions = missing_versions
+        self.missing_subsets = missing_subsets
+        self.missing_repres = missing_repres
+        self.missing_docs = (
+            bool(missing_assets)
+            or bool(missing_versions)
+            or bool(missing_subsets)
+            or bool(missing_repres)
+        )
+
+        self.archived_assets = archived_assets
+        self.archived_subsets = archived_subsets
+        self.archived_repres = archived_repres
+
+    def _combobox_value_changed(self, *args, **kwargs):
+        self.refresh()
+
+    def refresh(self, init_refresh=False):
         """Build the need comboboxes with content"""
-        if refresh_type < 1:
-            assets = sorted(self._get_assets())
-            self._assets_box.populate(assets)
+        if not self.fill_check and not init_refresh:
+            return
 
-        if refresh_type < 2:
-            last_subset = self._subsets_box.currentText()
-
-            subsets = sorted(self._get_subsets())
-            self._subsets_box.populate(subsets)
-
-            if (last_subset != "" and last_subset in list(subsets)):
-                index = None
-                for i in range(self._subsets_box.count()):
-                    if last_subset == str(self._subsets_box.itemText(i)):
-                        index = i
-                        break
-                if index is not None:
-                    self._subsets_box.setCurrentIndex(index)
-
-        if refresh_type < 3:
-            last_repre = self._representations_box.currentText()
-
-            representations = sorted(self._get_representations())
-            self._representations_box.populate(representations)
-
-            if (last_repre != "" and last_repre in list(representations)):
-                index = None
-                for i in range(self._representations_box.count()):
-                    if last_repre == self._representations_box.itemText(i):
-                        index = i
-                        break
-                if index is not None:
-                    self._representations_box.setCurrentIndex(index)
-
-        self.set_labels()
-        self.validate()
-
-    def set_labels(self):
-        default = "*No changes"
-        asset_label = default
-        subset_label = default
-        repre_label = default
-
-        if self._assets_box.currentText() != "":
-            asset_label = self._assets_box.currentText()
-        if self._subsets_box.currentText() != "":
-            subset_label = self._subsets_box.currentText()
-        if self._representations_box.currentText() != "":
-            repre_label = self._representations_box.currentText()
-
-        self._asset_label.setText(asset_label)
-        self._subset_label.setText(subset_label)
-        self._repre_label.setText(repre_label)
-
-    def validate(self):
-        asset_name = self._assets_box.get_valid_value() or None
-        subset_name = self._subsets_box.get_valid_value() or None
-        repre_name = self._representations_box.get_valid_value() or None
+        self.fill_check = False
 
         asset_ok = True
         subset_ok = True
         repre_ok = True
-        for item in self._items:
-            if any(not x for x in [asset_name, subset_name, repre_name]):
-                _id = io.ObjectId(item["representation"])
-                representation = io.find_one({
-                    "type": "representation",
-                    "_id": _id
-                })
-                version, subset, asset, project = io.parenthood(representation)
 
-                if asset_name is None:
-                    asset_name = asset["name"]
+        asset_values = None
+        subset_values = None
+        repre_values = None
 
-                if subset_name is None:
-                    subset_name = subset["name"]
+        if init_refresh:
+            asset_values = self._get_asset_box_values()
+            self._fill_combobox(asset_values, "asset")
 
-                if repre_name is None:
-                    repre_name = representation["name"]
+        # Set other comboboxes to empty if any document is missing or any asset
+        # of loaded representations is archived.
+        asset_ok = self._is_asset_ok()
 
-            asset = io.find_one({"name": asset_name, "type": "asset"})
-            if asset is None:
+        if asset_ok:
+            subset_values = self._get_subset_box_values()
+            self._fill_combobox(subset_values, "subset")
+            if not subset_values:
                 asset_ok = False
-                continue
-            subset = io.find_one({
-                "name": subset_name,
-                "type": "subset",
-                "parent": asset["_id"]
-            })
-            if subset is None:
+            else:
+                subset_ok = self._is_subset_ok(subset_values)
+
+        if asset_ok and subset_ok:
+            repre_values = sorted(self._representations_box_values())
+            self._fill_combobox(repre_values, "repre")
+            if not repre_values:
                 subset_ok = False
-                continue
-            version = io.find_one(
-                {
-                    "type": "version",
-                    "parent": subset["_id"]
-                },
-                sort=[("name", -1)]
-            )
-            if version is None:
-                repre_ok = False
-                continue
+            else:
+                repre_ok = self._is_repre_ok(repre_values)
 
-            repre = io.find_one({
-                "name": repre_name,
-                "type": "representation",
-                "parent": version["_id"]
-            })
-            if repre is None:
-                repre_ok = False
+        if not asset_ok:
+            subset_values = list()
+            repre_values = list()
+        elif not subset_ok:
+            repre_values = list()
 
-        asset_sheet = ""
-        subset_sheet = ""
-        repre_sheet = ""
-        accept_sheet = ""
+        # Fill comboboxes with values
+        self.set_labels()
+        self.apply_validations(asset_ok, subset_ok, repre_ok)
+
+        self.fill_check = True
+
+    def _get_loaders(self, representations):
+        if not representations:
+            return list()
+
+        available_loaders = filter(
+            lambda l: not (hasattr(l, "is_utility") and l.is_utility),
+            api.discover(api.Loader)
+        )
+
+        loaders = set()
+
+        for representation in representations:
+            for loader in api.loaders_from_representation(
+                available_loaders,
+                representation
+            ):
+                loaders.add(loader)
+
+        return loaders
+
+    def _fill_combobox(self, values, combobox_type):
+        if combobox_type == "asset":
+            combobox_widget = self._assets_box
+        elif combobox_type == "subset":
+            combobox_widget = self._subsets_box
+        elif combobox_type == "repre":
+            combobox_widget = self._representations_box
+        else:
+            return
+        selected_value = combobox_widget.get_valid_value()
+
+        # Fill combobox
+        if values is not None:
+            combobox_widget.populate(values)
+            if selected_value and selected_value in values:
+                index = None
+                for idx in range(combobox_widget.count()):
+                    if selected_value == str(combobox_widget.itemText(idx)):
+                        index = idx
+                        break
+                if index is not None:
+                    combobox_widget.setCurrentIndex(index)
+
+    def set_labels(self):
+        asset_label = self._assets_box.get_valid_value()
+        subset_label = self._subsets_box.get_valid_value()
+        repre_label = self._representations_box.get_valid_value()
+
+        default = "*No changes"
+        self._asset_label.setText(asset_label or default)
+        self._subset_label.setText(subset_label or default)
+        self._repre_label.setText(repre_label or default)
+
+    def apply_validations(self, asset_ok, subset_ok, repre_ok):
         error_msg = "*Please select"
+        error_sheet = "border: 1px solid red;"
+        success_sheet = "border: 1px solid green;"
+
+        asset_sheet = None
+        subset_sheet = None
+        repre_sheet = None
+        accept_sheet = None
+        all_ok = asset_ok and subset_ok and repre_ok
+
         if asset_ok is False:
-            asset_sheet = "border: 1px solid red;"
+            asset_sheet = error_sheet
             self._asset_label.setText(error_msg)
-        if subset_ok is False:
-            subset_sheet = "border: 1px solid red;"
+        elif subset_ok is False:
+            subset_sheet = error_sheet
             self._subset_label.setText(error_msg)
-        if repre_ok is False:
-            repre_sheet = "border: 1px solid red;"
+        elif repre_ok is False:
+            repre_sheet = error_sheet
             self._repre_label.setText(error_msg)
-        if asset_ok and subset_ok and repre_ok:
-            accept_sheet = "border: 1px solid green;"
 
-        self._assets_box.setStyleSheet(asset_sheet)
-        self._subsets_box.setStyleSheet(subset_sheet)
-        self._representations_box.setStyleSheet(repre_sheet)
+        if all_ok:
+            accept_sheet = success_sheet
 
-        self._accept_btn.setEnabled(asset_ok and subset_ok and repre_ok)
-        self._accept_btn.setStyleSheet(accept_sheet)
+        self._assets_box.setStyleSheet(asset_sheet or "")
+        self._subsets_box.setStyleSheet(subset_sheet or "")
+        self._representations_box.setStyleSheet(repre_sheet or "")
 
-    def _get_assets(self):
+        self._accept_btn.setEnabled(all_ok)
+        self._accept_btn.setStyleSheet(accept_sheet or "")
+
+    def _get_asset_box_values(self):
+        assets_by_id = {
+            asset_doc["_id"]: asset_doc
+            for asset_doc in io.find({"type": "asset"})
+        }
+        subsets = io.find({
+            "type": "subset",
+            "parent": {"$in": list(assets_by_id.keys())}
+        })
+
         filtered_assets = []
-        for asset in io.find({"type": "asset"}):
-            subsets = io.find({
-                "type": "subset",
-                "parent": asset["_id"]
-            })
-            for subs in subsets:
-                filtered_assets.append(asset["name"])
-                break
+        for subset in subsets:
+            asset_name = assets_by_id[subset["parent"]]["name"]
+            if asset_name not in filtered_assets:
+                filtered_assets.append(asset_name)
+        return sorted(filtered_assets)
 
-        return filtered_assets
+    def _get_subset_box_values(self):
+        selected_asset = self._assets_box.get_valid_value()
+        if selected_asset:
+            asset_doc = io.find_one({"type": "asset", "name": selected_asset})
+            asset_ids = [asset_doc["_id"]]
+        else:
+            asset_ids = list(self.content_assets.keys())
 
-    def _get_subsets(self):
-        # Filter subsets by asset in dropdown
-        if self._assets_box.currentText() != "":
-            parents = list()
-            parents.append(io.find_one({
-                "type": "asset",
-                "name": self._assets_box.currentText()
-            }))
+        subsets = io.find({
+            "type": "subset",
+            "parent": {"$in": asset_ids}
+        })
 
-            return self._get_document_names("subset", parents)
-        # If any asset in dropdown is selected
-        # - filter subsets by selected assets in scene inventory
-        assets = []
-        for item in self._items:
-            _id = io.ObjectId(item["representation"])
-            representation = io.find_one(
-                {"type": "representation", "_id": _id}
-            )
-            version, subset, asset, project = io.parenthood(representation)
-            assets.append(asset)
+        subset_names_by_parent_id = collections.defaultdict(set)
+        for subset in subsets:
+            subset_names_by_parent_id[subset["parent"]].add(subset["name"])
 
         possible_subsets = None
-        for asset in assets:
-            subsets = io.find({
-                "type": "subset",
-                "parent": asset["_id"]
-            })
-            asset_subsets = set()
-            for subset in subsets:
-                asset_subsets.add(subset["name"])
-
+        for subset_names in subset_names_by_parent_id.values():
             if possible_subsets is None:
-                possible_subsets = asset_subsets
+                possible_subsets = subset_names
             else:
-                possible_subsets = (possible_subsets & asset_subsets)
+                possible_subsets = (possible_subsets & subset_names)
 
-        return list(possible_subsets)
+            if not possible_subsets:
+                break
 
-    def _get_representations(self):
-        if self._subsets_box.currentText() != "":
-            subsets = []
-            parents = []
-            subsets.append(self._subsets_box.currentText())
+        return list(possible_subsets or list())
 
-            for subset in subsets:
-                entity = io.find_one({
-                    "type": "subset",
-                    "name": subset
-                })
+    def _representations_box_values(self):
+        # NOTE master versions are not used because it is expected that
+        # master version has same representations as latests
+        selected_asset = self._assets_box.currentText()
+        selected_subset = self._subsets_box.currentText()
 
-                entity = io.find_one(
-                    {
-                        "type": "version",
-                        "parent": entity["_id"]
-                    },
-                    sort=[("name", -1)]
-                )
-                if entity not in parents:
-                    parents.append(entity)
-
-            return self._get_document_names("representation", parents)
-
-        versions = []
-        for item in self._items:
-            _id = io.ObjectId(item["representation"])
-            representation = io.find_one(
-                {"type": "representation", "_id": _id}
-            )
-            version, subset, asset, project = io.parenthood(representation)
-            versions.append(version)
-
-        possible_repres = None
-        for version in versions:
-            representations = io.find({
+        # If nothing is selected
+        if not selected_asset and not selected_subset:
+            # Find all representations of selection's subsets
+            possible_repres = list(io.find({
                 "type": "representation",
-                "parent": version["_id"]
-            })
-            repres = set()
-            for repre in representations:
-                repres.add(repre["name"])
+                "parent": {"$in": list(self.content_versions.keys())}
+            }))
 
-            if possible_repres is None:
-                possible_repres = repres
+            possible_repres_by_parent = collections.defaultdict(set)
+            for repre in possible_repres:
+                possible_repres_by_parent[repre["parent"]].add(repre["name"])
+
+            output_repres = None
+            for repre_names in possible_repres_by_parent.values():
+                if output_repres is None:
+                    output_repres = repre_names
+                else:
+                    output_repres = (output_repres & repre_names)
+
+                if not output_repres:
+                    break
+
+            return list(output_repres or list())
+
+        if selected_asset:
+            # If asset only is selected
+            asset = io.find_one({"type": "asset", "name": selected_asset})
+            asset_ids = [asset["_id"]]
+        else:
+            # If only subset is selected
+            asset_ids = list(self.content_assets.keys())
+
+        subset_query = {
+            "type": "subset",
+            "parent": {"$in": asset_ids}
+        }
+        if selected_subset:
+            subset_query["name"] = selected_subset
+
+        subsets = list(io.find(subset_query))
+        if not subsets:
+            return list()
+
+        # versions
+        versions = list(io.find({
+            "type": "version",
+            "parent": {"$in": [subset["_id"] for subset in subsets]}
+        }, sort=[("name", -1)]))
+        if not versions:
+            return list()
+
+        higher_versions_map = {}
+        for version in versions:
+            parent_id = version["parent"]
+            if parent_id not in higher_versions_map:
+                higher_versions_map[parent_id] = version
+
+        higher_versions_ids = [
+            version["_id"] for version in higher_versions_map.values()
+        ]
+
+        higher_version_repres = io.find({
+            "type": "representation",
+            "parent": {"$in": higher_versions_ids}
+        })
+
+        repre_per_version = collections.defaultdict(set)
+        for repre in higher_version_repres:
+            repre_per_version[repre["parent"]].add(repre["name"])
+
+        # representations
+        output_repres = None
+        for repre_names in repre_per_version.values():
+            if output_repres is None:
+                output_repres = repre_names
             else:
-                possible_repres = (possible_repres & repres)
+                output_repres = (output_repres & repre_names)
 
-        return list(possible_repres)
+            if not output_repres:
+                break
 
-    def _get_document_names(self, document_type, parents=[]):
+        return list(output_repres or list())
 
-        query = {"type": document_type}
+    def _is_asset_ok(self):
+        selected_asset = self._assets_box.get_valid_value()
+        if (
+            selected_asset is None
+            and (self.missing_docs or self.archived_assets)
+        ):
+            return False
+        return True
 
-        if len(parents) == 1:
-            query["parent"] = parents[0]["_id"]
-        elif len(parents) > 1:
-            or_exprs = []
-            for parent in parents:
-                expr = {"parent": parent["_id"]}
-                or_exprs.append(expr)
+    def _is_subset_ok(self, subset_values):
+        selected_asset = self._assets_box.get_valid_value()
+        selected_subset = self._subsets_box.get_valid_value()
 
-            query["$or"] = or_exprs
+        # If subset is selected then must be ok
+        if selected_subset is not None:
+            return True
 
-        return io.find(query).distinct("name")
+        if self.missing_docs:
+            return False
+
+        if self.archived_subsets:
+            if selected_asset is None:
+                return False
+
+            asset_doc = io.find_one({
+                "type": "asset",
+                "name": selected_asset
+            })
+            subset_docs = io.find({
+                "type": "subset",
+                "parent": asset_doc["_id"]
+            })
+            for subset in subset_docs:
+                if subset["name"] not in subset_values:
+                    return False
+        return True
+
+    def _is_repre_ok(self, repre_values):
+        selected_asset = self._assets_box.get_valid_value()
+        selected_subset = self._subsets_box.get_valid_value()
+        selected_repre = self._representations_box.get_valid_value()
+
+        # If subset is selected then must be ok
+        if selected_repre is not None:
+            return True
+
+        if self.missing_docs:
+            return False
+
+        if selected_asset is None and selected_subset is None:
+            if self.archived_repres:
+                return False
+            return True
+
+        if selected_asset:
+            asset_doc = io.find_one({"type": "asset", "name": selected_asset})
+            asset_ids = [asset_doc["_id"]]
+        else:
+            asset_ids = list(self.content_assets.keys())
+
+        subset_query = {
+            "type": "subset",
+            "parent": {"$in": asset_ids}
+        }
+        if selected_subset:
+            subset_query["name"] = selected_subset
+
+        subset_docs = list(io.find(subset_query))
+        if not subset_docs:
+            return False
+
+        subsets_by_id = {
+            subset["_id"]: subset
+            for subset in subset_docs
+        }
+
+        versions = io.find({
+            "type": "version",
+            "parent": {"$in": [subset["_id"] for subset in subset_docs]}
+        }, sort=[("name", -1)])
+
+        highest_version_mapping = {}
+        for version in versions:
+            subset_id = version["parent"]
+            if subset_id not in highest_version_mapping:
+                highest_version_mapping[subset_id] = version
+
+        higher_versions_by_id = {
+            version["_id"]: version
+            for version in highest_version_mapping.values()
+        }
+        repre_docs = io.find({
+            "type": "representation",
+            "parent": {"$in": list(higher_versions_by_id.keys())}
+        })
+
+        hierarchy = collections.defaultdict(list)
+        for repre_doc in repre_docs:
+            version_doc = higher_versions_by_id[repre_doc["parent"]]
+            subset_doc = subsets_by_id[version_doc["parent"]]
+            hierarchy[subset_doc["name"]].append(repre_doc["name"])
+
+        content_repre_names = set()
+        for repre_doc in self.content_repres.values():
+            content_repre_names.add(repre_doc["name"])
+
+        if selected_subset:
+            subset_repre_names = hierarchy.get(selected_subset)
+            if not subset_repre_names:
+                return False
+            for repre_name in content_repre_names:
+                if repre_name not in subset_repre_names:
+                    return False
+            return True
+
+        if selected_asset:
+            return True
+
+        for repre_doc in self.content_repres.values():
+            version_doc = self.content_versions[repre_doc["parent"]]
+            subset_doc = self.content_subsets[version_doc["parent"]]
+            subset_name = subset_doc["name"]
+
+            repre_names = hierarchy.get(subset_name) or []
+            if repre_doc["name"] not in repre_names:
+                return False
+        return True
 
     def _on_accept(self):
-
         # Use None when not a valid value or when placeholder value
-        asset = self._assets_box.get_valid_value() or None
-        subset = self._subsets_box.get_valid_value() or None
-        representation = self._representations_box.get_valid_value() or None
+        selected_asset = self._assets_box.get_valid_value()
+        selected_subset = self._subsets_box.get_valid_value()
+        selected_representation = self._representations_box.get_valid_value()
 
-        if not any([asset, subset, representation]):
-            self.log.error("Nothing selected")
-            return
+        if selected_asset:
+            asset_doc = io.find_one({"type": "asset", "name": selected_asset})
+            asset_docs_by_id = {asset_doc["_id"]: asset_doc}
+        else:
+            asset_docs_by_id = self.content_assets
 
-        for item in self._items:
+        asset_docs_by_name = {
+            asset_doc["name"]: asset_doc
+            for asset_doc in asset_docs_by_id.values()
+        }
+
+        asset_ids = list(asset_docs_by_id.keys())
+
+        subset_query = {
+            "type": "subset",
+            "parent": {"$in": asset_ids}
+        }
+        if selected_subset:
+            subset_query["name"] = selected_subset
+
+        subset_docs = list(io.find(subset_query))
+        subset_ids = []
+        subset_docs_by_parent_and_name = collections.defaultdict(dict)
+        for subset in subset_docs:
+            subset_ids.append(subset["_id"])
+            parent_id = subset["parent"]
+            name = subset["name"]
+            subset_docs_by_parent_and_name[parent_id][name] = subset
+
+        # versions
+        version_docs = list(io.find({
+            "type": "version",
+            "parent": {"$in": subset_ids}
+        }, sort=[("name", -1)]))
+
+        master_version_docs = list(io.find({
+            "type": "master_version",
+            "parent": {"$in": subset_ids}
+        }))
+
+        version_ids = list()
+
+        version_docs_by_parent_id = {}
+        for version_doc in version_docs:
+            parent_id = version_doc["parent"]
+            if parent_id not in version_docs_by_parent_id:
+                version_ids.append(version_doc["_id"])
+                version_docs_by_parent_id[parent_id] = version_doc
+
+        master_version_docs_by_parent_id = {}
+        for master_version_doc in master_version_docs:
+            version_ids.append(master_version_doc["_id"])
+            parent_id = master_version_doc["parent"]
+            master_version_docs_by_parent_id[parent_id] = master_version_doc
+
+        repre_docs = io.find({
+            "type": "representation",
+            "parent": {"$in": version_ids}
+        })
+        repre_docs_by_parent_id_by_name = collections.defaultdict(dict)
+        for repre_doc in repre_docs:
+            parent_id = repre_doc["parent"]
+            name = repre_doc["name"]
+            repre_docs_by_parent_id_by_name[parent_id][name] = repre_doc
+
+        for container in self._items:
+            container_repre_id = io.ObjectId(container["representation"])
+            container_repre = self.content_repres[container_repre_id]
+            container_repre_name = container_repre["name"]
+
+            container_version_id = container_repre["parent"]
+            container_version = self.content_versions[container_version_id]
+
+            container_subset_id = container_version["parent"]
+            container_subset = self.content_subsets[container_subset_id]
+            container_subset_name = container_subset["name"]
+
+            container_asset_id = container_subset["parent"]
+            container_asset = self.content_assets[container_asset_id]
+            container_asset_name = container_asset["name"]
+
+            if selected_asset:
+                asset_doc = asset_docs_by_name[selected_asset]
+            else:
+                asset_doc = asset_docs_by_name[container_asset_name]
+
+            subsets_by_name = subset_docs_by_parent_and_name[asset_doc["_id"]]
+            if selected_subset:
+                subset_doc = subsets_by_name[selected_subset]
+            else:
+                subset_doc = subsets_by_name[container_subset_name]
+
+            repre_doc = None
+            subset_id = subset_doc["_id"]
+            if container_version["type"] == "master_version":
+                master_version = master_version_docs_by_parent_id.get(
+                    subset_id
+                )
+                if master_version:
+                    _repres = repre_docs_by_parent_id_by_name.get(
+                        master_version["_id"]
+                    )
+                    if selected_representation:
+                        repre_doc = _repres.get(selected_representation)
+                    else:
+                        repre_doc = _repres.get(container_repre_name)
+
+            if not repre_doc:
+                version_doc = version_docs_by_parent_id[subset_id]
+                version_id = version_doc["_id"]
+                repres_by_name = repre_docs_by_parent_id_by_name[version_id]
+                if selected_representation:
+                    repre_doc = repres_by_name[selected_representation]
+                else:
+                    repre_doc = repres_by_name[container_repre_name]
+
             try:
-                switch_item(item,
-                            asset_name=asset,
-                            subset_name=subset,
-                            representation_name=representation)
-            except Exception as e:
-                self.log.warning(e)
+                api.switch(container, repre_doc)
+            except Exception:
+                self.log.warning(
+                    (
+                        "Couldn't switch asset."
+                        "See traceback for more information."
+                    ),
+                    exc_info=True
+                )
 
         self.switched.emit()
 
@@ -825,9 +1418,10 @@ class Window(QtWidgets.QDialog):
 
         self.resize(1100, 480)
         self.setWindowTitle(
-            "Scene Inventory 1.0 - %s/%s" % (
-                api.registered_root(),
-                os.getenv("AVALON_PROJECT")))
+            "Scene Inventory 1.0 - {}".format(
+                os.getenv("AVALON_PROJECT") or "<Project not set>"
+            )
+        )
         self.setObjectName("SceneInventory")
         self.setProperty("saveWindowPref", True)  # Maya only property!
 
@@ -852,14 +1446,15 @@ class Window(QtWidgets.QDialog):
         control_layout.addWidget(refresh_button)
 
         # endregion control
+        self.family_config_cache = tools_lib.global_family_cache()
 
-        model = InventoryModel()
+        model = InventoryModel(self.family_config_cache)
         proxy = FilterProxyModel()
         view = View()
         view.setModel(proxy)
 
         # apply delegates
-        version_delegate = VersionDelegate(self)
+        version_delegate = VersionDelegate(io, self)
         column = model.Columns.index("version")
         view.setItemDelegateForColumn(column, version_delegate)
 
@@ -899,7 +1494,7 @@ class Window(QtWidgets.QDialog):
         self.view.setColumnWidth(3, 150)  # family
         self.view.setColumnWidth(4, 100)  # namespace
 
-        tools_lib.refresh_family_config_cache()
+        self.family_config_cache.refresh()
 
     def keyPressEvent(self, event):
         """Custom keyPressEvent.
@@ -940,14 +1535,20 @@ def show(root=None, debug=False, parent=None):
     except (RuntimeError, AttributeError):
         pass
 
-    if debug:
-        import traceback
-        sys.excepthook = lambda typ, val, tb: traceback.print_last()
+    if debug is True:
+        io.install()
+
+        any_project = next(
+            project for project in io.projects()
+            if project.get("active", True) is not False
+        )
+
+        api.Session["AVALON_PROJECT"] = any_project["name"]
 
     with tools_lib.application():
         window = Window(parent)
-        window.show()
         window.setStyleSheet(style.load_stylesheet())
+        window.show()
         window.refresh()
 
         module.window = window

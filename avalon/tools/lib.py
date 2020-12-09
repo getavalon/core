@@ -1,6 +1,7 @@
 import os
 import sys
 import contextlib
+import collections
 
 from .. import io, api, style
 from ..vendor import qtawesome
@@ -10,6 +11,25 @@ from ..vendor.Qt import QtWidgets, QtCore
 self = sys.modules[__name__]
 self._jobs = dict()
 self._path = os.path.dirname(__file__)
+
+# Variable for family cache in global context
+# QUESTION is this safe? More than one tool can refresh at the same time.
+_GLOBAL_FAMILY_CACHE = None
+
+
+def global_family_cache():
+    global _GLOBAL_FAMILY_CACHE
+    if _GLOBAL_FAMILY_CACHE is None:
+        _GLOBAL_FAMILY_CACHE = FamilyConfigCache(io)
+    return _GLOBAL_FAMILY_CACHE
+
+
+def format_version(value, master_version=False):
+    """Formats integer to displayable version name"""
+    label = "v{0:03d}".format(value)
+    if not master_version:
+        return label
+    return "[{}]".format(label)
 
 
 def resource(*path):
@@ -63,7 +83,7 @@ def schedule(func, time, channel="default"):
 
     try:
         self._jobs[channel].stop()
-    except (AttributeError, KeyError):
+    except (AttributeError, KeyError, RuntimeError):
         pass
 
     timer = QtCore.QTimer()
@@ -87,14 +107,11 @@ def dummy():
     yield
 
 
-def iter_model_rows(model,
-                    column,
-                    include_root=False):
+def iter_model_rows(model, column, include_root=False):
     """Iterate over all row indices in a model"""
     indices = [QtCore.QModelIndex()]  # start iteration at root
 
     for index in indices:
-
         # Add children to the iterations
         child_rows = model.rowCount(index)
         for child_row in range(child_rows):
@@ -113,7 +130,6 @@ def preserve_states(tree_view,
                     role=None,
                     preserve_expanded=True,
                     preserve_selection=True,
-                    current_index=True,
                     expanded_role=QtCore.Qt.DisplayRole,
                     selection_role=QtCore.Qt.DisplayRole):
     """Preserves row selection in QTreeView by column's data role.
@@ -152,11 +168,6 @@ def preserve_states(tree_view,
         if selected_rows:
             selected = set(row.data(selection_role) for row in selected_rows)
 
-    if current_index:
-        current_index_value = tree_view.currentIndex().data(role)
-    else:
-        current_index_value = None
-
     try:
         yield
     finally:
@@ -182,15 +193,9 @@ def preserve_states(tree_view,
                     tree_view.scrollTo(index)  # Ensure item is visible
                     selection_model.select(index, flags)
 
-                if current_index_value and value == current_index_value:
-                    selection_model.setCurrentIndex(index,
-                                                    selection_model.NoUpdate)
-
 
 @contextlib.contextmanager
-def preserve_expanded_rows(tree_view,
-                           column=0,
-                           role=QtCore.Qt.DisplayRole):
+def preserve_expanded_rows(tree_view, column=0, role=None):
     """Preserves expanded row in QTreeView by column's data role.
 
     This function is created to maintain the expand vs collapse status of
@@ -207,14 +212,13 @@ def preserve_expanded_rows(tree_view,
         None
 
     """
-
+    if role is None:
+        role = QtCore.Qt.DisplayRole
     model = tree_view.model()
 
     expanded = set()
 
-    for index in iter_model_rows(model,
-                                 column=column,
-                                 include_root=False):
+    for index in iter_model_rows(model, column=column, include_root=False):
         if tree_view.isExpanded(index):
             value = index.data(role)
             expanded.add(value)
@@ -225,9 +229,7 @@ def preserve_expanded_rows(tree_view,
         if not expanded:
             return
 
-        for index in iter_model_rows(model,
-                                     column=column,
-                                     include_root=False):
+        for index in iter_model_rows(model, column=column, include_root=False):
             value = index.data(role)
             state = value in expanded
             if state:
@@ -237,10 +239,7 @@ def preserve_expanded_rows(tree_view,
 
 
 @contextlib.contextmanager
-def preserve_selection(tree_view,
-                       column=0,
-                       role=QtCore.Qt.DisplayRole,
-                       current_index=True):
+def preserve_selection(tree_view, column=0, role=None, current_index=True):
     """Preserves row selection in QTreeView by column's data role.
 
     This function is created to maintain the selection status of
@@ -255,7 +254,8 @@ def preserve_selection(tree_view,
         None
 
     """
-
+    if role is None:
+        role = QtCore.Qt.DisplayRole
     model = tree_view.model()
     selection_model = tree_view.selectionModel()
     flags = selection_model.Select | selection_model.Rows
@@ -278,10 +278,7 @@ def preserve_selection(tree_view,
             return
 
         # Go through all indices, select the ones with similar data
-        for index in iter_model_rows(model,
-                                     column=column,
-                                     include_root=False):
-
+        for index in iter_model_rows(model, column=column, include_root=False):
             value = index.data(role)
             state = value in selected
             if state:
@@ -289,179 +286,247 @@ def preserve_selection(tree_view,
                 selection_model.select(index, flags)
 
             if current_index_value and value == current_index_value:
-                selection_model.setCurrentIndex(index,
-                                                selection_model.NoUpdate)
+                selection_model.setCurrentIndex(
+                    index, selection_model.NoUpdate
+                )
 
 
-FAMILY_ICON_COLOR = "#0091B2"
-FAMILY_CONFIG_CACHE = {}
-GROUP_CONFIG_CACHE = {}
+class FamilyConfigCache:
+    default_color = "#0091B2"
+    _default_icon = None
+    _default_item = None
 
+    def __init__(self, dbcon):
+        self.dbcon = dbcon
+        self.family_configs = {}
 
-def get_family_cached_config(name):
-    """Get value from config with fallback to default"""
-    # We assume the default fallback key in the config is `__default__`
-    config = FAMILY_CONFIG_CACHE
-    return config.get(name, config.get("__default__", None))
+    @classmethod
+    def default_icon(cls):
+        if cls._default_icon is None:
+            cls._default_icon = qtawesome.icon(
+                "fa.folder", color=cls.default_color
+            )
+        return cls._default_icon
 
+    @classmethod
+    def default_item(cls):
+        if cls._default_item is None:
+            cls._default_item = {"icon": cls.default_icon()}
+        return cls._default_item
 
-def refresh_family_config_cache():
-    """Get the family configurations from the database
+    def family_config(self, family_name):
+        """Get value from config with fallback to default"""
+        return self.family_configs.get(family_name, self.default_item())
 
-    The configuration must be stored on the project under `config`.
-    For example:
+    def refresh(self):
+        """Get the family configurations from the database
 
-    {
-        "config": {
+        The configuration must be stored on the project under `config`.
+        For example:
+
+        {"config": {
             "families": [
                 {"name": "avalon.camera", label: "Camera", "icon": "photo"},
                 {"name": "avalon.anim", label: "Animation", "icon": "male"},
             ]
-        }
-    }
+        }}
 
-    It is possible to override the default behavior and set specific families
-    checked. For example we only want the families imagesequence  and camera
-    to be visible in the Loader.
+        It is possible to override the default behavior and set specific
+        families checked. For example we only want the families imagesequence
+        and camera to be visible in the Loader.
 
-    # This will turn every item off
-    api.data["familyStateDefault"] = False
+        # This will turn every item off
+        api.data["familyStateDefault"] = False
 
-    # Only allow the imagesequence and camera
-    api.data["familyStateToggled"] = ["imagesequence", "camera"]
+        # Only allow the imagesequence and camera
+        api.data["familyStateToggled"] = ["imagesequence", "camera"]
 
-    """
-    # Update the icons from the project configuration
-    project = io.find_one({"type": "project"},
-                          projection={"config.families": True})
+        """
 
-    assert project, "Project not found!"
-    families = project["config"].get("families", [])
-    families = {family["name"]: family for family in families}
+        self.family_configs.clear()
 
-    # Check if any family state are being overwritten by the configuration
-    default_state = api.data.get("familiesStateDefault", True)
-    toggled = set(api.data.get("familiesStateToggled", []))
+        # Update the icons from the project configuration
+        project_doc = self.dbcon.find_one(
+            {"type": "project"},
+            projection={"config.families": True}
+        )
 
-    # Replace icons with a Qt icon we can use in the user interfaces
-    default_icon = qtawesome.icon("fa.folder", color=FAMILY_ICON_COLOR)
-    for name, family in families.items():
-        # Set family icon
-        icon = family.get("icon", None)
-        if icon:
-            family["icon"] = qtawesome.icon("fa.{}".format(icon),
-                                            color=FAMILY_ICON_COLOR)
-        else:
-            family["icon"] = default_icon
+        if not project_doc:
+            project_name = self.dbcon.Session["AVALON_PROJECT"]
+            print((
+                "Project \"{}\" not found! Can't refresh family icons cache."
+            ).format(project_name))
+            return
+        families = project_doc["config"].get("families") or []
 
-        # Update state
-        state = not default_state if name in toggled else default_state
-        family["state"] = state
+        # Check if any family state are being overwritten by the configuration
+        default_state = api.data.get("familiesStateDefault", True)
+        toggled = set(api.data.get("familiesStateToggled") or [])
 
-    # Default configuration
-    families["__default__"] = {"icon": default_icon}
+        # Replace icons with a Qt icon we can use in the user interfaces
+        for family in families:
+            name = family["name"]
+            # Set family icon
+            icon = family.get("icon", None)
+            if icon:
+                family["icon"] = qtawesome.icon(
+                    "fa.{}".format(icon),
+                    color=self.default_color
+                )
+            else:
+                family["icon"] = self.default_icon()
 
-    FAMILY_CONFIG_CACHE.clear()
-    FAMILY_CONFIG_CACHE.update(families)
+            # Update state
+            if name in toggled:
+                state = True
+            else:
+                state = default_state
+            family["state"] = state
 
-    return families
+            self.family_configs[name] = family
+
+        return self.family_configs
 
 
-def refresh_group_config_cache():
-    """Get subset group configurations from the database
-
-    The 'group' configuration must be stored in the project `config` field.
-    See schema `config-1.0.json`
-
-    """
-
+class GroupsConfig:
     # Subset group item's default icon and order
-    default_group_icon = qtawesome.icon("fa.object-group",
-                                        color=style.colors.default)
-    default_group_config = {"icon": default_group_icon,
-                            "order": 0}
+    _default_group_config = None
 
-    # Get pre-defined group name and apperance from project config
-    project = io.find_one({"type": "project"},
-                          projection={"config.groups": True})
+    def __init__(self, dbcon):
+        self.dbcon = dbcon
+        self.groups = {}
 
-    assert project, "Project not found!"
-    group_configs = project["config"].get("groups", [])
+    @classmethod
+    def default_group_config(cls):
+        if cls._default_group_config is None:
+            cls._default_group_config = {
+                "icon": qtawesome.icon(
+                    "fa.object-group",
+                    color=style.colors.default
+                ),
+                "order": 0
+            }
+        return cls._default_group_config
 
-    # Build pre-defined group configs
-    groups = dict()
-    for config in group_configs:
-        name = config["name"]
-        icon = "fa." + config.get("icon", "object-group")
-        color = config.get("color", style.colors.default)
-        order = float(config.get("order", 0))
+    def refresh(self):
+        """Get subset group configurations from the database
 
-        groups[name] = {"icon": qtawesome.icon(icon, color=color),
-                        "order": order}
+        The 'group' configuration must be stored in the project `config` field.
+        See schema `config-1.0.json`
 
-    # Default configuration
-    groups["__default__"] = default_group_config
+        """
+        # Clear cached groups
+        self.groups.clear()
 
-    GROUP_CONFIG_CACHE.clear()
-    GROUP_CONFIG_CACHE.update(groups)
+        # Get pre-defined group name and apperance from project config
+        project_doc = self.dbcon.find_one(
+            {"type": "project"},
+            projection={"config.groups": True}
+        )
 
-    return groups
+        if not project_doc:
+            print(
+                "Project not found! \"{}\"".format(
+                    self.dbcon.Session["AVALON_PROJECT"]
+                )
+            )
+        group_configs = project_doc["config"].get("groups") or []
 
+        # Build pre-defined group configs
+        for config in group_configs:
+            name = config["name"]
+            icon = "fa." + config.get("icon", "object-group")
+            color = config.get("color", style.colors.default)
+            order = float(config.get("order", 0))
 
-def get_active_group_config(asset_id, include_predefined=False):
-    """Collect all active groups from each subset"""
-    predefineds = GROUP_CONFIG_CACHE.copy()
-    default_group_config = predefineds.pop("__default__")
+            self.groups[name] = {
+                "icon": qtawesome.icon(icon, color=color),
+                "order": order
+            }
 
-    _orders = set([0])  # default order zero included
-    for config in predefineds.values():
-        _orders.add(config["order"])
+        return self.groups
 
-    # Remap order to list index
-    orders = sorted(_orders)
+    def ordered_groups(self, group_names):
+        # default order zero included
+        _orders = set([0])
+        for config in self.groups.values():
+            _orders.add(config["order"])
 
-    # Collect groups from subsets
-    group_names = set(io.distinct("data.subsetGroup",
-                                  {"type": "subset", "parent": asset_id}))
-    if include_predefined:
-        # Ensure all predefined group configs will be included
-        group_names.update(predefineds.keys())
+        # Remap order to list index
+        orders = sorted(_orders)
 
-    groups = list()
+        _groups = list()
+        for name in group_names:
+            # Get group config
+            config = self.groups.get(name) or self.default_group_config()
+            # Base order
+            remapped_order = orders.index(config["order"])
 
-    for name in group_names:
-        # Get group config
-        config = predefineds.get(name, default_group_config)
-        # Base order
-        remapped_order = orders.index(config["order"])
+            data = {
+                "name": name,
+                "icon": config["icon"],
+                "_order": remapped_order,
+            }
 
-        data = {
-            "name": name,
-            "icon": config["icon"],
-            "_order": remapped_order,
-        }
+            _groups.append(data)
 
-        groups.append(data)
+        # Sort by tuple (base_order, name)
+        # If there are multiple groups in same order, will sorted by name.
+        ordered_groups = sorted(
+            _groups, key=lambda _group: (_group.pop("_order"), _group["name"])
+        )
 
-    # Sort by tuple (base_order, name)
-    # If there are multiple groups in same order, will sorted by name.
-    ordered = sorted(groups, key=lambda dat: (dat.pop("_order"), dat["name"]))
+        total = len(ordered_groups)
+        order_temp = "%0{}d".format(len(str(total)))
 
-    total = len(ordered)
-    order_temp = "%0{}d".format(len(str(total)))
+        # Update sorted order to config
+        for index, group_data in enumerate(ordered_groups):
+            order = index
+            inverse_order = total - index
 
-    # Update sorted order to config
-    for index, data in enumerate(ordered):
-        order = index
-        inverse_order = total - order
-
-        data.update({
             # Format orders into fixed length string for groups sorting
-            "order": order_temp % order,
-            "inverseOrder": order_temp % inverse_order,
-        })
+            group_data["order"] = order_temp % order
+            group_data["inverseOrder"] = order_temp % inverse_order
 
-    return ordered
+        return ordered_groups
+
+    def active_groups(self, asset_ids, include_predefined=True):
+        """Collect all active groups from each subset"""
+        # Collect groups from subsets
+        group_names = set(
+            self.dbcon.distinct(
+                "data.subsetGroup",
+                {"type": "subset", "parent": {"$in": asset_ids}}
+            )
+        )
+        if include_predefined:
+            # Ensure all predefined group configs will be included
+            group_names.update(self.groups.keys())
+
+        return self.ordered_groups(group_names)
+
+    def split_subsets_for_groups(self, subset_docs, grouping):
+        """Collect all active groups from each subset"""
+        subset_docs_without_group = collections.defaultdict(list)
+        subset_docs_by_group = collections.defaultdict(dict)
+        for subset_doc in subset_docs:
+            subset_name = subset_doc["name"]
+            if grouping:
+                group_name = subset_doc["data"].get("subsetGroup")
+                if group_name:
+                    if subset_name not in subset_docs_by_group[group_name]:
+                        subset_docs_by_group[group_name][subset_name] = []
+
+                    subset_docs_by_group[group_name][subset_name].append(
+                        subset_doc
+                    )
+                    continue
+
+            subset_docs_without_group[subset_name].append(subset_doc)
+
+        ordered_groups = self.ordered_groups(subset_docs_by_group.keys())
+
+        return ordered_groups, subset_docs_without_group, subset_docs_by_group
 
 
 def project_use_silo(project_doc):

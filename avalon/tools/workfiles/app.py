@@ -1,11 +1,11 @@
 import sys
 import os
+import copy
 import getpass
-import re
 import shutil
 import logging
-import platform
 
+from ...vendor import Qt
 from ...vendor.Qt import QtWidgets, QtCore
 from ... import style, io, api, pipeline
 
@@ -16,6 +16,11 @@ from ..delegates import PrettyTimeDelegate
 
 from .model import FilesModel
 from .view import FilesView
+
+if os.environ.get("PYPE_ROOT"):
+    from pype.api import Anatomy
+else:
+    Anatomy = None
 
 log = logging.getLogger(__name__)
 
@@ -45,24 +50,31 @@ class NameWindow(QtWidgets.QDialog):
             session = api.Session
 
         # Set work file data for template formatting
+        project = io.find_one({
+            "type": "project"
+        })
         self.data = {
-            "project": io.find_one({"name": session["AVALON_PROJECT"],
-                                    "type": "project"}),
-            "asset": io.find_one({"name": session["AVALON_ASSET"],
-                                  "type": "asset"}),
-            "task": {
-                "name": session["AVALON_TASK"].lower(),
-                "label": session["AVALON_TASK"]
+            "project": {
+                "name": project["name"],
+                "code": project["data"].get("code")
             },
+            "asset": session["AVALON_ASSET"],
+            "task": session["AVALON_TASK"],
             "version": 1,
             "user": getpass.getuser(),
             "comment": ""
         }
 
         # Define work files template
-        templates = self.data["project"]["config"]["template"]
-        template = templates.get("workfile",
-                                 "{task[name]}_v{version:0>4}<_{comment}>")
+        if Anatomy:
+            anatomy = Anatomy(project["name"])
+            template = anatomy.templates["work"]["file"]
+        else:
+            templates = self.data["project"]["config"]["template"]
+            template = templates.get(
+                "workfile",
+                "{task}_v{version:0>4}<_{comment}>"
+            )
         self.template = template
 
         self.widgets = {
@@ -143,29 +155,8 @@ class NameWindow(QtWidgets.QDialog):
         return self.result
 
     def get_work_file(self, template=None):
-        data = self.data.copy()
+        data = copy.deepcopy(self.data)
         template = template or self.template
-
-        if not data["comment"]:
-            data.pop("comment", None)
-
-        # Remove optional missing keys
-        pattern = re.compile(r"<.*?>")
-        invalid_optionals = []
-        for group in pattern.findall(template):
-            try:
-                group.format(**data)
-            except KeyError:
-                invalid_optionals.append(group)
-
-        for group in invalid_optionals:
-            template = template.replace(group, "")
-
-        work_file = template.format(**data)
-
-        # Remove optional symbols
-        work_file = work_file.replace("<", "")
-        work_file = work_file.replace(">", "")
 
         # Define saving file extension
         current_file = self.host.current_file()
@@ -176,12 +167,14 @@ class NameWindow(QtWidgets.QDialog):
             # Fall back to the first extension supported for this host.
             extension = self.host.file_extensions()[0]
 
-        work_file = work_file + extension
+        data["ext"] = extension
 
-        return work_file
+        if not data["comment"]:
+            data.pop("comment", None)
+
+        return api.format_template_with_optional_keys(data, template)
 
     def refresh(self):
-
         # Since the version can be padded with "{version:0>4}" we only search
         # for "{version".
         if "{version" not in self.template:
@@ -196,42 +189,21 @@ class NameWindow(QtWidgets.QDialog):
         if self.widgets["versionCheck"].isChecked():
             self.widgets["versionValue"].setEnabled(False)
 
-            # Find matching files
-            files = os.listdir(self.root) if os.path.exists(self.root) else []
-
-            # Fast match on extension
             extensions = self.host.file_extensions()
-            files = [f for f in files if os.path.splitext(f)[1] in extensions]
+            data = copy.deepcopy(self.data)
+            template = str(self.template)
 
-            # Build template without optionals, version to digits only regex
-            # and comment to any definable value.
-            # Note: with auto-increment the `version` key may not be optional.
-            template = self.template
-            template = re.sub("<.*?>", ".*?", template)
-            template = re.sub("{version.*}", "([0-9]+)", template)
-            template = re.sub("{comment.*?}", ".+?", template)
-            template = self.get_work_file(template)
-            template = "^" + template + "$"           # match beginning to end
+            if not data["comment"]:
+                data.pop("comment", None)
 
-            # Match with ignore case on Windows due to the Windows
-            # OS not being case-sensitive. This avoids later running
-            # into the error that the file did exist if it existed
-            # with a different upper/lower-case.
-            kwargs = {}
-            if platform.system() == "Windows":
-                kwargs["flags"] = re.IGNORECASE
+            version = api.last_workfile_with_version(
+                self.root, template, data, extensions
+            )[1]
 
-            # Get highest version among existing matching files
-            version = 1
-            for file in sorted(files):
-                match = re.match(template, file, **kwargs)
-                if not match:
-                    continue
-
-                file_version = int(match.group(1))
-
-                if file_version >= version:
-                    version = file_version + 1
+            if version is None:
+                version = 1
+            else:
+                version += 1
 
             self.data["version"] = version
 
@@ -266,13 +238,13 @@ class TasksWidget(QtWidgets.QWidget):
 
     task_changed = QtCore.Signal()
 
-    def __init__(self):
-        super(TasksWidget, self).__init__()
+    def __init__(self, parent=None):
+        super(TasksWidget, self).__init__(parent)
         self.setContentsMargins(0, 0, 0, 0)
 
         view = QtWidgets.QTreeView()
         view.setIndentation(0)
-        model = TasksModel()
+        model = TasksModel(io)
         view.setModel(model)
 
         layout = QtWidgets.QVBoxLayout(self)
@@ -296,8 +268,9 @@ class TasksWidget(QtWidgets.QWidget):
         self._last_selected_task = None
 
     def set_asset(self, asset):
-
-        assets = [asset] if asset else []
+        if asset is None:
+            # Asset deselected
+            return
 
         # Try and preserve the last selected task and reselect it
         # after switching assets. If there's no currently selected
@@ -306,7 +279,7 @@ class TasksWidget(QtWidgets.QWidget):
         if current:
             self._last_selected_task = current
 
-        self.models["tasks"].set_assets(assets)
+        self.models["tasks"].set_assets(asset_docs=[asset])
 
         if self._last_selected_task:
             self.select_task(self._last_selected_task)
@@ -600,11 +573,15 @@ class FilesWidget(QtWidgets.QWidget):
 
         filter = " *".join(self.host.file_extensions())
         filter = "Work File (*{0})".format(filter)
-        work_file = QtWidgets.QFileDialog.getOpenFileName(
-            caption="Work Files",
-            dir=self.root,
-            filter=filter
-        )[0]
+        kwargs = {
+            "caption": "Work Files",
+            "filter": filter
+        }
+        if Qt.__binding__ in ("PySide", "PySide2"):
+            kwargs["dir"] = self.root
+        else:
+            kwargs["directory"] = self.root
+        work_file = QtWidgets.QFileDialog.getOpenFileName(**kwargs)[0]
 
         if not work_file:
             return
@@ -723,7 +700,7 @@ class FilesWidget(QtWidgets.QWidget):
                 continue
 
             modified = index.data(role)
-            if modified > highest:
+            if modified is not None and modified > highest:
                 highest_index = index
                 highest = modified
 
@@ -747,7 +724,7 @@ class Window(QtWidgets.QMainWindow):
         widgets = {
             "pages": QtWidgets.QStackedWidget(),
             "body": QtWidgets.QWidget(),
-            "assets": AssetWidget(),
+            "assets": AssetWidget(io),
             "tasks": TasksWidget(),
             "files": FilesWidget()
         }
@@ -807,10 +784,15 @@ class Window(QtWidgets.QMainWindow):
 
         if "asset" in context:
             asset = context["asset"]
-            asset_document = io.find_one({
-                "name": asset,
-                "type": "asset"
-            })
+            asset_document = io.find_one(
+                {
+                    "name": asset,
+                    "type": "asset"
+                },
+                {
+                    "data.tasks": 1
+                }
+            )
 
             # Select the asset
             self.widgets["assets"].select_assets([asset], expand=True)
@@ -829,7 +811,7 @@ class Window(QtWidgets.QMainWindow):
         self._on_task_changed()
 
     def _on_asset_changed(self):
-        asset = self.widgets["assets"].get_active_asset_document()
+        asset = self.widgets["assets"].get_selected_assets() or None
 
         if not asset:
             # Force disable the other widgets if no
@@ -837,13 +819,16 @@ class Window(QtWidgets.QMainWindow):
             self.widgets["tasks"].setEnabled(False)
             self.widgets["files"].setEnabled(False)
         else:
+            asset = asset[0]
             self.widgets["tasks"].setEnabled(True)
 
         self.widgets["tasks"].set_asset(asset)
 
     def _on_task_changed(self):
 
-        asset = self.widgets["assets"].get_active_asset_document()
+        asset = self.widgets["assets"].get_selected_assets() or None
+        if asset is not None:
+            asset = asset[0]
         task = self.widgets["tasks"].get_current_task()
 
         self.widgets["tasks"].setEnabled(bool(asset))
@@ -854,33 +839,43 @@ class Window(QtWidgets.QMainWindow):
         files.refresh()
 
 
-def show(root=None, debug=False, parent=None, use_context=True):
-    """Show Work Files GUI"""
-    # todo: remove `root` argument to show()
-
-    if module.window:
-        module.window.close()
-        del(module.window)
-
-    host = api.registered_host()
+def validate_host_requirements(host):
     if host is None:
         raise RuntimeError("No registered host.")
 
     # Verify the host has implemented the api for Work Files
-    required = ["open_file",
-                "save_file",
-                "current_file",
-                "has_unsaved_changes",
-                "work_root",
-                "file_extensions",
-                ]
+    required = [
+        "open_file",
+        "save_file",
+        "current_file",
+        "has_unsaved_changes",
+        "work_root",
+        "file_extensions",
+    ]
     missing = []
     for name in required:
         if not hasattr(host, name):
             missing.append(name)
     if missing:
-        raise RuntimeError("Host is missing required Work Files interfaces: "
-                           "%s (host: %s)" % (", ".join(missing), host))
+        raise RuntimeError(
+            "Host is missing required Work Files interfaces: "
+            "%s (host: %s)" % (", ".join(missing), host)
+        )
+    return True
+
+
+def show(root=None, debug=False, parent=None, use_context=True, save=True):
+    """Show Work Files GUI"""
+    # todo: remove `root` argument to show()
+
+    try:
+        module.window.close()
+        del(module.window)
+    except (AttributeError, RuntimeError):
+        pass
+
+    host = api.registered_host()
+    validate_host_requirements(host)
 
     if debug:
         api.Session["AVALON_ASSET"] = "Mock"
@@ -896,6 +891,8 @@ def show(root=None, debug=False, parent=None, use_context=True):
                        "silo": api.Session["AVALON_SILO"],
                        "task": api.Session["AVALON_TASK"]}
             window.set_context(context)
+
+        window.widgets["files"].widgets["save"].setEnabled(save)
 
         window.show()
         window.setStyleSheet(style.load_stylesheet())

@@ -2,10 +2,11 @@
 import os
 
 import hou
+from avalon import api
 
 
 def file_extensions():
-    return [".hip", ".hiplc", ".hipnc"]
+    return api.HOST_WORKFILE_EXTENSIONS["houdini"]
 
 
 def has_unsaved_changes():
@@ -49,7 +50,6 @@ def current_file():
 
 
 def work_root(session):
-
     work_dir = session["AVALON_WORKDIR"]
     scene_dir = session.get("AVALON_SCENEDIR")
     if scene_dir:

@@ -2,19 +2,17 @@
 
 import os
 import sys
-import time
 import errno
 import shutil
 import logging
 import tempfile
-import functools
 import contextlib
 
 from . import schema, Session
 from .vendor import requests
+from .api import AvalonMongoDB, session_data_from_environment
 
 # Third-party dependencies
-import pymongo
 from bson.objectid import ObjectId, InvalidId
 
 __all__ = [
@@ -37,13 +35,17 @@ __all__ = [
 ]
 
 self = sys.modules[__name__]
+
+self._is_installed = False
+self._connection_object = AvalonMongoDB(Session)
 self._mongo_client = None
+self._database = None
+
 self._sentry_client = None
 self._sentry_logging_handler = None
-self._database = None
-self._is_installed = False
 
 log = logging.getLogger(__name__)
+PY2 = sys.version_info[0] == 2
 
 
 def install():
@@ -52,41 +54,20 @@ def install():
         return
 
     logging.basicConfig()
-    Session.update(_from_environment())
 
-    timeout = int(Session["AVALON_TIMEOUT"])
-    self._mongo_client = pymongo.MongoClient(
-        Session["AVALON_MONGO"], serverSelectionTimeoutMS=timeout)
+    self._connection_object.Session.update(_from_environment())
+    self._connection_object.install()
 
-    for retry in range(3):
-        try:
-            t1 = time.time()
-            self._mongo_client.server_info()
-
-        except Exception:
-            log.error("Retrying..")
-            time.sleep(1)
-            timeout *= 1.5
-
-        else:
-            break
-
-    else:
-        raise IOError(
-            "ERROR: Couldn't connect to %s in "
-            "less than %.3f ms" % (Session["AVALON_MONGO"], timeout))
-
-    log.info("Connected to %s, delay %.3f s" % (
-        Session["AVALON_MONGO"], time.time() - t1))
+    self._mongo_client = self._connection_object.mongo_client
+    self._database = self._connection_object.database
 
     _install_sentry()
 
-    self._database = self._mongo_client[Session["AVALON_DB"]]
     self._is_installed = True
 
 
 def _install_sentry():
-    if "AVALON_SENTRY" not in Session:
+    if not Session.get("AVALON_SENTRY"):
         return
 
     try:
@@ -111,93 +92,7 @@ def _install_sentry():
 
 
 def _from_environment():
-    session = {
-        item[0]: os.getenv(item[0], item[1])
-        for item in (
-            # Root directory of projects on disk
-            ("AVALON_PROJECTS", None),
-
-            # Name of current Project
-            ("AVALON_PROJECT", None),
-
-            # Name of current Asset
-            ("AVALON_ASSET", None),
-
-            # Name of current silo
-            ("AVALON_SILO", None),
-
-            # Name of current task
-            ("AVALON_TASK", None),
-
-            # Name of current app
-            ("AVALON_APP", None),
-
-            # Path to working directory
-            ("AVALON_WORKDIR", None),
-
-            # Optional path to scenes directory (see Work Files API)
-            ("AVALON_SCENEDIR", None),
-
-            # Optional hierarchy for the current Asset. This can be referenced
-            # as `{hierarchy}` in your file templates.
-            # This will be (re-)computed when you switch the context to another
-            # asset. It is computed by checking asset['data']['parents'] and
-            # joining those together with `os.path.sep`.
-            # E.g.: ['ep101', 'scn0010'] -> 'ep101/scn0010'.
-            ("AVALON_HIERARCHY", None),
-
-            # Name of current Config
-            # TODO(marcus): Establish a suitable default config
-            ("AVALON_CONFIG", "no_config"),
-
-            # Name of Avalon in graphical user interfaces
-            # Use this to customise the visual appearance of Avalon
-            # to better integrate with your surrounding pipeline
-            ("AVALON_LABEL", "Avalon"),
-
-            # Used during any connections to the outside world
-            ("AVALON_TIMEOUT", "1000"),
-
-            # Address to Asset Database
-            ("AVALON_MONGO", "mongodb://localhost:27017"),
-
-            # Name of database used in MongoDB
-            ("AVALON_DB", "avalon"),
-
-            # Address to Sentry
-            ("AVALON_SENTRY", None),
-
-            # Address to Deadline Web Service
-            # E.g. http://192.167.0.1:8082
-            ("AVALON_DEADLINE", None),
-
-            # Enable features not necessarily stable, at the user's own risk
-            ("AVALON_EARLY_ADOPTER", None),
-
-            # Address of central asset repository, contains
-            # the following interface:
-            #   /upload
-            #   /download
-            #   /manager (optional)
-            ("AVALON_LOCATION", "http://127.0.0.1"),
-
-            # Boolean of whether to upload published material
-            # to central asset repository
-            ("AVALON_UPLOAD", None),
-
-            # Generic username and password
-            ("AVALON_USERNAME", "avalon"),
-            ("AVALON_PASSWORD", "secret"),
-
-            # Unique identifier for instances in working files
-            ("AVALON_INSTANCE_ID", "avalon.instance"),
-            ("AVALON_CONTAINER_ID", "avalon.container"),
-
-            # Enable debugging
-            ("AVALON_DEBUG", None),
-
-        ) if os.getenv(item[0], item[1]) is not None
-    }
+    session = session_data_from_environment(context_keys=True)
 
     session["schema"] = "avalon-core:session-2.0"
     try:
@@ -212,7 +107,7 @@ def _from_environment():
 def uninstall():
     """Close any connection to the database"""
     try:
-        self._mongo_client.close()
+        self._connection_object.uninstall()
     except AttributeError:
         pass
 
@@ -221,36 +116,9 @@ def uninstall():
     self._is_installed = False
 
 
-def requires_install(f):
-    @functools.wraps(f)
-    def decorated(*args, **kwargs):
-        if not self._is_installed:
-            raise IOError("'io.%s()' requires install()" % f.__name__)
-        return f(*args, **kwargs)
-
-    return decorated
-
-
-def auto_reconnect(f):
-    """Handling auto reconnect in 3 retry times"""
-    @functools.wraps(f)
-    def decorated(*args, **kwargs):
-        for retry in range(3):
-            try:
-                return f(*args, **kwargs)
-            except pymongo.errors.AutoReconnect:
-                log.error("Reconnecting..")
-                time.sleep(0.1)
-        else:
-            raise
-
-    return decorated
-
-
-@requires_install
 def active_project():
     """Return the name of the active project"""
-    return Session["AVALON_PROJECT"]
+    return self._connection_object.active_project()
 
 
 def activate_project(project):
@@ -258,7 +126,6 @@ def activate_project(project):
     print("io.activate_project is deprecated")
 
 
-@requires_install
 def projects():
     """List available projects
 
@@ -266,24 +133,7 @@ def projects():
         list of project documents
 
     """
-    @auto_reconnect
-    def find_project(project):
-        return self._database[project].find_one({"type": "project"})
-
-    @auto_reconnect
-    def collections():
-        return self._database.collection_names()
-    collection_names = collections()
-
-    for project in collection_names:
-        if project in ("system.indexes",):
-            continue
-
-        # Each collection will have exactly one project document
-        document = find_project(project)
-
-        if document is not None:
-            yield document
+    return self._connection_object.projects()
 
 
 def locate(path):
@@ -332,87 +182,65 @@ def locate(path):
     return parent
 
 
-@auto_reconnect
-def insert_one(item):
+def insert_one(item, *args, **kwargs):
     assert isinstance(item, dict), "item must be of type <dict>"
     schema.validate(item)
-    return self._database[Session["AVALON_PROJECT"]].insert_one(item)
+    return self._connection_object.insert_one(item, *args, **kwargs)
 
 
-@auto_reconnect
-def insert_many(items, ordered=True):
+def insert_many(items, *args, **kwargs):
     # check if all items are valid
     assert isinstance(items, list), "`items` must be of type <list>"
     for item in items:
         assert isinstance(item, dict), "`item` must be of type <dict>"
         schema.validate(item)
 
-    return self._database[Session["AVALON_PROJECT"]].insert_many(
-        items,
-        ordered=ordered)
+    return self._connection_object.insert_many(items, *args, **kwargs)
 
 
-@auto_reconnect
-def find(filter, projection=None, sort=None):
-    return self._database[Session["AVALON_PROJECT"]].find(
-        filter=filter,
-        projection=projection,
-        sort=sort
-    )
+def find(*args, **kwargs):
+    return self._connection_object.find(*args, **kwargs)
 
 
-@auto_reconnect
-def find_one(filter, projection=None, sort=None):
+def find_one(filter, *args, **kwargs):
     assert isinstance(filter, dict), "filter must be <dict>"
 
-    return self._database[Session["AVALON_PROJECT"]].find_one(
-        filter=filter,
-        projection=projection,
-        sort=sort
+    return self._connection_object.find_one(filter, *args, **kwargs)
+
+
+def save(*args, **kwargs):
+    """Deprecated, please use `replace_one`"""
+    return self._connection_object.save(*args, **kwargs)
+
+
+def replace_one(filter, replacement, *args, **kwargs):
+    return self._connection_object.replace_one(
+        filter, replacement, *args, **kwargs
     )
 
 
-@auto_reconnect
-def save(*args, **kwargs):
-    """Deprecated, please use `replace_one`"""
-    return self._database[Session["AVALON_PROJECT"]].save(
-        *args, **kwargs)
+def update_one(*args, **kwargs):
+    return self._connection_object.update_one(*args, **kwargs)
 
 
-@auto_reconnect
-def replace_one(filter, replacement):
-    return self._database[Session["AVALON_PROJECT"]].replace_one(
-        filter, replacement)
+def update_many(filter, update, *args, **kwargs):
+    return self._connection_object.update_many(filter, update, *args, **kwargs)
 
 
-@auto_reconnect
-def update_many(filter, update):
-    return self._database[Session["AVALON_PROJECT"]].update_many(
-        filter, update)
-
-
-@auto_reconnect
 def distinct(*args, **kwargs):
-    return self._database[Session["AVALON_PROJECT"]].distinct(
-        *args, **kwargs)
+    return self._connection_object.distinct(*args, **kwargs)
 
 
-@auto_reconnect
 def aggregate(*args, **kwargs):
-    return self._database[Session["AVALON_PROJECT"]].aggregate(
-        *args, **kwargs)
+    return self._connection_object.aggregate(*args, **kwargs)
 
 
-@auto_reconnect
 def drop(*args, **kwargs):
-    return self._database[Session["AVALON_PROJECT"]].drop(
-        *args, **kwargs)
+    return self._connection_object.drop(*args, **kwargs)
 
 
-@auto_reconnect
 def delete_many(*args, **kwargs):
-    return self._database[Session["AVALON_PROJECT"]].delete_many(
-        *args, **kwargs)
+    return self._connection_object.delete_many(*args, **kwargs)
 
 
 def parenthood(document):
@@ -425,6 +253,10 @@ def parenthood(document):
 
         if document is None:
             break
+
+        if document.get("type") == "master_version":
+            _document = self.find_one({"_id": document["version_id"]})
+            document["data"] = _document["data"]
 
         parents.append(document)
 

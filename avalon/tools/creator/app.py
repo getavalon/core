@@ -1,5 +1,6 @@
 import sys
 import inspect
+import traceback
 import re
 
 from ...vendor.Qt import QtWidgets, QtCore, QtGui
@@ -7,6 +8,7 @@ from ...vendor import qtawesome
 from ...vendor import six
 from ... import api, io, style
 
+from .widgets import CreateErrorMessageBox
 from .. import lib
 
 module = sys.modules[__name__]
@@ -115,6 +117,7 @@ class SubsetNameLineEdit(QtWidgets.QLineEdit):
 class Window(QtWidgets.QDialog):
 
     stateChanged = QtCore.Signal(bool)
+    taskSubsetFamilies = ["render"]
 
     def __init__(self, parent=None):
         super(Window, self).__init__(parent)
@@ -191,12 +194,13 @@ class Window(QtWidgets.QDialog):
         layout.setContentsMargins(0, 0, 0, 0)
 
         create_btn = QtWidgets.QPushButton("Create")
-        error_msg = QtWidgets.QLabel()
-        error_msg.setFixedHeight(20)
+        # Need to store error_msg to prevent garbage collection.
+        self.error_msg = QtWidgets.QLabel()
+        self.error_msg.setFixedHeight(20)
 
         layout = QtWidgets.QVBoxLayout(footer)
         layout.addWidget(create_btn)
-        layout.addWidget(error_msg)
+        layout.addWidget(self.error_msg)
         layout.setContentsMargins(0, 0, 0, 0)
 
         layout = QtWidgets.QVBoxLayout(self)
@@ -211,7 +215,7 @@ class Window(QtWidgets.QDialog):
             "Subset Menu": subset_menu,
             "Result": result,
             "Asset": asset,
-            "Error Message": error_msg,
+            "Error Message": self.error_msg,
         }
 
         for _name, widget in self.data.items():
@@ -302,15 +306,29 @@ class Window(QtWidgets.QDialog):
         if asset and plugin:
             # Get family
             family = plugin.family.rsplit(".", 1)[-1]
+            regex = "{}*".format(family)
+            existed_subset_split = family
+
+            if family in self.taskSubsetFamilies:
+                task = io.Session.get('AVALON_TASK', '')
+                sanitized_task = re.sub('[^0-9a-zA-Z]+', '', task)
+                regex = "{}{}*".format(
+                    family,
+                    sanitized_task.capitalize()
+                )
+                existed_subset_split = "{}{}".format(
+                    family,
+                    sanitized_task.capitalize()
+                )
 
             # Get all subsets of the current asset
             subsets = io.find(filter={"type": "subset",
-                                      "name": {"$regex": "{}*".format(family),
+                                      "name": {"$regex": regex,
                                                "$options": "i"},
                                       "parent": asset["_id"]}) or []
 
             # Get all subsets' their subset name, "Default", "High", "Low"
-            existed_subsets = [sub["name"].split(family)[-1]
+            existed_subsets = [sub["name"].split(existed_subset_split)[-1]
                                for sub in subsets]
 
             if plugin.defaults and isinstance(plugin.defaults, list):
@@ -327,7 +345,18 @@ class Window(QtWidgets.QDialog):
             # Update the result
             if subset_name:
                 subset_name = subset_name[0].upper() + subset_name[1:]
-            result.setText("{}{}".format(family, subset_name))
+
+            if family in self.taskSubsetFamilies:
+                result.setText("{}{}{}".format(
+                    family,
+                    sanitized_task.capitalize(),
+                    subset_name
+                ))
+            else:
+                result.setText("{}{}".format(
+                    family,
+                    subset_name
+                ))
 
             # Indicate subset existence
             if not subset_name:
@@ -398,6 +427,8 @@ class Window(QtWidgets.QDialog):
         asset = self.data["Asset"]
         asset.setText(api.Session["AVALON_ASSET"])
 
+        listing.clear()
+
         has_families = False
 
         creators = api.discover(api.Creator)
@@ -438,21 +469,36 @@ class Window(QtWidgets.QDialog):
         subset_name = result.text()
         asset = asset.text()
         family = item.data(FamilyRole)
+        Creator = item.data(PluginRole)
         use_selection = self.data["Use Selection Checkbox"].isChecked()
 
+        error_info = None
         try:
-            api.create(subset_name,
-                       asset,
-                       family,
-                       options={"useSelection": use_selection})
+            api.create(
+                Creator,
+                subset_name,
+                asset,
+                options={"useSelection": use_selection}
+            )
 
-        except NameError as e:
-            self.echo(e)
-            raise
+        except api.CreatorError as exc:
+            self.echo("Creator error: {}".format(str(exc)))
+            error_info = (str(exc), None)
 
-        except (TypeError, RuntimeError, KeyError, AssertionError) as e:
-            self.echo("Program error: %s" % str(e))
-            raise
+        except Exception as exc:
+            self.echo("Program error: %s" % str(exc))
+
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            formatted_traceback = "".join(traceback.format_exception(
+                exc_type, exc_value, exc_traceback
+            ))
+            error_info = (str(exc), formatted_traceback)
+
+        if error_info:
+            box = CreateErrorMessageBox(
+                family, subset_name, asset, *error_info
+            )
+            box.show()
 
         self.echo("Created %s .." % subset_name)
 
@@ -565,9 +611,11 @@ def show(debug=False, parent=None):
 
     """
 
-    if module.window:
+    try:
         module.window.close()
         del(module.window)
+    except (AttributeError, RuntimeError):
+        pass
 
     if debug:
         from avalon import mock
@@ -589,9 +637,9 @@ def show(debug=False, parent=None):
 
     with lib.application():
         window = Window(parent)
+        window.setStyleSheet(style.load_stylesheet())
         window.refresh()
         window.show()
-        window.setStyleSheet(style.load_stylesheet())
 
         module.window = window
 
