@@ -1,12 +1,14 @@
+import os
 import datetime
 import pprint
 import inspect
 
-from ...vendor.Qt import QtWidgets, QtCore, QtCompat
+from ...vendor.Qt import QtWidgets, QtCore, QtGui, QtSvg
 from ...vendor import qtawesome
 from ... import io
 from ... import api
 from ... import pipeline
+from ... import style
 
 from .. import lib as tools_lib
 from ..delegates import VersionDelegate
@@ -44,7 +46,7 @@ class SubsetWidget(QtWidgets.QWidget):
         top_bar_layout.addWidget(filter)
         top_bar_layout.addWidget(groupable)
 
-        view = QtWidgets.QTreeView()
+        view = SubsetTreeView()
         view.setIndentation(20)
         view.setStyleSheet("""
             QTreeView::item{
@@ -98,10 +100,15 @@ class SubsetWidget(QtWidgets.QWidget):
         self.view.setModel(self.family_proxy)
         self.view.customContextMenuRequested.connect(self.on_context_menu)
 
-        header = self.view.header()
-        # Enforce the columns to fit the data (purely cosmetic)
-        QtCompat.setSectionResizeMode(
-            header, QtWidgets.QHeaderView.ResizeToContents)
+        view.setColumnWidth(0, 240)  # subset
+        view.setColumnWidth(1, 120)  # family
+        view.setColumnWidth(2, 100)  # version
+        view.setColumnWidth(3, 120)  # time
+        view.setColumnWidth(4, 100)  # author
+        view.setColumnWidth(5, 80)  # frames
+        view.setColumnWidth(6, 60)  # duration
+        view.setColumnWidth(7, 50)  # handles
+        view.setColumnWidth(8, 50)  # step
 
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.active_changed)
@@ -125,6 +132,18 @@ class SubsetWidget(QtWidgets.QWidget):
         with tools_lib.preserve_selection(tree_view=self.view,
                                           current_index=False):
             self.model.set_grouping(state)
+
+    def set_loading_state(self, loading, empty):
+        view = self.view
+
+        if view.is_loading != loading:
+            if loading:
+                view.spinner.repaintNeeded.connect(view.viewport().update)
+            else:
+                view.spinner.repaintNeeded.disconnect()
+
+        view.is_loading = loading
+        view.is_empty = empty
 
     def on_context_menu(self, point):
 
@@ -307,6 +326,44 @@ class SubsetWidget(QtWidgets.QWidget):
 
     def echo(self, message):
         print(message)
+
+
+class SubsetTreeView(QtWidgets.QTreeView):
+
+    def __init__(self, parent=None):
+        super(SubsetTreeView, self).__init__(parent=parent)
+        loading_gif = os.path.dirname(style.__file__) + "/svg/spinner-200.svg"
+        spinner = QtSvg.QSvgRenderer(loading_gif)
+
+        self.spinner = spinner
+        self.is_loading = False
+        self.is_empty = True
+
+    def paint_loading(self, event):
+        size = 160
+        rect = event.rect()
+        rect = QtCore.QRectF(rect.topLeft(), rect.bottomRight())
+        rect.moveTo(rect.x() + rect.width() / 2 - size / 2,
+                    rect.y() + rect.height() / 2 - size / 2)
+        rect.setSize(QtCore.QSizeF(size, size))
+        painter = QtGui.QPainter(self.viewport())
+        self.spinner.render(painter, rect)
+
+    def paint_empty(self, event):
+        painter = QtGui.QPainter(self.viewport())
+        rect = event.rect()
+        rect = QtCore.QRectF(rect.topLeft(), rect.bottomRight())
+        qtext_opt = QtGui.QTextOption(QtCore.Qt.AlignHCenter |
+                                      QtCore.Qt.AlignVCenter)
+        painter.drawText(rect, "No Data", qtext_opt)
+
+    def paintEvent(self, event):
+        if self.is_loading:
+            self.paint_loading(event)
+        elif self.is_empty:
+            self.paint_empty(event)
+        else:
+            super(SubsetTreeView, self).paintEvent(event)
 
 
 class VersionTextEdit(QtWidgets.QTextEdit):

@@ -336,7 +336,6 @@ class Application(Action):
     def is_compatible(self, session):
         required = ["AVALON_PROJECTS",
                     "AVALON_PROJECT",
-                    "AVALON_SILO",
                     "AVALON_ASSET",
                     "AVALON_TASK"]
         missing = [x for x in required if x not in session]
@@ -994,7 +993,7 @@ def compute_session_changes(session, task=None, asset=None, app=None):
     if "AVALON_ASSET" in changes:
 
         # Update silo
-        changes["AVALON_SILO"] = asset_document["silo"]
+        changes["AVALON_SILO"] = asset_document.get("silo")
 
         # Update hierarchy
         parents = asset_document['data'].get('parents', [])
@@ -1034,11 +1033,14 @@ def update_current_task(task=None, asset=None, app=None):
                                       asset=asset,
                                       app=app)
 
-    # Update the full session in one go to avoid half updates
-    Session.update(changes)
-
-    # Update the environment
-    os.environ.update(changes)
+    # Update the Session and environments. Pop from environments all keys with
+    # value set to None.
+    for key, value in changes.items():
+        Session[key] = value
+        if value is None:
+            os.environ.pop(key, None)
+        else:
+            os.environ[key] = value
 
     # Emit session change
     emit("taskChanged", changes.copy())
@@ -1068,12 +1070,12 @@ def _format_work_template(template, session=None):
     return template.format(**{
         "root": registered_root(),
         "project": session["AVALON_PROJECT"],
-        "silo": session["AVALON_SILO"],
         "asset": session["AVALON_ASSET"],
         "task": session["AVALON_TASK"],
         "app": session["AVALON_APP"],
 
         # Optional
+        "silo": session.get("AVALON_SILO"),
         "user": session.get("AVALON_USER", getpass.getuser()),
         "hierarchy": session.get("AVALON_HIERARCHY"),
     })
@@ -1317,7 +1319,7 @@ def get_representation_path(representation):
             "root": registered_root(),
             "project": project["name"],
             "asset": asset["name"],
-            "silo": asset["silo"],
+            "silo": asset.get("silo"),
             "subset": subset["name"],
             "version": version_["name"],
             "representation": representation["name"],

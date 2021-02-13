@@ -207,7 +207,7 @@ def _from_environment():
         ) if os.getenv(item[0], item[1]) is not None
     }
 
-    session["schema"] = "avalon-core:session-1.0"
+    session["schema"] = "avalon-core:session-2.0"
     try:
         schema.validate(session)
     except schema.ValidationError as e:
@@ -445,6 +445,12 @@ def update_many(filter, update):
 @auto_reconnect
 def distinct(*args, **kwargs):
     return self._database[Session["AVALON_PROJECT"]].distinct(
+        *args, **kwargs)
+
+
+@auto_reconnect
+def aggregate(*args, **kwargs):
+    return self._database[Session["AVALON_PROJECT"]].aggregate(
         *args, **kwargs)
 
 

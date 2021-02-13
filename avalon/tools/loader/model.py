@@ -17,26 +17,41 @@ def is_filtering_recursible():
 
 
 class SubsetsModel(TreeModel):
-    Columns = ["subset",
-               "family",
-               "version",
-               "time",
-               "author",
-               "frames",
-               "duration",
-               "handles",
-               "step"]
+
+    doc_fetched = QtCore.Signal()
+    refreshed = QtCore.Signal(bool)
+
+    Columns = [
+        "subset",
+        "family",
+        "version",
+        "time",
+        "author",
+        "frames",
+        "duration",
+        "handles",
+        "step"
+    ]
 
     SortAscendingRole = QtCore.Qt.UserRole + 2
     SortDescendingRole = QtCore.Qt.UserRole + 3
 
     def __init__(self, grouping=True, parent=None):
         super(SubsetsModel, self).__init__(parent=parent)
+        self.columns_index = dict(
+            (key, idx) for idx, key in enumerate(self.Columns)
+        )
         self._asset_id = None
         self._sorter = None
         self._grouping = grouping
-        self._icons = {"subset": qtawesome.icon("fa.file-o",
-                                                color=style.colors.default)}
+        self._icons = {
+            "subset": qtawesome.icon("fa.file-o", color=style.colors.default)
+        }
+        self._doc_fetching_thread = None
+        self._doc_fetching_stop = False
+        self._doc_payload = list()
+
+        self.doc_fetched.connect(self.on_doc_fetched)
 
     def set_asset(self, asset_id):
         self._asset_id = asset_id
@@ -44,13 +59,13 @@ class SubsetsModel(TreeModel):
 
     def set_grouping(self, state):
         self._grouping = state
-        self.refresh()
+        self.on_doc_fetched()
 
     def setData(self, index, value, role=QtCore.Qt.EditRole):
 
         # Trigger additional edit when `version` column changed
         # because it also updates the information in other columns
-        if index.column() == 2:
+        if index.column() == self.columns_index["version"]:
             item = index.internalPointer()
             parent = item["_id"]
             version = io.find_one({"name": value,
@@ -135,17 +150,72 @@ class SubsetsModel(TreeModel):
             "step": version_data.get("step", None)
         })
 
-    def refresh(self):
+    def fetch_subset_and_version(self):
+        """Query all subsets and latest versions from aggregation
 
+        (NOTE) The returned version documents are NOT the real version
+            document, it's generated from the MongoDB's aggregation so
+            some of the first level field may not be presented.
+
+        """
+        def _fetch():
+            _subsets = list()
+            _ids = list()
+            for subset in io.find({"type": "subset",
+                                   "parent": self._asset_id}):
+                if self._doc_fetching_stop:
+                    return
+                _subsets.append(subset)
+                _ids.append(subset["_id"])
+
+            _pipeline = [
+                # Find all versions of those subsets
+                {"$match": {"type": "version", "parent": {"$in": _ids}}},
+                # Sorting versions all together
+                {"$sort": {"name": 1}},
+                # Group them by "parent", but only take the last
+                {"$group": {"_id": "$parent",
+                            "_version_id": {"$last": "$_id"},
+                            "name": {"$last": "$name"},
+                            "data": {"$last": "$data"},
+                            "locations": {"$last": "$locations"},
+                            "schema": {"$last": "$schema"}}},
+            ]
+            versions = dict()
+            for doc in io.aggregate(_pipeline):
+                if self._doc_fetching_stop:
+                    return
+                doc["parent"] = doc["_id"]
+                doc["_id"] = doc.pop("_version_id")
+                versions[doc["parent"]] = doc
+
+            self._doc_payload[:] = [(subset, versions.get(subset["_id"]))
+                                    for subset in _subsets]
+            self.doc_fetched.emit()
+
+        self._doc_payload[:] = []
+        self._doc_fetching_stop = False
+        self._doc_fetching_thread = lib.create_qthread(_fetch)
+        self._doc_fetching_thread.start()
+
+    def stop_fetch_thread(self):
+        if self._doc_fetching_thread is not None:
+            self._doc_fetching_stop = True
+            while self._doc_fetching_thread.isRunning():
+                pass
+
+    def refresh(self):
+        self.stop_fetch_thread()
+        self.clear()
+        if not self._asset_id:
+            return
+        self.fetch_subset_and_version()
+
+    def on_doc_fetched(self):
         self.clear()
         self.beginResetModel()
-        if not self._asset_id:
-            self.endResetModel()
-            return
 
-        asset_id = self._asset_id
-
-        active_groups = lib.get_active_group_config(asset_id)
+        active_groups = lib.get_active_group_config(self._asset_id)
 
         # Generate subset group nodes
         group_items = dict()
@@ -160,15 +230,10 @@ class SubsetsModel(TreeModel):
                 group_items[name] = group
                 self.add_child(group)
 
-        filter = {"type": "subset", "parent": asset_id}
-
         # Process subsets
         row = len(group_items)
-        for subset in io.find(filter):
-
-            last_version = io.find_one({"type": "version",
-                                        "parent": subset["_id"]},
-                                       sort=[("name", -1)])
+        has_item = False
+        for subset, last_version in self._doc_payload:
             if not last_version:
                 # No published version for the subset
                 continue
@@ -197,8 +262,10 @@ class SubsetsModel(TreeModel):
             # Set the version information
             index = self.index(row_, 0, parent=parent_index)
             self.set_version(index, last_version)
+            has_item = True
 
         self.endResetModel()
+        self.refreshed.emit(has_item)
 
     def data(self, index, role):
 
@@ -206,7 +273,7 @@ class SubsetsModel(TreeModel):
             return
 
         if role == QtCore.Qt.DisplayRole:
-            if index.column() == 1:
+            if index.column() == self.columns_index["family"]:
                 # Show familyLabel instead of family
                 item = index.internalPointer()
                 return item.get("familyLabel", None)
@@ -214,7 +281,7 @@ class SubsetsModel(TreeModel):
         if role == QtCore.Qt.DecorationRole:
 
             # Add icon to subset column
-            if index.column() == 0:
+            if index.column() == self.columns_index["subset"]:
                 item = index.internalPointer()
                 if item.get("isGroup"):
                     return item["icon"]
@@ -222,7 +289,7 @@ class SubsetsModel(TreeModel):
                     return self._icons["subset"]
 
             # Add icon to family column
-            if index.column() == 1:
+            if index.column() == self.columns_index["family"]:
                 item = index.internalPointer()
                 return item.get("familyIcon", None)
 
@@ -234,8 +301,9 @@ class SubsetsModel(TreeModel):
                 order = item["inverseOrder"]
             else:
                 prefix = "0"
-                order = str(super(SubsetsModel,
-                                  self).data(index, QtCore.Qt.DisplayRole))
+                order = str(super(SubsetsModel, self).data(
+                    index, QtCore.Qt.DisplayRole
+                ))
             return prefix + order
 
         if role == self.SortAscendingRole:
@@ -246,8 +314,9 @@ class SubsetsModel(TreeModel):
                 order = item["order"]
             else:
                 prefix = "1"
-                order = str(super(SubsetsModel,
-                                  self).data(index, QtCore.Qt.DisplayRole))
+                order = str(super(SubsetsModel, self).data(
+                    index, QtCore.Qt.DisplayRole
+                ))
             return prefix + order
 
         return super(SubsetsModel, self).data(index, role)
@@ -256,7 +325,7 @@ class SubsetsModel(TreeModel):
         flags = QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
         # Make the version column editable
-        if index.column() == 2:  # version column
+        if index.column() == self.columns_index["version"]:
             flags |= QtCore.Qt.ItemIsEditable
 
         return flags
@@ -326,19 +395,19 @@ class FamiliesFilterProxyModel(GroupMemberFilterProxyModel):
         self._families = set(values)
         self.invalidateFilter()
 
-    def filterAcceptsRow(self, row=0, parent=QtCore.QModelIndex()):
+    def filterAcceptsRow(self, row=0, parent=None):
 
         if not self._families:
             return False
 
         model = self.sourceModel()
-        index = model.index(row, 0, parent=parent)
+        index = model.index(row, 0, parent=parent or QtCore.QModelIndex())
 
         # Ensure index is valid
         if not index.isValid() or index is None:
             return True
 
-        # Get the node data and validate
+        # Get the item data and validate
         item = model.data(index, TreeModel.ItemRole)
 
         if item.get("isGroup"):

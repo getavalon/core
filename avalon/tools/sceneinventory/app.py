@@ -250,7 +250,9 @@ class View(QtWidgets.QTreeView):
             name = node.get("objectName")
             if name in object_names:
                 self.scrollTo(item)  # Ensure item is visible
-                selection_model.select(item, select_mode)
+                flags = select_mode | selection_model.Rows
+                selection_model.select(item, flags)
+
                 object_names.remove(name)
 
             if len(object_names) == 0:
@@ -949,3 +951,7 @@ def show(root=None, debug=False, parent=None):
         window.refresh()
 
         module.window = window
+
+        # Pull window to the front.
+        module.window.raise_()
+        module.window.activateWindow()
