@@ -1,0 +1,1769 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Avalon &#8212; Avalon 2.0.0 documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/avalon.css" />
+    <link rel="stylesheet" type="text/css" href="_static/css/pygments.css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="toctree-wrapper compound">
+</div>
+<a class="reference external image-reference" href="/"><img alt="Avalon" class="align-center" src="https://user-images.githubusercontent.com/2152766/27349489-58285f06-55ef-11e7-9229-b89320eae405.png" /></a>
+<p class="centered">
+<strong><em>The safe post-production pipeline</em></strong></p><div class="line-block">
+<div class="line"><br /></div>
+</div>
+<div class="section" id="avalon">
+<h1>Avalon<a class="headerlink" href="#avalon" title="Permalink to this headline">¶</a></h1>
+<p>Welcome to the library documentation for Avalon, the safe post-production pipeline for film and games.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+<div class="line"><br /></div>
+</div>
+<p><strong>Library Summary</strong></p>
+<table border="1" class="longtable docutils">
+<colgroup>
+<col width="10%" />
+<col width="90%" />
+</colgroup>
+<tbody valign="top">
+<tr class="row-odd"><td><a class="reference internal" href="#module-avalon.api" title="avalon.api"><code class="xref py py-obj docutils literal notranslate"><span class="pre">avalon.api</span></code></a></td>
+<td>Public application programming interface</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#module-avalon.pipeline" title="avalon.pipeline"><code class="xref py py-obj docutils literal notranslate"><span class="pre">avalon.pipeline</span></code></a></td>
+<td>Core pipeline functionality</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#module-avalon.schema" title="avalon.schema"><code class="xref py py-obj docutils literal notranslate"><span class="pre">avalon.schema</span></code></a></td>
+<td>Wrapper around <code class="xref py py-mod docutils literal notranslate"><span class="pre">jsonschema</span></code></td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#module-avalon.inventory" title="avalon.inventory"><code class="xref py py-obj docutils literal notranslate"><span class="pre">avalon.inventory</span></code></a></td>
+<td>Utilities for interacting with database through the Inventory API</td>
+</tr>
+<tr class="row-odd"><td><a class="reference internal" href="#module-avalon.io" title="avalon.io"><code class="xref py py-obj docutils literal notranslate"><span class="pre">avalon.io</span></code></a></td>
+<td>Wrapper around interactions with the database</td>
+</tr>
+<tr class="row-even"><td><a class="reference internal" href="#module-avalon.lib" title="avalon.lib"><code class="xref py py-obj docutils literal notranslate"><span class="pre">avalon.lib</span></code></a></td>
+<td>Helper functions</td>
+</tr>
+</tbody>
+</table>
+<div class="line-block">
+<div class="line"><br /></div>
+<div class="line"><br /></div>
+</div>
+<div class="section" id="module-avalon.api">
+<span id="api"></span><h2>API<a class="headerlink" href="#module-avalon.api" title="Permalink to this headline">¶</a></h2>
+<p>Public application programming interface</p>
+<p>The following members are public and reliable.
+That is to say, anything <strong>not</strong> defined here is <strong>internal</strong>
+and likely <strong>unreliable</strong> for use outside of the codebase itself.</p>
+<div class="line-block">
+<div class="line"><br /></div>
+<div class="line"><br /></div>
+</div>
+<dl class="function">
+<dt id="avalon.api.install">
+<code class="descclassname">avalon.api.</code><code class="descname">install</code><span class="sig-paren">(</span><em>host</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.install" title="Permalink to this definition">¶</a></dt>
+<dd><p>Install <cite>host</cite> into the running Python session.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>host</strong> (<em>module</em>) – A Python module containing the Avalon
+avalon host-interface.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.uninstall">
+<code class="descclassname">avalon.api.</code><code class="descname">uninstall</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.uninstall" title="Permalink to this definition">¶</a></dt>
+<dd><p>Undo all of what <cite>install()</cite> did</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="avalon.api.Loader">
+<em class="property">class </em><code class="descclassname">avalon.api.</code><code class="descname">Loader</code><span class="sig-paren">(</span><em>context</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.Loader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load representation into host application</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>context</strong> (<em>dict</em>) – avalon-core:context-1.0</li>
+<li><strong>name</strong> (<em>str</em><em>, </em><em>optional</em>) – Use pre-defined name</li>
+<li><strong>namespace</strong> (<em>str</em><em>, </em><em>optional</em>) – Use pre-defined namespace</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="versionadded">
+<p><span class="versionmodified">New in version 4.0: </span>This class was introduced</p>
+</div>
+<dl class="method">
+<dt id="avalon.api.Loader.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>context</em>, <em>name=None</em>, <em>namespace=None</em>, <em>options=None</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.Loader.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load asset via database</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>context</strong> (<em>dict</em>) – Full parenthood of representation to load</li>
+<li><strong>name</strong> (<em>str</em><em>, </em><em>optional</em>) – Use pre-defined name</li>
+<li><strong>namespace</strong> (<em>str</em><em>, </em><em>optional</em>) – Use pre-defined namespace</li>
+<li><strong>options</strong> (<em>dict</em><em>, </em><em>optional</em>) – Additional settings dictionary</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="avalon.api.Loader.remove">
+<code class="descname">remove</code><span class="sig-paren">(</span><em>container</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.Loader.remove" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a container</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>(</strong><strong>avalon-core</strong> (<em>container</em>) – container-1.0): Container to remove,
+from <cite>host.ls()</cite>.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Whether the container was deleted</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="avalon.api.Loader.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>container</em>, <em>representation</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.Loader.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update <cite>container</cite> to <cite>representation</cite></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>(</strong><strong>avalon-core</strong> (<em>container</em>) – container-1.0): Container to update,
+from <cite>host.ls()</cite>.</li>
+<li><strong>representation</strong> (<em>dict</em>) – Update the container to this representation.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="avalon.api.Creator">
+<em class="property">class </em><code class="descclassname">avalon.api.</code><code class="descname">Creator</code><span class="sig-paren">(</span><em>name</em>, <em>asset</em>, <em>options=None</em>, <em>data=None</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.Creator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine how assets are created</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="avalon.api.Action">
+<em class="property">class </em><code class="descclassname">avalon.api.</code><code class="descname">Action</code><a class="headerlink" href="#avalon.api.Action" title="Permalink to this definition">¶</a></dt>
+<dd><p>A custom action available</p>
+<dl class="method">
+<dt id="avalon.api.Action.is_compatible">
+<code class="descname">is_compatible</code><span class="sig-paren">(</span><em>session</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.Action.is_compatible" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether the class is compatible with the Session.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="avalon.api.InventoryAction">
+<em class="property">class </em><code class="descclassname">avalon.api.</code><code class="descname">InventoryAction</code><a class="headerlink" href="#avalon.api.InventoryAction" title="Permalink to this definition">¶</a></dt>
+<dd><p>A custom action for the scene inventory tool</p>
+<p>If registered the action will be visible in the Right Mouse Button menu
+under the submenu “Actions”.</p>
+<dl class="staticmethod">
+<dt id="avalon.api.InventoryAction.is_compatible">
+<em class="property">static </em><code class="descname">is_compatible</code><span class="sig-paren">(</span><em>container</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.InventoryAction.is_compatible" title="Permalink to this definition">¶</a></dt>
+<dd><p>Override function in a custom class</p>
+<p>This method is specifically used to ensure the action can operate on
+the container.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>container</strong> (<em>dict</em>) – the data of a loaded asset, see host.ls()</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="avalon.api.InventoryAction.process">
+<code class="descname">process</code><span class="sig-paren">(</span><em>containers</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.InventoryAction.process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Override function in a custom class</p>
+<p>This method will receive all containers even those which are
+incompatible. It is advised to create a small filter along the lines
+of this example:</p>
+<p>valid_containers = filter(self.is_compatible(c) for c in containers)</p>
+<p>The return value will need to be a True-ish value to trigger
+the data_changed signal in order to refresh the view.</p>
+<p>You can return a list of container names to trigger GUI to select
+treeview items.</p>
+<dl class="docutils">
+<dt>You can return a dict to carry extra GUI options. For example:</dt>
+<dd><dl class="first docutils">
+<dt>{</dt>
+<dd><p class="first">“objectNames”: [container names…],
+“options”: {“mode”: “toggle”,</p>
+<blockquote class="last">
+<div>“clear”: False}</div></blockquote>
+</dd>
+</dl>
+<p class="last">}</p>
+</dd>
+<dt>Currently workable GUI options are:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>clear (bool): Clear current selection before selecting by action.</dt>
+<dd>Default <cite>True</cite>.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>mode (str): selection mode, use one of these:</dt>
+<dd>“select”, “deselect”, “toggle”. Default is “select”.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>containers</strong> (<em>list</em>) – list of dictionaries</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">bool, list or dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="avalon.api.Application">
+<em class="property">class </em><code class="descclassname">avalon.api.</code><code class="descname">Application</code><a class="headerlink" href="#avalon.api.Application" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default application launcher</p>
+<p>This is a convenience application Action that when “config” refers to a
+parsed application <cite>.toml</cite> this can launch the application.</p>
+<dl class="method">
+<dt id="avalon.api.Application.environ">
+<code class="descname">environ</code><span class="sig-paren">(</span><em>session</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.Application.environ" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build application environment</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="avalon.api.Application.initialize">
+<code class="descname">initialize</code><span class="sig-paren">(</span><em>environment</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.Application.initialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize work directory</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="avalon.api.Application.is_compatible">
+<code class="descname">is_compatible</code><span class="sig-paren">(</span><em>session</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.Application.is_compatible" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether the class is compatible with the Session.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="avalon.api.Application.process">
+<code class="descname">process</code><span class="sig-paren">(</span><em>session</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.Application.process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the full Application action</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.discover">
+<code class="descclassname">avalon.api.</code><code class="descname">discover</code><span class="sig-paren">(</span><em>superclass</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.discover" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find and return subclasses of <cite>superclass</cite></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.on">
+<code class="descclassname">avalon.api.</code><code class="descname">on</code><span class="sig-paren">(</span><em>event</em>, <em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.on" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call <cite>callback</cite> on <cite>event</cite></p>
+<p>Register <cite>callback</cite> to be run when <cite>event</cite> occurs.</p>
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">on_init</span><span class="p">():</span>
+<span class="gp">... </span>   <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Init happened&quot;</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">,</span> <span class="n">on_init</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">on_init</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>event</strong> (<em>str</em>) – Name of event</li>
+<li><strong>callback</strong> (<em>callable</em>) – Any callable</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.after">
+<code class="descclassname">avalon.api.</code><code class="descname">after</code><span class="sig-paren">(</span><em>event</em>, <em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.after" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience to <cite>on()</cite> for after-events</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.before">
+<code class="descclassname">avalon.api.</code><code class="descname">before</code><span class="sig-paren">(</span><em>event</em>, <em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.before" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience to <cite>on()</cite> for before-events</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.emit">
+<code class="descclassname">avalon.api.</code><code class="descname">emit</code><span class="sig-paren">(</span><em>event</em>, <em>args=None</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.emit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trigger an <cite>event</cite></p>
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">on_init</span><span class="p">():</span>
+<span class="gp">... </span>   <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Init happened&quot;</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">,</span> <span class="n">on_init</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">emit</span><span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">)</span>
+<span class="go">Init happened</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">on_init</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>event</strong> (<em>str</em>) – Name of event</li>
+<li><strong>args</strong> (<em>list</em><em>, </em><em>optional</em>) – List of arguments passed to callback</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.publish">
+<code class="descclassname">avalon.api.</code><code class="descname">publish</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.publish" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shorthand to publish from within host</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.create">
+<code class="descclassname">avalon.api.</code><code class="descname">create</code><span class="sig-paren">(</span><em>name</em>, <em>asset</em>, <em>family</em>, <em>options=None</em>, <em>data=None</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.create" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new instance</p>
+<p>Associate nodes with a subset and family. These nodes are later
+validated, according to their <cite>family</cite>, and integrated into the
+shared environment, relative their <cite>subset</cite>.</p>
+<p>Data relative each family, along with default data, are imprinted
+into the resulting objectSet. This data is later used by extractors
+and finally asset browsers to help identify the origin of the asset.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>name</strong> (<em>str</em>) – Name of subset</li>
+<li><strong>asset</strong> (<em>str</em>) – Name of asset</li>
+<li><strong>family</strong> (<em>str</em>) – Name of family</li>
+<li><strong>options</strong> (<em>dict</em><em>, </em><em>optional</em>) – Additional options from GUI</li>
+<li><strong>data</strong> (<em>dict</em><em>, </em><em>optional</em>) – Additional data from GUI</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first simple">
+<li><strong>NameError on subset already exists</strong> – </li>
+<li><strong>KeyError on invalid dynamic property</strong> – </li>
+<li><strong>RuntimeError on host error</strong> – </li>
+</ul>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Name of instance</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.load">
+<code class="descclassname">avalon.api.</code><code class="descname">load</code><span class="sig-paren">(</span><em>Loader</em>, <em>representation</em>, <em>namespace=None</em>, <em>name=None</em>, <em>options=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use Loader to load a representation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>Loader</strong> (<a class="reference internal" href="#avalon.pipeline.Loader" title="avalon.pipeline.Loader"><em>Loader</em></a>) – The loader class to trigger.</li>
+<li><strong>representation</strong> (<em>str</em><em> or </em><a class="reference internal" href="#avalon.io.ObjectId" title="avalon.io.ObjectId"><em>io.ObjectId</em></a><em> or </em><em>dict</em>) – The representation id
+or full representation as returned by the database.</li>
+<li><strong>namespace</strong> (<em>str</em><em>, </em><em>Optional</em>) – The namespace to assign. Defaults to None.</li>
+<li><strong>name</strong> (<em>str</em><em>, </em><em>Optional</em>) – The name to assign. Defaults to subset name.</li>
+<li><strong>options</strong> (<em>dict</em><em>, </em><em>Optional</em>) – Additional options to pass on to the loader.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The return of the <cite>loader.load()</cite> method.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#avalon.pipeline.IncompatibleLoaderError" title="avalon.pipeline.IncompatibleLoaderError"><strong>IncompatibleLoaderError</strong></a> – When the loader is not compatible with
+    the representation.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.update">
+<code class="descclassname">avalon.api.</code><code class="descname">update</code><span class="sig-paren">(</span><em>container</em>, <em>version=-1</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update a container</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.switch">
+<code class="descclassname">avalon.api.</code><code class="descname">switch</code><span class="sig-paren">(</span><em>container</em>, <em>representation</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.switch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Switch a container to representation</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>container</strong> (<em>dict</em>) – container information</li>
+<li><strong>representation</strong> (<em>dict</em>) – representation data from document</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">function call</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.remove">
+<code class="descclassname">avalon.api.</code><code class="descname">remove</code><span class="sig-paren">(</span><em>container</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.remove" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a container</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.update_current_task">
+<code class="descclassname">avalon.api.</code><code class="descname">update_current_task</code><span class="sig-paren">(</span><em>task=None</em>, <em>asset=None</em>, <em>app=None</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.update_current_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update active Session to a new task work area.</p>
+<p>This updates the live Session to a different <cite>asset</cite>, <cite>task</cite> or <cite>app</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>task</strong> (<em>str</em>) – The task to set.</li>
+<li><strong>asset</strong> (<em>str</em>) – The asset to set.</li>
+<li><strong>app</strong> (<em>str</em>) – The app to set.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The changed key, values in the current Session.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">dict</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.get_representation_path">
+<code class="descclassname">avalon.api.</code><code class="descname">get_representation_path</code><span class="sig-paren">(</span><em>representation</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.get_representation_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get filename from representation document</p>
+<p>There are three ways of getting the path from representation which are
+tried in following sequence until successful.
+1. Get template from representation[‘data’][‘template’] and data from</p>
+<blockquote>
+<div>representation[‘context’]. Then format template with the data.</div></blockquote>
+<ol class="arabic simple" start="2">
+<li>Get template from project[‘config’] and format it with default data set</li>
+<li>Get representation[‘data’][‘path’] and use it directly</li>
+</ol>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>representation</strong> (<em>dict</em>) – representation document from the database</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">fullpath of the representation</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.loaders_from_representation">
+<code class="descclassname">avalon.api.</code><code class="descname">loaders_from_representation</code><span class="sig-paren">(</span><em>loaders</em>, <em>representation</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.loaders_from_representation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all compatible loaders for a representation.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.register_host">
+<code class="descclassname">avalon.api.</code><code class="descname">register_host</code><span class="sig-paren">(</span><em>host</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.register_host" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register a new host for the current process</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>host</strong> (<em>ModuleType</em>) – A module implementing the
+Host API interface. See the Host API
+documentation for details on what is
+required, or browse the source code.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.register_plugin_path">
+<code class="descclassname">avalon.api.</code><code class="descname">register_plugin_path</code><span class="sig-paren">(</span><em>superclass</em>, <em>path</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.register_plugin_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register a directory of one or more plug-ins</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>superclass</strong> (<em>type</em>) – Superclass of plug-ins to look for during discovery</li>
+<li><strong>path</strong> (<em>str</em>) – Absolute path to directory in which to discover plug-ins</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.register_plugin">
+<code class="descclassname">avalon.api.</code><code class="descname">register_plugin</code><span class="sig-paren">(</span><em>superclass</em>, <em>obj</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.register_plugin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register an individual <cite>obj</cite> of type <cite>superclass</cite></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>superclass</strong> (<em>type</em>) – Superclass of plug-in</li>
+<li><strong>obj</strong> (<em>object</em>) – Subclass of <cite>superclass</cite></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.register_root">
+<code class="descclassname">avalon.api.</code><code class="descname">register_root</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.register_root" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register currently active root</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.registered_root">
+<code class="descclassname">avalon.api.</code><code class="descname">registered_root</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.registered_root" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return currently registered root</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.registered_plugin_paths">
+<code class="descclassname">avalon.api.</code><code class="descname">registered_plugin_paths</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.registered_plugin_paths" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all currently registered plug-in paths</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.registered_host">
+<code class="descclassname">avalon.api.</code><code class="descname">registered_host</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.registered_host" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return currently registered host</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.registered_config">
+<code class="descclassname">avalon.api.</code><code class="descname">registered_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.registered_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return currently registered config</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.deregister_plugin">
+<code class="descclassname">avalon.api.</code><code class="descname">deregister_plugin</code><span class="sig-paren">(</span><em>superclass</em>, <em>plugin</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.deregister_plugin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Oppsite of <cite>register_plugin()</cite></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.deregister_plugin_path">
+<code class="descclassname">avalon.api.</code><code class="descname">deregister_plugin_path</code><span class="sig-paren">(</span><em>superclass</em>, <em>path</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.deregister_plugin_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Oppsite of <cite>register_plugin_path()</cite></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.api.time">
+<code class="descclassname">avalon.api.</code><code class="descname">time</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.api.time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return file-system safe string of current date and time</p>
+</dd></dl>
+
+<div class="line-block">
+<div class="line"><br /></div>
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="module-avalon.pipeline">
+<span id="pipeline"></span><h2>Pipeline<a class="headerlink" href="#module-avalon.pipeline" title="Permalink to this headline">¶</a></h2>
+<p>Core pipeline functionality</p>
+<dl class="class">
+<dt id="avalon.pipeline.Action">
+<em class="property">class </em><code class="descclassname">avalon.pipeline.</code><code class="descname">Action</code><a class="headerlink" href="#avalon.pipeline.Action" title="Permalink to this definition">¶</a></dt>
+<dd><p>A custom action available</p>
+<dl class="method">
+<dt id="avalon.pipeline.Action.is_compatible">
+<code class="descname">is_compatible</code><span class="sig-paren">(</span><em>session</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.Action.is_compatible" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether the class is compatible with the Session.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="avalon.pipeline.Application">
+<em class="property">class </em><code class="descclassname">avalon.pipeline.</code><code class="descname">Application</code><a class="headerlink" href="#avalon.pipeline.Application" title="Permalink to this definition">¶</a></dt>
+<dd><p>Default application launcher</p>
+<p>This is a convenience application Action that when “config” refers to a
+parsed application <cite>.toml</cite> this can launch the application.</p>
+<dl class="method">
+<dt id="avalon.pipeline.Application.environ">
+<code class="descname">environ</code><span class="sig-paren">(</span><em>session</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.Application.environ" title="Permalink to this definition">¶</a></dt>
+<dd><p>Build application environment</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="avalon.pipeline.Application.initialize">
+<code class="descname">initialize</code><span class="sig-paren">(</span><em>environment</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.Application.initialize" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize work directory</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="avalon.pipeline.Application.is_compatible">
+<code class="descname">is_compatible</code><span class="sig-paren">(</span><em>session</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.Application.is_compatible" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether the class is compatible with the Session.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="avalon.pipeline.Application.process">
+<code class="descname">process</code><span class="sig-paren">(</span><em>session</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.Application.process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process the full Application action</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="avalon.pipeline.Creator">
+<em class="property">class </em><code class="descclassname">avalon.pipeline.</code><code class="descname">Creator</code><span class="sig-paren">(</span><em>name</em>, <em>asset</em>, <em>options=None</em>, <em>data=None</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.Creator" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine how assets are created</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="avalon.pipeline.IncompatibleLoaderError">
+<em class="property">exception </em><code class="descclassname">avalon.pipeline.</code><code class="descname">IncompatibleLoaderError</code><a class="headerlink" href="#avalon.pipeline.IncompatibleLoaderError" title="Permalink to this definition">¶</a></dt>
+<dd><p>Error when Loader is incompatible with a representation.</p>
+</dd></dl>
+
+<dl class="class">
+<dt id="avalon.pipeline.InventoryAction">
+<em class="property">class </em><code class="descclassname">avalon.pipeline.</code><code class="descname">InventoryAction</code><a class="headerlink" href="#avalon.pipeline.InventoryAction" title="Permalink to this definition">¶</a></dt>
+<dd><p>A custom action for the scene inventory tool</p>
+<p>If registered the action will be visible in the Right Mouse Button menu
+under the submenu “Actions”.</p>
+<dl class="staticmethod">
+<dt id="avalon.pipeline.InventoryAction.is_compatible">
+<em class="property">static </em><code class="descname">is_compatible</code><span class="sig-paren">(</span><em>container</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.InventoryAction.is_compatible" title="Permalink to this definition">¶</a></dt>
+<dd><p>Override function in a custom class</p>
+<p>This method is specifically used to ensure the action can operate on
+the container.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>container</strong> (<em>dict</em>) – the data of a loaded asset, see host.ls()</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="avalon.pipeline.InventoryAction.process">
+<code class="descname">process</code><span class="sig-paren">(</span><em>containers</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.InventoryAction.process" title="Permalink to this definition">¶</a></dt>
+<dd><p>Override function in a custom class</p>
+<p>This method will receive all containers even those which are
+incompatible. It is advised to create a small filter along the lines
+of this example:</p>
+<p>valid_containers = filter(self.is_compatible(c) for c in containers)</p>
+<p>The return value will need to be a True-ish value to trigger
+the data_changed signal in order to refresh the view.</p>
+<p>You can return a list of container names to trigger GUI to select
+treeview items.</p>
+<dl class="docutils">
+<dt>You can return a dict to carry extra GUI options. For example:</dt>
+<dd><dl class="first docutils">
+<dt>{</dt>
+<dd><p class="first">“objectNames”: [container names…],
+“options”: {“mode”: “toggle”,</p>
+<blockquote class="last">
+<div>“clear”: False}</div></blockquote>
+</dd>
+</dl>
+<p class="last">}</p>
+</dd>
+<dt>Currently workable GUI options are:</dt>
+<dd><ul class="first last simple">
+<li><dl class="first docutils">
+<dt>clear (bool): Clear current selection before selecting by action.</dt>
+<dd>Default <cite>True</cite>.</dd>
+</dl>
+</li>
+<li><dl class="first docutils">
+<dt>mode (str): selection mode, use one of these:</dt>
+<dd>“select”, “deselect”, “toggle”. Default is “select”.</dd>
+</dl>
+</li>
+</ul>
+</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>containers</strong> (<em>list</em>) – list of dictionaries</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">bool, list or dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="avalon.pipeline.Loader">
+<em class="property">class </em><code class="descclassname">avalon.pipeline.</code><code class="descname">Loader</code><span class="sig-paren">(</span><em>context</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.Loader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load representation into host application</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>context</strong> (<em>dict</em>) – avalon-core:context-1.0</li>
+<li><strong>name</strong> (<em>str</em><em>, </em><em>optional</em>) – Use pre-defined name</li>
+<li><strong>namespace</strong> (<em>str</em><em>, </em><em>optional</em>) – Use pre-defined namespace</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="versionadded">
+<p><span class="versionmodified">New in version 4.0: </span>This class was introduced</p>
+</div>
+<dl class="method">
+<dt id="avalon.pipeline.Loader.load">
+<code class="descname">load</code><span class="sig-paren">(</span><em>context</em>, <em>name=None</em>, <em>namespace=None</em>, <em>options=None</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.Loader.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Load asset via database</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>context</strong> (<em>dict</em>) – Full parenthood of representation to load</li>
+<li><strong>name</strong> (<em>str</em><em>, </em><em>optional</em>) – Use pre-defined name</li>
+<li><strong>namespace</strong> (<em>str</em><em>, </em><em>optional</em>) – Use pre-defined namespace</li>
+<li><strong>options</strong> (<em>dict</em><em>, </em><em>optional</em>) – Additional settings dictionary</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="avalon.pipeline.Loader.remove">
+<code class="descname">remove</code><span class="sig-paren">(</span><em>container</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.Loader.remove" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a container</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>(</strong><strong>avalon-core</strong> (<em>container</em>) – container-1.0): Container to remove,
+from <cite>host.ls()</cite>.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Whether the container was deleted</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="avalon.pipeline.Loader.update">
+<code class="descname">update</code><span class="sig-paren">(</span><em>container</em>, <em>representation</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.Loader.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update <cite>container</cite> to <cite>representation</cite></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>(</strong><strong>avalon-core</strong> (<em>container</em>) – container-1.0): Container to update,
+from <cite>host.ls()</cite>.</li>
+<li><strong>representation</strong> (<em>dict</em>) – Update the container to this representation.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.after">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">after</code><span class="sig-paren">(</span><em>event</em>, <em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.after" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience to <cite>on()</cite> for after-events</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.before">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">before</code><span class="sig-paren">(</span><em>event</em>, <em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.before" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convenience to <cite>on()</cite> for before-events</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.compute_session_changes">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">compute_session_changes</code><span class="sig-paren">(</span><em>session</em>, <em>task=None</em>, <em>asset=None</em>, <em>app=None</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.compute_session_changes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Compute the changes for a Session object on asset, task or app switch</p>
+<p>This does <em>NOT</em> update the Session object, but returns the changes
+required for a valid update of the Session.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>session</strong> (<em>dict</em>) – The initial session to compute changes to.
+This is required for computing the full Work Directory, as that
+also depends on the values that haven’t changed.</li>
+<li><strong>task</strong> (<em>str</em><em>, </em><em>Optional</em>) – Name of task to switch to.</li>
+<li><strong>asset</strong> (<em>str</em><em> or </em><em>dict</em><em>, </em><em>Optional</em>) – Name of asset to switch to.
+You can also directly provide the Asset dictionary as returned
+from the database to avoid an additional query. (optimization)</li>
+<li><strong>app</strong> (<em>str</em><em>, </em><em>Optional</em>) – Name of app to switch to.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The required changes in the Session dictionary.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">dict</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.create">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">create</code><span class="sig-paren">(</span><em>name</em>, <em>asset</em>, <em>family</em>, <em>options=None</em>, <em>data=None</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.create" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new instance</p>
+<p>Associate nodes with a subset and family. These nodes are later
+validated, according to their <cite>family</cite>, and integrated into the
+shared environment, relative their <cite>subset</cite>.</p>
+<p>Data relative each family, along with default data, are imprinted
+into the resulting objectSet. This data is later used by extractors
+and finally asset browsers to help identify the origin of the asset.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>name</strong> (<em>str</em>) – Name of subset</li>
+<li><strong>asset</strong> (<em>str</em>) – Name of asset</li>
+<li><strong>family</strong> (<em>str</em>) – Name of family</li>
+<li><strong>options</strong> (<em>dict</em><em>, </em><em>optional</em>) – Additional options from GUI</li>
+<li><strong>data</strong> (<em>dict</em><em>, </em><em>optional</em>) – Additional data from GUI</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><ul class="first simple">
+<li><strong>NameError on subset already exists</strong> – </li>
+<li><strong>KeyError on invalid dynamic property</strong> – </li>
+<li><strong>RuntimeError on host error</strong> – </li>
+</ul>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Name of instance</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.debug_host">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">debug_host</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.debug_host" title="Permalink to this definition">¶</a></dt>
+<dd><p>A debug host, useful to debugging features that depend on a host</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.default_host">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">default_host</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.default_host" title="Permalink to this definition">¶</a></dt>
+<dd><p>A default host, in place of anything better</p>
+<p>This may be considered as reference for the
+interface a host must implement. It also ensures
+that the system runs, even when nothing is there
+to support it.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.deregister_config">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">deregister_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.deregister_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Undo <cite>register_config()</cite></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.deregister_plugin">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">deregister_plugin</code><span class="sig-paren">(</span><em>superclass</em>, <em>plugin</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.deregister_plugin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Oppsite of <cite>register_plugin()</cite></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.deregister_plugin_path">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">deregister_plugin_path</code><span class="sig-paren">(</span><em>superclass</em>, <em>path</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.deregister_plugin_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Oppsite of <cite>register_plugin_path()</cite></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.discover">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">discover</code><span class="sig-paren">(</span><em>superclass</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.discover" title="Permalink to this definition">¶</a></dt>
+<dd><p>Find and return subclasses of <cite>superclass</cite></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.emit">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">emit</code><span class="sig-paren">(</span><em>event</em>, <em>args=None</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.emit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Trigger an <cite>event</cite></p>
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">on_init</span><span class="p">():</span>
+<span class="gp">... </span>   <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Init happened&quot;</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">,</span> <span class="n">on_init</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">emit</span><span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">)</span>
+<span class="go">Init happened</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">on_init</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>event</strong> (<em>str</em>) – Name of event</li>
+<li><strong>args</strong> (<em>list</em><em>, </em><em>optional</em>) – List of arguments passed to callback</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.get_representation_context">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">get_representation_context</code><span class="sig-paren">(</span><em>representation</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.get_representation_context" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return parenthood context for representation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>representation</strong> (<em>str</em><em> or </em><a class="reference internal" href="#avalon.io.ObjectId" title="avalon.io.ObjectId"><em>io.ObjectId</em></a><em> or </em><em>dict</em>) – The representation id
+or full representation as returned by the database.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The full representation context.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.get_representation_path">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">get_representation_path</code><span class="sig-paren">(</span><em>representation</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.get_representation_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get filename from representation document</p>
+<p>There are three ways of getting the path from representation which are
+tried in following sequence until successful.
+1. Get template from representation[‘data’][‘template’] and data from</p>
+<blockquote>
+<div>representation[‘context’]. Then format template with the data.</div></blockquote>
+<ol class="arabic simple" start="2">
+<li>Get template from project[‘config’] and format it with default data set</li>
+<li>Get representation[‘data’][‘path’] and use it directly</li>
+</ol>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>representation</strong> (<em>dict</em>) – representation document from the database</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">fullpath of the representation</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">str</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.install">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">install</code><span class="sig-paren">(</span><em>host</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.install" title="Permalink to this definition">¶</a></dt>
+<dd><p>Install <cite>host</cite> into the running Python session.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>host</strong> (<em>module</em>) – A Python module containing the Avalon
+avalon host-interface.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.is_compatible_loader">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">is_compatible_loader</code><span class="sig-paren">(</span><em>Loader</em>, <em>context</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.is_compatible_loader" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return whether a loader is compatible with a context.</p>
+<p>This checks the version’s families and the representation for the given
+Loader.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.is_installed">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">is_installed</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.is_installed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return state of installation</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True if installed, False otherwise</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.load">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">load</code><span class="sig-paren">(</span><em>Loader</em>, <em>representation</em>, <em>namespace=None</em>, <em>name=None</em>, <em>options=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use Loader to load a representation.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>Loader</strong> (<a class="reference internal" href="#avalon.pipeline.Loader" title="avalon.pipeline.Loader"><em>Loader</em></a>) – The loader class to trigger.</li>
+<li><strong>representation</strong> (<em>str</em><em> or </em><a class="reference internal" href="#avalon.io.ObjectId" title="avalon.io.ObjectId"><em>io.ObjectId</em></a><em> or </em><em>dict</em>) – The representation id
+or full representation as returned by the database.</li>
+<li><strong>namespace</strong> (<em>str</em><em>, </em><em>Optional</em>) – The namespace to assign. Defaults to None.</li>
+<li><strong>name</strong> (<em>str</em><em>, </em><em>Optional</em>) – The name to assign. Defaults to subset name.</li>
+<li><strong>options</strong> (<em>dict</em><em>, </em><em>Optional</em>) – Additional options to pass on to the loader.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The return of the <cite>loader.load()</cite> method.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><a class="reference internal" href="#avalon.pipeline.IncompatibleLoaderError" title="avalon.pipeline.IncompatibleLoaderError"><strong>IncompatibleLoaderError</strong></a> – When the loader is not compatible with
+    the representation.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.loaders_from_representation">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">loaders_from_representation</code><span class="sig-paren">(</span><em>loaders</em>, <em>representation</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.loaders_from_representation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all compatible loaders for a representation.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.on">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">on</code><span class="sig-paren">(</span><em>event</em>, <em>callback</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.on" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call <cite>callback</cite> on <cite>event</cite></p>
+<p>Register <cite>callback</cite> to be run when <cite>event</cite> occurs.</p>
+<p class="rubric">Example</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">on_init</span><span class="p">():</span>
+<span class="gp">... </span>   <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Init happened&quot;</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">on</span><span class="p">(</span><span class="s2">&quot;init&quot;</span><span class="p">,</span> <span class="n">on_init</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">del</span> <span class="n">on_init</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>event</strong> (<em>str</em>) – Name of event</li>
+<li><strong>callback</strong> (<em>callable</em>) – Any callable</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.plugin_from_module">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">plugin_from_module</code><span class="sig-paren">(</span><em>superclass</em>, <em>module</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.plugin_from_module" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return plug-ins from module</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>superclass</strong> (<em>superclass</em>) – Superclass of subclasses to look for</li>
+<li><strong>module</strong> (<em>types.ModuleType</em>) – Imported module from which to
+parse valid Avalon plug-ins.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">List of plug-ins, or empty list if none is found.</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.publish">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">publish</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.publish" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shorthand to publish from within host</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.register_config">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">register_config</code><span class="sig-paren">(</span><em>config</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.register_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register a new config for the current process</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>config</strong> (<em>ModuleType</em>) – A module implementing the Config API.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.register_host">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">register_host</code><span class="sig-paren">(</span><em>host</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.register_host" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register a new host for the current process</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>host</strong> (<em>ModuleType</em>) – A module implementing the
+Host API interface. See the Host API
+documentation for details on what is
+required, or browse the source code.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.register_plugin">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">register_plugin</code><span class="sig-paren">(</span><em>superclass</em>, <em>obj</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.register_plugin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register an individual <cite>obj</cite> of type <cite>superclass</cite></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>superclass</strong> (<em>type</em>) – Superclass of plug-in</li>
+<li><strong>obj</strong> (<em>object</em>) – Subclass of <cite>superclass</cite></li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.register_plugin_path">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">register_plugin_path</code><span class="sig-paren">(</span><em>superclass</em>, <em>path</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.register_plugin_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register a directory of one or more plug-ins</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>superclass</strong> (<em>type</em>) – Superclass of plug-ins to look for during discovery</li>
+<li><strong>path</strong> (<em>str</em>) – Absolute path to directory in which to discover plug-ins</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.register_root">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">register_root</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.register_root" title="Permalink to this definition">¶</a></dt>
+<dd><p>Register currently active root</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.registered_config">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">registered_config</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.registered_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return currently registered config</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.registered_host">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">registered_host</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.registered_host" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return currently registered host</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.registered_plugin_paths">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">registered_plugin_paths</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.registered_plugin_paths" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return all currently registered plug-in paths</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.registered_root">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">registered_root</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.registered_root" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return currently registered root</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.remove">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">remove</code><span class="sig-paren">(</span><em>container</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.remove" title="Permalink to this definition">¶</a></dt>
+<dd><p>Remove a container</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.switch">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">switch</code><span class="sig-paren">(</span><em>container</em>, <em>representation</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.switch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Switch a container to representation</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>container</strong> (<em>dict</em>) – container information</li>
+<li><strong>representation</strong> (<em>dict</em>) – representation data from document</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">function call</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.uninstall">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">uninstall</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.uninstall" title="Permalink to this definition">¶</a></dt>
+<dd><p>Undo all of what <cite>install()</cite> did</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.update">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">update</code><span class="sig-paren">(</span><em>container</em>, <em>version=-1</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.update" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update a container</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.pipeline.update_current_task">
+<code class="descclassname">avalon.pipeline.</code><code class="descname">update_current_task</code><span class="sig-paren">(</span><em>task=None</em>, <em>asset=None</em>, <em>app=None</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.pipeline.update_current_task" title="Permalink to this definition">¶</a></dt>
+<dd><p>Update active Session to a new task work area.</p>
+<p>This updates the live Session to a different <cite>asset</cite>, <cite>task</cite> or <cite>app</cite>.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>task</strong> (<em>str</em>) – The task to set.</li>
+<li><strong>asset</strong> (<em>str</em>) – The asset to set.</li>
+<li><strong>app</strong> (<em>str</em>) – The app to set.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">The changed key, values in the current Session.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">dict</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<div class="line-block">
+<div class="line"><br /></div>
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="module-avalon.schema">
+<span id="schema"></span><h2>Schema<a class="headerlink" href="#module-avalon.schema" title="Permalink to this headline">¶</a></h2>
+<p>Wrapper around <code class="xref py py-mod docutils literal notranslate"><span class="pre">jsonschema</span></code></p>
+<p>Schemas are implicitly loaded from the /schema directory of this project.</p>
+<dl class="attribute">
+<dt id="avalon.schema._cache">
+<code class="descclassname">avalon.schema.</code><code class="descname">_cache</code><a class="headerlink" href="#avalon.schema._cache" title="Permalink to this definition">¶</a></dt>
+<dd><p>Cache of previously loaded schemas</p>
+</dd></dl>
+
+<dl class="docutils">
+<dt>Resources:</dt>
+<dd><a class="reference external" href="http://json-schema.org/">http://json-schema.org/</a>
+<a class="reference external" href="http://json-schema.org/latest/json-schema-core.html">http://json-schema.org/latest/json-schema-core.html</a>
+<a class="reference external" href="http://spacetelescope.github.io/understanding-json-schema/index.html">http://spacetelescope.github.io/understanding-json-schema/index.html</a></dd>
+</dl>
+<dl class="function">
+<dt id="avalon.schema.validate">
+<code class="descclassname">avalon.schema.</code><code class="descname">validate</code><span class="sig-paren">(</span><em>data</em>, <em>schema=None</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.schema.validate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Validate <cite>data</cite> with <cite>schema</cite></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>data</strong> (<em>dict</em>) – JSON-compatible data</li>
+<li><strong>schema</strong> (<em>str</em>) – DEPRECATED Name of schema. Now included in the data.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><strong>ValidationError on invalid schema</strong> – </p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<div class="line-block">
+<div class="line"><br /></div>
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="module-avalon.inventory">
+<span id="inventory"></span><h2>Inventory<a class="headerlink" href="#module-avalon.inventory" title="Permalink to this headline">¶</a></h2>
+<p>Utilities for interacting with database through the Inventory API</p>
+<p>Until assets are created entirely in the database, this script
+provides a bridge between the file-based project inventory and configuration.</p>
+<dl class="docutils">
+<dt>Usage:</dt>
+<dd><p class="first">$ # Create new project:
+$ python -m avalon.inventory –init
+$ python -m avalon.inventory –save</p>
+<p class="last">$ # Manage existing project
+$ python -m avalon.inventory –load
+$ # Update the .inventory.toml or .config.toml
+$ python -m avalon.inventory –save</p>
+</dd>
+</dl>
+<dl class="function">
+<dt id="avalon.inventory.init">
+<code class="descclassname">avalon.inventory.</code><code class="descname">init</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.inventory.init" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialise a new project called <cite>name</cite></p>
+<p>Upon creating a new project, call init to establish an example
+inventory and configuration for your project.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> (<em>str</em>) – Name of new project</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.inventory.save">
+<code class="descclassname">avalon.inventory.</code><code class="descname">save</code><span class="sig-paren">(</span><em>name</em>, <em>config</em>, <em>inventory</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.inventory.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write <cite>config</cite> and <cite>inventory</cite> to database as <cite>name</cite></p>
+<p>Given a configuration and inventory, this function writes
+the changes to the current database.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>name</strong> (<em>str</em>) – Project name</li>
+<li><strong>config</strong> (<em>dict</em>) – Current configuration</li>
+<li><strong>inventory</strong> (<em>dict</em>) – Current inventory</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.inventory.load">
+<code class="descclassname">avalon.inventory.</code><code class="descname">load</code><span class="sig-paren">(</span><em>name</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.inventory.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read project called <cite>name</cite> from database</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>name</strong> (<em>str</em>) – Project name</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<div class="line-block">
+<div class="line"><br /></div>
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="module-avalon.io">
+<span id="i-o"></span><h2>I/O<a class="headerlink" href="#module-avalon.io" title="Permalink to this headline">¶</a></h2>
+<p>Wrapper around interactions with the database</p>
+<dl class="class">
+<dt id="avalon.io.ObjectId">
+<em class="property">class </em><code class="descclassname">avalon.io.</code><code class="descname">ObjectId</code><span class="sig-paren">(</span><em>oid=None</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.io.ObjectId" title="Permalink to this definition">¶</a></dt>
+<dd><p>A MongoDB ObjectId.</p>
+<dl class="attribute">
+<dt id="avalon.io.ObjectId.binary">
+<code class="descname">binary</code><a class="headerlink" href="#avalon.io.ObjectId.binary" title="Permalink to this definition">¶</a></dt>
+<dd><p>12-byte binary representation of this ObjectId.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="avalon.io.ObjectId.from_datetime">
+<em class="property">classmethod </em><code class="descname">from_datetime</code><span class="sig-paren">(</span><em>generation_time</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.io.ObjectId.from_datetime" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a dummy ObjectId instance with a specific generation time.</p>
+<p>This method is useful for doing range queries on a field
+containing <a class="reference internal" href="#avalon.io.ObjectId" title="avalon.io.ObjectId"><code class="xref py py-class docutils literal notranslate"><span class="pre">ObjectId</span></code></a> instances.</p>
+<div class="admonition warning">
+<p class="first admonition-title">Warning</p>
+<p class="last">It is not safe to insert a document containing an ObjectId
+generated using this method. This method deliberately
+eliminates the uniqueness guarantee that ObjectIds
+generally provide. ObjectIds generated with this method
+should be used exclusively in queries.</p>
+</div>
+<p><cite>generation_time</cite> will be converted to UTC. Naive datetime
+instances will be treated as though they already contain UTC.</p>
+<p>An example using this helper to get documents where <code class="docutils literal notranslate"><span class="pre">&quot;_id&quot;</span></code>
+was generated before January 1, 2010 would be:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">gen_time</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">datetime</span><span class="p">(</span><span class="mi">2010</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">dummy_id</span> <span class="o">=</span> <span class="n">ObjectId</span><span class="o">.</span><span class="n">from_datetime</span><span class="p">(</span><span class="n">gen_time</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">collection</span><span class="o">.</span><span class="n">find</span><span class="p">({</span><span class="s2">&quot;_id&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;$lt&quot;</span><span class="p">:</span> <span class="n">dummy_id</span><span class="p">}})</span>
+</pre></div>
+</div>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><cite>generation_time</cite>: <code class="xref py py-class docutils literal notranslate"><span class="pre">datetime</span></code> to be used
+as the generation time for the resulting ObjectId.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="avalon.io.ObjectId.generation_time">
+<code class="descname">generation_time</code><a class="headerlink" href="#avalon.io.ObjectId.generation_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>A <code class="xref py py-class docutils literal notranslate"><span class="pre">datetime.datetime</span></code> instance representing the time of
+generation for this <a class="reference internal" href="#avalon.io.ObjectId" title="avalon.io.ObjectId"><code class="xref py py-class docutils literal notranslate"><span class="pre">ObjectId</span></code></a>.</p>
+<p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">datetime.datetime</span></code> is timezone aware, and
+represents the generation time in UTC. It is precise to the
+second.</p>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="avalon.io.ObjectId.is_valid">
+<em class="property">classmethod </em><code class="descname">is_valid</code><span class="sig-paren">(</span><em>oid</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.io.ObjectId.is_valid" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks if a <cite>oid</cite> string is valid or not.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><cite>oid</cite>: the object id to validate</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="versionadded">
+<p><span class="versionmodified">New in version 2.3.</span></p>
+</div>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="exception">
+<dt id="avalon.io.InvalidId">
+<em class="property">exception </em><code class="descclassname">avalon.io.</code><code class="descname">InvalidId</code><a class="headerlink" href="#avalon.io.InvalidId" title="Permalink to this definition">¶</a></dt>
+<dd><p>Raised when trying to create an ObjectId from invalid data.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.io.install">
+<code class="descclassname">avalon.io.</code><code class="descname">install</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.io.install" title="Permalink to this definition">¶</a></dt>
+<dd><p>Establish a persistent connection to the database</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.io.uninstall">
+<code class="descclassname">avalon.io.</code><code class="descname">uninstall</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.io.uninstall" title="Permalink to this definition">¶</a></dt>
+<dd><p>Close any connection to the database</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.io.projects">
+<code class="descclassname">avalon.io.</code><code class="descname">projects</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.io.projects" title="Permalink to this definition">¶</a></dt>
+<dd><p>List available projects</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">list of project documents</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.io.locate">
+<code class="descclassname">avalon.io.</code><code class="descname">locate</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.io.locate" title="Permalink to this definition">¶</a></dt>
+<dd><p>Traverse a hierarchy from top-to-bottom</p>
+<p class="rubric">Example</p>
+<p>representation = locate([“hulk”, “Bruce”, “modelDefault”, 1, “ma”])</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">representation (ObjectId)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.io.insert_one">
+<code class="descclassname">avalon.io.</code><code class="descname">insert_one</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.io.insert_one" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="avalon.io.find">
+<code class="descclassname">avalon.io.</code><code class="descname">find</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.io.find" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="avalon.io.find_one">
+<code class="descclassname">avalon.io.</code><code class="descname">find_one</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.io.find_one" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="avalon.io.save">
+<code class="descclassname">avalon.io.</code><code class="descname">save</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.io.save" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deprecated, please use <cite>replace_one</cite></p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.io.replace_one">
+<code class="descclassname">avalon.io.</code><code class="descname">replace_one</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.io.replace_one" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="avalon.io.update_many">
+<code class="descclassname">avalon.io.</code><code class="descname">update_many</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.io.update_many" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="avalon.io.distinct">
+<code class="descclassname">avalon.io.</code><code class="descname">distinct</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.io.distinct" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="avalon.io.drop">
+<code class="descclassname">avalon.io.</code><code class="descname">drop</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.io.drop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="avalon.io.delete_many">
+<code class="descclassname">avalon.io.</code><code class="descname">delete_many</code><span class="sig-paren">(</span><em>*args</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.io.delete_many" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="avalon.io.parenthood">
+<code class="descclassname">avalon.io.</code><code class="descname">parenthood</code><span class="sig-paren">(</span><em>document</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.io.parenthood" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<div class="line-block">
+<div class="line"><br /></div>
+<div class="line"><br /></div>
+</div>
+</div>
+<div class="section" id="module-avalon.lib">
+<span id="lib"></span><h2>Lib<a class="headerlink" href="#module-avalon.lib" title="Permalink to this headline">¶</a></h2>
+<p>Helper functions</p>
+<dl class="function">
+<dt id="avalon.lib.time">
+<code class="descclassname">avalon.lib.</code><code class="descname">time</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#avalon.lib.time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return file-system safe string of current date and time</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="avalon.lib.log">
+<code class="descclassname">avalon.lib.</code><code class="descname">log</code><span class="sig-paren">(</span><em>cls</em><span class="sig-paren">)</span><a class="headerlink" href="#avalon.lib.log" title="Permalink to this definition">¶</a></dt>
+<dd><p>Decorator for attaching a logger to the class <cite>cls</cite></p>
+<p>Loggers inherit the syntax {module}.{submodule}</p>
+<dl class="docutils">
+<dt>Example</dt>
+<dd><div class="first last highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nd">@log</span>
+<span class="gp">... </span><span class="k">class</span> <span class="nc">MyClass</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">pass</span>
+<span class="go">&gt;&gt;&gt;</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myclass</span> <span class="o">=</span> <span class="n">MyClass</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">myclass</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s1">&#39;Hello World&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">Avalon</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Marcus Ottosson.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.8.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
