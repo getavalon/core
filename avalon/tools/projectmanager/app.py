@@ -35,7 +35,7 @@ class Window(QtWidgets.QDialog):
         assets_widgets = QtWidgets.QWidget()
         assets_widgets.setContentsMargins(0, 0, 0, 0)
         assets_layout = QtWidgets.QVBoxLayout(assets_widgets)
-        assets = AssetWidget()
+        assets = AssetWidget(io)
         assets.view.setSelectionMode(assets.view.ExtendedSelection)
         add_asset = QtWidgets.QPushButton("Add asset")
         assets_layout.addWidget(assets)
@@ -49,7 +49,7 @@ class Window(QtWidgets.QDialog):
         label.setFixedHeight(28)
         task_view = QtWidgets.QTreeView()
         task_view.setIndentation(0)
-        task_model = TasksModel()
+        task_model = TasksModel(io)
         task_view.setModel(task_model)
         add_task = QtWidgets.QPushButton("Add task")
         tasks_layout.addWidget(label)
@@ -236,7 +236,8 @@ class Window(QtWidgets.QDialog):
 
         model = self.data["model"]["assets"]
         selected = model.get_selected_assets()
-        self.data["model"]["tasks"].set_assets(selected)
+
+        self.data["model"]["tasks"].set_assets(asset_docs=selected)
 
 
 def show(root=None, debug=False, parent=None):

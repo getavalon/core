@@ -62,9 +62,12 @@ def validate(data, schema=None):
 if sys.version_info[0] == 3:
     basestring = str
 
-
-_MODULE_DIR = os.path.dirname(__file__)
-_SCHEMA_DIR = os.path.join(_MODULE_DIR, "schema")
+# Give ability to use different schemas
+if os.environ.get('AVALON_SCHEMA'):
+    _SCHEMA_DIR = os.environ['AVALON_SCHEMA']
+else:
+    _MODULE_DIR = os.path.dirname(__file__)
+    _SCHEMA_DIR = os.path.join(_MODULE_DIR, "schema")
 
 _cache = {
     # A mock schema for docstring tests

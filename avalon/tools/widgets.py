@@ -1,9 +1,11 @@
 import logging
+import time
 
 from . import lib
 
 from .models import AssetModel, RecursiveSortFilterProxyModel
-from .views import DeselectableTreeView
+from .views import AssetsView
+from .loader.delegates import AssetDelegate
 from ..vendor import qtawesome, qargparse
 from ..vendor.Qt import QtWidgets, QtCore, QtGui
 
@@ -23,12 +25,16 @@ class AssetWidget(QtWidgets.QWidget):
 
     """
 
-    assets_refreshed = QtCore.Signal()   # on model refresh
+    refresh_triggered = QtCore.Signal()   # on model refresh
+    refreshed = QtCore.Signal()
     selection_changed = QtCore.Signal()  # on view selection change
     current_changed = QtCore.Signal()    # on view current index change
 
-    def __init__(self, parent=None):
+    def __init__(self, dbcon, multiselection=False, parent=None):
         super(AssetWidget, self).__init__(parent=parent)
+
+        self.dbcon = dbcon
+
         self.setContentsMargins(0, 0, 0, 0)
 
         layout = QtWidgets.QVBoxLayout(self)
@@ -36,16 +42,17 @@ class AssetWidget(QtWidgets.QWidget):
         layout.setSpacing(4)
 
         # Tree View
-        model = AssetModel()
+        model = AssetModel(dbcon=self.dbcon, parent=self)
         proxy = RecursiveSortFilterProxyModel()
         proxy.setSourceModel(model)
         proxy.setFilterCaseSensitivity(QtCore.Qt.CaseInsensitive)
 
-        view = DeselectableTreeView()
-        view.setIndentation(15)
-        view.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
-        view.setHeaderHidden(True)
+        view = AssetsView()
         view.setModel(proxy)
+        if multiselection:
+            asset_delegate = AssetDelegate()
+            view.setSelectionMode(view.ExtendedSelection)
+            view.setItemDelegate(asset_delegate)
 
         # Header
         header = QtWidgets.QHBoxLayout()
@@ -76,13 +83,29 @@ class AssetWidget(QtWidgets.QWidget):
         self.proxy = proxy
         self.view = view
 
-    def _refresh_model(self):
-        with lib.preserve_states(
-            self.view, column=0, role=self.model.ObjectIdRole
-        ):
-            self.model.refresh()
+        self.model_selection = {}
 
-        self.assets_refreshed.emit()
+    def _refresh_model(self):
+        # Store selection
+        self._store_model_selection()
+        time_start = time.time()
+
+        self.set_loading_state(
+            loading=True,
+            empty=True
+        )
+        # Refresh model
+        self.model.refresh()
+
+        def on_refreshed(has_item):
+            self.set_loading_state(loading=False, empty=not has_item)
+            self._restore_model_selection()
+            self.model.refreshed.disconnect()
+            self.refreshed.emit()
+            print("Duration: %.3fs" % (time.time() - time_start))
+
+        self.model.refreshed.connect(on_refreshed)
+        self.refresh_triggered.emit()
 
     def refresh(self):
         self._refresh_model()
@@ -122,10 +145,12 @@ class AssetWidget(QtWidgets.QWidget):
             None
 
         Default `key` is "name" in that case `assets` should contain single
-        asset name or list of asset names. It is recommended to use "_id" key
-        instead of name. In that case `assets` must contain `ObjectId` objects.
-        It is assumed that each value in `assets` is found only once.
-        On multiple matches only the first found will be selected.
+        asset name or list of asset names. (It is good idea to use "_id" key
+        instead of name in that case `assets` must contain `ObjectId` object/s)
+        It is expected that each value in `assets` will be found only once.
+        If the filters according to the `key` and `assets` correspond to
+        the more asset, only the first found will be selected.
+
         """
 
         if not isinstance(assets, (tuple, list)):
@@ -161,6 +186,100 @@ class AssetWidget(QtWidgets.QWidget):
 
             # Set the currently active index
             self.view.setCurrentIndex(index)
+
+    def set_loading_state(self, loading, empty):
+        if self.view.is_loading != loading:
+            if loading:
+                self.view.spinner.repaintNeeded.connect(
+                    self.view.viewport().update
+                )
+            else:
+                self.view.spinner.repaintNeeded.disconnect()
+
+        self.view.is_loading = loading
+        self.view.is_empty = empty
+
+    def _store_model_selection(self):
+        index = self.view.currentIndex()
+        current = None
+        if index and index.isValid():
+            current = index.data(self.model.ObjectIdRole)
+
+        expanded = set()
+        model = self.view.model()
+        for index in lib.iter_model_rows(
+            model, column=0, include_root=False
+        ):
+            if self.view.isExpanded(index):
+                value = index.data(self.model.ObjectIdRole)
+                expanded.add(value)
+
+        selection_model = self.view.selectionModel()
+
+        selected = None
+        selected_rows = selection_model.selectedRows()
+        if selected_rows:
+            selected = set(
+                row.data(self.model.ObjectIdRole)
+                for row in selected_rows
+            )
+
+        self.model_selection = {
+            "expanded": expanded,
+            "selected": selected,
+            "current": current
+        }
+
+    def _restore_model_selection(self):
+        model = self.view.model()
+        not_set = object()
+        expanded = self.model_selection.pop("expanded", not_set)
+        selected = self.model_selection.pop("selected", not_set)
+        current = self.model_selection.pop("current", not_set)
+
+        if (
+            expanded is not_set
+            or selected is not_set
+            or current is not_set
+        ):
+            return
+
+        if expanded:
+            for index in lib.iter_model_rows(
+                model, column=0, include_root=False
+            ):
+                is_expanded = index.data(self.model.ObjectIdRole) in expanded
+                self.view.setExpanded(index, is_expanded)
+
+        if selected or current:
+            current_index = None
+            selected_indexes = []
+            # Go through all indices, select the ones with similar data
+            for index in lib.iter_model_rows(
+                model, column=0, include_root=False
+            ):
+                object_id = index.data(self.model.ObjectIdRole)
+                if object_id in selected:
+                    selected_indexes.append(index)
+
+                if not current_index and object_id == current:
+                    current_index = index
+
+            if current_index:
+                self.view.setCurrentIndex(current_index)
+
+            if not selected_indexes:
+                return
+            selection_model = self.view.selectionModel()
+            flags = selection_model.Select | selection_model.Rows
+            for index in selected_indexes:
+                # Ensure item is visible
+                self.view.scrollTo(index)
+                selection_model.select(index, flags)
+        else:
+            asset_name = self.dbcon.Session.get("AVALON_ASSET")
+            if asset_name:
+                self.select_assets([asset_name])
 
 
 class OptionalMenu(QtWidgets.QMenu):

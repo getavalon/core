@@ -110,7 +110,8 @@ def _install_menu():
         creator,
         loader,
         publish,
-        sceneinventory
+        sceneinventory,
+        libraryloader
     )
 
     from . import interactive
@@ -155,6 +156,10 @@ def _install_menu():
         cmds.menuItem("Manage...",
                       command=lambda *args: sceneinventory.show(
                           parent=self._parent))
+
+        cmds.menuItem("Library...", command=lambda *args: libraryloader.show(
+            parent=self._parent)
+        )
 
         cmds.menuItem(divider=True)
 

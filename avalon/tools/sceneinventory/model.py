@@ -7,6 +7,7 @@ from ...vendor.Qt import QtCore, QtGui
 from ...vendor import qtawesome
 
 from .. import lib as tools_lib
+from ...lib import MasterVersionType
 from ..models import TreeModel, Item
 
 from . import lib
@@ -23,11 +24,22 @@ class InventoryModel(TreeModel):
 
     UniqueRole = QtCore.Qt.UserRole + 2     # unique label role
 
-    def __init__(self, parent=None):
+    def __init__(self, family_config_cache, parent=None):
         super(InventoryModel, self).__init__(parent)
         self.log = logging.getLogger(self.__class__.__name__)
 
+        self.family_config_cache = family_config_cache
+
         self._hierarchy_view = False
+
+    def outdated(self, item):
+        value = item.get("version")
+        if isinstance(value, MasterVersionType):
+            return False
+
+        if item.get("version") == item.get("highest_version"):
+            return False
+        return True
 
     def data(self, index, role):
 
@@ -38,7 +50,7 @@ class InventoryModel(TreeModel):
 
         if role == QtCore.Qt.FontRole:
             # Make top-level entries bold
-            if item.get("isGroupNode"):  # group-item
+            if item.get("isGroupNode") or item.get("isNotSet"):  # group-item
                 font = QtGui.QFont()
                 font.setBold(True)
                 return font
@@ -47,17 +59,16 @@ class InventoryModel(TreeModel):
             # Set the text color to the OUTDATED_COLOR when the
             # collected version is not the same as the highest version
             key = self.Columns[index.column()]
-            outdated = (lambda n: n.get("version") != n.get("highest_version"))
             if key == "version":  # version
                 if item.get("isGroupNode"):  # group-item
-                    if outdated(item):
+                    if self.outdated(item):
                         return self.OUTDATED_COLOR
 
                     if self._hierarchy_view:
                         # If current group is not outdated, check if any
                         # outdated children.
                         for _node in lib.walk_hierarchy(item):
-                            if outdated(_node):
+                            if self.outdated(_node):
                                 return self.CHILD_OUTDATED_COLOR
                 else:
 
@@ -65,7 +76,7 @@ class InventoryModel(TreeModel):
                         # Although this is not a group item, we still need
                         # to distinguish which one contain outdated child.
                         for _node in lib.walk_hierarchy(item):
-                            if outdated(_node):
+                            if self.outdated(_node):
                                 return self.CHILD_OUTDATED_COLOR.darker(150)
 
                     return self.GRAYOUT_COLOR
@@ -80,6 +91,8 @@ class InventoryModel(TreeModel):
                 color = item.get("color", style.colors.default)
                 if item.get("isGroupNode"):  # group-item
                     return qtawesome.icon("fa.folder", color=color)
+                elif item.get("isNotSet"):
+                    return qtawesome.icon("fa.exclamation-circle", color=color)
                 else:
                     return qtawesome.icon("fa.file-o", color=color)
 
@@ -210,20 +223,82 @@ class InventoryModel(TreeModel):
         self.beginResetModel()
 
         # Group by representation
-        grouped = defaultdict(list)
+        grouped = defaultdict(lambda: {"items": list()})
         for item in items:
-            grouped[item["representation"]].append(item)
+            grouped[item["representation"]]["items"].append(item)
 
         # Add to model
-        for representation_id, group_items in sorted(grouped.items()):
-
+        not_found = defaultdict(list)
+        not_found_ids = []
+        for repre_id, group_dict in sorted(grouped.items()):
+            group_items = group_dict["items"]
             # Get parenthood per group
-            representation = io.find_one({
-                "_id": io.ObjectId(representation_id)
-            })
+            representation = io.find_one({"_id": io.ObjectId(repre_id)})
+            if not representation:
+                not_found["representation"].append(group_items)
+                not_found_ids.append(repre_id)
+                continue
+
             version = io.find_one({"_id": representation["parent"]})
+            if not version:
+                not_found["version"].append(group_items)
+                not_found_ids.append(repre_id)
+                continue
+
+            elif version["type"] == "master_version":
+                _version = io.find_one({
+                    "_id": version["version_id"]
+                })
+                version["name"] = MasterVersionType(_version["name"])
+                version["data"] = _version["data"]
+
             subset = io.find_one({"_id": version["parent"]})
+            if not subset:
+                not_found["subset"].append(group_items)
+                not_found_ids.append(repre_id)
+                continue
+
             asset = io.find_one({"_id": subset["parent"]})
+            if not asset:
+                not_found["asset"].append(group_items)
+                not_found_ids.append(repre_id)
+                continue
+
+            grouped[repre_id].update({
+                "representation": representation,
+                "version": version,
+                "subset": subset,
+                "asset": asset
+            })
+
+        for id in not_found_ids:
+            grouped.pop(id)
+
+        for where, group_items in not_found.items():
+            # create the group header
+            group_node = Item()
+            name = "< NOT FOUND - {} >".format(where)
+            group_node["Name"] = name
+            group_node["representation"] = name
+            group_node["count"] = len(group_items)
+            group_node["isGroupNode"] = False
+            group_node["isNotSet"] = True
+
+            self.add_child(group_node, parent=parent)
+
+            for items in group_items:
+                item_node = Item()
+                item_node["Name"] = ", ".join(
+                    [item["objectName"] for item in items]
+                )
+                self.add_child(item_node, parent=group_node)
+
+        for repre_id, group_dict in sorted(grouped.items()):
+            group_items = group_dict["items"]
+            representation = grouped[repre_id]["representation"]
+            version = grouped[repre_id]["version"]
+            subset = grouped[repre_id]["subset"]
+            asset = grouped[repre_id]["asset"]
 
             # Get the primary family
             no_family = ""
@@ -237,7 +312,7 @@ class InventoryModel(TreeModel):
                     prim_family = families[0] if families else no_family
 
             # Get the label and icon for the family if in configuration
-            family_config = tools_lib.get_family_cached_config(prim_family)
+            family_config = self.family_config_cache.family_config(prim_family)
             family = family_config.get("label", prim_family)
             family_icon = family_config.get("icon", None)
 
@@ -253,7 +328,7 @@ class InventoryModel(TreeModel):
             group_node["Name"] = "%s_%s: (%s)" % (asset["name"],
                                                   subset["name"],
                                                   representation["name"])
-            group_node["representation"] = representation_id
+            group_node["representation"] = repre_id
             group_node["version"] = version["name"]
             group_node["highest_version"] = highest_version["name"]
             group_node["family"] = family

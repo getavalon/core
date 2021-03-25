@@ -1,10 +1,11 @@
 """Host API required Work Files tool"""
 import sys
 import os
+from avalon import api
 
 
 def file_extensions():
-    return [".comp"]
+    return api.HOST_WORKFILE_EXTENSIONS["fusion"]
 
 
 def has_unsaved_changes():
@@ -40,7 +41,6 @@ def current_file():
 
 
 def work_root(session):
-
     work_dir = session["AVALON_WORKDIR"]
     scene_dir = session.get("AVALON_SCENEDIR")
     if scene_dir:
