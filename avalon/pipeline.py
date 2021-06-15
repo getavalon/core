@@ -1276,41 +1276,43 @@ def get_representation_path(representation):
 
     """
 
-    def path_from_represenation():
+    def path_from_representation():
         try:
             template = representation["data"]["template"]
-
         except KeyError:
+            log.warning("Cannot find template in representation document")
             return None
 
         try:
             context = representation["context"]
             context["root"] = registered_root()
             path = template.format(**context)
-
-        except KeyError:
-            # Template references unavailable data
+        except KeyError as e:
+            log.warning(
+                "Missing value for filepath template:{}".format(e)
+            )
             return None
 
         if os.path.exists(path):
             return os.path.normpath(path)
+        else:
+            log.warning("path from representation doesn't exist: {}".format(path))
+            return None
 
     def path_from_config():
         try:
             version_, subset, asset, project = io.parenthood(representation)
         except ValueError:
-            log.debug(
-                "Representation %s wasn't found in database, "
-                "like a bug" % representation["name"]
+            log.warning(
+                "Representation {} missing in database!".format(representation["name"])
             )
             return None
 
         try:
             template = project["config"]["template"]["publish"]
         except KeyError:
-            log.debug(
-                "No template in project %s, "
-                "likely a bug" % project["name"]
+            log.warning(
+                "No publish path template in config of {}!".format(project["name"])
             )
             return None
 
@@ -1325,31 +1327,36 @@ def get_representation_path(representation):
             "representation": representation["name"],
             "user": Session.get("AVALON_USER", getpass.getuser()),
             "app": Session.get("AVALON_APP", ""),
-            "task": Session.get("AVALON_TASK", "")
+            "task": Session.get("AVALON_TASK", ""),
+            "hierarchy": asset["data"].get("hierarchy", "")
         }
 
         try:
             path = template.format(**data)
         except KeyError as e:
-            log.debug("Template references unavailable data: %s" % e)
+            log.warning("Missing value for filepath template: {}".format(e))
             return None
 
         if os.path.exists(path):
             return os.path.normpath(path)
+        else:
+            log.warning("path from config doesn't exist: {}".format(path))
+            return None
 
     def path_from_data():
-        if "path" not in representation["data"]:
-            return None
-
-        path = representation["data"]["path"]
+        path = representation["data"].get("path", None)
         if os.path.exists(path):
             return os.path.normpath(path)
+        else:
+            log.warning("path from data doesn't exist: {}".format(path))
+            return None
 
-    return (
-        path_from_represenation() or
-        path_from_config() or
-        path_from_data()
-    )
+    resolved_path = (path_from_representation()
+                     or path_from_config()
+                     or path_from_data())
+
+    assert resolved_path, "Cannot resolve path!"
+    return resolved_path
 
 
 def is_compatible_loader(Loader, context):
