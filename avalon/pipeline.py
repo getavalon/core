@@ -1296,7 +1296,9 @@ def get_representation_path(representation):
         if os.path.exists(path):
             return os.path.normpath(path)
         else:
-            log.warning("path from representation doesn't exist: {}".format(path))
+            log.warning(
+                "path from representation doesn't exist: {}".format(path)
+            )
             return None
 
     def path_from_config():
@@ -1304,7 +1306,9 @@ def get_representation_path(representation):
             version_, subset, asset, project = io.parenthood(representation)
         except ValueError:
             log.warning(
-                "Representation {} missing in database!".format(representation["name"])
+                "Representation {} not found in database!".format(
+                    representation["name"]
+                )
             )
             return None
 
@@ -1312,7 +1316,9 @@ def get_representation_path(representation):
             template = project["config"]["template"]["publish"]
         except KeyError:
             log.warning(
-                "No publish path template in config of {}!".format(project["name"])
+                "No publish path template in config of {}!".format(
+                    project["name"]
+                )
             )
             return None
 
