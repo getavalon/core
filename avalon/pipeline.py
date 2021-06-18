@@ -174,6 +174,7 @@ class Loader(list):
     def __init__(self, context):
         representation = context['representation']
         self.fname = get_representation_path(representation)
+        assert self.fname, "Cannot get a filepath for current asset!"
 
     def load(self, context, name=None, namespace=None, options=None):
         """Load asset via database
@@ -1272,7 +1273,8 @@ def get_representation_path(representation):
         representation(dict): representation document from the database
 
     Returns:
-        str: fullpath of the representation
+        str: fullpath of the representation. None when valid filepath not found
+
 
     """
 
@@ -1280,23 +1282,26 @@ def get_representation_path(representation):
         try:
             template = representation["data"]["template"]
         except KeyError:
-            log.warning("Cannot find template in representation document")
+            log.debug("Cannot find template in representation document")
             return None
 
         try:
             context = representation["context"]
             context["root"] = registered_root()
             path = template.format(**context)
-        except KeyError as e:
-            log.warning(
-                "Missing value for filepath template:{}".format(e)
+        except KeyError as missing_key:
+            log.deubg(
+                "Unavailable variable used in filepath template: {},"
+                "available variables are: {}".format(
+                    missing_key, ", ".join(context.keys())
+                )
             )
             return None
 
         if os.path.exists(path):
             return os.path.normpath(path)
         else:
-            log.warning(
+            log.debug(
                 "path from representation doesn't exist: {}".format(path)
             )
             return None
@@ -1305,7 +1310,7 @@ def get_representation_path(representation):
         try:
             version_, subset, asset, project = io.parenthood(representation)
         except ValueError:
-            log.warning(
+            log.debug(
                 "Representation {} not found in database!".format(
                     representation["name"]
                 )
@@ -1315,7 +1320,7 @@ def get_representation_path(representation):
         try:
             template = project["config"]["template"]["publish"]
         except KeyError:
-            log.warning(
+            log.debug(
                 "No publish path template in config of {}!".format(
                     project["name"]
                 )
@@ -1339,14 +1344,19 @@ def get_representation_path(representation):
 
         try:
             path = template.format(**data)
-        except KeyError as e:
-            log.warning("Missing value for filepath template: {}".format(e))
+        except KeyError as missing_key:
+            log.debug(
+                "Unavailable variable used in filepath template: {},"
+                "available variables are: {}".format(
+                    missing_key, ", ".join(data.keys())
+                )
+            )
             return None
 
         if os.path.exists(path):
             return os.path.normpath(path)
         else:
-            log.warning("path from config doesn't exist: {}".format(path))
+            log.debug("path from config doesn't exist: {}".format(path))
             return None
 
     def path_from_data():
@@ -1354,14 +1364,14 @@ def get_representation_path(representation):
         if os.path.exists(path):
             return os.path.normpath(path)
         else:
-            log.warning("path from data doesn't exist: {}".format(path))
+            log.debug("path from data doesn't exist: {}".format(path))
             return None
 
     resolved_path = (path_from_representation()
                      or path_from_config()
                      or path_from_data())
-
-    assert resolved_path, "Cannot resolve path!"
+    if not resolved_path:
+        log.debug("Cannot resolve to a valid filepath.")
     return resolved_path
 
 
