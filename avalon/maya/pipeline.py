@@ -556,9 +556,12 @@ class Loader(api.Loader):
 
     def __init__(self, context):
         super(Loader, self).__init__(context)
-        self.fname = self.fname.replace(
-            api.registered_root(), "$AVALON_PROJECTS"
-        )
+        if self.fname:
+            self.fname = self.fname.replace(
+                api.registered_root(), "$AVALON_PROJECTS"
+            )
+        else:
+            logger.warning("Loader couldn't determine the filepath to load.")
 
 
 def publish():

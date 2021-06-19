@@ -174,7 +174,6 @@ class Loader(list):
     def __init__(self, context):
         representation = context['representation']
         self.fname = get_representation_path(representation)
-        assert self.fname, "Cannot get a filepath for current asset!"
 
     def load(self, context, name=None, namespace=None, options=None):
         """Load asset via database
