@@ -1,16 +1,139 @@
 import sys
 
-from ...vendor.Qt import QtWidgets, QtCore
+from ...vendor.Qt import QtWidgets, QtCore, QtGui
+from ...vendor import qargparse, qtawesome
 from ... import io, schema, api, style
 
 from .. import lib as tools_lib
-from ..widgets import AssetWidget
-from ..models import TasksModel
+from ..widgets import AssetWidget, TaskWidget
 
 from .dialogs import TasksCreateDialog, AssetCreateDialog
 
 module = sys.modules[__name__]
 module.window = None
+
+
+class MessageBox(QtWidgets.QWidget):
+    """A widget that shows word wrapped message with exclamation icon
+
+    Methods:
+        set_message(str): Set a text message to display
+
+    """
+
+    def __init__(self, parent=None):
+        super(MessageBox, self).__init__(parent)
+
+        status_label = QtWidgets.QLabel("")
+        status_label.setWordWrap(True)
+        status_icon = QtWidgets.QLabel()
+        status_icon.setPixmap(
+            qtawesome.icon("fa.exclamation-circle",
+                           color="#c6c6c6").pixmap(18, 18)
+        )
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.addWidget(status_icon)
+        layout.addWidget(status_label, stretch=True)
+
+        self._message = status_label
+
+    def set_message(self, message):
+        self._message.setText(message)
+
+
+class AssetOptionContainer(QtWidgets.QScrollArea):
+    """Scrollable asset option widgets' container
+
+    This widget hold a set of `qargparser.QArgumentParser` widget that
+    aim to read/write task options' config per asset from/to database.
+
+    """
+    fetch_all = QtCore.Signal()
+    BATCH = ":.batch.:"
+
+    def __init__(self, parent=None):
+        super(AssetOptionContainer, self).__init__(parent)
+        self._has_active_read = False
+        self.changes = None
+        self.is_batch = False
+        self.setAlignment(QtCore.Qt.AlignTop)
+
+    def add_active_read(self, arg):
+        """Read QArgument object's value without waiting it's signal
+        """
+        self.fetch_all.connect(arg.changed.emit)
+        self._has_active_read = True
+
+    def clear_active_read(self):
+        # Avoid calling deleted objects
+        if self._has_active_read:
+            self.fetch_all.disconnect()
+            self._has_active_read = False
+
+    def empty(self, message):
+        status = MessageBox()
+        status.set_message(message)
+
+        widget = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(widget)
+        layout.addWidget(status)
+        # Reset
+        self.changes = None
+        self.is_batch = False
+
+        self.setWidget(widget)
+        self.setWidgetResizable(True)
+
+    def add_options(self, parsers, is_batch):
+        """Docking QArgumentParser widgets"""
+        widget = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(widget)
+        for parser in parsers:
+            layout.addWidget(parser)
+
+        self.changes = None
+        self.is_batch = is_batch
+
+        self.setWidget(widget)
+        self.setWidgetResizable(False)
+
+    def update_change(self, value, option, asset):
+        """Update option changes from QArgument object"""
+        if self.changes is None:
+            self.changes = dict()
+        if asset not in self.changes:
+            self.changes[asset] = dict()
+
+        self.changes[asset][option] = value
+
+    def save_options(self, asset_ids):
+        """Write per asset's task option configurations into database"""
+        if self.is_batch:
+            self.fetch_all.emit()
+
+        if self.changes is None:
+            return False
+
+        field_template = "data.{option}"
+
+        def compose(changes):
+            operation = dict()
+            for option, value in changes.items():
+                field = field_template.format(option=option)
+                operation[field] = value
+            return operation
+
+        if self.is_batch:
+            batch = compose(self.changes[self.BATCH])
+            filter_ = {"_id": {"$in": list(asset_ids.values())}}
+            io.update_many(filter_, {"$set": batch})
+        else:
+            for asset_name, options in self.changes.items():
+                edits = compose(options)
+                filter_ = {"_id": asset_ids[asset_name]}
+                io.update_many(filter_, {"$set": edits})
+
+        return True
 
 
 class Window(QtWidgets.QDialog):
@@ -45,17 +168,33 @@ class Window(QtWidgets.QDialog):
         tasks_widgets = QtWidgets.QWidget()
         tasks_widgets.setContentsMargins(0, 0, 0, 0)
         tasks_layout = QtWidgets.QVBoxLayout(tasks_widgets)
+
         label = QtWidgets.QLabel("Tasks")
         label.setFixedHeight(28)
-        task_view = QtWidgets.QTreeView()
-        task_view.setIndentation(0)
-        task_model = TasksModel()
-        task_view.setModel(task_model)
+        tasks = TaskWidget()
+        tasks.view.setSelectionMode(tasks.view.ExtendedSelection)
         add_task = QtWidgets.QPushButton("Add task")
         tasks_layout.addWidget(label)
-        tasks_layout.addWidget(task_view)
+        tasks_layout.addWidget(tasks)
         tasks_layout.addWidget(add_task)
 
+        # asset option widget
+        options_widgets = QtWidgets.QWidget()
+        options_widgets.setContentsMargins(0, 0, 0, 0)
+
+        options_label = QtWidgets.QLabel("Asset Options")
+        options_batch = QtWidgets.QCheckBox("Batch Edit")
+        options_container = AssetOptionContainer()
+        options_accept = QtWidgets.QPushButton("Save")
+        options_accept.setEnabled(False)
+
+        options_layout = QtWidgets.QVBoxLayout(options_widgets)
+        options_layout.addWidget(options_label)
+        options_layout.addWidget(options_batch)
+        options_layout.addWidget(options_container, stretch=True)
+        options_layout.addWidget(options_accept)
+
+        # set body layout
         body = QtWidgets.QSplitter()
         body.setContentsMargins(0, 0, 0, 0)
         body.setSizePolicy(QtWidgets.QSizePolicy.Expanding,
@@ -63,8 +202,10 @@ class Window(QtWidgets.QDialog):
         body.setOrientation(QtCore.Qt.Horizontal)
         body.addWidget(assets_widgets)
         body.addWidget(tasks_widgets)
-        body.setStretchFactor(0, 100)
+        body.addWidget(options_widgets)
+        body.setStretchFactor(0, 50)
         body.setStretchFactor(1, 65)
+        body.setSizes([50, 65, 0])  # Hide task options by default
 
         # statusbar
         message = QtWidgets.QLabel()
@@ -85,22 +226,35 @@ class Window(QtWidgets.QDialog):
             },
             "model": {
                 "assets": assets,
-                "tasks": task_model,
+                "tasks": tasks,
             },
             "buttons": {
                 "add_asset": add_asset,
                 "add_task": add_task
-            }
+            },
+            "options": {
+                "accept": options_accept,
+                "batch": options_batch,
+                "container": options_container,
+            },
+            "project": project_doc,
         }
 
         # signals
         add_asset.clicked.connect(self.on_add_asset)
         add_task.clicked.connect(self.on_add_task)
+        options_accept.clicked.connect(self.on_task_options_accepted)
+        options_batch.stateChanged.connect(self.on_task_changed)
+        tasks.selection_changed.connect(self.on_task_changed)
         assets.selection_changed.connect(self.on_asset_changed)
 
-        self.resize(800, 500)
+        self.resize(900, 500)
 
         self.echo("Connected to project: {0}".format(project_name))
+
+        # (TODO) Shouldn't need to call this, but since `AssetModel`
+        #   already made changes on it's init..
+        self.on_task_changed()
 
     def keyPressEvent(self, event):
         """Custom keyPressEvent.
@@ -113,6 +267,7 @@ class Window(QtWidgets.QDialog):
         """
 
     def refresh(self):
+        self.data["project"] = io.find_one({"type": "project"})
         self.data["model"]["assets"].refresh()
 
     def echo(self, message):
@@ -237,6 +392,110 @@ class Window(QtWidgets.QDialog):
         model = self.data["model"]["assets"]
         selected = model.get_selected_assets()
         self.data["model"]["tasks"].set_assets(selected)
+        self.on_task_changed()
+
+    def on_task_changed(self):
+        """Callback on task selection changed
+
+        This updates the asset option view.
+
+        """
+        accept = self.data["options"]["accept"]
+        container = self.data["options"]["container"]
+        tasks = self.data["model"]["tasks"]
+
+        task_names = tasks.get_selected_tasks()
+
+        if not task_names:
+            message = "Select tasks to view asset options."
+            container.empty(message)
+            accept.setEnabled(False)
+            return
+
+        # Create options
+        project = self.data["project"]
+        model = self.data["model"]["assets"]
+        options_batch = self.data["options"]["batch"]
+        asset_options = dict()
+
+        for asset_opt in project["config"].get("assetOptions", []):
+            specified_tasks = asset_opt.get("onTasks", [])
+            available_in_all_tasks = not specified_tasks
+
+            if (available_in_all_tasks
+                    or any(task in specified_tasks for task in task_names)):
+                asset_options[asset_opt["name"]] = asset_opt
+
+        if not asset_options:
+            message = "No asset options in selected tasks."
+            container.empty(message)
+            accept.setEnabled(False)
+            return
+
+        parsers = list()
+        is_batch = options_batch.checkState()
+        container.clear_active_read()
+
+        def setup(_parser, data=None, _asset=None):
+            data = data or {}
+            for opt_name, opt_data in asset_options.items():
+                arg = _parser.add_argument(
+                    _asset=_asset,  # additional info
+                    **opt_data
+                )
+                value = data.get(opt_name)
+                if value is not None:
+                    # Asset has task option setup
+                    arg.write(value)
+
+                if is_batch:
+                    # When batch mode enabled, no matter user has changed
+                    # the value or not, all setup should be written into
+                    # database.
+                    container.add_active_read(arg)
+
+            _parser.changed.connect(self.on_task_options_changed)
+            parsers.append(_parser)
+
+        if is_batch:
+            # Batch edit mode will not present asset's task setup
+            _label = "Batch set selected assets"
+            parser = qargparse.QArgumentParser(description=_label)
+            setup(parser, _asset=container.BATCH)
+
+        else:
+            for asset in model.get_selected_assets():
+                asset_name = asset["name"]
+                asset_data = asset["data"]
+                parser = qargparse.QArgumentParser(description=asset_name)
+                setup(parser, asset_data, _asset=asset_name)
+
+        container.add_options(parsers, is_batch=is_batch)
+        accept.setEnabled(True)
+
+    def on_task_options_accepted(self):
+        container = self.data["options"]["container"]
+        options_batch = self.data["options"]["batch"]
+        model = self.data["model"]["assets"]
+
+        selected_asset_ids = dict()
+        for asset in model.get_selected_assets():
+            selected_asset_ids[asset["name"]] = asset["_id"]
+
+        # Write database if any changed
+        changed = container.save_options(selected_asset_ids)
+        # Update asset model data if changed
+        if changed:
+            model.update_selected_assets()
+        # Disable batch edit to view update
+        if container.is_batch:
+            options_batch.setCheckState(QtCore.Qt.Unchecked)
+
+    def on_task_options_changed(self, arg):
+        container = self.data["options"]["container"]
+        container.update_change(value=arg.read(),
+                                option=arg["name"],
+                                asset=arg["_asset"])
 
 
 def show(root=None, debug=False, parent=None):
