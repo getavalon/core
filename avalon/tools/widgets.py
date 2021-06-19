@@ -1,4 +1,5 @@
 import logging
+import re
 
 from . import lib
 
@@ -355,3 +356,103 @@ class OptionDialog(QtWidgets.QDialog):
 
     def parse(self):
         return self._options.copy()
+
+
+class NameValidator(QtGui.QRegExpValidator):
+
+    invalid = QtCore.Signal(set, str)
+    pattern = "^[a-zA-Z0-9_.]*$"
+
+    def __init__(self):
+        reg = QtCore.QRegExp(self.pattern)
+        super(NameValidator, self).__init__(reg)
+
+    def validate(self, input, pos):
+        results = super(NameValidator, self).validate(input, pos)
+        if results[0] == self.Invalid:
+            self.invalid.emit(*self.invalid_chars(input))
+        return results
+
+    def invalid_chars(self, input):
+        invalid = set()
+        re_valid = re.compile(self.pattern)
+        for char in str(input):
+            if char in [" ", "\n", "\t"]:
+                invalid.add(char)
+                continue
+            if not re_valid.match(char):
+                invalid.add(char)
+        return invalid, input
+
+
+class NameValidEdit(QtWidgets.QLineEdit):
+
+    report = QtCore.Signal(str)
+    colors = {
+        "empty": (QtGui.QColor("#78879b"), ""),
+        "exists": (QtGui.QColor("#4E76BB"), "border-color: #4E76BB;"),
+        "new": (QtGui.QColor("#7AAB8F"), "border-color: #7AAB8F;"),
+    }
+
+    def __init__(self, *args, **kwargs):
+        super(NameValidEdit, self).__init__(*args, **kwargs)
+
+        validator = NameValidator()
+        self.setValidator(validator)
+        self.setToolTip("Only alphanumeric characters (A-Z a-z 0-9), "
+                        "'_' and '.' are allowed.")
+
+        self._status_color = self.colors["empty"][0]
+
+        anim = QtCore.QPropertyAnimation()
+        anim.setTargetObject(self)
+        anim.setPropertyName(b"status_color")
+        anim.setEasingCurve(QtCore.QEasingCurve.InCubic)
+        anim.setDuration(500)
+        anim.setStartValue(QtGui.QColor("#C84747"))  # `Invalid` status color
+        anim.setEndValue(QtGui.QColor("#78879b"))  # Default color
+        self.animation = anim
+
+        validator.invalid.connect(self.on_invalid)
+
+    def on_invalid(self, invalid, input):
+        message = "Invalid character: %s" % ", ".join(repr(c) for c in invalid)
+        self.report.emit(message)
+        self.animation.stop()
+        self.animation.start()
+        # For improving UX in case like pasting invalid string, set cleaned
+        # text back to widget, instead of nothing happens by default.
+        text = self.text()
+        for c in invalid:
+            text = text.replace(c, "")
+        self.setText(text)
+
+    def indicate(self, status):
+        """Indicate the status of current input via animation
+
+        `NameValidEdit` has three states:
+
+            "empty": Empty input
+            "exists": Input value already exists
+            "new": Input value is new
+
+        And each state has a corresponding border color.
+
+        Args:
+            status (str): Status name
+
+        """
+        qcolor, style = self.colors[status]
+        self.animation.setEndValue(qcolor)
+        self.setStyleSheet(style)
+
+    def _get_status_color(self):
+        return self._status_color
+
+    def _set_status_color(self, color):
+        self._status_color = color
+        self.setStyleSheet("border-color: %s;" % color.name())
+
+    status_color = QtCore.Property(QtGui.QColor,
+                                   _get_status_color,
+                                   _set_status_color)
