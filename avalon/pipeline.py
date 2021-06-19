@@ -861,7 +861,7 @@ def create(name, asset, family, options=None, data=None):
     Arguments:
         name (str): Name of subset
         asset (str): Name of asset
-        family (str): Name of family
+        family (str, Creator): Name of family, or a Creator plugin class
         options (dict, optional): Additional options from GUI
         data (dict, optional): Additional data from GUI
 
@@ -877,12 +877,14 @@ def create(name, asset, family, options=None, data=None):
 
     host = registered_host()
 
-    plugins = list()
-    for Plugin in discover(Creator):
-        has_family = family == Plugin.family
+    if inspect.isclass(family) and issubclass(family, Creator):
+        # Allow passing in a specific Creator to run only that plug-in
+        Plugins = [family]
+    else:
+        Plugins = [P for P in discover(Creator) if family == P.family]
 
-        if not has_family:
-            continue
+    plugins = list()
+    for Plugin in Plugins:
 
         Plugin.log.info(
             "Creating '%s' with '%s'" % (name, Plugin.__name__)

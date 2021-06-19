@@ -33,9 +33,15 @@ def setup():
     pipeline.register_root(self.tempdir)
 
     # Mock host
+    dummy_maintained_selection = type(
+        "empty_ctx", (object,),
+        {"__enter__": lambda s: s, "__exit__": lambda *a, **k: None}
+    )
+
     host = types.ModuleType("Test")
     host.__dict__.update({
         "ls": lambda: [],
+        "maintained_selection": dummy_maintained_selection,
     })
 
     pipeline.register_host(host)
@@ -74,6 +80,34 @@ class DemoLoader(api.Loader):
 
     finally:
         shutil.rmtree(tempdir)
+
+
+@with_setup(clear)
+def test_creators():
+    """Register a Creator and create instance by different family input"""
+
+    data = {"value": 0}
+
+    class CreateA(pipeline.Creator):
+        def process(self):
+            data["value"] += 1
+        family = "foobar"
+
+    class CreateB(pipeline.Creator):
+        def process(self):
+            data["value"] += 10
+        family = "foobar"
+
+    pipeline.register_plugin(pipeline.Creator, CreateA)
+    pipeline.register_plugin(pipeline.Creator, CreateB)
+
+    # Create with regular string type family
+    pipeline.create("foo", "my_asset", family="foobar")
+    assert data["value"] == 11, "Must run both Creator Plugins"
+
+    # Create with plugin class, see getavalon/core#531
+    pipeline.create("foo", "my_asset", family=CreateA)
+    assert data["value"] == 12, "Must run only CreatorA Plugin"
 
 
 @with_setup(clear)
