@@ -3,7 +3,7 @@ import logging
 import collections
 
 from ..vendor.Qt import QtCore, QtGui
-from ..vendor import qtawesome
+from ..vendor import Qt, qtawesome
 from .. import io
 from .. import style
 from . import lib
@@ -63,7 +63,10 @@ class TreeModel(QtCore.QAbstractItemModel):
                 item[key] = value
 
                 # passing `list()` for PyQt5 (see PYSIDE-462)
-                self.dataChanged.emit(index, index, list())
+                if Qt.__binding__ in ("PyQt4", "PySide"):
+                    self.dataChanged.emit(index, index)
+                else:
+                    self.dataChanged.emit(index, index, [role])
 
                 # must return true if successful
                 return True
@@ -102,10 +105,10 @@ class TreeModel(QtCore.QAbstractItemModel):
 
         return self.createIndex(parent_item.row(), 0, parent_item)
 
-    def index(self, row, column, parent):
+    def index(self, row, column, parent=None):
         """Return index for row/column under parent"""
 
-        if not parent.isValid():
+        if parent is None or not parent.isValid():
             parent_item = self._root_item
         else:
             parent_item = parent.internalPointer()
@@ -179,6 +182,7 @@ class Item(dict):
         if self._parent is not None:
             siblings = self.parent().children()
             return siblings.index(self)
+        return -1
 
     def add_child(self, child):
         """Add a child to this item"""
@@ -214,22 +218,16 @@ class TasksModel(TreeModel):
                                       color=style.colors.default)
                 self._icons[task["name"]] = icon
 
-    def set_assets(self, asset_docs):
+    def set_assets(self, asset_ids=None, asset_docs=None):
         """Set assets to track by their database id
 
         Arguments:
-            asset_docs (list): List of asset documents from MongoDB.
+            asset_ids (list): List of asset ids.
+            asset_docs (list): List of asset entities from MongoDB.
 
         """
 
-        # Backwards compatibility if anyone use this model in his tools
-        asset_ids = None
-        for doc in asset_docs:
-            if isinstance(doc, io.ObjectId):
-                asset_ids = asset_docs
-            break
-
-        if asset_ids:
+        if asset_docs is None and asset_ids is not None:
             # prepare filter query
             _filter = {"type": "asset", "_id": {"$in": asset_ids}}
 
@@ -245,6 +243,13 @@ class TasksModel(TreeModel):
             assert not not_found, "Assets not found by id: {0}".format(
                 ", ".join(not_found)
             )
+
+            assert not not_found, "Assets not found by id: {0}".format(
+                ", ".join(not_found)
+            )
+
+        if asset_docs is None:
+            asset_docs = list()
 
         self._num_assets = len(asset_docs)
 
@@ -325,9 +330,11 @@ class AssetModel(TreeModel):
 
     DocumentRole = QtCore.Qt.UserRole + 2
     ObjectIdRole = QtCore.Qt.UserRole + 3
+    subsetColorsRole = QtCore.Qt.UserRole + 4
 
     def __init__(self, parent=None):
         super(AssetModel, self).__init__(parent=parent)
+        self.asset_colors = {}
         self.refresh()
 
     def _add_hierarchy(self, assets, parent=None, silos=None):
@@ -345,6 +352,9 @@ class AssetModel(TreeModel):
             None
 
         """
+        # Reset colors
+        self.asset_colors = {}
+
         if silos:
             # WARNING: Silo item "_id" is set to silo value
             # mainly because GUI issue with preserve selection and expanded row
@@ -386,6 +396,8 @@ class AssetModel(TreeModel):
             if asset["_id"] in assets:
                 self._add_hierarchy(assets, parent=item)
 
+            self.asset_colors[asset["_id"]] = []
+
     def refresh(self):
         """Refresh the data for the model."""
 
@@ -420,6 +432,24 @@ class AssetModel(TreeModel):
     def flags(self, index):
         return QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable
 
+    def setData(self, index, value, role=QtCore.Qt.EditRole):
+        if not index.isValid():
+            return False
+
+        if role == self.subsetColorsRole:
+            asset_id = index.data(self.ObjectIdRole)
+            self.asset_colors[asset_id] = value
+
+            # passing `list()` for PyQt5 (see PYSIDE-462)
+            if Qt.__binding__ in ("PyQt4", "PySide"):
+                self.dataChanged.emit(index, index)
+            else:
+                self.dataChanged.emit(index, index, [role])
+
+            return True
+
+        return super(AssetModel, self).setData(index, value, role)
+
     def data(self, index, role):
 
         if not index.isValid():
@@ -430,6 +460,7 @@ class AssetModel(TreeModel):
 
             column = index.column()
             if column == self.Name:
+
                 # Allow a custom icon and custom icon color to be defined
                 data = item.get("_document", {}).get("data", {})
                 icon = data.get("icon", None)
@@ -468,6 +499,10 @@ class AssetModel(TreeModel):
 
         if role == self.DocumentRole:
             return item.get("_document", None)
+
+        if role == self.subsetColorsRole:
+            asset_id = item.get("_id", None)
+            return self.asset_colors.get(asset_id) or []
 
         return super(AssetModel, self).data(index, role)
 

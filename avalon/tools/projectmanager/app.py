@@ -236,7 +236,8 @@ class Window(QtWidgets.QDialog):
 
         model = self.data["model"]["assets"]
         selected = model.get_selected_assets()
-        self.data["model"]["tasks"].set_assets(selected)
+
+        self.data["model"]["tasks"].set_assets(asset_docs=selected)
 
 
 def show(root=None, debug=False, parent=None):

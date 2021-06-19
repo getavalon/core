@@ -11,7 +11,7 @@ from ... import pipeline
 from ... import style
 
 from .. import lib as tools_lib
-from ..delegates import VersionDelegate
+from ..delegates import VersionDelegate, PrettyTimeDelegate
 from ..widgets import OptionalMenu, OptionalAction, OptionDialog
 
 from .model import (
@@ -19,7 +19,6 @@ from .model import (
     SubsetFilterProxyModel,
     FamiliesFilterProxyModel,
 )
-from ..delegates import PrettyTimeDelegate
 
 
 class SubsetWidget(QtWidgets.QWidget):
@@ -27,6 +26,19 @@ class SubsetWidget(QtWidgets.QWidget):
 
     active_changed = QtCore.Signal()    # active index changed
     version_changed = QtCore.Signal()   # version state changed for a subset
+
+    default_widths = (
+        ("subset", 190),
+        ("asset", 130),
+        ("family", 90),
+        ("version", 60),
+        ("time", 120),
+        ("author", 85),
+        ("frames", 80),
+        ("duration", 60),
+        ("handles", 55),
+        ("step", 50)
+    )
 
     def __init__(self, enable_grouping=True, parent=None):
         super(SubsetWidget, self).__init__(parent=parent)
@@ -47,6 +59,7 @@ class SubsetWidget(QtWidgets.QWidget):
         top_bar_layout.addWidget(groupable)
 
         view = SubsetTreeView()
+        view.setObjectName("SubsetView")
         view.setIndentation(20)
         view.setStyleSheet("""
             QTreeView::item{
@@ -100,15 +113,9 @@ class SubsetWidget(QtWidgets.QWidget):
         self.view.setModel(self.family_proxy)
         self.view.customContextMenuRequested.connect(self.on_context_menu)
 
-        view.setColumnWidth(0, 240)  # subset
-        view.setColumnWidth(1, 120)  # family
-        view.setColumnWidth(2, 100)  # version
-        view.setColumnWidth(3, 120)  # time
-        view.setColumnWidth(4, 100)  # author
-        view.setColumnWidth(5, 80)  # frames
-        view.setColumnWidth(6, 60)  # duration
-        view.setColumnWidth(7, 50)  # handles
-        view.setColumnWidth(8, 50)  # step
+        for column_name, width in self.default_widths:
+            idx = model.Columns.index(column_name)
+            view.setColumnWidth(idx, width)
 
         selection = view.selectionModel()
         selection.selectionChanged.connect(self.active_changed)
@@ -146,103 +153,173 @@ class SubsetWidget(QtWidgets.QWidget):
         view.is_empty = empty
 
     def on_context_menu(self, point):
+        """Shows menu with loader actions on Right-click.
+
+        Registered actions are filtered by selection and help of
+        `loaders_from_representation` from avalon api. Intersection of actions
+        is shown when more subset is selected. When there are not available
+        actions for selected subsets then special action is shown (works as
+        info message to user): "*No compatible loaders for your selection"
+
+        """
 
         point_index = self.view.indexAt(point)
         if not point_index.isValid():
             return
 
-        node = point_index.data(self.model.ItemRole)
-        if node.get("isGroup"):
-            return
+        # Get selected subsets without groups
+        selection = self.view.selectionModel()
+        rows = selection.selectedRows(column=0)
+
+        items = []
+        for row_index in rows:
+            item = row_index.data(self.model.ItemRole)
+            if item.get("isGroup"):
+                continue
+
+            elif item.get("isMerged"):
+                for idx in range(row_index.model().rowCount(row_index)):
+                    child_index = row_index.child(idx, 0)
+                    item = child_index.data(self.model.ItemRole)
+                    if item not in items:
+                        items.append(item)
+
+            else:
+                if item not in items:
+                    items.append(item)
 
         # Get all representation->loader combinations available for the
         # index under the cursor, so we can list the user the options.
         available_loaders = api.discover(api.Loader)
         loaders = list()
 
-        version_id = node["version_document"]["_id"]
-        representations = io.find({"type": "representation",
-                                   "parent": version_id})
-        for representation in representations:
-            for loader in api.loaders_from_representation(
-                    available_loaders,
-                    representation["_id"]
-            ):
-                loaders.append((representation, loader))
+        # Bool if is selected only one subset
+        one_item_selected = (len(items) == 1)
 
+        # Prepare variables for multiple selected subsets
+        first_loaders = []
+        found_combinations = None
+
+        is_first = True
+        for item in items:
+            _found_combinations = []
+
+            version_id = item['version_document']['_id']
+            representations = io.find({
+                "type": "representation",
+                "parent": version_id
+            })
+
+            for representation in representations:
+                for loader in api.loaders_from_representation(
+                        available_loaders,
+                        representation['_id']
+                ):
+                    # skip multiple select variant if one is selected
+                    if one_item_selected:
+                        loaders.append((representation, loader))
+                        continue
+
+                    # store loaders of first subset
+                    if is_first:
+                        first_loaders.append((representation, loader))
+
+                    # store combinations to compare with other subsets
+                    _found_combinations.append(
+                        (representation["name"].lower(), loader)
+                    )
+
+            # skip multiple select variant if one is selected
+            if one_item_selected:
+                continue
+
+            is_first = False
+            # Store first combinations to compare
+            if found_combinations is None:
+                found_combinations = _found_combinations
+            # Intersect found combinations with all previous subsets
+            else:
+                found_combinations = list(
+                    set(found_combinations) & set(_found_combinations)
+                )
+
+        if not one_item_selected:
+            # Filter loaders from first subset by intersected combinations
+            for repre, loader in first_loaders:
+                if (repre["name"], loader) not in found_combinations:
+                    continue
+
+                loaders.append((repre, loader))
+
+        menu = OptionalMenu(self)
         if not loaders:
             # no loaders available
-            self.echo("No compatible loaders available for this version.")
-            return
+            submsg = "your selection."
+            if one_item_selected:
+                submsg = "this version."
 
-        # Get selected rows
-        selection = self.view.selectionModel()
-        rows = selection.selectedRows(column=0)
-        # Ensure active point index is also used as first column so we can
-        # correctly push it to the end in the rows list.
-        point_index = point_index.sibling(point_index.row(), 0)
-        # Ensure point index is run first.
-        try:
-            rows.remove(point_index)
-        except ValueError:
-            pass
-        rows.insert(0, point_index)
+            msg = "No compatible loaders for {}".format(submsg)
+            self.echo(msg)
 
-        # Enable optional action when only one item being selected
-        enable_option = len(rows) == 1
+            icon = qtawesome.icon(
+                "fa.exclamation",
+                color=QtGui.QColor(255, 51, 0)
+            )
 
-        def sorter(value):
-            """Sort the Loaders by their order and then their name"""
-            Plugin = value[1]
-            return Plugin.order, Plugin.__name__
-
-        # List the available loaders
-        menu = OptionalMenu(self)
-        for representation, loader in sorted(loaders, key=sorter):
-
-            # Label
-            label = getattr(loader, "label", None)
-            if label is None:
-                label = loader.__name__
-
-            # Add the representation as suffix
-            label = "{0} ({1})".format(label, representation["name"])
-
-            # Support font-awesome icons using the `.icon` and `.color`
-            # attributes on plug-ins.
-            icon = getattr(loader, "icon", None)
-            if icon is not None:
-                try:
-                    key = "fa.{0}".format(icon)
-                    color = getattr(loader, "color", "white")
-                    icon = qtawesome.icon(key, color=color)
-                except Exception as e:
-                    print("Unable to set icon for loader "
-                          "{}: {}".format(loader, e))
-                    icon = None
-
-            # Optional action
-            use_option = enable_option and hasattr(loader, "options")
-            action = OptionalAction(label, icon, use_option, menu)
-
-            if use_option:
-                # Add option box tip
-                action.set_option_tip(loader.options)
-
-            action.setData((representation, loader))
-
-            # Add tooltip and statustip from Loader docstring
-            tip = inspect.getdoc(loader)
-            if tip:
-                action.setToolTip(tip)
-                action.setStatusTip(tip)
-
+            action = OptionalAction(("*" + msg), icon, False, menu)
             menu.addAction(action)
+
+        else:
+            def sorter(value):
+                """Sort the Loaders by their order and then their name"""
+                Plugin = value[1]
+                return Plugin.order, Plugin.__name__
+
+            # List the available loaders
+            for representation, loader in sorted(loaders, key=sorter):
+
+                # Label
+                label = getattr(loader, "label", None)
+                if label is None:
+                    label = loader.__name__
+
+                # Add the representation as suffix
+                label = "{0} ({1})".format(label, representation['name'])
+
+                # Support font-awesome icons using the `.icon` and `.color`
+                # attributes on plug-ins.
+                icon = getattr(loader, "icon", None)
+                if icon is not None:
+                    try:
+                        key = "fa.{0}".format(icon)
+                        color = getattr(loader, "color", "white")
+                        icon = qtawesome.icon(key, color=color)
+                    except Exception as e:
+                        print("Unable to set icon for loader "
+                              "{}: {}".format(loader, e))
+                        icon = None
+
+                # Optional action
+                use_option = one_item_selected and hasattr(loader, "options")
+                action = OptionalAction(label, icon, use_option, menu)
+                if use_option:
+                    # Add option box tip
+                    action.set_option_tip(loader.options)
+
+                action.setData((representation, loader))
+
+                # Add tooltip and statustip from Loader docstring
+                tip = inspect.getdoc(loader)
+                if tip:
+                    action.setToolTip(tip)
+                    action.setStatusTip(tip)
+
+                menu.addAction(action)
 
         # Show the context action menu
         global_point = self.view.mapToGlobal(point)
         action = menu.exec_(global_point)
-        if not action:
+        if not action or not action.data():
             return
 
         # Find the representation name and loader to trigger
@@ -266,18 +343,16 @@ class SubsetWidget(QtWidgets.QWidget):
         # same representation available
 
         # Trigger
-        for row in rows:
-            node = row.data(self.model.ItemRole)
-            if node.get("isGroup"):
-                continue
-
-            version_id = node["version_document"]["_id"]
-            representation = io.find_one({"type": "representation",
-                                          "name": representation_name,
-                                          "parent": version_id})
+        for item in items:
+            version_id = item["version_document"]["_id"]
+            representation = io.find_one({
+                "type": "representation",
+                "name": representation_name,
+                "parent": version_id
+            })
             if not representation:
                 self.echo("Subset '{}' has no representation '{}'".format(
-                          node["subset"],
+                          item["subset"],
                           representation_name
                           ))
                 continue
@@ -291,19 +366,36 @@ class SubsetWidget(QtWidgets.QWidget):
                 self.echo(exc)
                 continue
 
-    def selected_subsets(self):
+    def selected_subsets(self, _groups=False, _merged=False, _other=True):
         selection = self.view.selectionModel()
         rows = selection.selectedRows(column=0)
 
         subsets = list()
+        if not any([_groups, _merged, _other]):
+            self.echo((
+                "This is a BUG: Selected_subsets args must contain"
+                " at least one value set to True"
+            ))
+            return subsets
+
         for row in rows:
-            node = row.data(self.model.ItemRole)
-            if not node.get("isGroup"):
-                subsets.append(node)
+            item = row.data(self.model.ItemRole)
+            if item.get("isGroup"):
+                if not _groups:
+                    continue
+
+            elif item.get("isMerged"):
+                if not _merged:
+                    continue
+            else:
+                if not _other:
+                    continue
+
+            subsets.append(item)
 
         return subsets
 
-    def group_subsets(self, name, asset_id, nodes):
+    def group_subsets(self, name, asset_ids, items):
         field = "data.subsetGroup"
 
         if name:
@@ -314,15 +406,16 @@ class SubsetWidget(QtWidgets.QWidget):
             self.echo("Ungroup subsets..")
 
         subsets = list()
-        for node in nodes:
-            subsets.append(node["subset"])
+        for item in items:
+            subsets.append(item["subset"])
 
-        filter = {
-            "type": "subset",
-            "parent": asset_id,
-            "name": {"$in": subsets},
-        }
-        io.update_many(filter, update)
+        for asset_id in asset_ids:
+            filter = {
+                "type": "subset",
+                "parent": asset_id,
+                "name": {"$in": subsets},
+            }
+            io.update_many(filter, update)
 
     def echo(self, message):
         print(message)
@@ -385,9 +478,8 @@ class VersionTextEdit(QtWidgets.QTextEdit):
         # Reset
         self.set_version(None)
 
-    def set_version(self, version_id):
-
-        if not version_id:
+    def set_version(self, version_doc=None, version_id=None):
+        if not version_doc and not version_id:
             # Reset state to empty
             self.data = {
                 "source": None,
@@ -401,29 +493,36 @@ class VersionTextEdit(QtWidgets.QTextEdit):
 
         print("Querying..")
 
-        version = io.find_one({"_id": version_id, "type": "version"})
-        assert version, "Not a valid version id"
+        if not version_doc:
+            version_doc = io.find_one({
+                "_id": version_id,
+                "type": "version"
+            })
+            assert version_doc, "Not a valid version id"
 
-        subset = io.find_one({"_id": version["parent"], "type": "subset"})
-        assert subset, "No valid subset parent for version"
+        subset_doc = io.find_one({
+            "_id": version_doc["parent"],
+            "type": "subset"
+        })
+        assert subset_doc, "No valid subset parent for version"
 
         # Define readable creation timestamp
-        created = version["data"]["time"]
+        created = version_doc["data"]["time"]
         created = datetime.datetime.strptime(created, "%Y%m%dT%H%M%SZ")
         created = datetime.datetime.strftime(created, "%b %d %Y %H:%M")
 
-        comment = version["data"].get("comment", None) or "No comment"
+        comment = version_doc["data"].get("comment", None) or "No comment"
 
-        source = version["data"].get("source", None)
+        source = version_doc["data"].get("source", None)
         source_label = source if source else "No source"
 
         # Store source and raw data
         self.data["source"] = source
-        self.data["raw"] = version
+        self.data["raw"] = version_doc
 
         data = {
-            "subset": subset["name"],
-            "version": version["name"],
+            "subset": subset_doc["name"],
+            "version": version_doc["name"],
             "comment": comment,
             "created": created,
             "source": source_label
@@ -494,16 +593,17 @@ class VersionWidget(QtWidgets.QWidget):
 
         layout = QtWidgets.QVBoxLayout(self)
 
-        label = QtWidgets.QLabel("Version")
+        label = QtWidgets.QLabel("Version", self)
         data = VersionTextEdit()
         data.setReadOnly(True)
+
         layout.addWidget(label)
         layout.addWidget(data)
 
         self.data = data
 
-    def set_version(self, version_id):
-        self.data.set_version(version_id)
+    def set_version(self, version_doc):
+        self.data.set_version(version_doc)
 
 
 class FamilyListWidget(QtWidgets.QListWidget):
