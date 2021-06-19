@@ -125,8 +125,8 @@ def _install_menu():
 
         # Create context menu
         context_label = "{}, {}".format(
-            api.Session["AVALON_ASSET"],
-            api.Session["AVALON_TASK"]
+            api.Session.get("AVALON_ASSET", "--"),
+            api.Session.get("AVALON_TASK", "--")
         )
 
         cmds.menuItem(
@@ -275,8 +275,8 @@ def _update_menu_task_label():
         logger.warning("Can't find menuItem: {}".format(object_name))
         return
 
-    label = "{}, {}".format(api.Session["AVALON_ASSET"],
-                            api.Session["AVALON_TASK"])
+    label = "{}, {}".format(api.Session.get("AVALON_ASSET", "--"),
+                            api.Session.get("AVALON_TASK", "--"))
     cmds.menuItem(object_name, edit=True, label=label)
 
 

@@ -651,23 +651,8 @@ class FilesWidget(QtWidgets.QWidget):
                                                    asset=self._asset,
                                                    task=self._task)
         session.update(changes)
-
-        # Find the application definition
-        app_name = os.environ.get("AVALON_APP_NAME")
-        if not app_name:
-            log.error("No AVALON_APP_NAME session variable is set. "
-                      "Unable to initialize app Work Directory.")
-            return
-
-        app_definition = pipeline.lib.get_application(app_name)
-        App = type("app_%s" % app_name,
-                   (pipeline.Application,),
-                   {"config": app_definition.copy()})
-
         # Initialize within the new session's environment
-        app = App()
-        env = app.environ(session)
-        app.initialize(env)
+        pipeline.initialize(session, reset_workdir=True)
 
         # Force a full to the asset as opposed to just self.refresh() so
         # that it will actually check again whether the Work directory exists
@@ -805,7 +790,7 @@ class Window(QtWidgets.QMainWindow):
 
     def set_context(self, context):
 
-        if "asset" in context:
+        if context.get("asset"):
             asset = context["asset"]
             asset_document = io.find_one({
                 "name": asset,
@@ -818,7 +803,7 @@ class Window(QtWidgets.QMainWindow):
             # Force a refresh on Tasks?
             self.widgets["tasks"].set_asset(asset_document)
 
-        if "task" in context:
+        if context.get("task"):
             self.widgets["tasks"].select_task(context["task"])
 
     def refresh(self):
@@ -892,9 +877,8 @@ def show(root=None, debug=False, parent=None, use_context=True):
         window.refresh()
 
         if use_context:
-            context = {"asset": api.Session["AVALON_ASSET"],
-                       "silo": api.Session["AVALON_SILO"],
-                       "task": api.Session["AVALON_TASK"]}
+            context = {"asset": api.Session.get("AVALON_ASSET"),
+                       "task": api.Session.get("AVALON_TASK")}
             window.set_context(context)
 
         window.show()

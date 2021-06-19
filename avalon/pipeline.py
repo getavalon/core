@@ -59,7 +59,7 @@ def install(host):
     io.install()
 
     missing = list()
-    for key in ("AVALON_PROJECT", "AVALON_ASSET"):
+    for key in ("AVALON_PROJECT", ):
         if key not in Session:
             missing.append(key)
 
@@ -71,6 +71,11 @@ def install(host):
 
     project = Session["AVALON_PROJECT"]
     log.info("Activating %s.." % project)
+
+    if not os.getenv("_AVALON_APP_INITIALIZED"):
+        log.info("Initializing working directory..")
+        no_predefined_workdir = "AVALON_WORKDIR" not in Session
+        initialize(Session, reset_workdir=no_predefined_workdir)
 
     config = find_config()
 
@@ -92,6 +97,35 @@ def install(host):
     self._is_installed = True
     self._config = config
     log.info("Successfully installed Avalon!")
+
+
+def initialize(session, reset_workdir):
+    """Initialize Work Directory
+
+    This finds the current AVALON_APP_NAME and tries to triggers its
+    `.toml` initialization step. Note that this will only be valid
+    whenever `AVALON_APP_NAME` is actually set in the current session.
+
+    """
+    # Find the application definition
+    app_name = session.get("AVALON_APP_NAME")
+    if not app_name:
+        log.error("No AVALON_APP_NAME session variable is set. "
+                  "Unable to initialize app Work Directory.")
+        return
+
+    app_definition = lib.get_application(app_name)
+    App = type(
+        "app_%s" % app_name,
+        (Application,),
+        {
+            "name": app_name,
+            "config": app_definition.copy()
+        }
+    )
+    app = App()
+    env = app.environ(session, reset_workdir)
+    app.initialize(env)
 
 
 def find_config():
@@ -344,7 +378,7 @@ class Application(Action):
             return False
         return True
 
-    def environ(self, session):
+    def environ(self, session, reset_workdir=True):
         """Build application environment"""
 
         session = session.copy()
@@ -352,10 +386,11 @@ class Application(Action):
         session["AVALON_APP_NAME"] = self.name
 
         # Compute work directory
-        project = io.find_one({"type": "project"})
-        template = project["config"]["template"]["work"]
-        workdir = _format_work_template(template, session)
-        session["AVALON_WORKDIR"] = os.path.normpath(workdir)
+        if reset_workdir:
+            project = io.find_one({"type": "project"})
+            template = project["config"]["template"]["work"]
+            workdir = _format_work_template(template, session)
+            session["AVALON_WORKDIR"] = os.path.normpath(workdir)
 
         # Construct application environment from .toml config
         app_environment = self.config.get("environment", {})
@@ -391,30 +426,33 @@ class Application(Action):
         workdir = environment["AVALON_WORKDIR"]
         workdir_existed = os.path.exists(workdir)
         if not workdir_existed:
-            os.makedirs(workdir)
             self.log.info("Creating working directory '%s'" % workdir)
+            os.makedirs(workdir)
 
-            # Create default directories from app configuration
-            default_dirs = self.config.get("default_dirs", [])
-            default_dirs = self._format(default_dirs, **environment)
-            if default_dirs:
-                self.log.debug("Creating default directories..")
-                for dirname in default_dirs:
-                    try:
-                        os.makedirs(os.path.join(workdir, dirname))
-                        self.log.debug(" - %s" % dirname)
-                    except OSError as e:
-                        # An already existing default directory is fine.
-                        if e.errno == errno.EEXIST:
-                            pass
-                        else:
-                            raise
+        # Create default directories from app configuration
+        default_dirs = self.config.get("default_dirs", [])
+        default_dirs = self._format(default_dirs, **environment)
+        if default_dirs:
+            self.log.debug("Creating default directories..")
+            for dirname in default_dirs:
+                try:
+                    os.makedirs(os.path.join(workdir, dirname))
+                    self.log.debug(" - %s" % dirname)
+                except OSError as e:
+                    # An already existing default directory is fine.
+                    if e.errno == errno.EEXIST:
+                        pass
+                    else:
+                        raise
 
         # Perform application copy
         for src, dst in self.config.get("copy", {}).items():
             dst = os.path.join(workdir, dst)
             # Expand env vars
             src, dst = self._format([src, dst], **environment)
+
+            if os.path.isfile(dst):
+                continue
 
             try:
                 self.log.info("Copying %s -> %s" % (src, dst))
@@ -423,7 +461,7 @@ class Application(Action):
                 self.log.error("Could not copy application file: %s" % e)
                 self.log.error(" - %s -> %s" % (src, dst))
 
-    def launch(self, environment):
+    def launch(self, environment, initialized=False):
 
         executable = lib.which(self.config["executable"])
         if executable is None:
@@ -431,6 +469,9 @@ class Application(Action):
                 "'%s' not found on your PATH\n%s"
                 % (self.config["executable"], os.getenv("PATH"))
             )
+
+        if initialized:
+            environment["_AVALON_APP_INITIALIZED"] = "1"
 
         args = self.config.get("args", [])
         return lib.launch(
@@ -444,12 +485,14 @@ class Application(Action):
         """Process the full Application action"""
 
         environment = self.environ(session)
+        initialized = False
 
         if kwargs.get("initialize", True):
             self.initialize(environment)
+            initialized = True
 
         if kwargs.get("launch", True):
-            return self.launch(environment)
+            return self.launch(environment, initialized)
 
     def _format(self, original, **kwargs):
         """Utility recursive dict formatting that logs the error clearly."""

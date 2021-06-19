@@ -114,6 +114,9 @@ def _from_environment():
     session = {
         item[0]: os.getenv(item[0], item[1])
         for item in (
+            # The schema name that should be used to validate this session
+            ("AVALON_SESSION_SCHEMA", "avalon-core:session-2.0"),
+
             # Root directory of projects on disk
             ("AVALON_PROJECTS", None),
 
@@ -131,6 +134,9 @@ def _from_environment():
 
             # Name of current app
             ("AVALON_APP", None),
+
+            # Full name of current app (e.g. versioned name)
+            ("AVALON_APP_NAME", None),
 
             # Path to working directory
             ("AVALON_WORKDIR", None),
@@ -199,7 +205,7 @@ def _from_environment():
         ) if os.getenv(item[0], item[1]) is not None
     }
 
-    session["schema"] = "avalon-core:session-2.0"
+    session["schema"] = session["AVALON_SESSION_SCHEMA"]
     try:
         schema.validate(session)
     except schema.ValidationError as e:

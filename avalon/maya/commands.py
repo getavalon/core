@@ -14,8 +14,15 @@ from .. import io, api
 
 def reset_frame_range():
     """Set frame range to current asset"""
-    shot = api.Session["AVALON_ASSET"]
-    shot = io.find_one({"name": shot, "type": "asset"})
+    shot_name = api.Session.get("AVALON_ASSET")
+    if shot_name is None:
+        cmds.warning("No AVALON_ASSET setup in current working session.")
+        return
+
+    shot = io.find_one({"name": shot_name, "type": "asset"})
+    if shot is None:
+        cmds.error("Shot '%s' not found in database." % shot_name)
+        return
 
     try:
 

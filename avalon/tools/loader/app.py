@@ -431,7 +431,7 @@ def show(debug=False, parent=None, use_context=False):
         window.setStyleSheet(style.load_stylesheet())
 
         if use_context:
-            context = {"asset": api.Session["AVALON_ASSET"]}
+            context = {"asset": api.Session.get("AVALON_ASSET")}
             window.set_context(context, refresh=True)
         else:
             window.refresh()
