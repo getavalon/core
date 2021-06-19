@@ -243,8 +243,7 @@ def show(root=None, debug=False, parent=None):
     """Display Loader GUI
 
     Arguments:
-        debug (bool, optional): Run loader in debug-mode,
-            defaults to False
+        debug (bool, optional): Run loader in debug-mode, defaults to False
         parent (QtCore.QObject, optional): When provided parent the interface
             to this QObject.
 
@@ -255,9 +254,6 @@ def show(root=None, debug=False, parent=None):
         del module.window
     except (RuntimeError, AttributeError):
         pass
-
-    if debug is True:
-        io.install()
 
     with tools_lib.application():
         window = Window(parent=parent)

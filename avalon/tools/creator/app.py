@@ -555,37 +555,20 @@ class FamilyDescriptionWidget(QtWidgets.QWidget):
 
 
 def show(debug=False, parent=None):
-    """Display asset creator GUI
+    """Display Asset Creator GUI
 
     Arguments:
-        debug (bool, optional): Run loader in debug-mode,
-            defaults to False
+        debug (bool, optional): Run loader in debug-mode, defaults to False
         parent (QtCore.QObject, optional): When provided parent the interface
             to this QObject.
 
     """
 
-    if module.window:
+    try:
         module.window.close()
-        del(module.window)
-
-    if debug:
-        from avalon import mock
-        for creator in mock.creators:
-            api.register_plugin(api.Creator, creator)
-
-        import traceback
-        sys.excepthook = lambda typ, val, tb: traceback.print_last()
-
-        io.install()
-
-        any_project = next(
-            project for project in io.projects()
-            if project.get("active", True) is not False
-        )
-
-        api.Session["AVALON_PROJECT"] = any_project["name"]
-        module.project = any_project["name"]
+        del module.window
+    except (RuntimeError, AttributeError):
+        pass
 
     with lib.application():
         window = Window(parent)

@@ -388,37 +388,17 @@ def show(debug=False, parent=None, use_context=False):
     """Display Loader GUI
 
     Arguments:
-        debug (bool, optional): Run loader in debug-mode,
-            defaults to False
+        debug (bool, optional): Run loader in debug-mode, defaults to False
         parent (QtCore.QObject, optional): The Qt object to parent to.
         use_context (bool): Whether to apply the current context upon launch
 
     """
 
-    # Remember window
-    if module.window is not None:
-        try:
-            module.window.show()
-
-            # If the window is minimized then unminimize it.
-            if module.window.windowState() & QtCore.Qt.WindowMinimized:
-                module.window.setWindowState(QtCore.Qt.WindowActive)
-
-            # Raise and activate the window
-            module.window.raise_()             # for MacOS
-            module.window.activateWindow()     # for Windows
-            module.window.refresh()
-            return
-        except RuntimeError as exc:
-            if not str(exc).rstrip().endswith("already deleted."):
-                raise
-
-            # Garbage collected
-            module.window = None
-
-    if debug:
-        import traceback
-        sys.excepthook = lambda typ, val, tb: traceback.print_last()
+    try:
+        module.window.close()
+        del module.window
+    except (RuntimeError, AttributeError):
+        pass
 
     with lib.application():
 

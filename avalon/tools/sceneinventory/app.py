@@ -927,8 +927,7 @@ def show(root=None, debug=False, parent=None):
     """Display Scene Inventory GUI
 
     Arguments:
-        debug (bool, optional): Run in debug-mode,
-            defaults to False
+        debug (bool, optional): Run in debug-mode, defaults to False
         parent (QtCore.QObject, optional): When provided parent the interface
             to this QObject.
 
@@ -939,10 +938,6 @@ def show(root=None, debug=False, parent=None):
         del module.window
     except (RuntimeError, AttributeError):
         pass
-
-    if debug:
-        import traceback
-        sys.excepthook = lambda typ, val, tb: traceback.print_last()
 
     with tools_lib.application():
         window = Window(parent)

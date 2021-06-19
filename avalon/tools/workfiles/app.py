@@ -855,12 +855,22 @@ class Window(QtWidgets.QMainWindow):
 
 
 def show(root=None, debug=False, parent=None, use_context=True):
-    """Show Work Files GUI"""
+    """Show Work Files GUI
     # todo: remove `root` argument to show()
 
-    if module.window:
+    Arguments:
+        root (str, optional): The root for the work files app
+        debug (bool, optional): Run in debug-mode, defaults to False
+        parent (QtCore.QObject, optional): When provided parent the interface
+            to this QObject.
+
+    """
+
+    try:
         module.window.close()
-        del(module.window)
+        del module.window
+    except (RuntimeError, AttributeError):
+        pass
 
     host = api.registered_host()
     if host is None:
@@ -881,10 +891,6 @@ def show(root=None, debug=False, parent=None, use_context=True):
     if missing:
         raise RuntimeError("Host is missing required Work Files interfaces: "
                            "%s (host: %s)" % (", ".join(missing), host))
-
-    if debug:
-        api.Session["AVALON_ASSET"] = "Mock"
-        api.Session["AVALON_TASK"] = "Testing"
 
     with tools_lib.application():
 
