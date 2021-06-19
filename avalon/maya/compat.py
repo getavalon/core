@@ -61,7 +61,7 @@ def load(Loader,
     from avalon.maya import lib
     from avalon.maya.pipeline import containerise
 
-    assert representation is not None, "This is a bug"
+    assert representation, "This is a bug"
 
     if isinstance(representation, (six.string_types, io.ObjectId)):
         representation = io.find_one({"_id": io.ObjectId(str(representation))})
@@ -81,9 +81,10 @@ def load(Loader,
     }
 
     # Ensure data is a dictionary when no explicit data provided
-    if data is None:
+    if data:
+        assert isinstance(data, dict), "Data must be a dictionary"
+    else:
         data = dict()
-    assert isinstance(data, dict), "Data must be a dictionary"
 
     name = name or subset["name"]
     namespace = namespace or lib.unique_namespace(

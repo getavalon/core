@@ -1272,36 +1272,47 @@ def get_representation_path(representation):
         representation(dict): representation document from the database
 
     Returns:
-        str: fullpath of the representation
+        str: fullpath of the representation. None when valid filepath not found
+
 
     """
 
-    def path_from_represenation():
+    def path_from_representation():
         try:
             template = representation["data"]["template"]
-
         except KeyError:
+            log.debug("Cannot find template in representation document")
             return None
 
         try:
             context = representation["context"]
             context["root"] = registered_root()
             path = template.format(**context)
-
-        except KeyError:
-            # Template references unavailable data
+        except KeyError as missing_key:
+            log.deubg(
+                "Unavailable variable used in filepath template: {},"
+                "available variables are: {}".format(
+                    missing_key, ", ".join(context.keys())
+                )
+            )
             return None
 
         if os.path.exists(path):
             return os.path.normpath(path)
+        else:
+            log.debug(
+                "path from representation doesn't exist: {}".format(path)
+            )
+            return None
 
     def path_from_config():
         try:
             version_, subset, asset, project = io.parenthood(representation)
         except ValueError:
             log.debug(
-                "Representation %s wasn't found in database, "
-                "like a bug" % representation["name"]
+                "Representation {} not found in database!".format(
+                    representation["name"]
+                )
             )
             return None
 
@@ -1309,8 +1320,9 @@ def get_representation_path(representation):
             template = project["config"]["template"]["publish"]
         except KeyError:
             log.debug(
-                "No template in project %s, "
-                "likely a bug" % project["name"]
+                "No publish path template in config of {}!".format(
+                    project["name"]
+                )
             )
             return None
 
@@ -1325,31 +1337,41 @@ def get_representation_path(representation):
             "representation": representation["name"],
             "user": Session.get("AVALON_USER", getpass.getuser()),
             "app": Session.get("AVALON_APP", ""),
-            "task": Session.get("AVALON_TASK", "")
+            "task": Session.get("AVALON_TASK", ""),
+            "hierarchy": asset["data"].get("hierarchy", "")
         }
 
         try:
             path = template.format(**data)
-        except KeyError as e:
-            log.debug("Template references unavailable data: %s" % e)
+        except KeyError as missing_key:
+            log.debug(
+                "Unavailable variable used in filepath template: {},"
+                "available variables are: {}".format(
+                    missing_key, ", ".join(data.keys())
+                )
+            )
             return None
 
         if os.path.exists(path):
             return os.path.normpath(path)
+        else:
+            log.debug("path from config doesn't exist: {}".format(path))
+            return None
 
     def path_from_data():
-        if "path" not in representation["data"]:
-            return None
-
-        path = representation["data"]["path"]
+        path = representation["data"].get("path", None)
         if os.path.exists(path):
             return os.path.normpath(path)
+        else:
+            log.debug("path from data doesn't exist: {}".format(path))
+            return None
 
-    return (
-        path_from_represenation() or
-        path_from_config() or
-        path_from_data()
-    )
+    resolved_path = (path_from_representation()
+                     or path_from_config()
+                     or path_from_data())
+    if not resolved_path:
+        log.debug("Cannot resolve to a valid filepath.")
+    return resolved_path
 
 
 def is_compatible_loader(Loader, context):
