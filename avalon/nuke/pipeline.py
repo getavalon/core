@@ -9,6 +9,7 @@ import nuke
 from pyblish import api as pyblish
 
 from . import lib, command
+from ..lib import find_submodule
 from .. import api
 from ..vendor.Qt import QtWidgets
 from ..pipeline import AVALON_CONTAINER_ID
@@ -18,7 +19,10 @@ log = logging.getLogger(__name__)
 self = sys.modules[__name__]
 self._parent = None  # Main Window cache
 
+AVALON_CONTAINERS = "AVALON_CONTAINERS"
 AVALON_CONFIG = os.environ["AVALON_CONFIG"]
+
+USE_OLD_CONTAINER = os.getenv("AVALON_NUKE_OLD_CONTAINER")
 
 
 def reload_pipeline():
@@ -50,31 +54,44 @@ def reload_pipeline():
     import avalon.nuke
     api.install(avalon.nuke)
 
-    _register_events()
 
-
-def containerise(node,
-                 name,
+def containerise(name,
                  namespace,
+                 nodes,
                  context,
                  loader=None,
-                 data=None):
+                 data=None,
+                 no_backdrop=True,
+                 suffix="CON"):
     """Bundle `node` into an assembly and imprint it with metadata
 
     Containerisation enables a tracking of version, author and origin
     for loaded assets.
 
     Arguments:
-        node (nuke.Node): Nuke's node object to imprint as container
         name (str): Name of resulting assembly
         namespace (str): Namespace under which to host container
+        nodes (list): A list of `nuke.Node` object to containerise
         context (dict): Asset information
         loader (str, optional): Name of node used to produce this container.
+        data (dict, optional): Additional data to imprint.
+        no_backdrop (bool, optional): No container(backdrop) node presented.
+        suffix (str, optional): Suffix of container, defaults to `_CON`.
 
     Returns:
         node (nuke.Node): containerised nuke's node object
 
     """
+    from nukescripts import autoBackdrop
+
+    if isinstance(name, nuke.Node):
+        # For compatibling with old style args
+        #   containerise(node, name, namespace, context, ...)
+        _ = nodes
+        nodes = [name]
+        name = namespace
+        namespace = _
+
     data = OrderedDict(
         [
             ("schema", "avalon-core:container-2.0"),
@@ -82,15 +99,64 @@ def containerise(node,
             ("name", name),
             ("namespace", namespace),
             ("loader", str(loader)),
-            ("representation", context["representation"]["_id"]),
+            ("representation", str(context["representation"]["_id"])),
         ],
 
         **data or dict()
     )
 
-    lib.set_avalon_knob_data(node, data)
+    if USE_OLD_CONTAINER:
+        node = nodes[0]
+        lib.set_avalon_knob_data(node, data)
+        return node
 
-    return node
+    # New style
+
+    container_color = data.pop("color", int("0x7A7A7AFF", 16))
+    container_name = "%s_%s_%s" % (namespace, name, suffix)
+
+    lib.reset_selection()
+    lib.select_nodes(nodes)
+
+    container = autoBackdrop()
+    container.setName(container_name)
+    container["label"].setValue(container_name)
+    container["tile_color"].setValue(container_color)
+    container["selected"].setValue(True)
+    # (NOTE) Backdrop may not fully cover if there's only one node, so we
+    #        expand backdrop a bit ot ensure that.
+    container["bdwidth"].setValue(container["bdwidth"].value() + 100)
+    container["bdheight"].setValue(container["bdheight"].value() + 100)
+    container["xpos"].setValue(container["xpos"].value() - 50)
+
+    lib.set_avalon_knob_data(container, data)
+
+    container_id = lib.set_id(container)
+    for node in nodes:
+        lib.set_id(node, container_id=container_id)
+
+    # Containerising
+
+    nuke.nodeCopy("_containerizing_")
+
+    main_container = nuke.toNode(AVALON_CONTAINERS)
+    if main_container is None:
+        main_container = nuke.createNode("Group")
+        main_container.setName(AVALON_CONTAINERS)
+        main_container["postage_stamp"].setValue(True)
+        main_container["note_font_size"].setValue(40)
+        main_container["tile_color"].setValue(int("0x283648FF", 16))
+        main_container["xpos"].setValue(-500)
+        main_container["ypos"].setValue(-500)
+
+    main_container.begin()
+    nuke.nodePaste("_containerizing_")
+    main_container.end()
+
+    if no_backdrop:
+        nuke.delete(container)
+
+    return container
 
 
 def parse_container(node):
@@ -105,20 +171,18 @@ def parse_container(node):
         dict: The container schema data for this container node.
 
     """
-    data = lib.read(node)
-
-    # (TODO) Remove key validation when `ls` has re-implemented.
-    #
-    # If not all required data return the empty container
-    required = ["schema", "id", "name",
-                "namespace", "loader", "representation"]
-    if not all(key in data for key in required):
-        return
+    data = lib.get_avalon_knob_data(node)
 
     # Store the node's name
     data["objectName"] = node["name"].value()
     # Store reference to the node object
     data["_node"] = node
+    # Get containerized nodes
+    if node.fullName() == "%s.%s" % (AVALON_CONTAINERS, node.name()):
+        data["_members"] = lib.lsattr("avalon:containerId",
+                                      value=data["avalonId"],
+                                      group=nuke.toNode(AVALON_CONTAINERS),
+                                      recursive=True)
 
     return data
 
@@ -142,6 +206,10 @@ def update_container(node, keys=None):
     container = parse_container(node)
     if not container:
         raise TypeError("Not a valid container node.")
+
+    # Remove unprintable entries
+    container.pop("_node", None)
+    container.pop("_members", None)
 
     container.update(keys)
     node = lib.set_avalon_knob_data(node, container)
@@ -187,6 +255,24 @@ class Creator(api.Creator):
         return instance
 
 
+def _ls1():
+    """Yields all nodes for listing Avalon containers"""
+    for node in nuke.allNodes(recurseGroups=False):
+        yield node
+
+
+def _ls2():
+    """Yields nodes that has 'avalon:id' knob from AVALON_CONTAINERS"""
+    for node in nuke.allNodes("BackdropNode",
+                              group=nuke.toNode(AVALON_CONTAINERS)):
+        knob = node.fullName() + ".avalon:id"
+        if nuke.exists(knob) and nuke.knob(knob) == AVALON_CONTAINER_ID:
+            yield node
+
+
+_ls = _ls1 if USE_OLD_CONTAINER else _ls2
+
+
 def ls():
     """List available containers.
 
@@ -197,16 +283,22 @@ def ls():
     See the `container.json` schema for details on how it should look,
     and the Maya equivalent, which is in `avalon.maya.pipeline`
     """
-    all_nodes = nuke.allNodes(recurseGroups=False)
+    config_host = find_submodule(api.registered_config(), "nuke")
+    has_metadata_collector = hasattr(config_host, "collect_container_metadata")
 
-    # TODO: add readgeo, readcamera, readimage
-    nodes = [n for n in all_nodes]
+    container_nodes = _ls()
 
-    for n in nodes:
-        log.debug("name: `{}`".format(n.name()))
-        container = parse_container(n)
-        if container:
-            yield container
+    for container in container_nodes:
+        data = parse_container(container)
+        if data is None:
+            continue
+
+        # Collect custom data if attribute is present
+        if has_metadata_collector:
+            metadata = config_host.collect_container_metadata(container)
+            data.update(metadata)
+
+        yield data
 
 
 def install():
@@ -266,18 +358,14 @@ def _install_menu():
         publish,
         workfiles,
         loader,
-        sceneinventory
+        sceneinventory,
     )
 
     # Create menu
     menubar = nuke.menu("Nuke")
     menu = menubar.addMenu(api.Session["AVALON_LABEL"])
 
-    label = "{0}, {1}".format(
-        api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"]
-    )
-    context_action = menu.addCommand(label)
-    context_action.setEnabled(False)
+    _add_contextmanager_menu(menu)
 
     menu.addSeparator()
     menu.addCommand("Create...",
@@ -314,6 +402,22 @@ def _uninstall_menu():
     menubar.removeItem(api.Session["AVALON_LABEL"])
 
 
+def _add_contextmanager_menu(menu):
+    label = "{0}, {1}".format(
+        api.Session["AVALON_ASSET"], api.Session["AVALON_TASK"]
+    )
+    context_action = menu.addCommand(label)
+    context_action.setEnabled(False)
+
+
+def _update_menu_task_label():
+    menubar = nuke.menu("Nuke")
+    menu = menubar.findItem(api.Session["AVALON_LABEL"])
+
+    menu.removeItem(menu.items()[0].name())  # Assume it is the first item
+    _add_contextmanager_menu(menu)
+
+
 def publish():
     """Shorthand to publish from within host"""
     import pyblish.util
@@ -329,8 +433,7 @@ def _register_events():
 def _on_task_changed(*args):
 
     # Update menu
-    _uninstall_menu()
-    _install_menu()
+    _update_menu_task_label()
 
 
 # Backwards compatibility

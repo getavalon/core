@@ -5,9 +5,19 @@ import re
 import logging
 from collections import OrderedDict
 
+from .. import io
 from ..vendor import six, clique
+from .vendor import knobby
 
 log = logging.getLogger(__name__)
+
+
+Knobby = knobby.util.Knobby
+imprint = knobby.util.imprint
+read = knobby.util.read
+mold = knobby.util.mold
+
+AVALON_TAB = "avalon"
 
 
 @contextlib.contextmanager
@@ -36,7 +46,7 @@ def reset_selection():
     """Deselect all selected nodes
     """
     for node in nuke.selectedNodes():
-        node["selected"] = False
+        node["selected"].setValue(False)
 
 
 def select_nodes(nodes):
@@ -51,239 +61,209 @@ def select_nodes(nodes):
         node["selected"].setValue(True)
 
 
-def imprint(node, data, tab=None):
-    """Store attributes with value on node
+def lsattr(attr, value=None, type=None, group=None, recursive=False):
+    """Return nodes matching `key` and `value`
 
-    Parse user data into Node knobs.
-    Use `collections.OrderedDict` to ensure knob order.
+    Arguments:
+        attr (str): Name of Node knob
+        value (object, optional): Value of attribute. If none
+            is provided, return all nodes with this attribute.
+        type (str, optional): Node class name (Not work with `recursive`)
+        group (nuke.Node, optional): Listing nodes from `group`, default `root`
+        recursive (bool, optional): Whether to look into child groups.
 
-    Args:
-        node(nuke.Node): node object from Nuke
-        data(dict): collection of attributes and their value
-
-    Returns:
-        None
-
-    Examples:
-        ```
-        import nuke
-        from avalon.nuke import lib
-
-        node = nuke.createNode("NoOp")
-        data = {
-            # Regular type of attributes
-            "myList": ["x", "y", "z"],
-            "myBool": True,
-            "myFloat": 0.1,
-            "myInt": 5,
-
-            # Creating non-default imprint type of knob
-            "MyFilePath": lib.Knobby("File_Knob", "/file/path"),
-            "divider": lib.Knobby("Text_Knob", ""),
-
-            # Manual nice knob naming
-            ("my_knob", "Nice Knob Name"): "some text",
-
-            # dict type will be created as knob group
-            "KnobGroup": {
-                "knob1": 5,
-                "knob2": "hello",
-                "knob3": ["a", "b"],
-            },
-
-            # Nested dict will be created as tab group
-            "TabGroup": {
-                "tab1": {"count": 5},
-                "tab2": {"isGood": True},
-                "tab3": {"direction": ["Left", "Right"]},
-            },
-        }
-        lib.imprint(node, data, tab="Demo")
-
-        ```
+    Return:
+         list: matching nodes.
 
     """
-    for knob in create_knobs(data, tab):
-        node.addKnob(knob)
+    group = group or nuke.toNode("root")
+
+    if value is None:
+        args = (type, ) if type else ()
+        nodes = nuke.allNodes(*args, group=group, recurseGroups=recursive)
+        return [n for n in nodes if n.knob(attr)]
+    return lsattrs({attr: value}, type=type, group=group, recursive=recursive)
 
 
-class Knobby(object):
-    """For creating knob which it's type isn't mapped in `create_knobs`
+def lsattrs(attrs, type=None, group=None, recursive=False):
+    """Return nodes with the given attribute(s).
 
-    Args:
-        type (string): Nuke knob type name
-        value: Value to be set with `Knob.setValue`, put `None` if not required
-        flags (list, optional): Knob flags to be set with `Knob.setFlag`
-        *args: Args other than knob name for initializing knob class
+    Arguments:
+        attrs (dict): Name and value pairs of expected matches
+        type (str, optional): Node class name (Not work with `recursive`)
+        group (nuke.Node, optional): Listing nodes from `group`, default `root`
+        recursive (bool, optional): Whether to look into child groups.
 
-    """
-
-    def __init__(self, type, value, flags=None, *args):
-        self.type = type
-        self.value = value
-        self.flags = flags or []
-        self.args = args
-
-    def create(self, name, nice=None):
-        knob_cls = getattr(nuke, self.type)
-        knob = knob_cls(name, nice, *self.args)
-        if self.value is not None:
-            knob.setValue(self.value)
-        for flag in self.flags:
-            knob.setFlag(flag)
-        return knob
-
-
-def create_knobs(data, tab=None):
-    """Create knobs by data
-
-    Depending on the type of each dict value and creates the correct Knob.
-
-    Mapped types:
-        bool: nuke.Boolean_Knob
-        int: nuke.Int_Knob
-        float: nuke.Double_Knob
-        list: nuke.Enumeration_Knob
-        six.string_types: nuke.String_Knob
-
-        dict: If it's a nested dict (all values are dict), will turn into
-            A tabs group. Or just a knobs group.
-
-    Args:
-        data (dict): collection of attributes and their value
-        tab (string, optional): Knobs' tab name
-
-    Returns:
-        list: A list of `nuke.Knob` objects
+    Return:
+         list: matching nodes.
 
     """
-    def nice_naming(key):
-        """Convert camelCase name into UI Display Name"""
-        words = re.findall('[A-Z][^A-Z]*', key[0].upper() + key[1:])
-        return " ".join(words)
-
-    # Turn key-value pairs into knobs
-    knobs = list()
-
-    if tab:
-        knobs.append(nuke.Tab_Knob(tab))
-
-    for key, value in data.items():
-        # Knob name
-        if isinstance(key, tuple):
-            name, nice = key
-        else:
-            name, nice = key, nice_naming(key)
-
-        # Create knob by value type
-        if isinstance(value, Knobby):
-            knobby = value
-            knob = knobby.create(name, nice)
-
-        elif isinstance(value, float):
-            knob = nuke.Double_Knob(name, nice)
-            knob.setValue(value)
-
-        elif isinstance(value, bool):
-            knob = nuke.Boolean_Knob(name, nice)
-            knob.setValue(value)
-            knob.setFlag(nuke.STARTLINE)
-
-        elif isinstance(value, int):
-            knob = nuke.Int_Knob(name, nice)
-            knob.setValue(value)
-
-        elif isinstance(value, six.string_types):
-            knob = nuke.String_Knob(name, nice)
-            knob.setValue(value)
-
-        elif isinstance(value, list):
-            knob = nuke.Enumeration_Knob(name, nice, value)
-
-        elif isinstance(value, dict):
-            if all(isinstance(v, dict) for v in value.values()):
-                # Create a group of tabs
-                begain = nuke.BeginTabGroup_Knob()
-                end = nuke.EndTabGroup_Knob()
-                begain.setName(name)
-                end.setName(name + "_End")
-                knobs.append(begain)
-                for k, v in value.items():
-                    knobs += create_knobs(v, tab=k)
-                knobs.append(end)
-            else:
-                # Create a group of knobs
-                knobs.append(nuke.Tab_Knob(name, nice, nuke.TABBEGINGROUP))
-                knobs += create_knobs(value)
-                knobs.append(nuke.Tab_Knob(name, nice, nuke.TABENDGROUP))
-            continue
-
-        else:
-            raise TypeError("Unsupported type: %r" % type(value))
-
-        knobs.append(knob)
-
-    return knobs
-
-
-EXCLUDED_KNOB_TYPE_ON_READ = (
-    20,  # Tab Knob
-    26,  # Text Knob (But for backward compatibility, still be read
-         #            if value is not an empty string.)
-)
-
-
-def read(node):
-    """Return user-defined knobs from given `node`
-
-    Args:
-        node (nuke.Node): Nuke node object
-
-    Returns:
-        list: A list of nuke.Knob object
-
-    """
-    def compat_prefixed(knob_name):
-        if knob_name.startswith("avalon:"):
-            return knob_name[len("avalon:"):]
-        elif knob_name.startswith("ak:"):
-            return knob_name[len("ak:"):]
-        else:
-            return knob_name
-
-    data = dict()
-
-    pattern = ("(?<=addUserKnob {)"
-               "([0-9]*) (\\S*)"  # Matching knob type and knob name
-               "(?=[ |}])")
-    tcl_script = node.writeKnobs(nuke.WRITE_USER_KNOB_DEFS)
-    result = re.search(pattern, tcl_script)
-
-    if result:
-        first_user_knob = result.group(2)
-        # Collect user knobs from the end of the knob list
-        for knob in reversed(node.allKnobs()):
-            knob_name = knob.name()
-            if not knob_name:
-                # Ignore unnamed knob
+    matches = set()
+    args = (type, ) if type else ()
+    group = group or nuke.toNode("root")
+    nodes = nuke.allNodes(*args, group=group, recurseGroups=recursive)
+    for node in nodes:
+        for attr in attrs:
+            knob = node.knob(attr)
+            if not knob:
                 continue
+            elif knob.getValue() != attrs[attr]:
+                continue
+            else:
+                matches.add(node)
+    return list(matches)
 
-            knob_type = nuke.knob(knob.fullyQualifiedName(), type=True)
-            value = knob.value()
 
-            if (
-                knob_type not in EXCLUDED_KNOB_TYPE_ON_READ or
-                # For compating read-only string data that imprinted
-                # by `nuke.Text_Knob`.
-                (knob_type == 26 and value)
-            ):
-                key = compat_prefixed(knob_name)
-                data[key] = value
+def set_id(node, container_id=None):
+    """Set 'avalonId' to `node`
 
-            if knob_name == first_user_knob:
-                break
+    Args:
+        node (nuke.Node): Node that id to apply to
+        container_id (str, optional): `node` container's id
 
-    return data
+    """
+    data = OrderedDict()
+    data["avalonId"] = str(io.ObjectId())
+    if container_id:
+        data["containerId"] = container_id
+
+    set_avalon_knob_data(node, data)
+
+    return data["avalonId"]
+
+
+def get_id(node, container_id=False):
+    """Get 'avalonId' of `node`
+
+    Args:
+        node (nuke.Node): Node that id to apply to
+        container_id (bool, optional): Whether change to get `node`
+            container's id instead of `node` avalonId. Default False.
+
+    """
+    knob = "containerId" if container_id else "avalonId"
+    id_knob = node.knobs().get("avalon:" + knob)
+    return id_knob.value() if id_knob else None
+
+
+def find_copies(source, group=None, recursive=True):
+    """Return nodes that has same 'avalonId' as `source`
+
+    Args:
+        source (nuke.Node): The node to find copies from
+        group (nuke.Node, optional): Find copies from `group`, default `root`
+        recursive (bool, optional): Whether to look into child groups,
+            default True.
+
+    """
+    assert isinstance(source, nuke.Node), "`Source` needs to be a nuke node."
+
+    copies = list()
+    source_id = get_id(source)
+    if source_id:
+        copies = lsattrs({"avalon:avalonId": source_id},
+                         # (NOTE) Cannot specify node `type` to `lsattrs()` if
+                         #        `recursive=True`. Because the arg `filter`
+                         #        in command `nuke.allNodes` doesn't work with
+                         #        `recurseGroups=True`.
+                         group=group,
+                         recursive=recursive)
+
+    # Dont return the source.
+    if source in copies:
+        copies.remove(source)
+
+    return copies
+
+
+@contextlib.contextmanager
+def sync_copies(nodes, force=False):
+    """Context manager for Syncing nodes' knobs
+
+    When updating subset by `Loader.update`, use this context to auto sync all
+    copies of the subset.
+
+    By default, only knobs that haven't been modified, compares to the original
+    one inside the "AVALON_CONTAINERS". But if `force` set to True, all knobs
+    will be updated.
+
+    Example:
+        ```
+        class Loader(avalon.api.Loader):
+
+            def update(self, container, representation):
+
+                with lib.sync_copies(nodes):
+                    # Update subset
+                    ...
+                # All copies of `nodes` updated
+
+                with lib.sync_copies([container_node], force=True):
+                    # Update container data
+                    ...
+                # All copies of `container_node` updated
+
+        ```
+
+    Args:
+        nodes (list): Nodes to sync
+        force (bool, optional): Whether to force updating all knobs
+
+    """
+    def is_knob_eq(knob_a, knob_b):
+        return knob_a.toScript() == knob_b.toScript()
+
+    def sync_knob(knob_a, knob_b):
+        script = knob_a.toScript()
+        knob_b.fromScript(script)
+
+    staged = dict()
+    origin = dict()
+
+    # Collect knobs for updating
+    for node in nodes:
+        targets = list()
+
+        sources = node.knobs()
+        origin[node] = sources
+
+        for copy in find_copies(node):
+            copy_name = copy.fullName()
+
+            for name, knob in copy.knobs().items():
+                if name not in sources:
+                    continue
+
+                knob_name = knob.name()
+                if knob_name == "name":  # Node name should never be synced
+                    continue
+
+                # Only update knob that hasn't been modified
+                if force or is_knob_eq(sources[name], knob):
+                    # (NOTE) If current Nuke session has multiple views, like
+                    #   working on stereo shot, `knob.fullyQualifiedName` will
+                    #   append current view at the end of the knob name, for
+                    #   example "renderlayer.Read1.first.left".
+                    #   Assemble from node's full name and knob name to avoid
+                    #   that.
+                    targets.append("%s.%s" % (copy_name, knob_name))
+
+        if targets:
+            staged[node] = targets
+
+    try:
+        yield  # Update `nodes`
+
+    finally:
+        # Sync update result to all copies
+        for node, targets in staged.items():
+            updates = origin[node]
+
+            for knob in targets:
+                copied, knob = knob.rsplit(".", 1)
+                copied = nuke.toNode(copied)
+
+                sync_knob(updates[knob], copied[knob])
 
 
 def add_publish_knob(node):
@@ -300,11 +280,11 @@ def add_publish_knob(node):
         body = OrderedDict()
         body[("divd", "")] = Knobby("Text_Knob", "")
         body["publish"] = True
-        imprint(node, body)
+        imprint(node, body, tab=AVALON_TAB)
     return node
 
 
-def set_avalon_knob_data(node, data=None, prefix="avalon:"):
+def set_avalon_knob_data(node, data=None):
     """ Sets data into nodes's avalon knob
 
     Arguments:
@@ -323,49 +303,30 @@ def set_avalon_knob_data(node, data=None, prefix="avalon:"):
         }
     """
     data = data or dict()
-    create = OrderedDict()
 
-    tab_name = "AvalonTab"
+    warn = Knobby("Text_Knob", "Warning! Do not change following data!")
+    divd = Knobby("Text_Knob", "")
+    knobs = OrderedDict([
+        (("warn", ""), warn),
+        (("divd", ""), divd),
+    ])
+
     editable = ["asset", "subset", "name", "namespace"]
 
-    existed_knobs = node.knobs()
-
     for key, value in data.items():
-        knob_name = prefix + key
-        gui_name = key
-
-        if knob_name in existed_knobs:
-            # Set value
-            node[knob_name].setValue(value)
+        if key in editable:
+            knobs[key] = value
         else:
-            # New knob
-            name = (knob_name, gui_name)  # Hide prefix on GUI
-            if key in editable:
-                create[name] = value
-            else:
-                create[name] = Knobby("String_Knob",
-                                      str(value),
-                                      flags=[nuke.READ_ONLY])
+            knobs[key] = Knobby("String_Knob",
+                                str(value),
+                                flags=[nuke.READ_ONLY])
 
-    if tab_name in existed_knobs:
-        tab_name = None
-    else:
-        tab = OrderedDict()
-        warn = Knobby("Text_Knob", "Warning! Do not change following data!")
-        divd = Knobby("Text_Knob", "")
-        head = [
-            (("warn", ""), warn),
-            (("divd", ""), divd),
-        ]
-        tab["avalonDataGroup"] = OrderedDict(head + create.items())
-        create = tab
-
-    imprint(node, create, tab=tab_name)
+    imprint(node, knobs, tab=AVALON_TAB)
 
     return node
 
 
-def get_avalon_knob_data(node, prefix="avalon:"):
+def get_avalon_knob_data(node):
     """ Get data from nodes's avalon knob
 
     Arguments:
@@ -375,12 +336,15 @@ def get_avalon_knob_data(node, prefix="avalon:"):
     Returns:
         data (dict)
     """
-    data = {
-        knob[len(prefix):]: node[knob].value()
-        for knob in node.knobs().keys()
-        if knob.startswith(prefix)
-    }
-    return data
+    def compat_prefixed(knob_name):
+        if knob_name.startswith("avalon:"):
+            return knob_name[len("avalon:"):]
+        elif knob_name.startswith("ak:"):
+            return knob_name[len("ak:"):]
+        else:
+            return None
+
+    return read(node, filter=compat_prefixed)
 
 
 def fix_data_for_node_create(data):

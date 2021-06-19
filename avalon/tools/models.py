@@ -2,7 +2,7 @@ import re
 import logging
 import collections
 
-from ..vendor.Qt import QtCore, QtGui
+from ..vendor.Qt import Qt, QtCore, QtGui
 from ..vendor import qtawesome
 from .. import io
 from .. import style
@@ -63,7 +63,8 @@ class TreeModel(QtCore.QAbstractItemModel):
                 item[key] = value
 
                 # passing `list()` for PyQt5 (see PYSIDE-462)
-                self.dataChanged.emit(index, index, list())
+                args = () if Qt.IsPySide or Qt.IsPyQt4 else ([role],)
+                self.dataChanged.emit(index, index, *args)
 
                 # must return true if successful
                 return True
@@ -474,6 +475,7 @@ class AssetModel(TreeModel):
 
 class RecursiveSortFilterProxyModel(QtCore.QSortFilterProxyModel):
     """Filters to the regex if any of the children matches allow parent"""
+
     def filterAcceptsRow(self, row, parent):
 
         regex = self.filterRegExp()

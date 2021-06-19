@@ -317,22 +317,22 @@ class View(QtWidgets.QTreeView):
                 child = model.index(row, 0, parent=i)
                 yield child
 
-        subitems = set()
+        subitems = dict()
         for i in indices:
             valid_parent = i.parent().isValid()
-            if valid_parent and i not in subitems:
-                subitems.add(i)
+            if valid_parent and str(i) not in subitems:
+                subitems[str(i)] = i
 
                 if self._hierarchy_view:
                     # Assume this is a group node
                     for child in get_children(i):
-                        subitems.add(child)
+                        subitems[str(child)] = child
             else:
                 # is top level node
                 for child in get_children(i):
-                    subitems.add(child)
+                    subitems[str(child)] = child
 
-        return list(subitems)
+        return list(subitems.values())
 
     def show_version_dialog(self, items):
         """Create a dialog with the available versions for the selected file
